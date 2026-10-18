@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agendar Hora | Movilidad y Salud Asistida</title>
+<meta name="description" content="Agende su hora de traslado clínico o asistencia TENS a domicilio en línea sin necesidad de registro.">
+<script>try{var t=localStorage.getItem('msa-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<style>
+:root{
+  --teal:#0E4A55;--teal2:#0A363F;--sage:#5FA891;--mist:#E6F1EE;
+  --bg:#F7FAF9;--card:#FFFFFF;--ink:#14262B;--mute:#4A6168;--line:#CFE0DB;
+  --wa:#168F4A;--warn:#FBEDED;--warnb:#C26262;--r:14px;
+}
+:root[data-theme="dark"]{
+  --teal:#2dd4bf;--teal2:#115e59;--sage:#34d399;--mist:#16262e;
+  --bg:#10161d;--card:#1a232d;--ink:#e8edf2;--mute:#97a3b0;--line:#2d3945;
+  --wa:#16a34a;--warn:#2c1618;--warnb:#dc2626;
+}
+*{box-sizing:border-box;margin:0}
+body{font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;line-height:1.25;color:var(--teal)}
+h1{font-size:clamp(1.6rem,4.5vw,2.3rem);margin-bottom:.4rem}
+h2{font-size:1.35rem;margin-bottom:.8rem}
+h3{font-size:1.1rem;margin-bottom:.4rem}
+a{color:var(--teal)}
+.wrap{max-width:920px;margin:0 auto;padding:0 18px}
+header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:68px;padding-top:6px;padding-bottom:6px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--teal);font-family:Georgia,serif;font-weight:700}
+.logo img{max-height:64px;width:auto;display:block}
+nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;background:var(--wa);color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:999px;font-size:.98rem;border:2px solid transparent;cursor:pointer;transition:transform .15s,background .15s}
+.btn:hover{background:#12783E;transform:translateY(-1px)}
+.btn.sm{padding:8px 15px;font-size:.88rem}
+.btn.ghost{background:var(--card);color:var(--teal);border-color:var(--teal)}
+.btn.ghost:hover{background:var(--mist)}
+.btn.pri{background:#0f766e;color:#fff}
+.btn.pri:hover{background:#0d5f59}
+.hero-bar{background:linear-gradient(160deg,var(--mist),var(--bg) 80%);padding:32px 0 22px;border-bottom:1px solid var(--line)}
+.hero-bar p{color:var(--mute);max-width:65ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px;margin:20px 0;box-shadow:0 4px 16px rgba(0,0,0,.04)}
+.step-tag{display:inline-block;background:var(--mist);color:var(--teal);font-size:.8rem;font-weight:700;padding:3px 11px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+label{display:block;font-size:.88rem;font-weight:600;color:var(--mute);margin-bottom:5px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-color:transparent}
+.slots-title{font-size:.9rem;font-weight:600;color:var(--mute);margin:16px 0 8px}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px}
+.slot{padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-weight:600;font-size:.92rem;cursor:pointer;text-align:center;transition:all .15s}
+.slot:hover:not(:disabled){border-color:var(--teal);background:var(--mist)}
+.slot.active{background:#0f766e;color:#fff;border-color:#0f766e}
+.slot:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+.status-box{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.92rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.status-box.ok{background:rgba(22,143,74,.12);border:1px solid var(--wa);color:var(--ink)}
+.status-box.err{background:var(--warn);border:1px solid var(--warnb);color:var(--ink)}
+.rqs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:8px}
+.rq-item{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);padding:10px 12px;border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:500;color:var(--ink)}
+.rq-item input{width:18px;height:18px;margin:0}
+.info-banner{background:var(--mist);border-left:5px solid var(--sage);border-radius:10px;padding:14px 18px;font-size:.92rem;color:var(--ink);margin-top:16px}
+.summary-list{list-style:none;padding:0;margin:16px 0;display:grid;gap:8px}
+.summary-list li{display:flex;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);font-size:.95rem;flex-wrap:wrap;gap:6px}
+footer{background:#0A363F;color:#c9dcd8;font-size:.9rem;padding:28px 0;margin-top:40px;text-align:center}
+footer a{color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="logo" href="index.html" aria-label="Volver al inicio">
+      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida">
+    </a>
+    <nav>
+      <a class="btn sm ghost" href="index.html">← Volver al Inicio</a>
+      <button type="button" class="btn sm ghost" id="themeBtn" onclick="toggleTheme()">🌙 Modo oscuro</button>
+      <a class="btn sm ghost" href="admin.html" title="Acceso personal">🔐 Administradores</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero-bar">
+  <div class="wrap">
+    <h1>📅 Agendar Hora de Traslado o Asistencia</h1>
+    <p>Complete los datos a continuación para reservar su bloque horario directamente en nuestra agenda operativa. <b>No requiere cuenta ni inicio de sesión.</b></p>
+  </div>
+</div>
+
+<main class="wrap" id="mainContent">
+  <form id="bookingForm" onsubmit="submitBooking(event)">
+    <!-- PASO 1: FECHA Y HORA -->
+    <section class="card">
+      <span class="step-tag">Paso 1 de 3 · Fecha y Horario</span>
+      <h2>Seleccione cuándo necesita el servicio</h2>
+      <div class="grid">
+        <div>
+          <label for="b_date">Fecha del servicio</label>
+          <input id="b_date" type="date" required onchange="updateSlots()">
+        </div>
+        <div>
+          <label for="b_dur">Modalidad y duración estimada</label>
+          <select id="b_dur" onchange="updateSlots()">
+            <option value="60">Traslado / Control breve (60 min)</option>
+            <option value="90" selected>Consulta médica / Terapia / Diálisis (90 min)</option>
+            <option value="120">Procedimiento o Cuidado a domicilio (2 horas)</option>
+            <option value="180">Acompañamiento extendido (3 horas)</option>
+            <option value="240">Jornada o Evento social (4 horas)</option>
+          </select>
+        </div>
+        <div>
+          <label for="b_time">Hora de recogida en domicilio</label>
+          <input id="b_time" type="time" value="10:00" min="06:00" max="21:00" required oninput="onTimeInput()">
+        </div>
+      </div>
+
+      <div class="slots-title">Horarios sugeridos en esta fecha (toque uno para elegir):</div>
+      <div class="slots" id="slotsGrid"></div>
+
+      <div id="availStatus" class="status-box ok"></div>
+
+      <div style="margin-top:14px">
+        <label for="b_tens">Profesional TENS asignado</label>
+        <select id="b_tens" required></select>
+      </div>
+    </section>
+
+    <!-- PASO 2: PACIENTE Y RUTA -->
+    <section class="card">
+      <span class="step-tag">Paso 2 de 3 · Paciente y Traslado</span>
+      <h2>Información del paciente y recorrido</h2>
+      <div class="grid">
+        <div>
+          <label for="b_pat">Nombre completo del paciente *</label>
+          <input id="b_pat" type="text" placeholder="Ej: Rosa Medina" required>
+        </div>
+        <div>
+          <label for="b_age">Edad del paciente (años) *</label>
+          <input id="b_age" type="number" min="0" max="120" placeholder="Ej: 80" required>
+        </div>
+        <div>
+          <label for="b_dx">Motivo del traslado o diagnóstico base *</label>
+          <input id="b_dx" type="text" placeholder="Ej: Control cardiológico, Diálisis, Kinesiología" required>
+        </div>
+        <div>
+          <label for="b_mob">Condición de movilidad *</label>
+          <select id="b_mob"></select>
+        </div>
+        <div>
+          <label for="b_from">Dirección de Origen (Comuna, Calle y N°) *</label>
+          <input id="b_from" type="text" placeholder="Ej: Maipú, Av. Los Pajaritos 1450" required>
+        </div>
+        <div>
+          <label for="b_to">Dirección de Destino (Clínica / Hospital / Domicilio) *</label>
+          <input id="b_to" type="text" placeholder="Ej: Clínica Indisa / Hospital El Carmen" required>
+        </div>
+        <div>
+          <label for="b_comp">¿Viaja con un acompañante familiar adicional?</label>
+          <select id="b_comp">
+            <option value="No">No, viaja solo con la profesional TENS</option>
+            <option value="Sí">Sí, viaja con 1 acompañante familiar</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <label>Requerimientos asistenciales durante la atención (puede marcar varios):</label>
+        <div class="rqs" id="reqContainer"></div>
+      </div>
+    </section>
+
+    <!-- PASO 3: CONTACTO Y ENVÍO -->
+    <section class="card">
+      <span class="step-tag">Paso 3 de 3 · Datos de Contacto</span>
+      <h2>¿Con quién coordinamos la reserva?</h2>
+      <div class="grid">
+        <div>
+          <label for="b_coord">Su nombre completo (Familiar o Coordinador) *</label>
+          <input id="b_coord" type="text" placeholder="Ej: Andrea Medina" required>
+        </div>
+        <div>
+          <label for="b_ph">Teléfono móvil / WhatsApp (+569) *</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-weight:700;padding:10px 12px;background:var(--mist);border:1px solid var(--line);border-radius:10px;color:var(--teal)">+569</span>
+            <input id="b_ph" type="tel" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <b>📌 Información importante sobre su reserva:</b><br>
+        Al confirmar este formulario, su bloque horario quedará pre-registrado inmediatamente en nuestro sistema. Para confirmar el bloqueo exclusivo del vehículo y profesional TENS, coordinaremos el abono del 50 % vía WhatsApp.
+      </div>
+
+      <div style="margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+        <a class="btn ghost" href="index.html">Cancelar</a>
+        <button type="submit" id="submitBtn" class="btn" style="font-size:1.05rem;padding:14px 30px">📅 Confirmar Hora Ahora</button>
+      </div>
+    </section>
+  </form>
+</main>
+
+<footer>
+  <div class="wrap">
+    <strong>Servicios Integrales de Asistencia, Cuidados y Traslados SpA</strong><br>
+    <span>Maipú, Región Metropolitana · WhatsApp: +56 9 2999 0095</span> · <a href="index.html">Volver al Inicio</a> · <a href="admin.html">Acceso Personal</a>
+  </div>
+</footer>
+
+<script>
+const K='msa-v1',TODAY='2026-10-17',BUF=180,TM_K='msa-theme',WA_NUM='56929990095';
+const MOB=['Camina por sus propios medios','Camina con asistencia/bastón','Silla de ruedas plegable','Postrado/Dependiente severo'];
+const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
+const PRESET_HOURS=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
+
+const $=s=>document.querySelector(s);
+const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=n=>String(n).padStart(2,'0'),fm=m=>pad(Math.floor(m/60))+':'+pad(m%60),tm=t=>{const[a,b]=t.split(':');return +a*60+ +b};
+
+function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x){}return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  try{localStorage.setItem(TM_K,t)}catch(x){}
+  const btn=$('#themeBtn');
+  if(btn) btn.textContent = t==='dark' ? '☀️ Modo claro' : '🌙 Modo oscuro';
+}
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme')||getTheme();
+  applyTheme(cur==='dark'?'light':'dark');
+}
+
+function seed(){
+  const sv=(id,tid,start,dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st)=>({id,tid,date:TODAY,start:tm(start),dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st});
+  return{nid:10,techs:[
+    {id:'t1',nom:'Camila Rojas',rut:'16.123.456-7',tel:'+56911112222',veh:'Renault Symbol (patente por definir)',col:'#0f766e',act:true},
+    {id:'t2',nom:'Marcos Vera',rut:'15.987.654-3',tel:'+56933334444',veh:'Móvil 2',col:'#c2410c',act:true},
+    {id:'t3',nom:'Paola Núñez',rut:'17.555.222-K',tel:'+56955556666',veh:'Sin vehículo',col:'#7c3aed',act:false}],
+  svcs:[
+    sv(1,'t1','08:00',60,'Rosa Medina',82,'Control cardiológico','Andrea Medina','+56977778888','Maipú, Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,35000,15000,'Finalizado'),
+    sv(2,'t1','12:00',90,'Jorge Salas',76,'Kinesiología post cadera','Luis Salas','+56966665555','Maipú, Camino a Rinconada 800','Hospital Clínico UC, Santiago','Camina con asistencia/bastón',['Solo traslado'],false,28000,28000,'Confirmado'),
+    sv(3,'t2','09:30',90,'María Opazo',88,'Diálisis ambulatoria','Pía Opazo','+56944443333','Cerrillos, Av. Central 2210','Centro de Diálisis, Estación Central','Postrado/Dependiente severo',['Control de signos vitales','Administración de medicamentos'],true,45000,20000,'Pendiente')
+  ]};
+}
+
+function load(){try{return JSON.parse(localStorage.getItem(K))}catch(x){return null}}
+function save(){try{localStorage.setItem(K,JSON.stringify(D))}catch(x){}}
+let D=load()||seed();
+save();
+
+function avail(tid,date,start,dur,ign){
+  return !D.svcs.some(s=>s.tid==tid&&s.date==date&&s.st!='Cancelado'&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF);
+}
+
+function getAvailTechs(date,startMin,dur){
+  const act=D.techs.filter(t=>t.act);
+  return act.filter(t=>avail(t.id,date,startMin,dur));
+}
+
+function initForm(){
+  applyTheme(getTheme());
+  $('#b_date').value = TODAY;
+  $('#b_mob').innerHTML = MOB.map(m=>`<option value="${e(m)}">${e(m)}</option>`).join('');
+  $('#reqContainer').innerHTML = REQ.map((r,i)=>`
+    <label class="rq-item">
+      <input type="checkbox" class="rq-cb" value="${e(r)}" ${i===1?'checked':''}>
+      <span>${e(r)}</span>
+    </label>
+  `).join('');
+  updateSlots();
+}
+
+function selectSlot(h){
+  $('#b_time').value = h;
+  updateSlots();
+}
+
+function onTimeInput(){
+  updateSlots();
+}
+
+function updateSlots(){
+  D = load() || D;
+  const date = $('#b_date').value || TODAY;
+  const dur = +$('#b_dur').value || 90;
+  const curTime = $('#b_time').value || '10:00';
+  
+  // Render preset slots
+  const grid = $('#slotsGrid');
+  grid.innerHTML = PRESET_HOURS.map(h => {
+    const mins = tm(h);
+    const okTechs = getAvailTechs(date, mins, dur);
+    const isAvail = okTechs.length > 0;
+    const isSel = curTime === h;
+    return `<button type="button" class="slot ${isSel?'active':''}" ${!isAvail?'disabled title="Sin disponibilidad en este bloque"':''} onclick="selectSlot('${h}')">
+      ${h}
+    </button>`;
+  }).join('');
+
+  // Check current selected time
+  const stMin = tm(curTime);
+  const ok = getAvailTechs(date, stMin, dur);
+  const stBox = $('#availStatus');
+  const tensSelect = $('#b_tens');
+  const subBtn = $('#submitBtn');
+
+  if(ok.length > 0){
+    stBox.className = 'status-box ok';
+    stBox.innerHTML = `<span>✅ <b>Horario disponible (${curTime} a ${fm(stMin+dur)})</b> · ${ok.length} profesional(es) TENS disponible(s).</span>`;
+    tensSelect.innerHTML = ok.map((t,idx)=>`<option value="${t.id}">${idx===0?'Asignación inmediata: ':''}${e(t.nom)} (${e(t.veh||'TENS en terreno')})</option>`).join('');
+    tensSelect.disabled = false;
+    subBtn.disabled = false;
+  } else {
+    stBox.className = 'status-box err';
+    stBox.innerHTML = `<span>⚠️ <b>El horario de las ${curTime} ya se encuentra reservado o en tiempo de traslado.</b> Por favor seleccione otro botón de horario disponible arriba.</span>`;
+    tensSelect.innerHTML = `<option value="">Sin TENS disponible en este horario</option>`;
+    tensSelect.disabled = true;
+    subBtn.disabled = true;
+  }
+}
+
+function submitBooking(ev){
+  ev.preventDefault();
+  D = load() || D;
+  const date = $('#b_date').value;
+  const timeStr = $('#b_time').value;
+  const start = tm(timeStr);
+  const dur = +$('#b_dur').value;
+  const tid = $('#b_tens').value;
+
+  if(!tid || !avail(tid, date, start, dur)){
+    alert('Este horario acaba de ocuparse. Por favor elija otro horario disponible.');
+    updateSlots();
+    return;
+  }
+
+  const pat = $('#b_pat').value.trim();
+  const age = +$('#b_age').value;
+  const dx = $('#b_dx').value.trim();
+  const mob = $('#b_mob').value;
+  const from = $('#b_from').value.trim();
+  const to = $('#b_to').value.trim();
+  const comp = $('#b_comp').value === 'Sí';
+  const coord = $('#b_coord').value.trim();
+  const ph = '+569' + $('#b_ph').value.trim();
+  const reqs = [...document.querySelectorAll('.rq-cb:checked')].map(x=>x.value);
+  if(reqs.length === 0) reqs.push('Solo traslado');
+
+  const newId = D.nid++;
+  const newSvc = {
+    id: newId,
+    tid,
+    date,
+    start,
+    dur,
+    pat,
+    age,
+    dx,
+    coord,
+    ph,
+    from,
+    to,
+    mob,
+    req: reqs,
+    comp,
+    fare: 0,
+    paid: 0,
+    st: 'Pendiente'
+  };
+
+  D.svcs.push(newSvc);
+  save();
+
+  const techObj = D.techs.find(t=>t.id===tid) || {nom:'TENS Asignado'};
+  const waText = `Hola, acabo de agendar una hora en la web (Reserva #MSA-${newId}).\n` +
+    `• Fecha: ${date}\n` +
+    `• Hora: ${timeStr} (${dur} min)\n` +
+    `• Paciente: ${pat} (${age} años)\n` +
+    `• Motivo: ${dx}\n` +
+    `• Movilidad: ${mob}\n` +
+    `• Origen: ${from}\n` +
+    `• Destino: ${to}\n` +
+    `• Contacto: ${coord} (${ph})\n` +
+    `Quedo atento/a para el valor exacto y realizar el abono del 50%.`;
+  const waUrl = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waText)}`;
+
+  $('#mainContent').innerHTML = `
+    <section class="card" style="text-align:center;padding:36px 24px">
+      <div style="font-size:3rem;margin-bottom:8px">🎉</div>
+      <span class="step-tag">Solicitud Registrada · Folio #MSA-${newId}</span>
+      <h2 style="margin-top:6px">¡Su hora ha sido pre-agendada con éxito!</h2>
+      <p style="color:var(--mute);max-width:55ch;margin:8px auto 20px">
+        Su solicitud ya está visible en el sistema de nuestros supervisores y de la profesional TENS asignada.
+      </p>
+
+      <ul class="summary-list" style="max-width:560px;margin:20px auto;text-align:left">
+        <li><span>📅 <b>Fecha y Hora:</b></span> <span>${e(date)} · ${fm(start)} a ${fm(start+dur)} hrs</span></li>
+        <li><span>🩺 <b>Profesional TENS:</b></span> <span>${e(techObj.nom)}</span></li>
+        <li><span>👤 <b>Paciente:</b></span> <span>${e(pat)} (${age} años)</span></li>
+        <li><span>🏥 <b>Motivo / Atención:</b></span> <span>${e(dx)}</span></li>
+        <li><span>♿ <b>Movilidad:</b></span> <span>${e(mob)} ${comp?'· Con acompañante':''}</span></li>
+        <li><span>📍 <b>Recogida:</b></span> <span>${e(from)}</span></li>
+        <li><span>🏁 <b>Destino:</b></span> <span>${e(to)}</span></li>
+        <li><span>📞 <b>Coordinador:</b></span> <span>${e(coord)} (${e(ph)})</span></li>
+      </ul>
+
+      <div class="info-banner" style="max-width:560px;margin:18px auto;text-align:left">
+        <b>Siguiente paso (Confirmación de Abono 50%):</b><br>
+        Envíe su comprobante de reserva por WhatsApp tocando el botón verde abajo para recibir la cotización exacta de su ruta y los datos de transferencia.
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px">
+        <a class="btn" href="${waUrl}" target="_blank" rel="noopener">💬 Enviar mi reserva por WhatsApp</a>
+        <a class="btn ghost" href="reservar.html">📅 Agendar otra hora</a>
+        <a class="btn ghost" href="index.html">← Volver al inicio</a>
+      </div>
+    </section>
+  `;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+addEventListener('storage',ev=>{
+  if(ev.key===K) updateSlots();
+  if(ev.key===TM_K) applyTheme(ev.newValue);
+});
+
+initForm();
+</script>
+</body>
+</html>

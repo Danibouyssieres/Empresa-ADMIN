@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Traslados clínicos y cuidados a domicilio en Maipú | Atendido por TENS</title>
 <meta name="description" content="Traslado clínico programado y cuidados a domicilio para adultos mayores y personas con movilidad reducida, atendido directamente por una TENS. Maipú y Región Metropolitana.">
+<script>try{var t=localStorage.getItem('msa-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <style>
-:root{--teal:#0E4A55;--teal2:#0A363F;--sage:#5FA891;--mist:#E6F1EE;--bg:#F7FAF9;--ink:#14262B;--mute:#4A6168;--line:#CFE0DB;--wa:#168F4A;--warn:#FBEDED;--warnb:#C26262;--r:14px}
+:root{--teal:#0E4A55;--teal2:#0A363F;--sage:#5FA891;--mist:#E6F1EE;--bg:#F7FAF9;--card:#FFFFFF;--ink:#14262B;--mute:#4A6168;--line:#CFE0DB;--wa:#168F4A;--warn:#FBEDED;--warnb:#C26262;--r:14px}
+:root[data-theme="dark"]{--teal:#2dd4bf;--teal2:#0f3d3e;--sage:#34d399;--mist:#16262e;--bg:#10161d;--card:#1a232d;--ink:#e8edf2;--mute:#97a3b0;--line:#2d3945;--wa:#16a34a;--warn:#2c1618;--warnb:#dc2626}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
@@ -21,17 +23,17 @@ a{color:var(--teal)}
 .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
 section{padding:64px 0}
 .lead{color:var(--mute);margin-bottom:28px}
-.btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--wa);color:#fff;text-decoration:none;font-weight:700;padding:16px 28px;border-radius:999px;font-size:1.05rem;box-shadow:0 6px 18px rgba(22,143,74,.3);transition:transform .15s,background .15s}
+.btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--wa);color:#fff;text-decoration:none;font-weight:700;padding:16px 28px;border-radius:999px;font-size:1.05rem;box-shadow:0 6px 18px rgba(22,143,74,.3);border:2px solid transparent;cursor:pointer;transition:transform .15s,background .15s}
 .btn:hover{background:#12783E;transform:translateY(-2px)}
 .btn.sm{padding:9px 18px;font-size:.95rem;box-shadow:none}
-.btn.ghost{background:#fff;color:var(--teal);border:2px solid var(--teal);box-shadow:none}
+.btn.ghost{background:var(--card);color:var(--teal);border:2px solid var(--teal);box-shadow:none}
 .btn.ghost:hover{background:var(--mist)}
-header{position:sticky;top:0;z-index:20;background:rgba(247,250,249,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header{position:sticky;top:0;z-index:20;background:var(--card);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px}
 .logo{font-family:Georgia,serif;font-weight:700;color:var(--teal);text-decoration:none;font-size:1.05rem;line-height:1.15}
 .logo{display:flex;align-items:center}
 .logo img{max-height:85px;width:auto;max-width:100%;display:block}
-nav{display:flex;gap:18px;align-items:center}
+nav{display:flex;gap:14px;align-items:center}
 nav a:not(.btn){text-decoration:none;color:var(--ink);font-size:.95rem}
 nav a:not(.btn):hover{color:var(--sage)}
 @media(max-width:820px){
@@ -45,22 +47,22 @@ nav a:not(.btn):hover{color:var(--sage)}
 .hero .wrap{display:grid;gap:36px;grid-template-columns:1.25fr 1fr;align-items:center}
 .hero p.sub{font-size:1.2rem;color:var(--mute);margin:18px 0 26px;max-width:52ch}
 .hero small{display:block;margin-top:12px;color:var(--mute);font-size:.9rem}
-.ph{background:repeating-linear-gradient(45deg,#d6e8e3,#d6e8e3 12px,#e6f1ee 12px,#e6f1ee 24px);border:2px dashed var(--sage);border-radius:var(--r);display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;color:var(--teal2);font-size:.9rem;font-weight:600}
+.ph{background:repeating-linear-gradient(45deg,var(--mist),var(--mist) 12px,var(--bg) 12px,var(--bg) 24px);border:2px dashed var(--sage);border-radius:var(--r);display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;color:var(--teal);font-size:.9rem;font-weight:600}
 .hero .ph{aspect-ratio:4/5;max-height:440px}
 @media(max-width:820px){.hero .wrap{grid-template-columns:1fr}.hero .ph{aspect-ratio:16/10}}
-.trust{background:var(--teal);color:#fff}
+.trust{background:#0E4A55;color:#fff}
 .trust ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:8px 20px}
 .trust li{padding:18px 0;font-size:.98rem;display:flex;gap:10px;align-items:center}
 .trust li::before{content:"✓";color:#8fe0c0;font-weight:800}
 @media(max-width:820px){.trust ul{grid-template-columns:1fr 1fr}.trust li{padding:10px 0;font-size:.9rem}}
 .grid{display:grid;gap:18px;grid-template-columns:repeat(2,1fr)}
 @media(max-width:720px){.grid{grid-template-columns:1fr}}
-.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px}
 .card .tag{display:inline-block;background:var(--mist);color:var(--teal);font-size:.85rem;font-weight:700;padding:3px 12px;border-radius:999px;margin-bottom:10px}
 .card .for{margin-top:12px;font-size:.95rem;color:var(--mute)}
-.band{margin-top:22px;background:var(--teal);color:#fff;border-radius:var(--r);padding:26px 28px;display:grid;gap:10px}
+.band{margin-top:22px;background:#0E4A55;color:#fff;border-radius:var(--r);padding:26px 28px;display:grid;gap:10px}
 .band h3{color:#fff}.band b{color:#8fe0c0}
-.alt{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.alt{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .formula{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;font-family:Georgia,serif;font-size:clamp(1.15rem,3.6vw,1.6rem);color:var(--teal);background:var(--mist);border-radius:var(--r);padding:20px 24px;margin-bottom:18px}
 .formula span.op{color:var(--sage);font-weight:700}
 .bullets{padding-left:1.2rem;margin:10px 0 24px}.bullets li{margin:6px 0}
@@ -68,12 +70,12 @@ nav a:not(.btn):hover{color:var(--sage)}
 @media(max-width:720px){.rings{grid-template-columns:1fr}}
 .target{position:relative;width:200px;height:200px;margin:0 auto}
 .target i{position:absolute;border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%);border:2px solid var(--teal)}
-.target i:nth-child(1){width:200px;height:200px;background:#E6F1EE}
-.target i:nth-child(2){width:132px;height:132px;background:#BFDDD3}
-.target i:nth-child(3){width:64px;height:64px;background:var(--teal)}
+.target i:nth-child(1){width:200px;height:200px;background:var(--mist)}
+.target i:nth-child(2){width:132px;height:132px;background:#5FA891}
+.target i:nth-child(3){width:64px;height:64px;background:#0E4A55}
 .target b{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-size:.72rem;z-index:2}
 .rl{display:grid;gap:12px}
-.ring{background:#fff;border:1px solid var(--line);border-left:6px solid var(--teal);border-radius:var(--r)}
+.ring{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--teal);border-radius:var(--r)}
 .ring:nth-child(2){border-left-color:#3E8F7A}.ring:nth-child(3){border-left-color:var(--sage)}
 .ring summary{list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:14px}
 .ring summary > span:first-child{flex:1}
@@ -94,22 +96,22 @@ nav a:not(.btn):hover{color:var(--sage)}
 .tw th,.tw td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .tw thead th{background:var(--mist);color:var(--teal)}
 .tw th small{display:block;font-weight:400;color:var(--mute);font-size:.8rem}
-.tw tbody th{background:#fff;color:var(--ink)}
+.tw tbody th{background:var(--card);color:var(--ink)}
 .plans{list-style:none;padding:0;display:grid;gap:12px}
 .plans li{background:rgba(255,255,255,.1);border-radius:12px;padding:16px 18px;display:grid;gap:2px}
 .plans .pn{font-family:Georgia,serif;font-size:1.15rem;font-weight:700}
 .plans .pd{font-size:.95rem;color:#d3e6e1}
 .plans .pp{font-family:Georgia,serif;font-size:1.5rem;font-weight:700;color:#8fe0c0;margin-top:4px}
-.pro .dest{background:var(--mist);border-left:5px solid var(--sage);border-radius:10px;padding:14px 18px;font-weight:600;color:var(--teal2);margin:12px 0}
+.pro .dest{background:var(--mist);border-left:5px solid var(--sage);border-radius:10px;padding:14px 18px;font-weight:600;color:var(--teal);margin:12px 0}
 .note{background:var(--mist);border-radius:var(--r);padding:18px 22px;margin-top:18px;font-size:.98rem}
 .note li{margin:5px 0}
 .vit{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
 @media(max-width:820px){.vit{grid-template-columns:1fr}}
-.vit .big{background:var(--teal);color:#fff;border-radius:var(--r);padding:30px}
+.vit .big{background:#0E4A55;color:#fff;border-radius:var(--r);padding:30px}
 .vit .big h3{color:#fff;font-size:1.5rem}
 .vit .big ul{margin:14px 0 14px 1.2rem}
-.vit .big .free{display:inline-block;background:#8fe0c0;color:var(--teal2);font-weight:800;border-radius:999px;padding:3px 14px;margin-bottom:12px;font-size:.9rem}
-.pro{display:grid;grid-template-columns:220px 1fr;gap:30px;align-items:center;background:#fff;border:2px solid var(--sage);border-radius:var(--r);padding:28px}
+.vit .big .free{display:inline-block;background:#8fe0c0;color:#0A363F;font-weight:800;border-radius:999px;padding:3px 14px;margin-bottom:12px;font-size:.9rem}
+.pro{display:grid;grid-template-columns:220px 1fr;gap:30px;align-items:center;background:var(--card);border:2px solid var(--sage);border-radius:var(--r);padding:28px}
 .pro .ph{width:220px;height:220px;border-radius:50%;padding:20px}
 .pro dl{margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:1rem}
 .pro dt{color:var(--mute)}.pro dd{font-weight:700}
@@ -117,16 +119,16 @@ nav a:not(.btn):hover{color:var(--sage)}
 .sf{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 @media(max-width:900px){.sf{grid-template-columns:1fr}}
 .stop{margin-top:22px;background:var(--warn);border:2px solid var(--warnb);border-radius:var(--r);padding:24px}
-.stop h3{color:#8A2F2F}.stop strong.sam{display:block;margin-top:12px;color:#8A2F2F}
+.stop h3{color:#ef4444}.stop strong.sam{display:block;margin-top:12px;color:#ef4444}
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
 @media(max-width:820px){.steps{grid-template-columns:1fr}}
-.step{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px;counter-increment:s;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
-.step::before{content:counter(s);width:42px;height:42px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;font:700 1.2rem Georgia,serif;margin-bottom:6px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px;counter-increment:s;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.step::before{content:counter(s);width:42px;height:42px;border-radius:50%;background:#0E4A55;color:#fff;display:grid;place-items:center;font:700 1.2rem Georgia,serif;margin-bottom:6px}
 .step .btn{margin-top:auto}
-.cancel{margin-top:22px;border-left:6px solid var(--sage);background:#fff;border-radius:var(--r);padding:22px 26px}
-.final{background:var(--teal);text-align:center;color:#fff}
+.cancel{margin-top:22px;border-left:6px solid var(--sage);background:var(--card);border-radius:var(--r);padding:22px 26px}
+.final{background:#0E4A55;text-align:center;color:#fff}
 .final h2{color:#fff;max-width:20ch;margin:0 auto 22px}
-footer{background:var(--teal2);color:#c9dcd8;font-size:.92rem;padding:36px 0 110px}
+footer{background:#0A363F;color:#c9dcd8;font-size:.92rem;padding:36px 0 110px}
 footer a{color:#fff}
 footer .wrap{display:grid;gap:8px}
 .wa-float{position:fixed;right:18px;bottom:18px;z-index:50;display:flex;align-items:center;gap:10px;background:var(--wa);color:#fff;text-decoration:none;font-weight:700;border-radius:999px;padding:14px 20px;box-shadow:0 8px 24px rgba(0,0,0,.28)}
@@ -145,8 +147,9 @@ footer .wrap{display:grid;gap:8px}
       <a href="#tarifas">Tarifas</a>
       <a href="#seguridad">Seguridad</a>
       <a href="#agendar">Cómo agendar</a>
-      <a class="btn sm" href="#agendar" title="Solicitar o cotizar reserva">📅 Reservar</a>
+      <a class="btn sm" href="reservar.html" title="Agendar una hora en línea">📅 Reservar</a>
       <a class="btn sm ghost" href="admin.html" title="Acceso para Administrador y Técnicos TENS">🔐 Administradores</a>
+      <button type="button" class="btn sm ghost" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
     </nav>
   </div>
 </header>
@@ -159,7 +162,7 @@ footer .wrap{display:grid;gap:8px}
     <div>
       <p class="sub">Ofrecemos asistencia/acompañamiento y traslado para personas con movilidad reducida temporal o permanente, entregando la tranquilidad que usted necesita. Cada servicio es realizado de manera personalizada por un Técnico en Enfermería de Nivel Superior (TENS), garantizando un trato digno y seguro durante toda la atención.</p>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-        <a class="btn" href="#agendar">📅 Reservar traslado</a>
+        <a class="btn" href="reservar.html">📅 Reservar hora en línea</a>
         <a class="btn ghost" data-msg="Hola, vengo de la página web y necesito cotizar un servicio. Origen: ___ Destino: ___ Fecha: ___ Hora: ___" href="#">💬 Cotizar por WhatsApp</a>
       </div>
       <small>Respuesta personalizada · Cotización previa sin compromiso</small>
@@ -318,8 +321,12 @@ footer .wrap{display:grid;gap:8px}
 <section id="agendar" class="alt"><div class="wrap">
   <h2>Reservar es simple</h2>
   <div class="steps" style="margin-top:22px">
-    <div class="step"><h3>Cotice su ruta por WhatsApp</h3><p>Cuéntenos origen, destino, fecha y hora. Le respondemos con el valor exacto antes de que usted decida.</p>
-      <a class="btn sm" data-msg="Hola, vengo de la página web y necesito cotizar un servicio. Origen: ___ Destino: ___ Fecha: ___ Hora: ___" href="#">💬 Cotizar ahora</a></div>
+    <div class="step"><h3>Agende su hora en línea o por WhatsApp</h3><p>Elija fecha, horario disponible y datos del recorrido en nuestro formulario directo (sin registro) o escríbanos por WhatsApp.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">
+        <a class="btn sm" href="reservar.html">📅 Agendar hora en línea</a>
+        <a class="btn sm ghost" data-msg="Hola, vengo de la página web y necesito cotizar un servicio. Origen: ___ Destino: ___ Fecha: ___ Hora: ___" href="#">💬 WhatsApp</a>
+      </div>
+    </div>
     <div class="step"><h3>Abone el 50 % y bloquee su hora en exclusiva</h3><p>El abono es el 50 % del total cotizado (o de la tarifa mínima de su zona, si el cálculo resulta menor). Reservamos el vehículo y el profesional solo para usted. Tras recibir los datos bancarios, el cupo se mantiene 1 hora; al recibir su comprobante por WhatsApp, la reserva queda confirmada.</p></div>
     <div class="step"><h3>Pague el saldo al finalizar</h3><p>El 50 % restante, se paga ajustando el tiempo real de asistencia, se paga al terminar: efectivo, transferencia o tarjeta de débito/crédito (con terminal de pago en terreno).</p></div>
   </div>
@@ -329,14 +336,16 @@ footer .wrap{display:grid;gap:8px}
       <li><b>Reprogramación de servicios:</b> Si necesita cambiar su hora, debe avisar con al menos 12 horas de anticipación. Su abono se conservará íntegro como saldo a favor para agendar una nueva fecha dentro de los próximos 15 días (máximo una reprogramación por servicio).</li>
       <li><b>Avisos con menos de 12 horas:</b> Si solicita cancelar o reprogramar con menos de 12 horas de anticipación, el abono se pierde en su totalidad para cubrir el tiempo bloqueado. Si desea reagendar, deberá realizar una nueva reserva desde cero.</li>
     </ul>
-    </ul>
     <p style="font-size:.95rem;color:var(--mute)">Estas políticas nos permiten reservar su horario en exclusiva y no atender a otras familias en ese momento. El pago del abono implica la aceptación de los <a href="[URL_TERMINOS_PDF]">Términos y Condiciones</a>.</p></div>
 </div></section>
 
 <!-- BLOQUE 7: CIERRE -->
 <section class="final"><div class="wrap">
   <h2>Usted cuida a quien más quiere. Permítanos cuidarlos a ambos.</h2>
-  <a class="btn" data-msg="Hola, vengo de la página web y necesito cotizar un servicio." href="#">💬 Cotizar traslado por WhatsApp</a>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a class="btn" href="reservar.html">📅 Agendar hora en línea</a>
+    <a class="btn ghost" style="background:transparent;color:#fff;border-color:#fff" data-msg="Hola, vengo de la página web y necesito cotizar un servicio." href="#">💬 Cotizar por WhatsApp</a>
+  </div>
 </div></section>
 </main>
 
@@ -344,7 +353,7 @@ footer .wrap{display:grid;gap:8px}
   <strong style="color:#fff">Servicios Integrales de Asistencia, Cuidados y Traslados SpA</strong>
   <span>RUT 78.521.776-4 · Maipú, Región Metropolitana</span>
   <span>WhatsApp: +56 9 2999 0095 · Correo: <a href="mailto:movilidadysaludasistida@gmail.com">movilidadysaludasistida@gmail.com</a></span>
-  <span><a href="[URL_TERMINOS_PDF]">Términos y Condiciones del Servicio</a> · <a href="admin.html">Acceso Administradores / TENS</a></span>
+  <span><a href="[URL_TERMINOS_PDF]">Términos y Condiciones del Servicio</a> · <a href="reservar.html">Agendar Hora</a> · <a href="admin.html">Acceso Administradores / TENS</a></span>
   <span>Servicio de traslado y acompañamiento programado. No constituye servicio de urgencia.</span>
   <span>© <span id="y"></span> Todos los derechos reservados.</span>
 </div></footer>
@@ -352,6 +361,21 @@ footer .wrap{display:grid;gap:8px}
 <a class="wa-float" data-msg="Hola, vengo de la página web y necesito cotizar un servicio." href="#" aria-label="Escribir por WhatsApp"><span class="ic">💬</span><span class="t">Escríbanos por WhatsApp</span></a>
 
 <script>
+const TM_K = "msa-theme";
+function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x){}return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  try{localStorage.setItem(TM_K,t)}catch(x){}
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent = t==='dark' ? '☀️' : '🌙';
+}
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme')||getTheme();
+  applyTheme(cur==='dark'?'light':'dark');
+}
+applyTheme(getTheme());
+addEventListener('storage',function(ev){if(ev.key===TM_K)applyTheme(ev.newValue)});
+
 // ===== CONFIGURACIÓN AUTOMÁTICA DE WHATSAPP =====
 const WA_NUMBER = "56929990095";
 document.querySelectorAll("[data-msg]").forEach(function(a){
