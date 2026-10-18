@@ -58,7 +58,10 @@ input:focus,select:focus{outline:2px solid var(--teal);border-color:transparent}
 .sug-item b{color:var(--teal);display:block}
 .sug-item small{color:var(--mute)}
 
-.roundtrip-badge{background:var(--mist);border:1px solid var(--sage);color:var(--teal);border-radius:10px;padding:10px 14px;font-size:.9rem;font-weight:600;margin:12px 0;display:flex;align-items:center;gap:8px}
+.trip-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.trip-opt{padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font-weight:700;font-size:.92rem;cursor:pointer;text-align:center;transition:all .15s}
+.trip-opt:hover{border-color:var(--sage)}
+.trip-opt.active{border-color:var(--teal);background:var(--mist);color:var(--teal)}
 
 .map-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .map-btn{flex:1;min-width:140px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -107,7 +110,7 @@ footer a{color:#fff}
 <div class="hero-bar">
   <div class="wrap">
     <h1>🗺️ Calculadora de Kilómetros y Valor de Ruta</h1>
-    <p>Ingrese la calle, numeración exacta y comuna de inicio y término (o marque los puntos en el mapa) para conocer los kilómetros totales del circuito de <b>ida y vuelta</b>. <b>Cada kilómetro equivale a $1.000.</b></p>
+    <p>Ingrese la calle, numeración exacta y comuna de inicio y término (o marque los puntos en el mapa) para conocer los kilómetros totales de su traslado. <b>Cada kilómetro equivale a $1.000.</b></p>
   </div>
 </div>
 
@@ -138,25 +141,32 @@ footer a{color:#fff}
         <div id="sugTo" class="suggestions"></div>
       </div>
 
-      <div class="roundtrip-badge">
-        <span>🔄</span>
-        <span>Todos los traslados se calculan en circuito completo de <b>Ida y Vuelta (A → B → A)</b>.</span>
+      <!-- MODALIDAD DE TRAYECTO (IDA Y VUELTA POR DEFECTO) -->
+      <label style="margin-top:10px">Modalidad del recorrido:</label>
+      <div class="trip-toggle">
+        <button type="button" id="btnIdaVuelta" class="trip-opt active" onclick="setTripMode(2)">
+          🔄 Ida y Vuelta (A → B → A)
+        </button>
+        <button type="button" id="btnIda" class="trip-opt" onclick="setTripMode(1)">
+          ➡️ Solo Ida (A → B)
+        </button>
       </div>
 
       <button type="button" class="btn" style="width:100%;margin-top:6px" onclick="calculateNow()">
-        🧮 Calcular Kilómetros (Ida y Vuelta) y Valor
+        🧮 Calcular Kilómetros y Valor
       </button>
 
       <!-- RESULTADO -->
       <div id="resultPanel" class="result-box" style="display:none">
-        <div class="result-km">Distancia total Ida y Vuelta: <b id="outKm">0 km</b> <span id="outTime" style="font-size:.9rem"></span></div>
+        <div class="result-km"><span id="lblResultTitle">Distancia total Ida y Vuelta:</span> <b id="outKm">0 km</b> <span id="outTime" style="font-size:.9rem"></span></div>
         <div class="result-price" id="outPrice">$0</div>
-        <div class="result-sub">Tarifa por distancia: <b>$1.000 por cada kilómetro</b> (circuito ida y vuelta)</div>
+        <div class="result-sub">Tarifa fija por distancia: <b>$1.000 por cada kilómetro</b></div>
 
         <ul class="breakdown">
           <li><span>Distancia de Ida (A → B):</span> <b id="bdOneWay">0 km</b></li>
-          <li><span>Distancia de Regreso (B → A):</span> <b id="bdReturn">0 km</b></li>
-          <li><span>Kilómetros totales (Ida y Vuelta):</span> <b id="bdTotalKm">0 km × $1.000</b></li>
+          <li id="rowReturn"><span>Distancia de Regreso (B → A):</span> <b id="bdReturn">0 km</b></li>
+          <li><span>Modalidad seleccionada:</span> <b id="bdMode">Ida y Vuelta</b></li>
+          <li><span>Kilómetros totales a tarificar:</span> <b id="bdTotalKm">0 km × $1.000</b></li>
           <li style="border-top:1px dashed var(--line);padding-top:8px;margin-top:4px;color:var(--teal);font-size:1rem">
             <span><b>Valor Total por Kilómetros:</b></span> <b id="bdTotalPrice">$0</b>
           </li>
@@ -256,8 +266,12 @@ let ptTo = null;
 let markerFrom = null;
 let markerTo = null;
 let routeLine = null;
-let lastOneWayKm = 0;
-let lastDurationMin = 0;
+let tripMultiplier = 2; // 2 = Ida y Vuelta (por defecto), 1 = Solo Ida
+let lastIdaKm = 0;
+let lastVueltaKm = 0;
+let lastRoundTripKm = 0;
+let lastIdaMin = 0;
+let lastRoundTripMin = 0;
 let pickMode = 'from';
 let typeTimers = {from:null, to:null};
 
@@ -279,6 +293,15 @@ const iconB = L.divIcon({
   iconSize: [32, 32],
   iconAnchor: [16, 16]
 });
+
+function setTripMode(mult){
+  tripMultiplier = mult;
+  $('#btnIdaVuelta').classList.toggle('active', mult === 2);
+  $('#btnIda').classList.toggle('active', mult === 1);
+  if(ptFrom && ptTo){
+    computeRoute();
+  }
+}
 
 function setPickMode(m){
   pickMode = m;
@@ -531,19 +554,22 @@ async function calculateNow(){
 
 async function computeRoute(){
   if(!ptFrom || !ptTo) return;
-  setStatus('🚗 Calculando kilómetros exactos de Ida y Vuelta...');
+  const isRoundTrip = tripMultiplier === 2;
+  setStatus(isRoundTrip ? '🚗 Calculando kilómetros exactos de Ida y Vuelta...' : '🚗 Calculando kilómetros exactos de Solo Ida...');
   try{
-    // Calcular trayecto de Ida (A->B) y Vuelta (B->A) real por calles y sentidos de tránsito
-    const url = `https://router.project-osrm.org/route/v1/driving/${ptFrom.lon},${ptFrom.lat};${ptTo.lon},${ptTo.lat};${ptFrom.lon},${ptFrom.lat}?overview=full&geometries=geojson`;
+    const coords = isRoundTrip
+      ? `${ptFrom.lon},${ptFrom.lat};${ptTo.lon},${ptTo.lat};${ptFrom.lon},${ptFrom.lat}`
+      : `${ptFrom.lon},${ptFrom.lat};${ptTo.lon},${ptTo.lat}`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
     const r = await fetch(url);
     const data = await r.json();
 
     if(data && data.routes && data.routes.length > 0){
       const route = data.routes[0];
       const legs = route.legs || [];
-      const idaKm = legs[0] ? legs[0].distance / 1000 : (route.distance / 2000);
-      const vueltaKm = legs[1] ? legs[1].distance / 1000 : idaKm;
-      const totalRoundTripKm = route.distance / 1000;
+      lastIdaKm = legs[0] ? legs[0].distance / 1000 : (route.distance / (isRoundTrip ? 2000 : 1000));
+      lastVueltaKm = isRoundTrip ? (legs[1] ? legs[1].distance / 1000 : lastIdaKm) : 0;
+      lastRoundTripKm = route.distance / 1000;
       const totalDurationMin = Math.round(route.duration / 60);
 
       if(routeLine) map.removeLayer(routeLine);
@@ -552,15 +578,18 @@ async function computeRoute(){
       }).addTo(map);
       map.fitBounds(routeLine.getBounds(), {padding:[45,45]});
 
-      renderPricing(idaKm, vueltaKm, totalRoundTripKm, totalDurationMin);
-      setStatus('✅ Ruta de Ida y Vuelta calculada. Puede mover los pines A o B en el mapa si desea ajustar el punto exacto.');
+      renderPricing(lastIdaKm, lastVueltaKm, lastRoundTripKm, totalDurationMin);
+      setStatus(isRoundTrip
+        ? '✅ Ruta de Ida y Vuelta calculada. Puede mover los pines A o B en el mapa si desea ajustar el punto exacto.'
+        : '✅ Ruta de Solo Ida calculada. Puede mover los pines A o B en el mapa si desea ajustar el punto exacto.');
     } else {
       setStatus('⚠️ No se pudo trazar ruta vehicular entre ambos puntos.');
     }
   }catch(e){
     const dKm = haversineKm(ptFrom.lat, ptFrom.lon, ptTo.lat, ptTo.lon) * 1.3;
-    renderPricing(dKm, dKm, dKm * 2, Math.round(dKm * 4));
-    setStatus('✅ Distancia de Ida y Vuelta calculada.');
+    const totalKm = isRoundTrip ? dKm * 2 : dKm;
+    renderPricing(dKm, isRoundTrip ? dKm : 0, totalKm, Math.round(totalKm * 2));
+    setStatus('✅ Distancia calculada.');
   }
 }
 
@@ -571,18 +600,23 @@ function haversineKm(lat1, lon1, lat2, lon2){
 }
 
 function renderPricing(idaKm, vueltaKm, totalKm, totalMin){
+  const isRoundTrip = tripMultiplier === 2;
   const fmtIda = idaKm.toFixed(1).replace('.', ',');
   const fmtVuelta = vueltaKm.toFixed(1).replace('.', ',');
   const fmtTotal = totalKm.toFixed(1).replace('.', ',');
   const totalCost = Math.round(totalKm * PRICE_PER_KM);
+  const modeLabel = isRoundTrip ? 'Ida y Vuelta (A → B → A)' : 'Solo Ida (A → B)';
 
   $('#resultPanel').style.display = 'block';
+  $('#lblResultTitle').textContent = isRoundTrip ? 'Distancia total Ida y Vuelta:' : 'Distancia total Solo Ida:';
   $('#outKm').textContent = `${fmtTotal} km`;
-  $('#outTime').textContent = totalMin > 0 ? `(aprox. ${totalMin} min de conducción total)` : '';
+  $('#outTime').textContent = totalMin > 0 ? `(aprox. ${totalMin} min de conducción)` : '';
   $('#outPrice').textContent = $c(totalCost);
 
   $('#bdOneWay').textContent = `${fmtIda} km`;
+  $('#rowReturn').style.display = isRoundTrip ? 'flex' : 'none';
   $('#bdReturn').textContent = `${fmtVuelta} km`;
+  $('#bdMode').textContent = modeLabel;
   $('#bdTotalKm').textContent = `${fmtTotal} km × $1.000`;
   $('#bdTotalPrice').textContent = $c(totalCost);
 
@@ -592,17 +626,19 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin){
   const bookParams = new URLSearchParams({
     from: fromStr,
     to: toStr,
+    mode: isRoundTrip ? 'ida_vuelta' : 'solo_ida',
     km: totalKm.toFixed(1),
     fare: totalCost
   });
   $('#btnBookRoute').href = `reservar.html?${bookParams.toString()}`;
 
-  const waMsg = `Hola, calculé mi ruta de Ida y Vuelta en la página web:\n` +
+  const waMsg = `Hola, calculé mi ruta (${isRoundTrip ? 'Ida y Vuelta' : 'Solo Ida'}) en la página web:\n` +
     `• Inicio (A): ${fromStr}\n` +
     `• Destino (B): ${toStr}\n` +
-    `• Distancia Ida y Vuelta: ${fmtTotal} km\n` +
+    `• Modalidad: ${modeLabel}\n` +
+    `• Distancia total: ${fmtTotal} km\n` +
     `• Valor por KM ($1.000/km): ${$c(totalCost)}\n` +
-    `Me gustaría cotizar el servicio completo y confirmar disponibilidad.`;
+    `Me gustaría cotizar el servicio y confirmar disponibilidad.`;
   $('#btnWaRoute').href = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waMsg)}`;
 }
 
