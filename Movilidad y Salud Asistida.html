@@ -2,10 +2,12 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Movilidad y Salud Asistida</title>
+<script>try{var t=localStorage.getItem('msa-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <style>
 :root{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf}}
 :root[data-theme="dark"]{--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf}
+:root[data-theme="light"]{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 #app{max-width:1100px;margin:0 auto;padding:12px}
@@ -37,7 +39,10 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px}
 </style></head><body><div id="app"></div>
 <script>
-const PX=44,S0=360,S1=1320,BUF=180,K='msa-v1',TODAY='2026-10-17';
+const PX=44,S0=360,S1=1320,BUF=180,K='msa-v1',TODAY='2026-10-17',TM_K='msa-theme';
+function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x){}return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem(TM_K,t)}catch(x){}}
+function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme')||getTheme();applyTheme(cur==='dark'?'light':'dark');render()}
 const ST=['Pendiente','Confirmado','En Ruta','En Atención','Finalizado','Cancelado'];
 const COL={'Pendiente':'#b45309','Confirmado':'#2563eb','En Ruta':'#7c3aed','En Atención':'#0d9488','Finalizado':'#15803d','Cancelado':'#6b7280'};
 const MOB=['Camina por sus propios medios','Camina con asistencia/bastón','Silla de ruedas plegable','Postrado/Dependiente severo'];
@@ -59,14 +64,15 @@ sv(3,'t2','09:30',90,'María Opazo',88,'Diálisis ambulatoria','Pía Opazo','+56
 function load(){try{return JSON.parse(localStorage.getItem(K))}catch(x){return null}}
 function save(){try{localStorage.setItem(K,JSON.stringify(D))}catch(x){}}
 let D=load()||seed(),U={view:'admin',tab:'cal',date:TODAY,tens:'t1',sel:null,edit:null};
-addEventListener('storage',ev=>{if(ev.key===K){D=load()||D;render()}});
+addEventListener('storage',ev=>{if(ev.key===K){D=load()||D;render()}if(ev.key===TM_K){document.documentElement.setAttribute('data-theme',ev.newValue);render()}});
 const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
 /* REGLA DE BUFFER: nuevo.inicio < previo.fin + 180 (y simétrica: previo.inicio < nuevo.fin + 180) */
 function avail(tid,date,start,dur,ign){return !D.svcs.some(s=>s.tid==tid&&s.date==date&&s.st!='Cancelado'&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF)}
 function render(){$('#app').innerHTML=hdr()+(U.view=='admin'?admin():tens());if(U.view=='admin'&&U.tab=='new')techOpts()}
-function hdr(){return `<div class=top><h1>Movilidad y Salud Asistida</h1><div class=row>
+function hdr(){const d=document.documentElement.getAttribute('data-theme')=='dark';return `<div class=top><h1>Movilidad y Salud Asistida</h1><div class=row>
 <button class="${U.view=='admin'?'on':''}" onclick="U.view='admin';render()">Administrador</button>
-<button class="${U.view=='tens'?'on':''}" onclick="U.view='tens';render()">Vista TENS</button></div></div>`}
+<button class="${U.view=='tens'?'on':''}" onclick="U.view='tens';render()">Vista TENS</button>
+<button onclick="toggleTheme()" title="Cambiar tema">${d?'☀️ Modo claro':'🌙 Modo oscuro'}</button></div></div>`}
 function dateNav(){return `<div class=row style="margin-bottom:10px"><button onclick="mv(-1)">‹</button><input type=date value="${U.date}" onchange="U.date=this.value;render()"><button onclick="mv(1)">›</button></div>`}
 function mv(n){const d=new Date(U.date+'T12:00:00');d.setDate(d.getDate()+n);U.date=d.toISOString().slice(0,10);render()}
 function admin(){const tabs=[['cal','Calendario maestro'],['new','Nueva reserva'],['staff','Personal TENS']];
