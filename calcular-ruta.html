@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Calcular Valor de mi Ruta | Movilidad y Salud Asistida</title>
-<meta name="description" content="Calcule los kilómetros y el valor de su traslado clínico seleccionando su dirección de inicio y destino en el mapa interactivo.">
+<meta name="description" content="Calcule los kilómetros de ida y vuelta y el valor de su traslado clínico ingresando su dirección exacta de inicio y destino.">
 <script>try{var t=localStorage.getItem('msa-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <style>
@@ -36,7 +36,6 @@ nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .btn.sm{padding:8px 15px;font-size:.88rem}
 .btn.ghost{background:var(--card);color:var(--teal);border-color:var(--teal)}
 .btn.ghost:hover{background:var(--mist)}
-.btn.active-mode{background:var(--teal);color:#fff;border-color:var(--teal)}
 .hero-bar{background:linear-gradient(160deg,var(--mist),var(--bg) 80%);padding:28px 0 20px;border-bottom:1px solid var(--line)}
 .hero-bar p{color:var(--mute);max-width:68ch}
 
@@ -52,24 +51,22 @@ input:focus,select:focus{outline:2px solid var(--teal);border-color:transparent}
 .search-btn{background:var(--mist);color:var(--teal);border:1px solid var(--line);border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;white-space:nowrap}
 .search-btn:hover{background:var(--sage);color:#fff}
 
-.suggestions{position:absolute;top:100%;left:0;right:0;z-index:900;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:230px;overflow-y:auto;box-shadow:0 10px 25px rgba(0,0,0,.15);display:none}
+.suggestions{position:absolute;top:100%;left:0;right:0;z-index:900;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:250px;overflow-y:auto;box-shadow:0 10px 25px rgba(0,0,0,.18);display:none}
 .sug-item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:.9rem;line-height:1.35}
 .sug-item:last-child{border-bottom:0}
 .sug-item:hover{background:var(--mist)}
 .sug-item b{color:var(--teal);display:block}
 .sug-item small{color:var(--mute)}
 
+.roundtrip-badge{background:var(--mist);border:1px solid var(--sage);color:var(--teal);border-radius:10px;padding:10px 14px;font-size:.9rem;font-weight:600;margin:12px 0;display:flex;align-items:center;gap:8px}
+
 .map-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .map-btn{flex:1;min-width:140px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 .map-btn:hover{background:var(--mist);border-color:var(--teal)}
 .map-btn.on{background:#0E4A55;color:#fff;border-color:#0E4A55}
 
-#map{width:100%;height:430px;border-radius:12px;border:1px solid var(--line);z-index:1}
+#map{width:100%;height:440px;border-radius:12px;border:1px solid var(--line);z-index:1}
 .map-hint{font-size:.83rem;color:var(--mute);margin-top:8px;text-align:center}
-
-.trip-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
-.trip-opt{padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font-weight:700;font-size:.92rem;cursor:pointer;text-align:center}
-.trip-opt.active{border-color:var(--teal);background:var(--mist);color:var(--teal)}
 
 .result-box{margin-top:16px;background:var(--mist);border:2px solid var(--sage);border-radius:var(--r);padding:18px;text-align:center}
 .result-km{font-size:1.1rem;color:var(--mute);margin-bottom:4px}
@@ -110,7 +107,7 @@ footer a{color:#fff}
 <div class="hero-bar">
   <div class="wrap">
     <h1>🗺️ Calculadora de Kilómetros y Valor de Ruta</h1>
-    <p>Ingrese su dirección de inicio y destino (o marque los puntos directamente en el mapa) para conocer los kilómetros exactos del trayecto. <b>Cada kilómetro equivale a $1.000.</b></p>
+    <p>Ingrese la calle, numeración exacta y comuna de inicio y término (o marque los puntos en el mapa) para conocer los kilómetros totales del circuito de <b>ida y vuelta</b>. <b>Cada kilómetro equivale a $1.000.</b></p>
   </div>
 </div>
 
@@ -118,14 +115,14 @@ footer a{color:#fff}
   <div class="layout">
     <!-- PANEL IZQUIERDO: DIRECCIONES Y RESULTADO -->
     <div class="card">
-      <h2>1. Ingrese las direcciones</h2>
-      <p style="font-size:.88rem;color:var(--mute);margin-bottom:14px">Escriba calle, número y comuna, o el nombre del centro médico/hospital:</p>
+      <h2>1. Ingrese las direcciones exactas</h2>
+      <p style="font-size:.88rem;color:var(--mute);margin-bottom:14px">Escriba calle, número exacto y comuna (ej: <i>Pasaje Los Océanos 456, Maipú</i>) o nombre del hospital/clínica:</p>
 
       <!-- ORIGEN -->
       <div class="search-wrap">
-        <label for="inpFrom"><span class="pin-badge pin-a">A</span>Dirección de Inicio (Origen)</label>
+        <label for="inpFrom"><span class="pin-badge pin-a">A</span>Dirección de Inicio (Origen con numeración)</label>
         <div class="input-row">
-          <input id="inpFrom" type="text" placeholder="Ej: Av. Los Pajaritos 1450, Maipú" autocomplete="off" oninput="onType('from')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('from',true)}">
+          <input id="inpFrom" type="text" placeholder="Ej: Pasaje Los Océanos 456, Maipú" autocomplete="off" oninput="onType('from')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('from',true)}">
           <button type="button" class="search-btn" onclick="searchAddr('from',true)">Buscar</button>
         </div>
         <div id="sugFrom" class="suggestions"></div>
@@ -133,46 +130,40 @@ footer a{color:#fff}
 
       <!-- DESTINO -->
       <div class="search-wrap">
-        <label for="inpTo"><span class="pin-badge pin-b">B</span>Dirección de Destino</label>
+        <label for="inpTo"><span class="pin-badge pin-b">B</span>Dirección de Término (Destino con numeración)</label>
         <div class="input-row">
-          <input id="inpTo" type="text" placeholder="Ej: Hospital El Carmen, Maipú o Clínica Indisa" autocomplete="off" oninput="onType('to')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('to',true)}">
+          <input id="inpTo" type="text" placeholder="Ej: San José 1053, Independencia o Hospital El Carmen" autocomplete="off" oninput="onType('to')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('to',true)}">
           <button type="button" class="search-btn" onclick="searchAddr('to',true)">Buscar</button>
         </div>
         <div id="sugTo" class="suggestions"></div>
       </div>
 
-      <!-- MODALIDAD DE TRAYECTO -->
-      <label style="margin-top:10px">Modalidad del recorrido:</label>
-      <div class="trip-toggle">
-        <button type="button" id="btnIda" class="trip-opt active" onclick="setTripMode(1)">
-          Solo Ida (A → B)
-        </button>
-        <button type="button" id="btnIdaVuelta" class="trip-opt" onclick="setTripMode(2)">
-          Ida y Vuelta (A → B → A)
-        </button>
+      <div class="roundtrip-badge">
+        <span>🔄</span>
+        <span>Todos los traslados se calculan en circuito completo de <b>Ida y Vuelta (A → B → A)</b>.</span>
       </div>
 
       <button type="button" class="btn" style="width:100%;margin-top:6px" onclick="calculateNow()">
-        🧮 Calcular Kilómetros y Valor
+        🧮 Calcular Kilómetros (Ida y Vuelta) y Valor
       </button>
 
       <!-- RESULTADO -->
       <div id="resultPanel" class="result-box" style="display:none">
-        <div class="result-km">Distancia total: <b id="outKm">0 km</b> <span id="outTime" style="font-size:.9rem"></span></div>
+        <div class="result-km">Distancia total Ida y Vuelta: <b id="outKm">0 km</b> <span id="outTime" style="font-size:.9rem"></span></div>
         <div class="result-price" id="outPrice">$0</div>
-        <div class="result-sub">Tarifa fija por distancia: <b>$1.000 por cada kilómetro</b></div>
+        <div class="result-sub">Tarifa por distancia: <b>$1.000 por cada kilómetro</b> (circuito ida y vuelta)</div>
 
         <ul class="breakdown">
-          <li><span>Trayecto en mapa (A → B):</span> <b id="bdOneWay">0 km</b></li>
-          <li><span>Modalidad seleccionada:</span> <b id="bdMode">Solo Ida</b></li>
-          <li><span>Kilómetros totales a tarificar:</span> <b id="bdTotalKm">0 km × $1.000</b></li>
+          <li><span>Distancia de Ida (A → B):</span> <b id="bdOneWay">0 km</b></li>
+          <li><span>Distancia de Regreso (B → A):</span> <b id="bdReturn">0 km</b></li>
+          <li><span>Kilómetros totales (Ida y Vuelta):</span> <b id="bdTotalKm">0 km × $1.000</b></li>
           <li style="border-top:1px dashed var(--line);padding-top:8px;margin-top:4px;color:var(--teal);font-size:1rem">
             <span><b>Valor Total por Kilómetros:</b></span> <b id="bdTotalPrice">$0</b>
           </li>
         </ul>
 
         <p style="font-size:.82rem;color:var(--mute);margin-top:10px;text-align:left">
-          * Nota: Si contrata Servicio Integral o Traslado con Espera, recuerde que se suma el tiempo de asistencia TENS y aplica la tarifa mínima según su anillo comunal.
+          * Nota: A este valor por kilómetros se suma el tiempo de asistencia TENS o espera según su modalidad, aplicando la tarifa mínima de su anillo comunal cuando corresponda.
         </p>
 
         <div style="display:grid;gap:10px;margin-top:16px">
@@ -201,7 +192,7 @@ footer a{color:#fff}
       </div>
 
       <div id="map"></div>
-      <p class="map-hint">💡 <b>Consejo:</b> Puede arrastrar los marcadores <b>A</b> y <b>B</b> en el mapa o usar los botones de arriba para marcar el punto exacto con un clic.</p>
+      <p class="map-hint">💡 <b>Precisión exacta:</b> Puede arrastrar los marcadores <b>A</b> y <b>B</b> hasta la puerta exacta de su casa o recinto médico y la numeración se actualizará automáticamente.</p>
     </div>
   </div>
 </main>
@@ -233,19 +224,43 @@ function toggleTheme(){
 applyTheme(getTheme());
 addEventListener('storage',ev=>{if(ev.key===TM_K)applyTheme(ev.newValue)});
 
-// Estado del calculador
-let ptFrom = null; // {lat, lon, label}
-let ptTo = null;   // {lat, lon, label}
+// Directorio rápido de principales Hospitales y Clínicas de Santiago / RM para máxima precisión
+const MEDICAL_PLACES = [
+  {name:'Hospital El Carmen (Dr. Luis Valentín Ferrada)', addr:'Av. Camino a Rinconada 1201, Maipú', lat:-33.5048, lon:-70.7712},
+  {name:'Hospital San José', addr:'San José 1053, Independencia, Santiago', lat:-33.4163, lon:-70.6531},
+  {name:'Hospital Clínico Universidad de Chile (J.J. Aguirre)', addr:'Dr. Carlos Lorca Tobar 999, Independencia, Santiago', lat:-33.4192, lon:-70.6535},
+  {name:'Hospital San Juan de Dios', addr:'Huérfanos 3255, Santiago Centro', lat:-33.4426, lon:-70.6791},
+  {name:'Hospital Clínico Félix Bulnes', addr:'Av. Mapocho Sur 7432, Cerro Navia, Santiago', lat:-33.4231, lon:-70.7429},
+  {name:'Hospital del Salvador', addr:'Av. Salvador 364, Providencia, Santiago', lat:-33.4375, lon:-70.6236},
+  {name:'Hospital Barros Luco Trudeau', addr:'Gran Avenida José Miguel Carrera 3204, San Miguel, Santiago', lat:-33.4858, lon:-70.6495},
+  {name:'Hospital Dr. Sótero del Río', addr:'Av. Concha y Toro 3459, Puente Alto, Santiago', lat:-33.5769, lon:-70.5811},
+  {name:'Hospital Clínico UC Christus (Marcoleta)', addr:'Marcoleta 367, Santiago Centro', lat:-33.4418, lon:-70.6406},
+  {name:'Hospital Militar de Santiago', addr:'Av. Alcalde Fernando Castillo Velasco 9100, La Reina', lat:-33.4519, lon:-70.5403},
+  {name:'Hospital Clínico de la Fuerza Aérea (FACH)', addr:'Av. Las Condes 8631, Las Condes, Santiago', lat:-33.3948, lon:-70.5453},
+  {name:'Instituto Nacional del Cáncer', addr:'Av. Profesor Zañartu 1010, Independencia, Santiago', lat:-33.4178, lon:-70.6524},
+  {name:'Instituto Traumatológico', addr:'San Martín 771, Santiago Centro', lat:-33.4357, lon:-70.6584},
+  {name:'Instituto Teletón Santiago', addr:'Av. Libertador Bernardo O\'Higgins 4620, Estación Central', lat:-33.4557, lon:-70.6978},
+  {name:'Clínica Indisa (Providencia)', addr:'Av. Santa María 1810, Providencia, Santiago', lat:-33.4248, lon:-70.6186},
+  {name:'Clínica Indisa (Maipú)', addr:'Av. Américo Vespucio 1077, Maipú, Santiago', lat:-33.4812, lon:-70.7518},
+  {name:'Clínica Santa María', addr:'Av. Santa María 0500, Providencia, Santiago', lat:-33.4316, lon:-70.6279},
+  {name:'Clínica Dávila (Recoleta)', addr:'Av. Recoleta 464, Recoleta, Santiago', lat:-33.4256, lon:-70.6458},
+  {name:'Clínica Dávila Vespucio', addr:'Av. Serafín Zamora 190, La Florida, Santiago', lat:-33.5194, lon:-70.5968},
+  {name:'Clínica RedSalud Santiago (Ex Bicentenario)', addr:'Av. Libertador Bernardo O\'Higgins 4850, Estación Central', lat:-33.4563, lon:-70.7012},
+  {name:'Clínica Alemana (Vitacura)', addr:'Av. Vitacura 5951, Vitacura, Santiago', lat:-33.3905, lon:-70.5734},
+  {name:'Clínica Las Condes', addr:'Estoril 450, Las Condes, Santiago', lat:-33.3827, lon:-70.5305},
+  {name:'Clínica Bupa Santiago', addr:'Av. Departamental 1455, La Florida, Santiago', lat:-33.5122, lon:-70.5897}
+];
+
+let ptFrom = null;
+let ptTo = null;
 let markerFrom = null;
 let markerTo = null;
 let routeLine = null;
-let tripMultiplier = 1; // 1 = Solo Ida, 2 = Ida y Vuelta
 let lastOneWayKm = 0;
 let lastDurationMin = 0;
-let pickMode = 'from'; // 'from' o 'to' al hacer clic en el mapa
+let pickMode = 'from';
 let typeTimers = {from:null, to:null};
 
-// Inicializar mapa centrado en Maipú / Santiago
 const map = L.map('map').setView([-33.485, -70.74], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
@@ -269,7 +284,7 @@ function setPickMode(m){
   pickMode = m;
   $('#pickFromBtn').classList.toggle('on', m==='from');
   $('#pickToBtn').classList.toggle('on', m==='to');
-  setStatus(m==='from' ? '📍 Toque cualquier punto del mapa para situar el Inicio (A).' : '🏁 Toque cualquier punto del mapa para situar el Destino (B).');
+  setStatus(m==='from' ? '📍 Toque el punto exacto en el mapa para situar el Inicio (A).' : '🏁 Toque el punto exacto en el mapa para situar el Destino (B).');
 }
 setPickMode('from');
 
@@ -277,7 +292,7 @@ map.on('click', async function(ev){
   const {lat, lng} = ev.latlng;
   const target = pickMode;
   setPoint(target, lat, lng, `${lat.toFixed(5)}, ${lng.toFixed(5)}`, false);
-  const addr = await reverseGeocode(lat, lng);
+  const addr = await reverseGeocodeExact(lat, lng);
   if(addr){
     if(target==='from'){
       ptFrom.label = addr;
@@ -287,7 +302,6 @@ map.on('click', async function(ev){
       $('#inpTo').value = addr;
     }
   }
-  // Cambiar automáticamente al siguiente punto si el otro aún no está puesto
   if(target==='from' && !ptTo) setPickMode('to');
   if(ptFrom && ptTo) computeRoute();
 });
@@ -301,7 +315,7 @@ function setPoint(which, lat, lon, label, fit=true){
       markerFrom.on('dragend', async function(e){
         const pos = e.target.getLatLng();
         ptFrom.lat = pos.lat; ptFrom.lon = pos.lng;
-        const addr = await reverseGeocode(pos.lat, pos.lng);
+        const addr = await reverseGeocodeExact(pos.lat, pos.lng);
         if(addr){ ptFrom.label = addr; $('#inpFrom').value = addr; }
         if(ptFrom && ptTo) computeRoute();
       });
@@ -316,7 +330,7 @@ function setPoint(which, lat, lon, label, fit=true){
       markerTo.on('dragend', async function(e){
         const pos = e.target.getLatLng();
         ptTo.lat = pos.lat; ptTo.lon = pos.lng;
-        const addr = await reverseGeocode(pos.lat, pos.lng);
+        const addr = await reverseGeocodeExact(pos.lat, pos.lng);
         if(addr){ ptTo.label = addr; $('#inpTo').value = addr; }
         if(ptFrom && ptTo) computeRoute();
       });
@@ -328,23 +342,35 @@ function setPoint(which, lat, lon, label, fit=true){
     if(ptFrom && ptTo){
       map.fitBounds([[ptFrom.lat, ptFrom.lon], [ptTo.lat, ptTo.lon]], {padding:[50,50]});
     } else {
-      map.setView([lat, lon], 15);
+      map.setView([lat, lon], 16);
     }
   }
 }
 
-async function reverseGeocode(lat, lon){
+// Geocodificación inversa con numeración exacta vía ArcGIS + respaldo OSM
+async function reverseGeocodeExact(lat, lon){
   try{
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=es`;
+    const url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lon},${lat}&langCode=ES`;
     const r = await fetch(url);
     const d = await r.json();
     if(d && d.address){
       const a = d.address;
-      const road = a.road || a.pedestrian || a.suburb || a.Alignment || '';
+      const street = a.Address || a.Match_addr || '';
+      const city = a.City || a.Subregion || '';
+      if(street && city) return `${street}, ${city}`;
+      if(street) return street;
+    }
+  }catch(e){}
+  try{
+    const url2 = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=es`;
+    const r2 = await fetch(url2);
+    const d2 = await r2.json();
+    if(d2 && d2.address){
+      const a = d2.address;
+      const road = a.road || a.pedestrian || '';
       const num = a.house_number ? ' ' + a.house_number : '';
-      const com = a.city_district || a.town || a.city || a.municipality || a.county || '';
-      const short = [road + num, com].filter(Boolean).join(', ');
-      return short || d.display_name;
+      const com = a.city_district || a.suburb || a.town || a.city || '';
+      return [road + num, com].filter(Boolean).join(', ') || d2.display_name;
     }
   }catch(e){}
   return null;
@@ -352,75 +378,132 @@ async function reverseGeocode(lat, lon){
 
 function onType(which){
   clearTimeout(typeTimers[which]);
+  // Si el usuario edita el texto manualmente, limpiamos el punto previo para obligar a usar la nueva numeración
+  if(which==='from') ptFrom = null;
+  else ptTo = null;
+
   const val = (which==='from' ? $('#inpFrom').value : $('#inpTo').value).trim();
   const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
   if(val.length < 3){
     sugBox.style.display = 'none';
     return;
   }
-  typeTimers[which] = setTimeout(()=>searchAddr(which, false), 350);
+  typeTimers[which] = setTimeout(()=>searchAddr(which, false), 280);
 }
 
+// Buscador con soporte de numeración exacta (ArcGIS Chile + Directorio Clínico RM)
 async function searchAddr(which, autoPickFirst){
   const inp = which==='from' ? $('#inpFrom') : $('#inpTo');
   const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
   const q = inp.value.trim();
   if(!q) return;
 
-  setStatus('🔍 Buscando dirección en Chile...');
+  setStatus('🔍 Buscando dirección y numeración exacta...');
   try{
-    const query = q.toLowerCase().includes('chile') ? q : `${q}, Chile`;
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=cl&addressdetails=1&limit=6&accept-language=es&q=${encodeURIComponent(query)}`;
-    const r = await fetch(url);
-    const list = await r.json();
+    const qLow = q.toLowerCase();
+    // 1. Buscar coincidencias en centros médicos de RM
+    const medMatches = MEDICAL_PLACES.filter(m =>
+      m.name.toLowerCase().includes(qLow) || m.addr.toLowerCase().includes(qLow)
+    ).map(m => ({
+      title: m.name,
+      subtitle: m.addr,
+      fullLabel: `${m.name} (${m.addr})`,
+      lat: m.lat,
+      lon: m.lon
+    }));
 
-    if(!list || list.length === 0){
-      sugBox.innerHTML = `<div class="sug-item"><small>No encontramos esa dirección exacta. Intente agregando la comuna (ej: "Pajaritos 1450, Maipú") o marque el punto directamente en el mapa.</small></div>`;
+    // 2. Buscar en ArcGIS Geocoder priorizando Región Metropolitana y alrededores (-70.70, -33.46)
+    const arcUrl = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(q)}&countryCode=CHL&location=-70.70,-33.46&searchExtent=-71.9,-34.9,-69.8,-32.5&maxLocations=6&outFields=PlaceName,Match_addr,Place_addr,City,Region`;
+    const r = await fetch(arcUrl);
+    const data = await r.json();
+    let arcList = [];
+
+    if(data && data.candidates && data.candidates.length > 0){
+      arcList = data.candidates.map(c => {
+        const attr = c.attributes || {};
+        const mainAddr = (c.address || attr.Match_addr || '').replace(/, CHL$/i, '');
+        const subAddr = (attr.Place_addr || '').replace(/, CHL$/i, '');
+        const title = attr.PlaceName && !mainAddr.startsWith(attr.PlaceName)
+          ? `${attr.PlaceName} · ${mainAddr}`
+          : mainAddr;
+        return {
+          title: title,
+          subtitle: subAddr || 'Región Metropolitana / Chile',
+          fullLabel: title,
+          lat: c.location.y,
+          lon: c.location.x
+        };
+      });
+    } else {
+      // Si la búsqueda es fuera de RM/Valparaíso/O'Higgins, buscar en todo Chile
+      const arcAllUrl = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(q)}&countryCode=CHL&location=-70.70,-33.46&maxLocations=6&outFields=PlaceName,Match_addr,Place_addr`;
+      const rAll = await fetch(arcAllUrl);
+      const dataAll = await rAll.json();
+      if(dataAll && dataAll.candidates){
+        arcList = dataAll.candidates.map(c => {
+          const mainAddr = (c.address || '').replace(/, CHL$/i, '');
+          return {
+            title: mainAddr,
+            subtitle: (c.attributes && c.attributes.Place_addr) || 'Chile',
+            fullLabel: mainAddr,
+            lat: c.location.y,
+            lon: c.location.x
+          };
+        });
+      }
+    }
+
+    const combined = [...medMatches, ...arcList].slice(0, 7);
+
+    if(combined.length === 0){
+      sugBox.innerHTML = `<div class="sug-item"><small>No encontramos esa dirección. Intente indicar calle, número y comuna (ej: "Pasaje Los Océanos 456, Maipú") o toque directamente en el mapa.</small></div>`;
       sugBox.style.display = 'block';
       setStatus('⚠️ Dirección no encontrada. Puede marcar el punto directamente en el mapa.');
       return;
     }
 
     if(autoPickFirst){
-      const item = list[0];
+      const first = combined[0];
       sugBox.style.display = 'none';
-      setPoint(which, item.lat, item.lon, formatResultName(item), true);
+      // Si el usuario escribió un número de casa específico que no venía en la etiqueta, conservar su texto
+      const userNumberMatch = q.match(/\b(\d{1,5})\b/);
+      let finalLabel = first.fullLabel;
+      if(userNumberMatch && !finalLabel.includes(userNumberMatch[1])){
+        finalLabel = `${q} (${first.title})`;
+      }
+      setPoint(which, first.lat, first.lon, finalLabel, true);
       if(ptFrom && ptTo) computeRoute();
-      else setStatus('✅ Punto fijado. Ahora ingrese o seleccione el segundo punto.');
+      else setStatus('✅ Dirección ubicada con éxito. Ahora ingrese el segundo punto.');
       return;
     }
 
-    sugBox.innerHTML = list.map((item, idx) => {
-      const clean = formatResultName(item);
-      return `<div class="sug-item" onclick="pickSuggestion('${which}', ${item.lat}, ${item.lon}, '${clean.replace(/'/g,"\\'")}')">
-        <b>${clean}</b>
-        <small>${item.display_name}</small>
-      </div>`;
-    }).join('');
+    window._lastSugs = combined;
+    sugBox.innerHTML = combined.map((item, idx) => `
+      <div class="sug-item" onclick="pickSugIndex('${which}', ${idx})">
+        <b>${item.title}</b>
+        <small>${item.subtitle}</small>
+      </div>
+    `).join('');
     sugBox.style.display = 'block';
-    setStatus('Seleccione una dirección de la lista desplegable.');
+    setStatus('Seleccione la dirección exacta de la lista desplegable.');
   }catch(e){
-    setStatus('⚠️ Error al buscar dirección. Puede hacer clic directamente sobre el mapa.');
+    setStatus('⚠️ Error al consultar dirección. Puede tocar directamente en el mapa.');
   }
 }
 
-function formatResultName(item){
-  if(item.address){
-    const a = item.address;
-    const place = item.name && item.name !== a.road ? item.name + ', ' : '';
-    const road = a.road || a.pedestrian || '';
-    const num = a.house_number ? ' ' + a.house_number : '';
-    const com = a.city_district || a.suburb || a.town || a.city || a.municipality || '';
-    const built = (place + (road + num)).trim();
-    if(built && com) return `${built}, ${com}`;
-  }
-  return item.display_name.split(',').slice(0,3).join(',').trim();
-}
-
-function pickSuggestion(which, lat, lon, label){
+function pickSugIndex(which, idx){
+  const item = (window._lastSugs || [])[idx];
+  if(!item) return;
+  const inp = which==='from' ? $('#inpFrom') : $('#inpTo');
   const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
+  const typed = inp.value.trim();
+  const userNum = typed.match(/\b(\d{1,5})\b/);
+  let label = item.fullLabel;
+  if(userNum && !label.includes(userNum[1])){
+    label = `${typed} (${item.title})`;
+  }
   sugBox.style.display = 'none';
-  setPoint(which, lat, lon, label, true);
+  setPoint(which, item.lat, item.lon, label, true);
   if(which==='from' && !ptTo) setPickMode('to');
   if(ptFrom && ptTo) computeRoute();
 }
@@ -448,16 +531,20 @@ async function calculateNow(){
 
 async function computeRoute(){
   if(!ptFrom || !ptTo) return;
-  setStatus('🚗 Calculando ruta óptima por calles y autopistas...');
+  setStatus('🚗 Calculando kilómetros exactos de Ida y Vuelta...');
   try{
-    const url = `https://router.project-osrm.org/route/v1/driving/${ptFrom.lon},${ptFrom.lat};${ptTo.lon},${ptTo.lat}?overview=full&geometries=geojson`;
+    // Calcular trayecto de Ida (A->B) y Vuelta (B->A) real por calles y sentidos de tránsito
+    const url = `https://router.project-osrm.org/route/v1/driving/${ptFrom.lon},${ptFrom.lat};${ptTo.lon},${ptTo.lat};${ptFrom.lon},${ptFrom.lat}?overview=full&geometries=geojson`;
     const r = await fetch(url);
     const data = await r.json();
 
     if(data && data.routes && data.routes.length > 0){
       const route = data.routes[0];
-      lastOneWayKm = route.distance / 1000; // en KM
-      lastDurationMin = Math.round(route.duration / 60);
+      const legs = route.legs || [];
+      const idaKm = legs[0] ? legs[0].distance / 1000 : (route.distance / 2000);
+      const vueltaKm = legs[1] ? legs[1].distance / 1000 : idaKm;
+      const totalRoundTripKm = route.distance / 1000;
+      const totalDurationMin = Math.round(route.duration / 60);
 
       if(routeLine) map.removeLayer(routeLine);
       routeLine = L.geoJSON(route.geometry, {
@@ -465,18 +552,15 @@ async function computeRoute(){
       }).addTo(map);
       map.fitBounds(routeLine.getBounds(), {padding:[45,45]});
 
-      renderPricing();
-      setStatus('✅ Ruta calculada con éxito. Puede arrastrar los pines A o B si desea ajustar el punto exacto.');
+      renderPricing(idaKm, vueltaKm, totalRoundTripKm, totalDurationMin);
+      setStatus('✅ Ruta de Ida y Vuelta calculada. Puede mover los pines A o B en el mapa si desea ajustar el punto exacto.');
     } else {
       setStatus('⚠️ No se pudo trazar ruta vehicular entre ambos puntos.');
     }
   }catch(e){
-    // Respaldo distancia lineal estimada en caso de fallo de red
     const dKm = haversineKm(ptFrom.lat, ptFrom.lon, ptTo.lat, ptTo.lon) * 1.3;
-    lastOneWayKm = dKm;
-    lastDurationMin = Math.round(dKm * 2);
-    renderPricing();
-    setStatus('✅ Distancia estimada calculada.');
+    renderPricing(dKm, dKm, dKm * 2, Math.round(dKm * 4));
+    setStatus('✅ Distancia de Ida y Vuelta calculada.');
   }
 }
 
@@ -486,49 +570,37 @@ function haversineKm(lat1, lon1, lat2, lon2){
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function setTripMode(mult){
-  tripMultiplier = mult;
-  $('#btnIda').classList.toggle('active', mult===1);
-  $('#btnIdaVuelta').classList.toggle('active', mult===2);
-  if(lastOneWayKm > 0) renderPricing();
-}
-
-function renderPricing(){
-  const rawTotalKm = lastOneWayKm * tripMultiplier;
-  // Redondeo a 1 decimal para mostrar y cálculo exacto a $1.000 por KM
-  const displayOneWay = lastOneWayKm.toFixed(1).replace('.', ',');
-  const displayTotalKm = rawTotalKm.toFixed(1).replace('.', ',');
-  const totalCost = Math.round(rawTotalKm * PRICE_PER_KM);
+function renderPricing(idaKm, vueltaKm, totalKm, totalMin){
+  const fmtIda = idaKm.toFixed(1).replace('.', ',');
+  const fmtVuelta = vueltaKm.toFixed(1).replace('.', ',');
+  const fmtTotal = totalKm.toFixed(1).replace('.', ',');
+  const totalCost = Math.round(totalKm * PRICE_PER_KM);
 
   $('#resultPanel').style.display = 'block';
-  $('#outKm').textContent = `${displayTotalKm} km`;
-  $('#outTime').textContent = lastDurationMin > 0 ? `(aprox. ${lastDurationMin * tripMultiplier} min en vehículo)` : '';
+  $('#outKm').textContent = `${fmtTotal} km`;
+  $('#outTime').textContent = totalMin > 0 ? `(aprox. ${totalMin} min de conducción total)` : '';
   $('#outPrice').textContent = $c(totalCost);
 
-  $('#bdOneWay').textContent = `${displayOneWay} km`;
-  $('#bdMode').textContent = tripMultiplier === 2 ? 'Ida y Vuelta (×2)' : 'Solo Ida (×1)';
-  $('#bdTotalKm').textContent = `${displayTotalKm} km × $1.000`;
+  $('#bdOneWay').textContent = `${fmtIda} km`;
+  $('#bdReturn').textContent = `${fmtVuelta} km`;
+  $('#bdTotalKm').textContent = `${fmtTotal} km × $1.000`;
   $('#bdTotalPrice').textContent = $c(totalCost);
 
-  const fromStr = ptFrom ? ptFrom.label : $('#inpFrom').value;
-  const toStr = ptTo ? ptTo.label : $('#inpTo').value;
-  const modeStr = tripMultiplier === 2 ? 'Ida y Vuelta' : 'Solo Ida';
+  const fromStr = $('#inpFrom').value.trim() || (ptFrom ? ptFrom.label : '');
+  const toStr = $('#inpTo').value.trim() || (ptTo ? ptTo.label : '');
 
-  // Actualizar botón de Agendar con parámetros para autocompletar en reservar.html
   const bookParams = new URLSearchParams({
     from: fromStr,
     to: toStr,
-    km: rawTotalKm.toFixed(1),
+    km: totalKm.toFixed(1),
     fare: totalCost
   });
   $('#btnBookRoute').href = `reservar.html?${bookParams.toString()}`;
 
-  // Actualizar botón de WhatsApp
-  const waMsg = `Hola, calculé mi ruta en la página web:\n` +
+  const waMsg = `Hola, calculé mi ruta de Ida y Vuelta en la página web:\n` +
     `• Inicio (A): ${fromStr}\n` +
     `• Destino (B): ${toStr}\n` +
-    `• Modalidad: ${modeStr}\n` +
-    `• Distancia total: ${displayTotalKm} km\n` +
+    `• Distancia Ida y Vuelta: ${fmtTotal} km\n` +
     `• Valor por KM ($1.000/km): ${$c(totalCost)}\n` +
     `Me gustaría cotizar el servicio completo y confirmar disponibilidad.`;
   $('#btnWaRoute').href = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waMsg)}`;
@@ -543,7 +615,7 @@ function useMyLocation(){
   navigator.geolocation.getCurrentPosition(async pos => {
     const {latitude, longitude} = pos.coords;
     setPoint('from', latitude, longitude, 'Mi ubicación actual', true);
-    const addr = await reverseGeocode(latitude, longitude);
+    const addr = await reverseGeocodeExact(latitude, longitude);
     if(addr){
       ptFrom.label = addr;
       $('#inpFrom').value = addr;
