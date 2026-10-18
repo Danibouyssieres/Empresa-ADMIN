@@ -1,14 +1,17 @@
-# Movilidad y Salud Asistida - Empresa-ADMIN
+﻿# Movilidad y Salud Asistida
 
-Aplicaci�n web para la gesti�n de servicios de traslado y asistencia cl�nica TENS.
+Sistema integral web para la empresa de traslados clínicos y asistencia TENS.
 
-## Estructura
-- index.html: Archivo principal de la aplicaci�n optimizado para despliegue autom�tico en Vercel.
-- Movilidad y Salud Asistida.html: Archivo fuente original del sistema.
+## Estructura de la Plataforma
+- **`index.html`**: Página principal orientada a clientes. Contiene la propuesta de valor, tarifas, seguridad, proceso de agendamiento y los botones principales:
+  - **Reservar**: Lleva directamente al flujo de cotización y reserva.
+  - **Administradores**: Acceso directo al portal de gestión interno.
+- **`admin.html`**: Portal administrativo y operativo con control de acceso por roles:
+  - **Login básico**: Permite ingresar con credenciales o accesos directos de demostración.
+  - **Perfil Supervisor / Administrador**: Calendario maestro con regla de buffer de 3 horas, creación de nuevas reservas clínicas, métricas de cobros y abonos, y administración de personal TENS.
+  - **Perfil TENS (Técnico)**: Vista móvil y de terreno con los traslados y cuidados asignados para la fecha, accesos a llamada, WhatsApp, Waze, Google Maps y avance de estados del servicio.
+- **`Logo de Movilidad y Salud Asistida.png`**: Imagen de marca utilizada en el encabezado de clientes y en el panel administrativo.
+- **`Movilidad y Salud Asistida.html`**: Respaldo del módulo de operaciones.
 
-## Despliegue en Vercel
-1. Ingresa a [Vercel](https://vercel.com).
-2. Haz clic en **Add New...** > **Project**.
-3. Conecta e importa el repositorio de GitHub: Danibouyssieres/Empresa-ADMIN.
-4. En la configuraci�n del proyecto, deja las opciones por defecto (Framework Preset: **Other**).
-5. Haz clic en **Deploy**.
+## Publicación y Despliegue
+Conectado a Vercel con despliegue continuo en [empresamovilidad.vercel.app](https://empresamovilidad.vercel.app).
