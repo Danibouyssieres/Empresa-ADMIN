@@ -265,6 +265,11 @@ function initForm(){
       <span>${e(r)}</span>
     </label>
   `).join('');
+  try{
+    const params = new URLSearchParams(window.location.search);
+    if(params.get('from')) $('#b_from').value = params.get('from');
+    if(params.get('to')) $('#b_to').value = params.get('to');
+  }catch(e){}
   updateSlots();
 }
 

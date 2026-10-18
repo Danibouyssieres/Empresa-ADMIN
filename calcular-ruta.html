@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calcular Valor de mi Ruta | Movilidad y Salud Asistida</title>
+<meta name="description" content="Calcule los kilómetros y el valor de su traslado clínico seleccionando su dirección de inicio y destino en el mapa interactivo.">
+<script>try{var t=localStorage.getItem('msa-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>
+:root{
+  --teal:#0E4A55;--teal2:#0A363F;--sage:#5FA891;--mist:#E6F1EE;
+  --bg:#F7FAF9;--card:#FFFFFF;--ink:#14262B;--mute:#4A6168;--line:#CFE0DB;
+  --wa:#168F4A;--warn:#FBEDED;--warnb:#C26262;--r:14px;
+}
+:root[data-theme="dark"]{
+  --teal:#2dd4bf;--teal2:#115e59;--sage:#34d399;--mist:#16262e;
+  --bg:#10161d;--card:#1a232d;--ink:#e8edf2;--mute:#97a3b0;--line:#2d3945;
+  --wa:#16a34a;--warn:#2c1618;--warnb:#dc2626;
+}
+*{box-sizing:border-box;margin:0}
+body{font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;line-height:1.25;color:var(--teal)}
+h1{font-size:clamp(1.6rem,4.5vw,2.3rem);margin-bottom:.4rem}
+h2{font-size:1.3rem;margin-bottom:.6rem}
+h3{font-size:1.1rem;margin-bottom:.4rem}
+a{color:var(--teal)}
+.wrap{max-width:1060px;margin:0 auto;padding:0 18px}
+header{position:sticky;top:0;z-index:1000;background:var(--card);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:68px;padding-top:6px;padding-bottom:6px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--teal);font-family:Georgia,serif;font-weight:700}
+.logo img{max-height:64px;width:auto;display:block}
+nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;background:var(--wa);color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:999px;font-size:.98rem;border:2px solid transparent;cursor:pointer;transition:transform .15s,background .15s}
+.btn:hover{background:#12783E;transform:translateY(-1px)}
+.btn.sm{padding:8px 15px;font-size:.88rem}
+.btn.ghost{background:var(--card);color:var(--teal);border-color:var(--teal)}
+.btn.ghost:hover{background:var(--mist)}
+.btn.active-mode{background:var(--teal);color:#fff;border-color:var(--teal)}
+.hero-bar{background:linear-gradient(160deg,var(--mist),var(--bg) 80%);padding:28px 0 20px;border-bottom:1px solid var(--line)}
+.hero-bar p{color:var(--mute);max-width:68ch}
+
+.layout{display:grid;grid-template-columns:1fr 1.15fr;gap:20px;margin:22px 0;align-items:start}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.04)}
+label{display:block;font-size:.88rem;font-weight:700;color:var(--mute);margin-bottom:5px}
+.search-wrap{position:relative;margin-bottom:14px}
+.input-row{display:flex;gap:6px}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+input:focus,select:focus{outline:2px solid var(--teal);border-color:transparent}
+.search-btn{background:var(--mist);color:var(--teal);border:1px solid var(--line);border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.search-btn:hover{background:var(--sage);color:#fff}
+
+.suggestions{position:absolute;top:100%;left:0;right:0;z-index:900;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:230px;overflow-y:auto;box-shadow:0 10px 25px rgba(0,0,0,.15);display:none}
+.sug-item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:.9rem;line-height:1.35}
+.sug-item:last-child{border-bottom:0}
+.sug-item:hover{background:var(--mist)}
+.sug-item b{color:var(--teal);display:block}
+.sug-item small{color:var(--mute)}
+
+.map-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.map-btn{flex:1;min-width:140px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.map-btn:hover{background:var(--mist);border-color:var(--teal)}
+.map-btn.on{background:#0E4A55;color:#fff;border-color:#0E4A55}
+
+#map{width:100%;height:430px;border-radius:12px;border:1px solid var(--line);z-index:1}
+.map-hint{font-size:.83rem;color:var(--mute);margin-top:8px;text-align:center}
+
+.trip-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.trip-opt{padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font-weight:700;font-size:.92rem;cursor:pointer;text-align:center}
+.trip-opt.active{border-color:var(--teal);background:var(--mist);color:var(--teal)}
+
+.result-box{margin-top:16px;background:var(--mist);border:2px solid var(--sage);border-radius:var(--r);padding:18px;text-align:center}
+.result-km{font-size:1.1rem;color:var(--mute);margin-bottom:4px}
+.result-km b{color:var(--ink);font-size:1.35rem}
+.result-price{font-family:Georgia,serif;font-size:clamp(2rem,5vw,2.7rem);font-weight:700;color:var(--teal);line-height:1.1;margin:6px 0}
+.result-sub{font-size:.88rem;color:var(--mute)}
+
+.breakdown{list-style:none;padding:0;margin:14px 0 0;text-align:left;font-size:.92rem;border-top:1px solid var(--line);padding-top:12px}
+.breakdown li{display:flex;justify-content:space-between;padding:5px 0;gap:10px}
+
+.pin-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;color:#fff;font-weight:700;font-size:.8rem;margin-right:6px}
+.pin-a{background:#168F4A}
+.pin-b{background:#dc2626}
+
+.custom-pin{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;color:#fff;font-weight:800;font-size:14px;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.custom-pin.a{background:#168F4A}
+.custom-pin.b{background:#dc2626}
+
+footer{background:#0A363F;color:#c9dcd8;font-size:.9rem;padding:28px 0;margin-top:40px;text-align:center}
+footer a{color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="logo" href="index.html" aria-label="Volver al inicio">
+      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida">
+    </a>
+    <nav>
+      <a class="btn sm ghost" href="index.html">← Volver al Inicio</a>
+      <a class="btn sm" href="reservar.html">📅 Reservar Hora</a>
+      <button type="button" class="btn sm ghost" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    </nav>
+  </div>
+</header>
+
+<div class="hero-bar">
+  <div class="wrap">
+    <h1>🗺️ Calculadora de Kilómetros y Valor de Ruta</h1>
+    <p>Ingrese su dirección de inicio y destino (o marque los puntos directamente en el mapa) para conocer los kilómetros exactos del trayecto. <b>Cada kilómetro equivale a $1.000.</b></p>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="layout">
+    <!-- PANEL IZQUIERDO: DIRECCIONES Y RESULTADO -->
+    <div class="card">
+      <h2>1. Ingrese las direcciones</h2>
+      <p style="font-size:.88rem;color:var(--mute);margin-bottom:14px">Escriba calle, número y comuna, o el nombre del centro médico/hospital:</p>
+
+      <!-- ORIGEN -->
+      <div class="search-wrap">
+        <label for="inpFrom"><span class="pin-badge pin-a">A</span>Dirección de Inicio (Origen)</label>
+        <div class="input-row">
+          <input id="inpFrom" type="text" placeholder="Ej: Av. Los Pajaritos 1450, Maipú" autocomplete="off" oninput="onType('from')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('from',true)}">
+          <button type="button" class="search-btn" onclick="searchAddr('from',true)">Buscar</button>
+        </div>
+        <div id="sugFrom" class="suggestions"></div>
+      </div>
+
+      <!-- DESTINO -->
+      <div class="search-wrap">
+        <label for="inpTo"><span class="pin-badge pin-b">B</span>Dirección de Destino</label>
+        <div class="input-row">
+          <input id="inpTo" type="text" placeholder="Ej: Hospital El Carmen, Maipú o Clínica Indisa" autocomplete="off" oninput="onType('to')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('to',true)}">
+          <button type="button" class="search-btn" onclick="searchAddr('to',true)">Buscar</button>
+        </div>
+        <div id="sugTo" class="suggestions"></div>
+      </div>
+
+      <!-- MODALIDAD DE TRAYECTO -->
+      <label style="margin-top:10px">Modalidad del recorrido:</label>
+      <div class="trip-toggle">
+        <button type="button" id="btnIda" class="trip-opt active" onclick="setTripMode(1)">
+          Solo Ida (A → B)
+        </button>
+        <button type="button" id="btnIdaVuelta" class="trip-opt" onclick="setTripMode(2)">
+          Ida y Vuelta (A → B → A)
+        </button>
+      </div>
+
+      <button type="button" class="btn" style="width:100%;margin-top:6px" onclick="calculateNow()">
+        🧮 Calcular Kilómetros y Valor
+      </button>
+
+      <!-- RESULTADO -->
+      <div id="resultPanel" class="result-box" style="display:none">
+        <div class="result-km">Distancia total: <b id="outKm">0 km</b> <span id="outTime" style="font-size:.9rem"></span></div>
+        <div class="result-price" id="outPrice">$0</div>
+        <div class="result-sub">Tarifa fija por distancia: <b>$1.000 por cada kilómetro</b></div>
+
+        <ul class="breakdown">
+          <li><span>Trayecto en mapa (A → B):</span> <b id="bdOneWay">0 km</b></li>
+          <li><span>Modalidad seleccionada:</span> <b id="bdMode">Solo Ida</b></li>
+          <li><span>Kilómetros totales a tarificar:</span> <b id="bdTotalKm">0 km × $1.000</b></li>
+          <li style="border-top:1px dashed var(--line);padding-top:8px;margin-top:4px;color:var(--teal);font-size:1rem">
+            <span><b>Valor Total por Kilómetros:</b></span> <b id="bdTotalPrice">$0</b>
+          </li>
+        </ul>
+
+        <p style="font-size:.82rem;color:var(--mute);margin-top:10px;text-align:left">
+          * Nota: Si contrata Servicio Integral o Traslado con Espera, recuerde que se suma el tiempo de asistencia TENS y aplica la tarifa mínima según su anillo comunal.
+        </p>
+
+        <div style="display:grid;gap:10px;margin-top:16px">
+          <a id="btnBookRoute" class="btn" href="reservar.html">📅 Agendar hora con esta ruta</a>
+          <a id="btnWaRoute" class="btn ghost" href="#" target="_blank" rel="noopener">💬 Enviar este cálculo por WhatsApp</a>
+        </div>
+      </div>
+
+      <div id="statusMsg" style="margin-top:12px;font-size:.9rem;color:var(--mute);text-align:center"></div>
+    </div>
+
+    <!-- PANEL DERECHO: MAPA INTERACTIVO -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <h2 style="margin:0">2. Mapa interactivo de la ruta</h2>
+        <button type="button" class="btn sm ghost" onclick="useMyLocation()" title="Usar mi ubicación GPS actual como Inicio">📍 Usar mi ubicación actual</button>
+      </div>
+
+      <div class="map-tools">
+        <button type="button" id="pickFromBtn" class="map-btn" onclick="setPickMode('from')">
+          <span class="pin-badge pin-a" style="margin:0">A</span> Tocar mapa para fijar Inicio
+        </button>
+        <button type="button" id="pickToBtn" class="map-btn" onclick="setPickMode('to')">
+          <span class="pin-badge pin-b" style="margin:0">B</span> Tocar mapa para fijar Destino
+        </button>
+      </div>
+
+      <div id="map"></div>
+      <p class="map-hint">💡 <b>Consejo:</b> Puede arrastrar los marcadores <b>A</b> y <b>B</b> en el mapa o usar los botones de arriba para marcar el punto exacto con un clic.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <strong>Servicios Integrales de Asistencia, Cuidados y Traslados SpA</strong><br>
+    <span>Maipú, Región Metropolitana · WhatsApp: +56 9 2999 0095</span> · <a href="index.html">Volver al Inicio</a> · <a href="reservar.html">Agendar Hora</a>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const TM_K='msa-theme', WA_NUM='56929990095', PRICE_PER_KM=1000;
+const $=s=>document.querySelector(s);
+const $c=n=>'$'+Math.round(n).toLocaleString('es-CL');
+
+function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x){}return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  try{localStorage.setItem(TM_K,t)}catch(x){}
+  const btn=$('#themeBtn');
+  if(btn) btn.textContent = t==='dark' ? '☀️' : '🌙';
+}
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme')||getTheme();
+  applyTheme(cur==='dark'?'light':'dark');
+}
+applyTheme(getTheme());
+addEventListener('storage',ev=>{if(ev.key===TM_K)applyTheme(ev.newValue)});
+
+// Estado del calculador
+let ptFrom = null; // {lat, lon, label}
+let ptTo = null;   // {lat, lon, label}
+let markerFrom = null;
+let markerTo = null;
+let routeLine = null;
+let tripMultiplier = 1; // 1 = Solo Ida, 2 = Ida y Vuelta
+let lastOneWayKm = 0;
+let lastDurationMin = 0;
+let pickMode = 'from'; // 'from' o 'to' al hacer clic en el mapa
+let typeTimers = {from:null, to:null};
+
+// Inicializar mapa centrado en Maipú / Santiago
+const map = L.map('map').setView([-33.485, -70.74], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+const iconA = L.divIcon({
+  className: '',
+  html: '<div class="custom-pin a">A</div>',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16]
+});
+const iconB = L.divIcon({
+  className: '',
+  html: '<div class="custom-pin b">B</div>',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16]
+});
+
+function setPickMode(m){
+  pickMode = m;
+  $('#pickFromBtn').classList.toggle('on', m==='from');
+  $('#pickToBtn').classList.toggle('on', m==='to');
+  setStatus(m==='from' ? '📍 Toque cualquier punto del mapa para situar el Inicio (A).' : '🏁 Toque cualquier punto del mapa para situar el Destino (B).');
+}
+setPickMode('from');
+
+map.on('click', async function(ev){
+  const {lat, lng} = ev.latlng;
+  const target = pickMode;
+  setPoint(target, lat, lng, `${lat.toFixed(5)}, ${lng.toFixed(5)}`, false);
+  const addr = await reverseGeocode(lat, lng);
+  if(addr){
+    if(target==='from'){
+      ptFrom.label = addr;
+      $('#inpFrom').value = addr;
+    } else {
+      ptTo.label = addr;
+      $('#inpTo').value = addr;
+    }
+  }
+  // Cambiar automáticamente al siguiente punto si el otro aún no está puesto
+  if(target==='from' && !ptTo) setPickMode('to');
+  if(ptFrom && ptTo) computeRoute();
+});
+
+function setPoint(which, lat, lon, label, fit=true){
+  if(which === 'from'){
+    ptFrom = {lat:+lat, lon:+lon, label};
+    $('#inpFrom').value = label;
+    if(!markerFrom){
+      markerFrom = L.marker([lat, lon], {icon:iconA, draggable:true}).addTo(map);
+      markerFrom.on('dragend', async function(e){
+        const pos = e.target.getLatLng();
+        ptFrom.lat = pos.lat; ptFrom.lon = pos.lng;
+        const addr = await reverseGeocode(pos.lat, pos.lng);
+        if(addr){ ptFrom.label = addr; $('#inpFrom').value = addr; }
+        if(ptFrom && ptTo) computeRoute();
+      });
+    } else {
+      markerFrom.setLatLng([lat, lon]);
+    }
+  } else {
+    ptTo = {lat:+lat, lon:+lon, label};
+    $('#inpTo').value = label;
+    if(!markerTo){
+      markerTo = L.marker([lat, lon], {icon:iconB, draggable:true}).addTo(map);
+      markerTo.on('dragend', async function(e){
+        const pos = e.target.getLatLng();
+        ptTo.lat = pos.lat; ptTo.lon = pos.lng;
+        const addr = await reverseGeocode(pos.lat, pos.lng);
+        if(addr){ ptTo.label = addr; $('#inpTo').value = addr; }
+        if(ptFrom && ptTo) computeRoute();
+      });
+    } else {
+      markerTo.setLatLng([lat, lon]);
+    }
+  }
+  if(fit){
+    if(ptFrom && ptTo){
+      map.fitBounds([[ptFrom.lat, ptFrom.lon], [ptTo.lat, ptTo.lon]], {padding:[50,50]});
+    } else {
+      map.setView([lat, lon], 15);
+    }
+  }
+}
+
+async function reverseGeocode(lat, lon){
+  try{
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=es`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if(d && d.address){
+      const a = d.address;
+      const road = a.road || a.pedestrian || a.suburb || a.Alignment || '';
+      const num = a.house_number ? ' ' + a.house_number : '';
+      const com = a.city_district || a.town || a.city || a.municipality || a.county || '';
+      const short = [road + num, com].filter(Boolean).join(', ');
+      return short || d.display_name;
+    }
+  }catch(e){}
+  return null;
+}
+
+function onType(which){
+  clearTimeout(typeTimers[which]);
+  const val = (which==='from' ? $('#inpFrom').value : $('#inpTo').value).trim();
+  const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
+  if(val.length < 3){
+    sugBox.style.display = 'none';
+    return;
+  }
+  typeTimers[which] = setTimeout(()=>searchAddr(which, false), 350);
+}
+
+async function searchAddr(which, autoPickFirst){
+  const inp = which==='from' ? $('#inpFrom') : $('#inpTo');
+  const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
+  const q = inp.value.trim();
+  if(!q) return;
+
+  setStatus('🔍 Buscando dirección en Chile...');
+  try{
+    const query = q.toLowerCase().includes('chile') ? q : `${q}, Chile`;
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=cl&addressdetails=1&limit=6&accept-language=es&q=${encodeURIComponent(query)}`;
+    const r = await fetch(url);
+    const list = await r.json();
+
+    if(!list || list.length === 0){
+      sugBox.innerHTML = `<div class="sug-item"><small>No encontramos esa dirección exacta. Intente agregando la comuna (ej: "Pajaritos 1450, Maipú") o marque el punto directamente en el mapa.</small></div>`;
+      sugBox.style.display = 'block';
+      setStatus('⚠️ Dirección no encontrada. Puede marcar el punto directamente en el mapa.');
+      return;
+    }
+
+    if(autoPickFirst){
+      const item = list[0];
+      sugBox.style.display = 'none';
+      setPoint(which, item.lat, item.lon, formatResultName(item), true);
+      if(ptFrom && ptTo) computeRoute();
+      else setStatus('✅ Punto fijado. Ahora ingrese o seleccione el segundo punto.');
+      return;
+    }
+
+    sugBox.innerHTML = list.map((item, idx) => {
+      const clean = formatResultName(item);
+      return `<div class="sug-item" onclick="pickSuggestion('${which}', ${item.lat}, ${item.lon}, '${clean.replace(/'/g,"\\'")}')">
+        <b>${clean}</b>
+        <small>${item.display_name}</small>
+      </div>`;
+    }).join('');
+    sugBox.style.display = 'block';
+    setStatus('Seleccione una dirección de la lista desplegable.');
+  }catch(e){
+    setStatus('⚠️ Error al buscar dirección. Puede hacer clic directamente sobre el mapa.');
+  }
+}
+
+function formatResultName(item){
+  if(item.address){
+    const a = item.address;
+    const place = item.name && item.name !== a.road ? item.name + ', ' : '';
+    const road = a.road || a.pedestrian || '';
+    const num = a.house_number ? ' ' + a.house_number : '';
+    const com = a.city_district || a.suburb || a.town || a.city || a.municipality || '';
+    const built = (place + (road + num)).trim();
+    if(built && com) return `${built}, ${com}`;
+  }
+  return item.display_name.split(',').slice(0,3).join(',').trim();
+}
+
+function pickSuggestion(which, lat, lon, label){
+  const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
+  sugBox.style.display = 'none';
+  setPoint(which, lat, lon, label, true);
+  if(which==='from' && !ptTo) setPickMode('to');
+  if(ptFrom && ptTo) computeRoute();
+}
+
+document.addEventListener('click', function(ev){
+  if(!ev.target.closest('.search-wrap')){
+    $('#sugFrom').style.display = 'none';
+    $('#sugTo').style.display = 'none';
+  }
+});
+
+async function calculateNow(){
+  if(!ptFrom && $('#inpFrom').value.trim()){
+    await searchAddr('from', true);
+  }
+  if(!ptTo && $('#inpTo').value.trim()){
+    await searchAddr('to', true);
+  }
+  if(!ptFrom || !ptTo){
+    setStatus('⚠️ Por favor indique tanto la dirección de Inicio (A) como la de Destino (B).');
+    return;
+  }
+  computeRoute();
+}
+
+async function computeRoute(){
+  if(!ptFrom || !ptTo) return;
+  setStatus('🚗 Calculando ruta óptima por calles y autopistas...');
+  try{
+    const url = `https://router.project-osrm.org/route/v1/driving/${ptFrom.lon},${ptFrom.lat};${ptTo.lon},${ptTo.lat}?overview=full&geometries=geojson`;
+    const r = await fetch(url);
+    const data = await r.json();
+
+    if(data && data.routes && data.routes.length > 0){
+      const route = data.routes[0];
+      lastOneWayKm = route.distance / 1000; // en KM
+      lastDurationMin = Math.round(route.duration / 60);
+
+      if(routeLine) map.removeLayer(routeLine);
+      routeLine = L.geoJSON(route.geometry, {
+        style: {color:'#0f766e', weight:6, opacity:0.85}
+      }).addTo(map);
+      map.fitBounds(routeLine.getBounds(), {padding:[45,45]});
+
+      renderPricing();
+      setStatus('✅ Ruta calculada con éxito. Puede arrastrar los pines A o B si desea ajustar el punto exacto.');
+    } else {
+      setStatus('⚠️ No se pudo trazar ruta vehicular entre ambos puntos.');
+    }
+  }catch(e){
+    // Respaldo distancia lineal estimada en caso de fallo de red
+    const dKm = haversineKm(ptFrom.lat, ptFrom.lon, ptTo.lat, ptTo.lon) * 1.3;
+    lastOneWayKm = dKm;
+    lastDurationMin = Math.round(dKm * 2);
+    renderPricing();
+    setStatus('✅ Distancia estimada calculada.');
+  }
+}
+
+function haversineKm(lat1, lon1, lat2, lon2){
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function setTripMode(mult){
+  tripMultiplier = mult;
+  $('#btnIda').classList.toggle('active', mult===1);
+  $('#btnIdaVuelta').classList.toggle('active', mult===2);
+  if(lastOneWayKm > 0) renderPricing();
+}
+
+function renderPricing(){
+  const rawTotalKm = lastOneWayKm * tripMultiplier;
+  // Redondeo a 1 decimal para mostrar y cálculo exacto a $1.000 por KM
+  const displayOneWay = lastOneWayKm.toFixed(1).replace('.', ',');
+  const displayTotalKm = rawTotalKm.toFixed(1).replace('.', ',');
+  const totalCost = Math.round(rawTotalKm * PRICE_PER_KM);
+
+  $('#resultPanel').style.display = 'block';
+  $('#outKm').textContent = `${displayTotalKm} km`;
+  $('#outTime').textContent = lastDurationMin > 0 ? `(aprox. ${lastDurationMin * tripMultiplier} min en vehículo)` : '';
+  $('#outPrice').textContent = $c(totalCost);
+
+  $('#bdOneWay').textContent = `${displayOneWay} km`;
+  $('#bdMode').textContent = tripMultiplier === 2 ? 'Ida y Vuelta (×2)' : 'Solo Ida (×1)';
+  $('#bdTotalKm').textContent = `${displayTotalKm} km × $1.000`;
+  $('#bdTotalPrice').textContent = $c(totalCost);
+
+  const fromStr = ptFrom ? ptFrom.label : $('#inpFrom').value;
+  const toStr = ptTo ? ptTo.label : $('#inpTo').value;
+  const modeStr = tripMultiplier === 2 ? 'Ida y Vuelta' : 'Solo Ida';
+
+  // Actualizar botón de Agendar con parámetros para autocompletar en reservar.html
+  const bookParams = new URLSearchParams({
+    from: fromStr,
+    to: toStr,
+    km: rawTotalKm.toFixed(1),
+    fare: totalCost
+  });
+  $('#btnBookRoute').href = `reservar.html?${bookParams.toString()}`;
+
+  // Actualizar botón de WhatsApp
+  const waMsg = `Hola, calculé mi ruta en la página web:\n` +
+    `• Inicio (A): ${fromStr}\n` +
+    `• Destino (B): ${toStr}\n` +
+    `• Modalidad: ${modeStr}\n` +
+    `• Distancia total: ${displayTotalKm} km\n` +
+    `• Valor por KM ($1.000/km): ${$c(totalCost)}\n` +
+    `Me gustaría cotizar el servicio completo y confirmar disponibilidad.`;
+  $('#btnWaRoute').href = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waMsg)}`;
+}
+
+function useMyLocation(){
+  if(!navigator.geolocation){
+    setStatus('⚠️ Su navegador no soporta geolocalización.');
+    return;
+  }
+  setStatus('📍 Obteniendo su ubicación actual...');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const {latitude, longitude} = pos.coords;
+    setPoint('from', latitude, longitude, 'Mi ubicación actual', true);
+    const addr = await reverseGeocode(latitude, longitude);
+    if(addr){
+      ptFrom.label = addr;
+      $('#inpFrom').value = addr;
+    }
+    setPickMode('to');
+    if(ptFrom && ptTo) computeRoute();
+  }, () => {
+    setStatus('⚠️ No se pudo acceder al GPS. Puede escribir su dirección o tocar el mapa.');
+  });
+}
+
+function setStatus(msg){
+  $('#statusMsg').textContent = msg;
+}
+</script>
+</body>
+</html>
