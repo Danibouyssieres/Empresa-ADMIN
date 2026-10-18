@@ -178,7 +178,6 @@ footer a{color:#fff}
 
         <div style="display:grid;gap:10px;margin-top:16px">
           <a id="btnBookRoute" class="btn" href="reservar.html">📅 Agendar hora con esta ruta</a>
-          <a id="btnWaRoute" class="btn ghost" href="#" target="_blank" rel="noopener">💬 Enviar este cálculo por WhatsApp</a>
         </div>
       </div>
 
@@ -631,15 +630,6 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin){
     fare: totalCost
   });
   $('#btnBookRoute').href = `reservar.html?${bookParams.toString()}`;
-
-  const waMsg = `Hola, calculé mi ruta (${isRoundTrip ? 'Ida y Vuelta' : 'Solo Ida'}) en la página web:\n` +
-    `• Inicio (A): ${fromStr}\n` +
-    `• Destino (B): ${toStr}\n` +
-    `• Modalidad: ${modeLabel}\n` +
-    `• Distancia total: ${fmtTotal} km\n` +
-    `• Valor por KM ($1.000/km): ${$c(totalCost)}\n` +
-    `Me gustaría cotizar el servicio y confirmar disponibilidad.`;
-  $('#btnWaRoute').href = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waMsg)}`;
 }
 
 function useMyLocation(){
