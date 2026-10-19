@@ -53,6 +53,18 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
 .full-modality-bar label{font-size:1rem;color:var(--teal);margin-bottom:8px}
 .full-modality-bar select{font-size:1.05rem;font-weight:700;padding:12px 14px;background:var(--card);border:2px solid var(--teal)}
 
+/* SELECTOR DE 2 CUADRADOS PARA REGIÓN INTERREGIONAL (VALPARAÍSO / O'HIGGINS) */
+.interregional-box{margin-bottom:18px;padding:16px 18px;border-radius:var(--r);background:var(--bg);border:1px solid var(--line);display:none}
+.region-squares{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+@media(max-width:600px){.region-squares{grid-template-columns:1fr}}
+.reg-sq{display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:12px;border:2px solid var(--line);background:var(--card);cursor:pointer;transition:all .15s;text-align:left}
+.reg-sq:hover{border-color:var(--sage)}
+.reg-sq.active{border-color:var(--teal);background:var(--mist)}
+.reg-check{width:24px;height:24px;border-radius:6px;border:2px solid var(--teal);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;color:#fff;background:var(--card);flex-shrink:0}
+.reg-sq.active .reg-check{background:var(--teal)}
+.reg-sq strong{display:block;color:var(--teal);font-size:1.02rem}
+.reg-sq small{color:var(--mute);font-size:.84rem}
+
 /* LAYOUT DE RUTA Y MAPA */
 .route-layout{display:grid;grid-template-columns:1.05fr 1.15fr;gap:20px;margin-top:14px;align-items:start}
 .route-layout.no-map{grid-template-columns:1fr}
@@ -176,10 +188,32 @@ footer a{color:#fff}
           <option value="2">2. Traslado Exclusivo con Espera</option>
           <option value="3">3. Cuidados a Domicilio</option>
           <option value="4">4. Acompañamiento a Eventos Sociales</option>
+          <option value="5">5. Programas Interregionales</option>
         </select>
       </div>
 
-      <!-- ÁREA DE DIRECCIONES Y MAPA (EL MAPA SE OCULTA EN MODALIDAD 3 Y MODALIDAD 4) -->
+      <!-- SELECTOR EXCLUSIVO MODALIDAD 5: 2 CUADRADOS PARA MARCAR REGIÓN (VALPARAÍSO U O'HIGGINS) -->
+      <div id="interregionalRegionBox" class="interregional-box">
+        <label style="color:var(--teal);font-size:.96rem">Seleccione la región de origen de su Programa Interregional *</label>
+        <div class="region-squares">
+          <button type="button" id="regBtn_valparaiso" class="reg-sq active" onclick="selectInterRegion('Región de Valparaíso')">
+            <span class="reg-check" id="regChk_valparaiso">✓</span>
+            <div>
+              <strong>Región de Valparaíso</strong>
+              <small>Traslado puerta a puerta (Ida y Vuelta a Santiago)</small>
+            </div>
+          </button>
+          <button type="button" id="regBtn_ohiggins" class="reg-sq" onclick="selectInterRegion('Región de O\'Higgins')">
+            <span class="reg-check" id="regChk_ohiggins"></span>
+            <div>
+              <strong>Región de O'Higgins</strong>
+              <small>Traslado puerta a puerta (Ida y Vuelta a Santiago)</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- ÁREA DE DIRECCIONES Y MAPA -->
       <div id="routeLayoutBox" class="route-layout">
         <!-- COLUMNA IZQUIERDA: DIRECCIONES + RESULTADO KM -->
         <div>
@@ -199,17 +233,18 @@ footer a{color:#fff}
             <div id="ringDesc">Seleccione o busque su dirección de inicio para conocer su anillo comunal y tarifa mínima correspondiente.</div>
           </div>
 
-          <!-- CONTROLES EXCLUSIVOS DE RUTA VEHICULAR (DESTINO B, IDA/VUELTA, BOTÓN CALCULAR KM) -->
-          <div id="vehicleRouteControls">
-            <div class="search-wrap" id="destWrap">
-              <label for="b_to"><span class="pin-badge pin-b">B</span>Dirección de Destino (Clínica, Hospital o dirección con numeración) *</label>
-              <div class="input-row">
-                <input id="b_to" type="text" placeholder="Ej: Hospital El Carmen o Av. Santa María 1810, Providencia" autocomplete="off" oninput="onType('to')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('to',true)}">
-                <button type="button" class="search-btn" onclick="searchAddr('to',true)">Buscar</button>
-              </div>
-              <div id="sugTo" class="suggestions"></div>
+          <!-- DIRECCIÓN DE DESTINO B (VISIBLE EN MODALIDAD 1, 2 Y 5) -->
+          <div class="search-wrap" id="destWrap">
+            <label for="b_to" id="lblToAddr"><span class="pin-badge pin-b">B</span>Dirección de Destino (Clínica, Hospital o dirección con numeración) *</label>
+            <div class="input-row">
+              <input id="b_to" type="text" placeholder="Ej: Hospital El Carmen o Av. Santa María 1810, Providencia" autocomplete="off" oninput="onType('to')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('to',true)}">
+              <button type="button" class="search-btn" onclick="searchAddr('to',true)">Buscar</button>
             </div>
+            <div id="sugTo" class="suggestions"></div>
+          </div>
 
+          <!-- CONTROLES EXCLUSIVOS DE CÁLCULO DE KILÓMETROS (SOLO VISIBLE EN MODALIDAD 1 Y 2) -->
+          <div id="kmCalcControls">
             <label>Modalidad del recorrido vehicular:</label>
             <div class="trip-toggle">
               <button type="button" id="btnIdaVuelta" class="trip-opt active" onclick="setTripMode(2)">
@@ -242,7 +277,7 @@ footer a{color:#fff}
           <div id="routeStatusMsg" style="margin-top:10px;font-size:.88rem;color:var(--mute);text-align:center"></div>
         </div>
 
-        <!-- COLUMNA DERECHA: MAPA INTERACTIVO -->
+        <!-- COLUMNA DERECHA: MAPA INTERACTIVO (SOLO VISIBLE EN MODALIDAD 1 Y 2) -->
         <div id="mapColumn">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
             <h3 style="margin:0">Mapa interactivo del recorrido</h3>
@@ -264,7 +299,7 @@ footer a{color:#fff}
       </div>
 
       <!-- =========================================================================
-           SUB-SECCIÓN BAJO EL CÁLCULO DE KM: HORARIO / JORNADA Y TIEMPO DE ASISTENCIA O ESPERA
+           SUB-SECCIÓN DE HORARIO / JORNADA Y TIEMPO DE ASISTENCIA / SUB-MODALIDAD
            ========================================================================= -->
       <div class="time-calc-section">
         <h3 id="timeSectionTitle">⏱️ Horario y Tiempo de Asistencia (Mínimo 1 hora · Bloques extra de 30 min)</h3>
@@ -314,22 +349,28 @@ footer a{color:#fff}
           </div>
         </div>
 
-        <!-- COMBOBOX DE HORAS Y MINUTOS HABILITADO PARA MODALIDAD 3 Y 4 -->
+        <!-- COMBOBOX DE HORAS Y MINUTOS HABILITADO PARA MODALIDAD 3, 4 Y 5 -->
         <div id="durationBox34" class="grid" style="display:none">
           <div>
-            <label for="selHours34" id="lblHours34">Seleccione el plan de horas (2 o 4 horas)</label>
+            <label for="selHours34" id="lblHours34">Seleccione el plan de horas</label>
             <select id="selHours34" onchange="onHours34Change()">
               <option value="2">2 horas</option>
               <option value="4">4 horas</option>
             </select>
           </div>
           <div>
-            <label for="selMins34">Minutos adicionales (bloques de 30 min a mitad del valor hora)</label>
+            <label for="selMins34" id="lblMins34">Minutos adicionales (bloques de 30 min a mitad del valor hora)</label>
             <select id="selMins34" onchange="onHours34Change()">
               <option value="0" selected>0 minutos</option>
               <option value="30">+ 30 minutos extra (1/2 hora)</option>
             </select>
           </div>
+        </div>
+
+        <!-- NOTA EXCLUSIVA DE MODALIDAD 5 SOBRE FRACCIONES POSTERIORES -->
+        <div id="interregionalFractionNote" class="info-banner" style="display:none;margin-top:12px">
+          <b>📌 Nota sobre tiempo adicional en Programas Interregionales:</b><br>
+          Toda fracción posterior a las horas contempladas en cada paquete se regirá por el valor de hora clínica de asistencia según corresponda en tarifario horario (<b>$12.000/hora</b> Hábil · <b>$15.000/hora</b> Tarde y sábados · <b>$18.000/hora</b> Nocturno, domingos y festivos; cada bloque de 30 minutos equivale a la mitad del valor hora).
         </div>
 
         <!-- RESUMEN DEL VALOR DEL TIEMPO SELECCIONADO -->
@@ -372,14 +413,15 @@ footer a{color:#fff}
         </div>
       </div>
 
-      <!-- CAJA DE VALOR DIRECTO SOLO TIEMPO (PARA MODALIDAD 3 Y MODALIDAD 4) -->
+      <!-- CAJA DE VALOR DIRECTO SIN COBRO POR KM (PARA MODALIDAD 3, 4 Y 5) -->
       <div id="directTimeOnlySection" class="grand-total-box" style="display:none">
         <h3 id="directBoxTitle" style="margin-bottom:6px">💰 Valor Total de su Servicio</h3>
         <div class="gt-grid">
           <div>
             <ul class="breakdown" style="border-top:0;padding-top:0;margin-top:0">
               <li><span>Modalidad seleccionada:</span> <b id="dirSvcName">Cuidados a Domicilio</b></li>
-              <li><span>Jornada y duración seleccionada:</span> <b id="dirTimeDesc">2 horas · Hábil</b></li>
+              <li id="dirRegionRow" style="display:none"><span>Región del programa:</span> <b id="dirRegionVal">Región de Valparaíso</b></li>
+              <li><span>Sub-modalidad / Duración y jornada:</span> <b id="dirTimeDesc">2 horas · Hábil</b></li>
               <li style="border-top:2px solid var(--teal);padding-top:8px;margin-top:6px;font-size:1.08rem;color:var(--teal)">
                 <span><b>VALOR REAL TOTAL DE LA ATENCIÓN:</b></span> <b id="dirFinalTotal">$24.000</b>
               </li>
@@ -391,7 +433,7 @@ footer a{color:#fff}
           <div class="abono-highlight">
             <small>Abono 50% para Reservar</small>
             <div class="ab-val" id="dirAbono50">$12.000</div>
-            <span>Reserva y bloquea al profesional TENS en su horario</span>
+            <span>Reserva y bloquea el vehículo y profesional TENS en su horario</span>
           </div>
         </div>
       </div>
@@ -515,7 +557,8 @@ const SVC_NAMES = {
   '1': '1. Servicio Integral (Asistencia + Traslado)',
   '2': '2. Traslado Exclusivo con Espera',
   '3': '3. Cuidados a Domicilio',
-  '4': '4. Acompañamiento a Eventos Sociales'
+  '4': '4. Acompañamiento a Eventos Sociales',
+  '5': '5. Programas Interregionales'
 };
 
 // Tarifas horarias exactas según tabla oficial
@@ -539,6 +582,11 @@ const RATES = {
     habil:    { hour: 12000, half: 6000, pkg: {4: 48000, 6: 60000} },
     tarde:    { hour: 15000, half: 7500, pkg: {4: 60000, 6: 75000} },
     nocturno: { hour: 18000, half: 9000, pkg: {4: 72000, 6: 90000} }
+  },
+  '5': { // Programas Interregionales (3h = $250.000, 6h = $300.000; fracciones extra según valor hora clínica de asistencia)
+    habil:    { hour: 12000, half: 6000, pkg: {3: 250000, 6: 300000} },
+    tarde:    { hour: 15000, half: 7500, pkg: {3: 250000, 6: 300000} },
+    nocturno: { hour: 18000, half: 9000, pkg: {3: 250000, 6: 300000} }
   }
 };
 
@@ -615,6 +663,7 @@ function toggleTheme(){
 
 // ===== ESTADO DE CÁLCULO DE TARIFA Y MODALIDAD =====
 let currentJornada = 'habil'; // 'habil' | 'tarde' | 'nocturno'
+let selectedInterRegion = 'Región de Valparaíso';
 let detectedRing = null;
 let detectedComuna = '';
 
@@ -654,6 +703,16 @@ const iconB = L.divIcon({
   iconAnchor: [16, 16]
 });
 
+function selectInterRegion(regName){
+  selectedInterRegion = regName;
+  const isValpo = regName.includes('Valparaíso');
+  $('#regBtn_valparaiso').classList.toggle('active', isValpo);
+  $('#regChk_valparaiso').textContent = isValpo ? '✓' : '';
+  $('#regBtn_ohiggins').classList.toggle('active', !isValpo);
+  $('#regChk_ohiggins').textContent = !isValpo ? '✓' : '';
+  recalcAll();
+}
+
 // ===== REGLAS POR MODALIDAD DE SERVICIO =====
 function isMapEnabledForCurrentState(){
   const mode = $('#b_svc_type').value;
@@ -661,10 +720,10 @@ function isMapEnabledForCurrentState(){
 }
 
 function onServiceTypeChange(){
-  const mode = $('#b_svc_type').value; // '1', '2', '3', '4'
+  const mode = $('#b_svc_type').value; // '1', '2', '3', '4', '5'
   setRouteStatus('');
 
-  // Configurar combobox de horas para Modalidad 3 (2 o 4 h) y Modalidad 4 (4 o 6 h)
+  // Configurar combobox de horas para Modalidad 3 (2 o 4 h), Modalidad 4 (4 o 6 h) y Modalidad 5 (3 o 6 h)
   if(mode === '3'){
     $('#lblHours34').textContent = 'Seleccione cantidad de horas de asistencia (mínimo 2 h, máximo 4 h)';
     $('#selHours34').innerHTML = `
@@ -679,6 +738,13 @@ function onServiceTypeChange(){
       <option value="6">6 horas</option>
     `;
     $('#selMins34').value = '0';
+  } else if(mode === '5'){
+    $('#lblHours34').textContent = 'Seleccione sub-modalidad del Programa Interregional (3 o 6 horas)';
+    $('#selHours34').innerHTML = `
+      <option value="3" selected>3 horas — Programa Estándar ($250.000)</option>
+      <option value="6">6 horas — Programa Crónico / Oncológico ($300.000)</option>
+    `;
+    $('#selMins34').value = '0';
   }
 
   applyModalityVisibility();
@@ -688,29 +754,54 @@ function onServiceTypeChange(){
 
 function applyModalityVisibility(){
   const mode = $('#b_svc_type').value;
-  const showMap = isMapEnabledForCurrentState();
+  const showMap = isMapEnabledForCurrentState(); // true solo en '1' y '2'
+  const showDestAddress = (mode === '1' || mode === '2' || mode === '5');
 
   const layoutBox = $('#routeLayoutBox');
   const mapCol = $('#mapColumn');
-  const vehControls = $('#vehicleRouteControls');
+  const destWrap = $('#destWrap');
+  const kmControls = $('#kmCalcControls');
+  const bFrom = $('#b_from');
   const bTo = $('#b_to');
+
+  // Mostrar/ocultar los 2 cuadrados de Región Interregional
+  $('#interregionalRegionBox').style.display = (mode === '5') ? 'block' : 'none';
+  $('#interregionalFractionNote').style.display = (mode === '5') ? 'block' : 'none';
 
   if(showMap){
     layoutBox.classList.remove('no-map');
     mapCol.style.display = 'block';
-    vehControls.style.display = 'block';
-    bTo.required = true;
-    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección de Recogida / Inicio (Calle, número exacto y comuna) *`;
+    kmControls.style.display = 'block';
     setTimeout(() => map.invalidateSize(), 80);
   } else {
     layoutBox.classList.add('no-map');
     mapCol.style.display = 'none';
-    vehControls.style.display = 'none';
-    bTo.required = false;
-    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección del Domicilio / Lugar de Atención (Calle, número exacto y comuna) *`;
+    kmControls.style.display = 'none';
   }
 
-  // Mostrar el selector de horas correspondiente (1-2 vs 3-4)
+  if(showDestAddress){
+    destWrap.style.display = 'block';
+    bTo.required = true;
+  } else {
+    destWrap.style.display = 'none';
+    bTo.required = false;
+  }
+
+  // Etiquetas de dirección según modalidad
+  if(mode === '1' || mode === '2'){
+    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección de Recogida / Inicio (Calle, número exacto y comuna) *`;
+    $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección de Destino (Clínica, Hospital o dirección con numeración) *`;
+    bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
+  } else if(mode === '5'){
+    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección exacta donde debemos ir a buscarlo (Valparaíso u O'Higgins) *`;
+    $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección exacta a donde necesita ir (Clínica, Hospital o Centro en Santiago) *`;
+    bFrom.placeholder = 'Ej: Av. Libertad 450, Viña del Mar o Av. Libertador Bernardo O\'Higgins 520, Rancagua';
+  } else {
+    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección del Domicilio / Lugar de Atención (Calle, número exacto y comuna) *`;
+    bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
+  }
+
+  // Mostrar el selector de horas correspondiente (1-2 vs 3-4-5)
   if(mode === '1' || mode === '2'){
     $('#durationBox12').style.display = 'grid';
     $('#durationBox34').style.display = 'none';
@@ -723,9 +814,16 @@ function applyModalityVisibility(){
   } else {
     $('#durationBox12').style.display = 'none';
     $('#durationBox34').style.display = 'grid';
-    $('#timeSectionTitle').textContent = mode === '3'
-      ? '⏱️ Horario y Cantidad de Horas de Cuidados a Domicilio (Mínimo 2 h, Máximo 4 h)'
-      : '⏱️ Horario y Cantidad de Horas del Evento Social (Mínimo 4 h, Máximo 6 h)';
+    if(mode === '3'){
+      $('#timeSectionTitle').textContent = '⏱️ Horario y Cantidad de Horas de Cuidados a Domicilio (Mínimo 2 h, Máximo 4 h)';
+      $('#lblMins34').textContent = 'Minutos adicionales (bloques de 30 min a mitad del valor hora)';
+    } else if(mode === '4'){
+      $('#timeSectionTitle').textContent = '⏱️ Horario y Cantidad de Horas del Evento Social (Mínimo 4 h, Máximo 6 h)';
+      $('#lblMins34').textContent = 'Minutos adicionales (bloques de 30 min a mitad del valor hora)';
+    } else if(mode === '5'){
+      $('#timeSectionTitle').textContent = '⏱️ Sub-modalidad del Programa Interregional (3 horas o 6 horas)';
+      $('#lblMins34').textContent = 'Fracción adicional posterior al paquete (bloques de 30 min según tarifario horario)';
+    }
   }
 
   // Mostrar/ocultar sección de Suma (KM + TIEMPO) vs Valor Directo sin suma de KM
@@ -780,7 +878,8 @@ function getSelectedTotalMinutes(){
     const m = +$('#selMins12').value || 0;
     return h * 60 + m;
   } else {
-    const h = +$('#selHours34').value || (mode === '3' ? 2 : 4);
+    const defH = mode === '3' ? 2 : (mode === '4' ? 4 : 3);
+    const h = +$('#selHours34').value || defH;
     const m = +$('#selMins34').value || 0;
     return h * 60 + m;
   }
@@ -803,6 +902,10 @@ function recalcAll(){
     $('#lblRateHabil').innerHTML = `$12.000/h <small style="display:inline">(4h: $48.000 · 6h: $60.000)</small>`;
     $('#lblRateTarde').innerHTML = `$15.000/h <small style="display:inline">(4h: $60.000 · 6h: $75.000)</small>`;
     $('#lblRateNocturno').innerHTML = `$18.000/h <small style="display:inline">(4h: $72.000 · 6h: $90.000)</small>`;
+  } else if(mode === '5'){
+    $('#lblRateHabil').innerHTML = `3h: $250.000 · 6h: $300.000 <small style="display:block">Hora clínica extra: $12.000/h ($6.000 cada 30m)</small>`;
+    $('#lblRateTarde').innerHTML = `3h: $250.000 · 6h: $300.000 <small style="display:block">Hora clínica extra: $15.000/h ($7.500 cada 30m)</small>`;
+    $('#lblRateNocturno').innerHTML = `3h: $250.000 · 6h: $300.000 <small style="display:block">Hora clínica extra: $18.000/h ($9.000 cada 30m)</small>`;
   }
 
   let timeCost = 0;
@@ -815,16 +918,17 @@ function recalcAll(){
     timeCost = (h * r.hour) + (extraHalfBlocks * r.half);
     durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(r.hour)}/h${m ? ` + ${$c(r.half)} bloque 30m` : ''})`;
   } else {
-    const h = +$('#selHours34').value || (mode === '3' ? 2 : 4);
+    const defH = mode === '3' ? 2 : (mode === '4' ? 4 : 3);
+    const h = +$('#selHours34').value || defH;
     const m = +$('#selMins34').value || 0;
     const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
     const extraHalfCost = m === 30 ? r.half : 0;
     timeCost = basePkgCost + extraHalfCost;
-    durationText = `${h} horas${m ? ' + 30 min extra' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
+    durationText = `${h} horas${m ? ' + 30 min extra' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} fracción 30m` : ''})`;
   }
 
   lastTimeCost = timeCost;
-  $('#lblTimeSummaryDesc').textContent = `Valor por tiempo (${durationText} · Jornada ${currentJornada === 'habil' ? 'Hábil' : currentJornada === 'tarde' ? 'Tarde/Sáb' : 'Nocturno/Dom'}):`;
+  $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · Jornada ${currentJornada === 'habil' ? 'Hábil' : currentJornada === 'tarde' ? 'Tarde/Sáb' : 'Nocturno/Dom'}):`;
   $('#lblTimeSummaryVal').textContent = $c(timeCost);
 
   const showMap = isMapEnabledForCurrentState();
@@ -868,8 +972,14 @@ function recalcAll(){
     $('#sumAbono50').textContent = $c(lastAbono50);
     $('#sumSaldoFinal').textContent = $c(saldo50);
   } else {
-    // Modalidad 3 (Cuidados a Domicilio) o Modalidad 4 (Eventos Sociales)
+    // Modalidad 3 (Cuidados a Domicilio), Modalidad 4 (Eventos Sociales) o Modalidad 5 (Programas Interregionales)
     $('#dirSvcName').textContent = SVC_NAMES[mode];
+    if(mode === '5'){
+      $('#dirRegionRow').style.display = 'flex';
+      $('#dirRegionVal').textContent = selectedInterRegion;
+    } else {
+      $('#dirRegionRow').style.display = 'none';
+    }
     $('#dirTimeDesc').textContent = `${durationText} · ${JORNADA_LABELS[currentJornada].split(' (')[0]}`;
     lastFinalTotal = timeCost;
     lastAbono50 = Math.round(timeCost * 0.5);
@@ -909,8 +1019,8 @@ function detectRingFromText(addrText, lat, lon){
 function updateRingDisplay(){
   const box = $('#ringInfoBox');
   const mode = $('#b_svc_type').value;
-  // Ocultar siempre en Servicio 3 (Cuidados a Domicilio) y Servicio 4 (Eventos Sociales), o si aún no hay anillo
-  if(!detectedRing || mode === '3' || mode === '4'){
+  // Ocultar siempre en Servicio 3, 4 y 5, o si aún no hay anillo
+  if(!detectedRing || mode === '3' || mode === '4' || mode === '5'){
     box.style.display = 'none';
     return;
   }
@@ -1096,7 +1206,7 @@ async function searchAddr(which, autoPickFirst){
           : mainAddr;
         return {
           title: title,
-          subtitle: subAddr || 'Región Metropolitana / Chile',
+          subtitle: subAddr || 'Chile',
           fullLabel: title,
           rawFull: `${title}, ${subAddr}, ${attr.District||''}, ${attr.City||''}`,
           lat: c.location.y,
@@ -1126,7 +1236,7 @@ async function searchAddr(which, autoPickFirst){
     const combined = [...medMatches, ...arcList].slice(0, 7);
 
     if(combined.length === 0){
-      sugBox.innerHTML = `<div class="sug-item"><small>No encontramos esa dirección. Intente indicar calle, número y comuna (ej: "Pasaje Los Océanos 424, Maipú").</small></div>`;
+      sugBox.innerHTML = `<div class="sug-item"><small>No encontramos esa dirección. Intente indicar calle, número y comuna.</small></div>`;
       sugBox.style.display = 'block';
       setRouteStatus('⚠️ Dirección no encontrada.');
       return;
@@ -1414,6 +1524,7 @@ async function submitBooking(ev){
   const mode = $('#b_svc_type').value;
   const svcName = SVC_NAMES[mode];
   const showMap = isMapEnabledForCurrentState();
+  const showDest = (mode === '1' || mode === '2' || mode === '5');
 
   // Asegurar que la dirección (y la ruta si aplica) esté geocodificada
   if(!ptFrom && $('#b_from').value.trim()){
@@ -1444,10 +1555,12 @@ async function submitBooking(ev){
   const pat = $('#b_pat').value.trim();
   const age = +$('#b_age').value;
   const dxInput = $('#b_dx').value.trim();
-  const fullDx = `${svcName} · ${dxInput}`;
+  const fullDx = mode === '5'
+    ? `${svcName} (${selectedInterRegion}) · ${dxInput}`
+    : `${svcName} · ${dxInput}`;
   const mob = $('#b_mob').value;
   const from = $('#b_from').value.trim();
-  const to = showMap ? $('#b_to').value.trim() : 'Atención en domicilio / lugar del evento';
+  const to = showDest ? $('#b_to').value.trim() : 'Atención en domicilio / lugar del evento';
   const comp = $('#b_comp').value === 'Sí';
   const coord = $('#b_coord').value.trim();
   const ph = '+569' + $('#b_ph').value.trim();
@@ -1488,10 +1601,12 @@ async function submitBooking(ev){
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'TENS Asignado'};
   const waText = `Hola, acabo de agendar una hora en la web (Reserva #MSA-${newId}).\n` +
     `• Modalidad: ${svcName}\n` +
+    (mode === '5' ? `• Región de origen: ${selectedInterRegion}\n` : '') +
     `• Jornada: ${JORNADA_LABELS[currentJornada]}\n` +
     `• Fecha y Hora: ${date} a las ${timeStr} (${dur} min)\n` +
-    `• Dirección (A): ${from}\n` +
-    (showMap ? `• Destino (B): ${to}\n• Recorrido: ${modeLabel} (${fmtTotalKm} = ${$c(lastKmCost)})\n` : '') +
+    `• Dirección de Recogida (A): ${from}\n` +
+    (showDest ? `• Destino (B): ${to}\n` : '') +
+    (showMap ? `• Recorrido: ${modeLabel} (${fmtTotalKm} = ${$c(lastKmCost)})\n` : '') +
     `• Valor Total Real: ${$c(lastFinalTotal)}\n` +
     `• Abono 50% para Reservar: ${$c(lastAbono50)}\n` +
     `• Saldo 50% al finalizar: ${$c(saldo50)}\n` +
@@ -1511,10 +1626,11 @@ async function submitBooking(ev){
 
       <ul class="summary-list" style="max-width:660px;margin:20px auto;text-align:left">
         <li><span>🛎️ <b>Modalidad de Servicio:</b></span> <span>${e(svcName)}</span></li>
-        <li><span>📍 <b>Dirección de Inicio:</b></span> <span>${e(from)}</span></li>
+        ${mode === '5' ? `<li><span>🗺️ <b>Región del Programa:</b></span> <span><b>${e(selectedInterRegion)}</b></span></li>` : ''}
+        <li><span>📍 <b>Dirección de Recogida (A):</b></span> <span>${e(from)}</span></li>
+        ${showDest ? `<li><span>🏁 <b>Dirección de Destino (B):</b></span> <span>${e(to)}</span></li>` : ''}
         ${showMap ? `
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
-          <li><span>🏁 <b>Destino:</b></span> <span>${e(to)}</span></li>
           <li><span>🛣️ <b>Kilómetros (${e(modeLabel)}):</b></span> <span><b>${e(fmtTotalKm)}</b> (${$c(lastKmCost)})</span></li>
         ` : ''}
         <li><span>🕒 <b>Jornada y Tiempo:</b></span> <span>${e(JORNADA_LABELS[currentJornada])} · ${dur} min (${$c(lastTimeCost)})</span></li>
