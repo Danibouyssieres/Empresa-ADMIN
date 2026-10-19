@@ -47,7 +47,6 @@ nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 label{display:block;font-size:.88rem;font-weight:700;color:var(--mute);margin-bottom:5px}
 input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-color:transparent}
-select option:disabled{color:#9ca3af;background:var(--bg)}
 
 /* SELECTOR DE MODALIDAD DE EXTREMO A EXTREMO */
 .full-modality-bar{width:100%;background:var(--mist);border:2px solid var(--sage);border-radius:var(--r);padding:18px 20px;margin-bottom:20px}
@@ -84,9 +83,6 @@ select option:disabled{color:#9ca3af;background:var(--bg)}
 .ring-badge-box{margin:10px 0 14px;padding:12px 15px;border-radius:12px;background:var(--mist);border-left:5px solid var(--teal);font-size:.92rem;display:none}
 .ring-badge-box strong{color:var(--teal);display:block;font-size:1rem;margin-bottom:2px}
 
-.coord-box{margin:8px 0 14px;padding:10px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:.88rem;color:var(--mute);display:none}
-.coord-box b{color:var(--teal);font-family:monospace;font-size:.95rem}
-
 .map-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .map-btn{flex:1;min-width:135px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:.84rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 .map-btn:hover{background:var(--mist);border-color:var(--teal)}
@@ -120,11 +116,6 @@ select option:disabled{color:#9ca3af;background:var(--bg)}
 .abono-highlight small{display:block;color:#d3e6e1;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em}
 .abono-highlight .ab-val{font-family:Georgia,serif;font-size:clamp(1.9rem,4vw,2.5rem);font-weight:700;color:#8fe0c0;margin:4px 0}
 .abono-highlight span{font-size:.85rem;color:#e6f1ee}
-
-.extra-svc-box{margin-top:20px;padding:18px 20px;border-radius:12px;background:var(--bg);border:2px dashed var(--sage)}
-.yn-btns{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
-.yn-btn{padding:9px 18px;border-radius:999px;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:.9rem;cursor:pointer}
-.yn-btn.active{border-color:var(--teal);background:var(--mist);color:var(--teal)}
 
 .slots-title{font-size:.9rem;font-weight:600;color:var(--mute);margin:16px 0 8px}
 .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px}
@@ -188,7 +179,7 @@ footer a{color:#fff}
         </select>
       </div>
 
-      <!-- ÁREA DE DIRECCIONES Y MAPA (EL MAPA SE OCULTA EN MODALIDAD 3 Y EN MODALIDAD 4 SIN VEHÍCULO) -->
+      <!-- ÁREA DE DIRECCIONES Y MAPA (EL MAPA SE OCULTA EN MODALIDAD 3 Y MODALIDAD 4) -->
       <div id="routeLayoutBox" class="route-layout">
         <!-- COLUMNA IZQUIERDA: DIRECCIONES + RESULTADO KM -->
         <div>
@@ -202,12 +193,7 @@ footer a{color:#fff}
             <div id="sugFrom" class="suggestions"></div>
           </div>
 
-          <!-- COORDENADA EXACTA DEL PUNTO A (DESTACADA ESPECIALMENTE PARA MODALIDAD 3 Y 4) -->
-          <div id="coordFromBox" class="coord-box">
-            📌 Coordenada exacta registrada: <b id="coordFromText">—</b>
-          </div>
-
-          <!-- ANILLO COMUNAL DETECTADO Y TARIFA MÍNIMA -->
+          <!-- ANILLO COMUNAL DETECTADO Y TARIFA MÍNIMA (SOLO VISIBLE EN MODALIDAD 1 Y 2) -->
           <div id="ringInfoBox" class="ring-badge-box">
             <strong id="ringTitle">📍 Anillo detectado: —</strong>
             <div id="ringDesc">Seleccione o busque su dirección de inicio para conocer su anillo comunal y tarifa mínima correspondiente.</div>
@@ -356,7 +342,7 @@ footer a{color:#fff}
       <!-- =========================================================================
            SECCIÓN DE SUMA (KM + TIEMPO) Y ABONO 50%
            ========================================================================= -->
-      <!-- CAJA DE SUMA KM + TIEMPO (HABILITADA EN MODALIDAD 1, 2, Y EN MODALIDAD 4 CON VEHÍCULO) -->
+      <!-- CAJA DE SUMA KM + TIEMPO (HABILITADA EN MODALIDAD 1 Y 2) -->
       <div id="sumKmTimeSection" class="grand-total-box">
         <h3 id="sumBoxTitle" style="margin-bottom:6px">💰 Suma Total del Servicio (KM + Tiempo de Asistencia)</h3>
         <div class="gt-grid">
@@ -364,7 +350,6 @@ footer a{color:#fff}
             <ul class="breakdown" style="border-top:0;padding-top:0;margin-top:0">
               <li><span>1. Valor por Kilómetros recorridos (<span id="sumKmText">0 km</span>):</span> <b id="sumKmVal">$0</b></li>
               <li><span>2. <span id="sumTimeLabel">Valor por Tiempo de Asistencia</span>:</span> <b id="sumTimeVal">$12.000</b></li>
-              <li id="sumExtraSvcRow" style="display:none"><span>3. Servicio Adicional (Cuidados a Domicilio):</span> <b id="sumExtraSvcVal">$0</b></li>
               <li style="border-top:1px solid var(--line);padding-top:6px;margin-top:4px">
                 <span>Suma directa (KM + Tiempo):</span> <b id="sumRawTotal">$12.000</b>
               </li>
@@ -387,7 +372,7 @@ footer a{color:#fff}
         </div>
       </div>
 
-      <!-- CAJA DE VALOR DIRECTO SOLO TIEMPO (PARA MODALIDAD 3 Y MODALIDAD 4 SIN VEHÍCULO, DONDE NO SE SUMA KM) -->
+      <!-- CAJA DE VALOR DIRECTO SOLO TIEMPO (PARA MODALIDAD 3 Y MODALIDAD 4) -->
       <div id="directTimeOnlySection" class="grand-total-box" style="display:none">
         <h3 id="directBoxTitle" style="margin-bottom:6px">💰 Valor Total de su Servicio</h3>
         <div class="gt-grid">
@@ -407,43 +392,6 @@ footer a{color:#fff}
             <small>Abono 50% para Reservar</small>
             <div class="ab-val" id="dirAbono50">$12.000</div>
             <span>Reserva y bloquea al profesional TENS en su horario</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- =========================================================================
-           SECCIÓN DEBAJO DE LA SUMA: "¿DESEA AGREGAR OTRO SERVICIO ADICIONAL?"
-           ========================================================================= -->
-      <div id="extraSvcPrompt" class="extra-svc-box">
-        <label style="color:var(--teal);font-size:.98rem;margin-bottom:4px">¿Desea agregar otro servicio adicional?</label>
-        <p id="extraSvcHelpText" style="font-size:.86rem;color:var(--mute);margin-bottom:8px">
-          Al escoger Servicio Integral o Traslado Exclusivo con Espera, puede complementar su atención con Cuidados a Domicilio.
-        </p>
-        <div class="yn-btns">
-          <button type="button" id="btnExtraNo" class="yn-btn active" onclick="toggleExtraService(false)">No, solo este servicio</button>
-          <button type="button" id="btnExtraYes" class="yn-btn" onclick="toggleExtraService(true)">➕ Sí, agregar servicio adicional</button>
-        </div>
-
-        <div id="extraSvcSelectWrap" style="display:none;margin-top:14px">
-          <label for="b_svc_extra">Seleccione el servicio adicional:</label>
-          <select id="b_svc_extra" onchange="onExtraSvcSelectChange()"></select>
-
-          <!-- Sub-selector de horas si el servicio adicional elegido es el Servicio 3 (Cuidados a Domicilio) -->
-          <div id="extraCareHoursWrap" class="grid" style="display:none;margin-top:12px">
-            <div>
-              <label for="selExtraCareHours">Horas de Cuidados a Domicilio adicional (2 o 4 h)</label>
-              <select id="selExtraCareHours" onchange="recalcAll()">
-                <option value="2" selected>2 horas</option>
-                <option value="4">4 horas</option>
-              </select>
-            </div>
-            <div>
-              <label for="selExtraCareMins">Minutos extra de Cuidados a Domicilio</label>
-              <select id="selExtraCareMins" onchange="recalcAll()">
-                <option value="0" selected>0 minutos</option>
-                <option value="30">+ 30 minutos extra</option>
-              </select>
-            </div>
           </div>
         </div>
       </div>
@@ -667,7 +615,6 @@ function toggleTheme(){
 
 // ===== ESTADO DE CÁLCULO DE TARIFA Y MODALIDAD =====
 let currentJornada = 'habil'; // 'habil' | 'tarde' | 'nocturno'
-let wantExtraService = false;
 let detectedRing = null;
 let detectedComuna = '';
 
@@ -684,7 +631,6 @@ let lastKmCost = 0;
 let lastFinalTotal = 0;
 let lastAbono50 = 0;
 let lastTimeCost = 0;
-let lastExtraCost = 0;
 let pickMode = 'from';
 let typeTimers = {from:null, to:null};
 
@@ -711,22 +657,12 @@ const iconB = L.divIcon({
 // ===== REGLAS POR MODALIDAD DE SERVICIO =====
 function isMapEnabledForCurrentState(){
   const mode = $('#b_svc_type').value;
-  if(mode === '1' || mode === '2') return true;
-  if(mode === '3') return false;
-  if(mode === '4'){
-    return wantExtraService && $('#b_svc_extra').value === 'vehiculo_empresa';
-  }
-  return true;
+  return mode === '1' || mode === '2';
 }
 
 function onServiceTypeChange(){
   const mode = $('#b_svc_type').value; // '1', '2', '3', '4'
-  // Reiniciar selección de servicio adicional al cambiar de modalidad principal
-  wantExtraService = false;
-  $('#btnExtraNo').classList.add('active');
-  $('#btnExtraYes').classList.remove('active');
-  $('#extraSvcSelectWrap').style.display = 'none';
-  $('#extraCareHoursWrap').style.display = 'none';
+  setRouteStatus('');
 
   // Configurar combobox de horas para Modalidad 3 (2 o 4 h) y Modalidad 4 (4 o 6 h)
   if(mode === '3'){
@@ -743,33 +679,6 @@ function onServiceTypeChange(){
       <option value="6">6 horas</option>
     `;
     $('#selMins34').value = '0';
-  }
-
-  // Configurar las opciones del selector "¿Desea agregar otro servicio adicional?"
-  const extraSelect = $('#b_svc_extra');
-  if(mode === '1' || mode === '2'){
-    // Solo se habilita en servicio 1 o 2, y SOLO pueden escoger el servicio 3 (1, 2 y 4 bloqueados)
-    $('#extraSvcPrompt').style.display = 'block';
-    $('#extraSvcHelpText').textContent = 'Para Servicio Integral o Traslado Exclusivo con Espera, solo está habilitado agregar el Servicio 3 (Cuidados a Domicilio). Los servicios 1, 2 y 4 permanecen bloqueados.';
-    extraSelect.innerHTML = `
-      <option value="1" disabled>🔒 1. Servicio Integral (Asistencia + Traslado) — Bloqueado</option>
-      <option value="2" disabled>🔒 2. Traslado Exclusivo con Espera — Bloqueado</option>
-      <option value="3" selected>✅ 3. Cuidados a Domicilio (Habilitado)</option>
-      <option value="4" disabled>🔒 4. Acompañamiento a Eventos Sociales — Bloqueado</option>
-    `;
-  } else if(mode === '3'){
-    // En Cuidados a Domicilio se oculta/deshabilita "¿desea agregar otro servicio adicional?"
-    $('#extraSvcPrompt').style.display = 'none';
-  } else if(mode === '4'){
-    // En Eventos Sociales se habilita con la opción especial "Deseo usar el vehículo de la empresa"
-    $('#extraSvcPrompt').style.display = 'block';
-    $('#extraSvcHelpText').textContent = 'Al seleccionar la cantidad de horas para su Evento Social, puede elegir la opción especial "Deseo usar el vehículo de la empresa" para habilitar el mapa y cotizar los KM + Tiempo del Evento Social.';
-    extraSelect.innerHTML = `
-      <option value="vehiculo_empresa" selected>🚗 Deseo usar el vehículo de la empresa (Habilitar mapa y cotizar KM + Evento)</option>
-      <option value="1" disabled>🔒 1. Servicio Integral (Asistencia + Traslado) — Bloqueado</option>
-      <option value="2" disabled>🔒 2. Traslado Exclusivo con Espera — Bloqueado</option>
-      <option value="3" disabled>🔒 3. Cuidados a Domicilio — Bloqueado</option>
-    `;
   }
 
   applyModalityVisibility();
@@ -799,12 +708,6 @@ function applyModalityVisibility(){
     vehControls.style.display = 'none';
     bTo.required = false;
     $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección del Domicilio / Lugar de Atención (Calle, número exacto y comuna) *`;
-  }
-
-  // Mostrar coordenada siempre que haya punto A (especialmente requerido en modalidad 3 y 4)
-  if(ptFrom){
-    $('#coordFromBox').style.display = 'block';
-    $('#coordFromText').textContent = `${ptFrom.lat.toFixed(6)}, ${ptFrom.lon.toFixed(6)}`;
   }
 
   // Mostrar el selector de horas correspondiente (1-2 vs 3-4)
@@ -838,38 +741,8 @@ function applyModalityVisibility(){
 }
 
 function onHours34Change(){
-  const mode = $('#b_svc_type').value;
-  if(mode === '4'){
-    // Asegurar que la sección "¿desea agregar otro servicio adicional?" esté habilitada al seleccionar horas en modalidad 4
-    $('#extraSvcPrompt').style.display = 'block';
-  }
   recalcAll();
   updateSlots();
-}
-
-function toggleExtraService(want){
-  wantExtraService = want;
-  $('#btnExtraNo').classList.toggle('active', !want);
-  $('#btnExtraYes').classList.toggle('active', want);
-  $('#extraSvcSelectWrap').style.display = want ? 'block' : 'none';
-  onExtraSvcSelectChange();
-}
-
-function onExtraSvcSelectChange(){
-  const mode = $('#b_svc_type').value;
-  const extraVal = $('#b_svc_extra').value;
-
-  if(wantExtraService && (mode === '1' || mode === '2') && extraVal === '3'){
-    $('#extraCareHoursWrap').style.display = 'grid';
-  } else {
-    $('#extraCareHoursWrap').style.display = 'none';
-  }
-
-  applyModalityVisibility();
-  if(isMapEnabledForCurrentState() && ptFrom && ptTo){
-    computeRoute();
-  }
-  recalcAll();
 }
 
 function setJornada(j){
@@ -954,56 +827,37 @@ function recalcAll(){
   $('#lblTimeSummaryDesc').textContent = `Valor por tiempo (${durationText} · Jornada ${currentJornada === 'habil' ? 'Hábil' : currentJornada === 'tarde' ? 'Tarde/Sáb' : 'Nocturno/Dom'}):`;
   $('#lblTimeSummaryVal').textContent = $c(timeCost);
 
-  // Calcular costo de servicio adicional si es Modalidad 1 o 2 y agregó Servicio 3
-  lastExtraCost = 0;
-  if(wantExtraService && (mode === '1' || mode === '2') && $('#b_svc_extra').value === '3'){
-    const eh = +$('#selExtraCareHours').value || 2;
-    const em = +$('#selExtraCareMins').value || 0;
-    const r3 = RATES['3'][currentJornada];
-    lastExtraCost = (r3.pkg[eh] || eh * r3.hour) + (em === 30 ? r3.half : 0);
-    $('#sumExtraSvcRow').style.display = 'flex';
-    $('#sumExtraSvcVal').textContent = `${$c(lastExtraCost)} (${eh}h${em ? '+30m' : ''})`;
-  } else {
-    $('#sumExtraSvcRow').style.display = 'none';
-  }
-
   const showMap = isMapEnabledForCurrentState();
   const kmCost = showMap ? lastKmCost : 0;
 
   if(showMap){
-    // Modalidad 1, 2, o 4 con vehículo de la empresa
+    // Modalidad 1 o 2
     const titleLabel = mode === '1'
       ? '💰 Suma Total del Servicio (KM + Tiempo de Asistencia)'
-      : mode === '2'
-        ? '💰 Suma Total del Servicio (KM + Tiempo de Espera)'
-        : '💰 Suma Total del Servicio (KM + Tiempo del Evento Social)';
+      : '💰 Suma Total del Servicio (KM + Tiempo de Espera)';
     $('#sumBoxTitle').textContent = titleLabel;
 
     $('#sumTimeLabel').textContent = mode === '1'
       ? `Valor por Tiempo de Asistencia (${durationText})`
-      : mode === '2'
-        ? `Valor por Tiempo de Espera (${durationText})`
-        : `Valor por Tiempo del Evento Social (${durationText})`;
+      : `Valor por Tiempo de Espera (${durationText})`;
 
     const fmtKm = lastTotalKm.toFixed(1).replace('.', ',') + ' km';
     $('#sumKmText').textContent = fmtKm;
     $('#sumKmVal').textContent = $c(kmCost);
     $('#sumTimeVal').textContent = $c(timeCost);
 
-    const rawSum = kmCost + timeCost + lastExtraCost;
+    const rawSum = kmCost + timeCost;
     $('#sumRawTotal').textContent = $c(rawSum);
 
     // En Modalidad 1 y 2 aplica tarifa mínima del anillo si la suma KM + Tiempo es menor
     let finalTotal = rawSum;
-    if((mode === '1' || mode === '2') && detectedRing){
+    if(detectedRing){
       $('#sumRingFloorRow').style.display = 'flex';
       $('#sumRingFloorVal').textContent = `${detectedRing.name} · Mín. ${$c(detectedRing.minFare)}`;
-      finalTotal = Math.max(rawSum, detectedRing.minFare + lastExtraCost);
-    } else if(mode === '1' || mode === '2'){
+      finalTotal = Math.max(rawSum, detectedRing.minFare);
+    } else {
       $('#sumRingFloorRow').style.display = 'flex';
       $('#sumRingFloorVal').textContent = 'Ingrese dirección A para verificar mínimo de anillo';
-    } else {
-      $('#sumRingFloorRow').style.display = 'none';
     }
 
     lastFinalTotal = finalTotal;
@@ -1014,7 +868,7 @@ function recalcAll(){
     $('#sumAbono50').textContent = $c(lastAbono50);
     $('#sumSaldoFinal').textContent = $c(saldo50);
   } else {
-    // Modalidad 3 (Cuidados a Domicilio) o Modalidad 4 (Eventos Sociales sin vehículo)
+    // Modalidad 3 (Cuidados a Domicilio) o Modalidad 4 (Eventos Sociales)
     $('#dirSvcName').textContent = SVC_NAMES[mode];
     $('#dirTimeDesc').textContent = `${durationText} · ${JORNADA_LABELS[currentJornada].split(' (')[0]}`;
     lastFinalTotal = timeCost;
@@ -1027,7 +881,7 @@ function recalcAll(){
   }
 }
 
-// ===== DETECCIÓN DE ANILLO COMUNAL Y COORDENADA =====
+// ===== DETECCIÓN DE ANILLO COMUNAL (SOLO PARA MODALIDAD 1 Y 2) =====
 function detectRingFromText(addrText, lat, lon){
   const nText = norm(addrText);
   for(const ring of RINGS_DATA){
@@ -1055,20 +909,14 @@ function detectRingFromText(addrText, lat, lon){
 function updateRingDisplay(){
   const box = $('#ringInfoBox');
   const mode = $('#b_svc_type').value;
-  if(!detectedRing){
+  // Ocultar siempre en Servicio 3 (Cuidados a Domicilio) y Servicio 4 (Eventos Sociales), o si aún no hay anillo
+  if(!detectedRing || mode === '3' || mode === '4'){
     box.style.display = 'none';
     return;
   }
-  // En Modalidad 1 y 2 mostramos el anillo y su tarifa mínima
-  if(mode === '1' || mode === '2'){
-    box.style.display = 'block';
-    $('#ringTitle').textContent = `📍 Comuna de recogida: ${detectedComuna} → ${detectedRing.name}`;
-    $('#ringDesc').innerHTML = `Tarifa mínima correspondiente a su dirección: <b>${$c(detectedRing.minFare)}</b> (aplica si la suma de KM + Tiempo resulta menor a este monto).`;
-  } else {
-    box.style.display = 'block';
-    $('#ringTitle').textContent = `📍 Comuna detectada: ${detectedComuna} (${detectedRing.name})`;
-    $('#ringDesc').innerHTML = `Dirección ubicada en <b>${detectedComuna}</b>. Para esta modalidad el cobro se rige directamente por el bloque de horas seleccionado.`;
-  }
+  box.style.display = 'block';
+  $('#ringTitle').textContent = `📍 Comuna de recogida: ${detectedComuna} → ${detectedRing.name}`;
+  $('#ringDesc').innerHTML = `Tarifa mínima correspondiente a su dirección: <b>${$c(detectedRing.minFare)}</b> (aplica si la suma de KM + Tiempo resulta menor a este monto).`;
 }
 
 // ===== MAPA Y BUSCADOR DE DIRECCIONES (ARCGIS + OSRM) =====
@@ -1112,8 +960,6 @@ function setPoint(which, lat, lon, label, fit=true, rawFull=''){
   if(which === 'from'){
     ptFrom = {lat:+lat, lon:+lon, label};
     $('#b_from').value = label;
-    $('#coordFromBox').style.display = 'block';
-    $('#coordFromText').textContent = `${(+lat).toFixed(6)}, ${(+lon).toFixed(6)}`;
 
     const det = detectRingFromText(rawFull || label, +lat, +lon);
     if(det){
@@ -1126,8 +972,6 @@ function setPoint(which, lat, lon, label, fit=true, rawFull=''){
       markerFrom.on('dragend', async function(e){
         const pos = e.target.getLatLng();
         ptFrom.lat = pos.lat; ptFrom.lon = pos.lng;
-        $('#coordFromBox').style.display = 'block';
-        $('#coordFromText').textContent = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
         const addrObj = await reverseGeocodeExact(pos.lat, pos.lng);
         if(addrObj && addrObj.label){
           ptFrom.label = addrObj.label;
@@ -1223,7 +1067,7 @@ async function searchAddr(which, autoPickFirst){
   const q = inp.value.trim();
   if(!q) return;
 
-  setRouteStatus('🔍 Buscando dirección y coordenada exacta...');
+  setRouteStatus('🔍 Buscando dirección exacta...');
   try{
     const qLow = q.toLowerCase();
     const medMatches = MEDICAL_PLACES.filter(m =>
@@ -1299,9 +1143,9 @@ async function searchAddr(which, autoPickFirst){
       setPoint(which, first.lat, first.lon, finalLabel, true, `${q}, ${first.rawFull}`);
       if(isMapEnabledForCurrentState()){
         if(ptFrom && ptTo) computeRoute();
-        else setRouteStatus('✅ Dirección y coordenada registradas. Ahora ingrese el segundo punto.');
+        else setRouteStatus('✅ Dirección ubicada. Ahora ingrese el segundo punto.');
       } else {
-        setRouteStatus(`✅ Dirección y coordenada (${first.lat.toFixed(5)}, ${first.lon.toFixed(5)}) registradas con éxito.`);
+        setRouteStatus('');
       }
       return;
     }
@@ -1310,7 +1154,7 @@ async function searchAddr(which, autoPickFirst){
     sugBox.innerHTML = combined.map((item, idx) => `
       <div class="sug-item" onclick="pickSugIndex('${which}', ${idx})">
         <b>${item.title}</b>
-        <small>${item.subtitle} · Coord: ${item.lat.toFixed(4)}, ${item.lon.toFixed(4)}</small>
+        <small>${item.subtitle}</small>
       </div>
     `).join('');
     sugBox.style.display = 'block';
@@ -1337,7 +1181,7 @@ function pickSugIndex(which, idx){
     if(which==='from' && !ptTo) setPickMode('to');
     if(ptFrom && ptTo) computeRoute();
   } else {
-    setRouteStatus(`✅ Dirección y coordenada (${item.lat.toFixed(5)}, ${item.lon.toFixed(5)}) registradas con éxito.`);
+    setRouteStatus('');
   }
 }
 
@@ -1597,24 +1441,12 @@ async function submitBooking(ev){
     return;
   }
 
-  let extraDesc = '';
-  if(wantExtraService){
-    if((mode === '1' || mode === '2') && $('#b_svc_extra').value === '3'){
-      const eh = $('#selExtraCareHours').value;
-      const em = +$('#selExtraCareMins').value;
-      extraDesc = `3. Cuidados a Domicilio (${eh}h${em?'+30m':''} · ${$c(lastExtraCost)})`;
-    } else if(mode === '4' && $('#b_svc_extra').value === 'vehiculo_empresa'){
-      extraDesc = 'Deseo usar el vehículo de la empresa (Traslado cotizado en mapa)';
-    }
-  }
-
   const pat = $('#b_pat').value.trim();
   const age = +$('#b_age').value;
   const dxInput = $('#b_dx').value.trim();
-  const fullDx = extraDesc ? `${svcName} + Adicional: ${extraDesc} · ${dxInput}` : `${svcName} · ${dxInput}`;
+  const fullDx = `${svcName} · ${dxInput}`;
   const mob = $('#b_mob').value;
   const from = $('#b_from').value.trim();
-  const coordStr = ptFrom ? `${ptFrom.lat.toFixed(6)}, ${ptFrom.lon.toFixed(6)}` : 'No especificada';
   const to = showMap ? $('#b_to').value.trim() : 'Atención en domicilio / lugar del evento';
   const comp = $('#b_comp').value === 'Sí';
   const coord = $('#b_coord').value.trim();
@@ -1640,7 +1472,7 @@ async function submitBooking(ev){
     dx: fullDx,
     coord,
     ph,
-    from: `${from} (${coordStr})`,
+    from,
     to,
     mob,
     req: reqs,
@@ -1656,11 +1488,9 @@ async function submitBooking(ev){
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'TENS Asignado'};
   const waText = `Hola, acabo de agendar una hora en la web (Reserva #MSA-${newId}).\n` +
     `• Modalidad: ${svcName}\n` +
-    (extraDesc ? `• Servicio adicional: ${extraDesc}\n` : '') +
     `• Jornada: ${JORNADA_LABELS[currentJornada]}\n` +
     `• Fecha y Hora: ${date} a las ${timeStr} (${dur} min)\n` +
     `• Dirección (A): ${from}\n` +
-    `• Coordenada: ${coordStr}\n` +
     (showMap ? `• Destino (B): ${to}\n• Recorrido: ${modeLabel} (${fmtTotalKm} = ${$c(lastKmCost)})\n` : '') +
     `• Valor Total Real: ${$c(lastFinalTotal)}\n` +
     `• Abono 50% para Reservar: ${$c(lastAbono50)}\n` +
@@ -1681,9 +1511,7 @@ async function submitBooking(ev){
 
       <ul class="summary-list" style="max-width:660px;margin:20px auto;text-align:left">
         <li><span>🛎️ <b>Modalidad de Servicio:</b></span> <span>${e(svcName)}</span></li>
-        ${extraDesc ? `<li><span>➕ <b>Servicio Adicional:</b></span> <span>${e(extraDesc)}</span></li>` : ''}
         <li><span>📍 <b>Dirección de Inicio:</b></span> <span>${e(from)}</span></li>
-        <li><span>📌 <b>Coordenada Exacta:</b></span> <span><code>${e(coordStr)}</code></span></li>
         ${showMap ? `
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
           <li><span>🏁 <b>Destino:</b></span> <span>${e(to)}</span></li>
