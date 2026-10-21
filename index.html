@@ -14,7 +14,7 @@ html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 body{font:18px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
 h1,h2,h3{font-family:Georgia,"Times New Roman",serif;line-height:1.2;color:var(--teal)}
-h1{font-size:clamp(1.9rem,6vw,3.1rem)}
+h1{font-size:clamp(1.55rem,3.2vw,2.3rem);line-height:1.16}
 h2{font-size:clamp(1.6rem,4.5vw,2.3rem);margin-bottom:.6rem}
 h3{font-size:1.25rem;margin-bottom:.4rem}
 p+p{margin-top:.8rem}
@@ -23,16 +23,16 @@ a{color:var(--teal)}
 .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
 section{padding:64px 0}
 .lead{color:var(--mute);margin-bottom:28px}
-.btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--wa);color:#fff;text-decoration:none;font-weight:700;padding:16px 28px;border-radius:999px;font-size:1.05rem;box-shadow:0 6px 18px rgba(22,143,74,.3);border:2px solid transparent;cursor:pointer;transition:transform .15s,background .15s}
+.btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--wa);color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:999px;font-size:1.02rem;box-shadow:0 6px 18px rgba(22,143,74,.3);border:2px solid transparent;cursor:pointer;transition:transform .15s,background .15s}
 .btn:hover{background:#12783E;transform:translateY(-2px)}
 .btn.sm{padding:9px 18px;font-size:.95rem;box-shadow:none}
 .btn.ghost{background:var(--card);color:var(--teal);border:2px solid var(--teal);box-shadow:none}
 .btn.ghost:hover{background:var(--mist)}
 header{position:sticky;top:0;z-index:20;background:var(--card);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px}
 .logo{font-family:Georgia,serif;font-weight:700;color:var(--teal);text-decoration:none;font-size:1.05rem;line-height:1.15}
 .logo{display:flex;align-items:center}
-.logo img{max-height:85px;width:auto;max-width:100%;display:block}
+.logo img{max-height:68px;width:auto;max-width:100%;display:block}
 nav{display:flex;gap:14px;align-items:center}
 nav a:not(.btn){text-decoration:none;color:var(--ink);font-size:.95rem}
 nav a:not(.btn):hover{color:var(--sage)}
@@ -43,16 +43,16 @@ nav a:not(.btn):hover{color:var(--sage)}
   .btn.sm{padding:8px 12px;font-size:.84rem}
   nav a:not(.btn){display:none}
 }
-.hero{background:linear-gradient(160deg,var(--mist),var(--bg) 70%);padding:56px 0 40px}
-.hero .wrap{display:grid;gap:36px;grid-template-columns:1.25fr 1fr;align-items:center}
-.hero p.sub{font-size:1.2rem;color:var(--mute);margin:18px 0 26px;max-width:52ch}
-.hero small{display:block;margin-top:12px;color:var(--mute);font-size:.9rem}
+.hero{background:linear-gradient(160deg,var(--mist),var(--bg) 70%);padding:24px 0 26px}
+.hero .wrap{display:grid;gap:18px 32px;grid-template-columns:1.25fr 1fr;align-items:center}
+.hero p.sub{font-size:1.08rem;line-height:1.52;color:var(--mute);margin:0 0 18px;max-width:54ch}
+.hero small{display:block;margin-top:8px;color:var(--mute);font-size:.88rem}
 .ph{background:repeating-linear-gradient(45deg,var(--mist),var(--mist) 12px,var(--bg) 12px,var(--bg) 24px);border:2px dashed var(--sage);border-radius:var(--r);display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;color:var(--teal);font-size:.9rem;font-weight:600}
-.hero .ph{aspect-ratio:4/5;max-height:440px}
+.hero .ph{aspect-ratio:4/5;max-height:340px}
 @media(max-width:820px){.hero .wrap{grid-template-columns:1fr}.hero .ph{aspect-ratio:16/10}}
 .trust{background:#0E4A55;color:#fff}
 .trust ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:8px 20px}
-.trust li{padding:18px 0;font-size:.98rem;display:flex;gap:10px;align-items:center}
+.trust li{padding:14px 0;font-size:.95rem;display:flex;gap:10px;align-items:center}
 .trust li::before{content:"✓";color:#8fe0c0;font-weight:800}
 @media(max-width:820px){.trust ul{grid-template-columns:1fr 1fr}.trust li{padding:10px 0;font-size:.9rem}}
 .grid{display:grid;gap:18px;grid-template-columns:repeat(2,1fr)}
@@ -179,7 +179,6 @@ footer .wrap{display:grid;gap:8px}
       <a href="#seguridad">Seguridad</a>
       <a href="#agendar">Cómo agendar</a>
       <a class="btn sm" href="reservar.html" title="Agendar una hora en línea">📅 Reservar</a>
-      <a class="btn sm ghost" href="admin.html" title="Acceso para Administrador y Técnicos TENS">🔐 Administradores</a>
       <button type="button" class="btn sm ghost" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
     </nav>
   </div>
@@ -192,17 +191,17 @@ footer .wrap{display:grid;gap:8px}
     <h1 style="grid-column: 1 / -1; text-align: center;">Sabemos lo importante que es su familia. Permítanos ser su apoyo profesional en los traslados y cuidados de quienes más ama.</h1>
     <div>
       <p class="sub">Ofrecemos asistencia/acompañamiento y traslado para personas con movilidad reducida temporal o permanente, entregando la tranquilidad que usted necesita. Cada servicio es realizado de manera personalizada por un Técnico en Enfermería de Nivel Superior (TENS), garantizando un trato digno y seguro durante toda la atención.</p>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
         <a class="btn" href="reservar.html">📅 Reservar hora en línea</a>
         <a class="btn ghost" data-msg="Hola, vengo de la página web y necesito cotizar un servicio" href="#">💬 Cotizar por WhatsApp</a>
       </div>
       <small>Respuesta personalizada · Cotización previa sin compromiso</small>
     </div>
-    <img src="hero.jpg?v=2" alt="Profesional TENS ayudando a un adulto mayor a subir al vehículo" style="width:100%;max-height:440px;object-fit:cover;border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.12);display:block">
+    <img src="hero.jpg?v=2" alt="Profesional TENS ayudando a un adulto mayor a subir al vehículo" style="width:100%;max-height:340px;object-fit:cover;border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.12);display:block">
   </div>
 </div>
 <div class="trust"><div class="wrap"><ul>
-  <li>Atendido por un profesional</li><li>Control de signos vitales gratuito</li><li>Valor del viaje sin recargos por tacos o desvíos</li><li>Proporcionamos ayudas técnicas (silla o andador)</li>
+  <li>Personal TENS calificado</li><li>Control de signos vitales gratuito</li><li>Valor del viaje sin recargos por tacos o desvíos</li><li>Proporcionamos ayudas técnicas (silla o andador)</li>
 </ul></div></div>
 
 <!-- BLOQUE 2: SERVICIOS -->
