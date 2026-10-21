@@ -136,12 +136,62 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
 .abono-highlight .ab-val{font-family:Georgia,serif;font-size:clamp(1.9rem,4vw,2.5rem);font-weight:700;color:#8fe0c0;margin:4px 0}
 .abono-highlight span{font-size:.85rem;color:#e6f1ee}
 
-.slots-title{font-size:.9rem;font-weight:600;color:var(--mute);margin:16px 0 8px}
-.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px}
-.slot{padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-weight:600;font-size:.92rem;cursor:pointer;text-align:center;transition:all .15s}
-.slot:hover:not(:disabled){border-color:var(--teal);background:var(--mist)}
-.slot.active{background:#0f766e;color:#fff;border-color:#0f766e}
-.slot:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+/* SECCIÓN 2: CALENDARIO INTERACTIVO Y BLOQUES DE TURNO */
+.sched-layout{display:grid;grid-template-columns:1.08fr 1fr;gap:22px;margin-top:14px;align-items:start}
+@media(max-width:860px){.sched-layout{grid-template-columns:1fr}}
+.cal-box{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.cal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.cal-hdr h3{margin:0;font-size:1.08rem;color:var(--teal);text-transform:capitalize}
+.cal-nav{display:flex;gap:6px}
+.cal-nav button{background:var(--card);border:1px solid var(--line);color:var(--teal);font-weight:700;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.9rem}
+.cal-nav button:hover:not(:disabled){background:var(--mist);border-color:var(--teal)}
+.cal-nav button:disabled{opacity:.38;cursor:not-allowed}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center;font-size:.76rem;font-weight:700;color:var(--mute);margin-bottom:6px;text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal-day{position:relative;min-height:58px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s;user-select:none}
+.cal-day.empty{background:transparent;border-color:transparent;cursor:default;min-height:0}
+.cal-day .cd-num{font-weight:800;font-size:.94rem;color:var(--ink);line-height:1.1}
+.cal-day .cd-tag{font-size:.63rem;font-weight:800;padding:2px 5px;border-radius:999px;line-height:1.1;text-align:center;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.cal-day.st-disp{border-color:rgba(22,143,74,.4)}
+.cal-day.st-disp .cd-tag{background:rgba(22,143,74,.13);color:#12783E}
+:root[data-theme="dark"] .cal-day.st-disp .cd-tag{color:#4ade80}
+.cal-day.st-last{border-color:rgba(217,119,6,.55);background:rgba(245,158,11,.04)}
+.cal-day.st-last .cd-tag{background:rgba(245,158,11,.18);color:#b45309}
+:root[data-theme="dark"] .cal-day.st-last .cd-tag{color:#fbbf24}
+.cal-day.st-full{border-color:rgba(194,98,98,.45);background:var(--warn);opacity:.75;cursor:not-allowed}
+.cal-day.st-full .cd-tag{background:rgba(194,98,98,.2);color:var(--warnb)}
+.cal-day.st-off{opacity:.38;background:var(--bg);cursor:not-allowed}
+.cal-day.st-off .cd-tag{color:var(--mute);font-weight:600}
+.cal-day:hover:not(.empty):not(.st-off):not(.st-full){border-color:var(--teal);transform:translateY(-1px)}
+.cal-day.selected{border:2.5px solid #168F4A !important;background:rgba(22,143,74,.1) !important;box-shadow:0 3px 10px rgba(22,143,74,.18)}
+.cal-day.selected::after{content:"✔";position:absolute;top:3px;right:4px;width:15px;height:15px;border-radius:50%;background:#168F4A;color:#fff;font-size:.6rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:.78rem;color:var(--mute);justify-content:center}
+.cal-legend span{display:inline-flex;align-items:center;gap:5px}
+.lg-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.lg-disp{background:#168F4A}
+.lg-last{background:#d97706}
+.lg-full{background:#dc2626}
+.lg-off{background:#94a3b8}
+
+.blocks-panel{display:flex;flex-direction:column;gap:12px}
+.block-btn{position:relative;width:100%;text-align:left;padding:15px 16px;border-radius:12px;border:2px solid var(--line);background:var(--card);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:4px}
+.block-btn:hover:not(:disabled){border-color:var(--sage)}
+.block-btn.active{border:2px solid #168F4A;background:rgba(22,143,74,.08);box-shadow:0 3px 10px rgba(22,143,74,.12)}
+:root[data-theme="dark"] .block-btn.active{border-color:#22c55e;background:rgba(34,197,94,.14)}
+.block-btn:disabled{opacity:.6;cursor:not-allowed;background:var(--bg)}
+.block-btn-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.block-btn-title{font-weight:800;font-size:1rem;color:var(--teal);display:flex;align-items:center;gap:6px}
+.block-badge{font-size:.75rem;font-weight:800;padding:3px 10px;border-radius:999px}
+.block-badge.ok{background:rgba(22,143,74,.14);color:#12783E}
+:root[data-theme="dark"] .block-badge.ok{color:#4ade80}
+.block-badge. occ{background:var(--warn);color:var(--warnb)}
+.block-badge.occ{background:var(--warn);color:var(--warnb)}
+.block-btn-sub{font-size:.85rem;color:var(--mute)}
+.block-btn-reason{font-size:.8rem;font-weight:700;color:var(--warnb);margin-top:2px}
+.buffer-strip{padding:10px 14px;border-radius:10px;background:var(--mist);border:1px dashed var(--sage);font-size:.82rem;color:var(--mute);display:flex;align-items:center;gap:10px}
+.buffer-strip b{color:var(--teal)}
+.pickup-time-box{padding:14px 16px;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin-top:2px}
+.rule-alert{margin-top:10px;padding:11px 14px;border-radius:10px;background:rgba(217,119,6,.12);border-left:4px solid #d97706;font-size:.85rem;color:var(--ink);display:none}
 .status-box{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.92rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .status-box.ok{background:rgba(22,143,74,.12);border:1px solid var(--wa);color:var(--ink)}
 .status-box.err{background:var(--warn);border:1px solid var(--warnb);color:var(--ink)}
@@ -356,7 +406,7 @@ footer a{color:#fff}
         <div id="durationBox12" class="grid">
           <div>
             <label for="selHours12" id="lblHours12">Cantidad de horas (mínimo 1 hora)</label>
-            <select id="selHours12" onchange="recalcAll()">
+            <select id="selHours12" onchange="onHours34Change()">
               <option value="1" selected>1 hora (mínimo base)</option>
               <option value="2">2 horas</option>
               <option value="3">3 horas</option>
@@ -367,7 +417,7 @@ footer a{color:#fff}
           </div>
           <div>
             <label for="selMins12">Bloque adicional de 30 minutos (50% valor hora)</label>
-            <select id="selMins12" onchange="recalcAll()">
+            <select id="selMins12" onchange="onHours34Change()">
               <option value="0" selected>0 minutos (sin bloque adicional)</option>
               <option value="30">+ 30 minutos extra (1/2 hora)</option>
             </select>
@@ -461,30 +511,90 @@ footer a{color:#fff}
     </section>
 
     <!-- =========================================================================
-         SECCIÓN 2: FECHA, HORA Y PROFESIONAL TENS
+         SECCIÓN 2: FECHA, HORA Y PROFESIONAL TENS (GESTIÓN DE CAPACIDAD Y BLOQUES)
          ========================================================================= -->
-    <section class="card">
+    <section class="card" id="secAgenda">
       <span class="step-tag">Sección 2 de 4 · Fecha y Horario en Agenda</span>
-      <h2>2. Seleccione la fecha y hora de inicio</h2>
-      <div class="grid">
-        <div>
-          <label for="b_date">Fecha del servicio *</label>
-          <input id="b_date" type="date" required onchange="onDateTimeChange()">
+      <h2>2. Seleccione la fecha, bloque de turno y hora exacta de recogida</h2>
+      <p style="font-size:.9rem;color:var(--mute);margin-bottom:12px">
+        Para garantizar puntualidad clínica, sin retrasos acumulados ni sobrecarga, operamos con un tope de <b>2 bloques diarios por unidad</b> separados por una ventana de resguardo y sanitización. Reservas con <b>mínimo 24 horas de anticipación</b> y hasta <b>30 días corridos</b> hacia adelante.
+      </p>
+
+      <input id="b_date" type="hidden" required>
+
+      <div class="sched-layout">
+        <!-- COLUMNA IZQUIERDA: CALENDARIO INTERACTIVO -->
+        <div class="cal-box">
+          <div class="cal-hdr">
+            <h3 id="calMonthLabel">Mes Año</h3>
+            <div class="cal-nav">
+              <button type="button" id="calPrevBtn" onclick="changeCalMonth(-1)" aria-label="Mes anterior">◀</button>
+              <button type="button" id="calNextBtn" onclick="changeCalMonth(1)" aria-label="Mes siguiente">▶</button>
+            </div>
+          </div>
+          <div class="cal-dow">
+            <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-legend">
+            <span><i class="lg-dot lg-disp"></i> Disponible</span>
+            <span><i class="lg-dot lg-last"></i> Último cupo</span>
+            <span><i class="lg-dot lg-full"></i> Agotado</span>
+            <span><i class="lg-dot lg-off"></i> Fuera de rango (&lt;24h / &gt;30d)</span>
+          </div>
         </div>
-        <div>
-          <label for="b_time">Hora de inicio / recogida en domicilio *</label>
-          <input id="b_time" type="time" value="10:00" required oninput="onDateTimeChange()">
+
+        <!-- COLUMNA DERECHA: SELECCIÓN DE BLOQUE (MAÑANA / BUFFER / TARDE) Y HORA EXACTA -->
+        <div class="blocks-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+            <label style="margin:0;color:var(--teal);font-size:.95rem">Fecha seleccionada: <strong id="lblSelectedDateHuman">—</strong></label>
+            <span id="lblCapBadge" style="font-size:.78rem;background:var(--mist);color:var(--teal);padding:3px 10px;border-radius:999px;font-weight:700">Capacidad activa: 1 unidad</span>
+          </div>
+
+          <!-- BLOQUE 1: MAÑANA -->
+          <button type="button" id="btnBlock_manana" class="block-btn active" onclick="selectShiftBlock('manana')">
+            <div class="block-btn-top">
+              <span class="block-btn-title">🌅 Bloque 1 · Mañana (08:00 a 09:30 hrs)</span>
+              <span id="badgeBlock_manana" class="block-badge ok">Disponible</span>
+            </div>
+            <div class="block-btn-sub" id="subBlock_manana">Horas de inicio seleccionables entre 08:00 y 09:30 hrs</div>
+            <div class="block-btn-reason" id="reasonBlock_manana" style="display:none"></div>
+          </button>
+
+          <!-- VENTANA DE RESGUARDO (BUFFER NO AGENDABLE) -->
+          <div class="buffer-strip">
+            <span style="font-size:1.2rem">🛡️</span>
+            <div>
+              <b>Ventana de resguardo operativo (13:30 a 15:00 hrs · No agendable):</b>
+              Reservada para absorber demoras médicas, retorno a base Maipú y sanitización clínica del vehículo.
+            </div>
+          </div>
+
+          <!-- BLOQUE 2: TARDE -->
+          <button type="button" id="btnBlock_tarde" class="block-btn" onclick="selectShiftBlock('tarde')">
+            <div class="block-btn-top">
+              <span class="block-btn-title">🌇 Bloque 2 · Tarde (15:00 a 16:30 hrs)</span>
+              <span id="badgeBlock_tarde" class="block-badge ok">Disponible</span>
+            </div>
+            <div class="block-btn-sub" id="subBlock_tarde">Horas de inicio seleccionables entre 15:00 y 16:30 hrs</div>
+            <div class="block-btn-reason" id="reasonBlock_tarde" style="display:none"></div>
+          </button>
+
+          <!-- DESPLEGABLE PARA HORA EXACTA DE RECOGIDA DENTRO DEL BLOQUE -->
+          <div class="pickup-time-box">
+            <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.92rem">Hora exacta de recogida requerida (dentro del bloque seleccionado) *</label>
+            <select id="b_time" required onchange="onPickupTimeChange()"></select>
+            <div id="lblEstimatedWindow" style="font-size:.83rem;color:var(--mute);margin-top:6px"></div>
+            <div id="nightRuleNotice" class="rule-alert"></div>
+          </div>
+
+          <div id="availStatus" class="status-box ok" style="margin-top:2px"></div>
+
+          <div>
+            <label for="b_tens">Profesional / Unidad TENS asignada</label>
+            <select id="b_tens" required></select>
+          </div>
         </div>
-      </div>
-
-      <div class="slots-title">Horarios rápidos sugeridos (toque uno para elegir):</div>
-      <div class="slots" id="slotsGrid"></div>
-
-      <div id="availStatus" class="status-box ok"></div>
-
-      <div style="margin-top:14px">
-        <label for="b_tens">Profesional TENS asignado</label>
-        <select id="b_tens" required></select>
       </div>
     </section>
 
@@ -912,26 +1022,6 @@ function setJornada(j){
   });
   refreshDuration34Options(false);
   recalcAll();
-}
-
-// Sincronizar jornada automáticamente cuando el usuario cambia fecha u hora en la Sección 2
-function onDateTimeChange(){
-  const dateStr = $('#b_date').value;
-  const timeStr = $('#b_time').value || '10:00';
-  if(dateStr && timeStr){
-    const [y,m,d] = dateStr.split('-').map(Number);
-    const dt = new Date(y, m-1, d);
-    const day = dt.getDay(); // 0 = Domingo, 6 = Sábado
-    const mins = tm(timeStr);
-    if(day === 0 || mins >= 23*60 || mins < 7*60){
-      setJornada('nocturno');
-    } else if(day === 6 || (mins >= 18*60 && mins < 23*60)){
-      setJornada('tarde');
-    } else {
-      setJornada('habil');
-    }
-  }
-  updateSlots();
 }
 
 function getSelectedTotalMinutes(){
@@ -1507,37 +1597,600 @@ function setRouteStatus(msg){
   $('#routeStatusMsg').textContent = msg;
 }
 
-// ===== AGENDA Y DISPONIBILIDAD =====
-function seed(){
-  const sv=(id,tid,start,dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st)=>({id,tid,date:TODAY,start:tm(start),dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st});
-  return{nid:10,techs:[
-    {id:'t1',nom:'Camila Rojas',rut:'16.123.456-7',tel:'+56911112222',veh:'Renault Symbol (patente por definir)',col:'#0f766e',act:true},
-    {id:'t2',nom:'Marcos Vera',rut:'15.987.654-3',tel:'+56933334444',veh:'Móvil 2',col:'#c2410c',act:true},
-    {id:'t3',nom:'Paola Núñez',rut:'17.555.222-K',tel:'+56955556666',veh:'Sin vehículo',col:'#7c3aed',act:false}],
-  svcs:[
-    sv(1,'t1','08:00',60,'Rosa Medina',82,'Control cardiológico','Andrea Medina','+56977778888','Maipú, Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,35000,15000,'Finalizado'),
-    sv(2,'t1','12:00',90,'Jorge Salas',76,'Kinesiología post cadera','Luis Salas','+56966665555','Maipú, Camino a Rinconada 800','Hospital Clínico UC, Santiago','Camina con asistencia/bastón',['Solo traslado'],false,28000,28000,'Confirmado'),
-    sv(3,'t2','09:30',90,'María Opazo',88,'Diálisis ambulatoria','Pía Opazo','+56944443333','Cerrillos, Av. Central 2210','Centro de Diálisis, Estación Central','Postrado/Dependiente severo',['Control de signos vitales','Administración de medicamentos'],true,45000,20000,'Pendiente')
-  ]};
+// ===== AGENDA, GESTIÓN DE CAPACIDAD Y REGLAS DE BLOQUEO AUTOMATIZADO =====
+// Escalabilidad Multi-recurso: cambiar a 2 o más en el futuro habilita múltiples reservas por bloque automáticamente
+let capacidadSimultanea = 1;
+
+const BLOCK_HOURS = {
+  manana: ['08:00', '08:30', '09:00', '09:30'],
+  tarde:  ['15:00', '15:30', '16:00', '16:30'],
+  tarde_eventos: ['15:00', '15:30', '16:00', '16:30', '17:00', '18:00', '19:00', '20:00']
+};
+
+const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DAY_NAMES_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+let selectedBlock = 'manana'; // 'manana' | 'tarde'
+let calViewYear = new Date().getFullYear();
+let calViewMonth = new Date().getMonth(); // 0..11
+
+function toYMD(dt){
+  return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+}
+function parseYMD(str){
+  const [y,m,d] = String(str).split('-').map(Number);
+  return new Date(y, m-1, d, 0, 0, 0, 0);
+}
+function addDaysYMD(str, days){
+  const dt = parseYMD(str);
+  dt.setDate(dt.getDate() + days);
+  return toYMD(dt);
+}
+function formatHumanDate(str){
+  if(!str) return '—';
+  const dt = parseYMD(str);
+  return `${DAY_NAMES_FULL[dt.getDay()]} ${dt.getDate()} de ${MONTH_NAMES[dt.getMonth()]} de ${dt.getFullYear()}`;
 }
 
-function load(){try{return JSON.parse(localStorage.getItem(K))}catch(x){return null}}
+function getRealNow(){
+  return new Date();
+}
+function getBookingWindowBounds(){
+  const now = getRealNow();
+  const minMs = now.getTime() + 24 * 60 * 60 * 1000; // Mínimo 24 horas de anticipación
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const maxDateObj = new Date(todayMidnight);
+  maxDateObj.setDate(maxDateObj.getDate() + 30); // Máximo 30 días corridos hacia adelante
+  maxDateObj.setHours(23, 59, 59, 999);
+  return { now, minMs, todayStr: toYMD(todayMidnight), maxDateStr: toYMD(maxDateObj), maxMs: maxDateObj.getTime() };
+}
+
+function isSlotAtLeast24hAhead(dateStr, timeStr){
+  const { minMs, maxDateStr } = getBookingWindowBounds();
+  if(dateStr > maxDateStr) return false;
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const [hh,mm] = timeStr.split(':').map(Number);
+  const slotDt = new Date(y, m-1, d, hh, mm, 0, 0);
+  return slotDt.getTime() >= minMs;
+}
+
+function getBlockHoursList(blockId){
+  const mode = $('#b_svc_type') ? $('#b_svc_type').value : '1';
+  if(blockId === 'manana') return BLOCK_HOURS.manana;
+  if(mode === '4') return BLOCK_HOURS.tarde_eventos;
+  return BLOCK_HOURS.tarde;
+}
+
+function seed(){
+  const now = getRealNow();
+  const baseDate = toYMD(now);
+  const dMananaOcupada = addDaysYMD(baseDate, 3);    // Ejemplo: Bloque Mañana ocupado -> "Último cupo"
+  const dInterregional = addDaysYMD(baseDate, 5);    // Ejemplo: Interregional día completo -> "Agotado"
+  const dEventoNocturno = addDaysYMD(baseDate, 8);   // Ejemplo: Evento nocturno (>22:00) -> Bloquea Mañana de día +9
+  const sv=(id,tid,date,start,dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,extra={})=>({
+    id,tid,date,start:tm(start),dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,...extra
+  });
+  return{
+    seedVersion: 2,
+    nid: 14,
+    techs:[
+      {id:'t1',nom:'Daniela González Bouyssieres',rut:'Registro SIS Nº 442762',tel:'+56929990095',veh:'Unidad 1 · Vehículo Acondicionado Clase A2',col:'#0f766e',act:true},
+      {id:'t2',nom:'Unidad TENS 2 (Respaldo)',rut:'15.987.654-3',tel:'+56933334444',veh:'Unidad 2',col:'#c2410c',act:false}
+    ],
+    svcs:[
+      sv(1,'t1',dMananaOcupada,'08:30',120,'Rosa Medina',82,'1. Servicio Integral · Control cardiológico','Andrea Medina','+56977778888','Maipú, Av. Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
+      sv(2,'t1',dInterregional,'08:00',360,'Jorge Salas',76,'5. Programas Interregionales (Región de Valparaíso) · Control Oncológico','Luis Salas','+56966665555','Viña del Mar, Av. Libertad 450','Instituto Nacional del Cáncer, Santiago','Camina con asistencia/bastón',['Acompañamiento en box médico','Control de signos vitales'],true,300000,150000,'Confirmado',{block:'full',fullDay:true,svcType:'5'}),
+      sv(3,'t1',dEventoNocturno,'16:30',360,'María Opazo',84,'4. Acompañamiento a Eventos Sociales · Matrimonio familiar','Pía Opazo','+56944443333','Maipú, Camino a Rinconada 800','Centro de Eventos, Calera de Tango','Silla de ruedas plegable',['Control de signos vitales','Asistencia de higiene/confort'],true,80000,40000,'Confirmado',{block:'tarde',svcType:'4',blocksNextMorning:true})
+    ]
+  };
+}
+
+function load(){
+  try{
+    const parsed = JSON.parse(localStorage.getItem(K));
+    if(parsed && parsed.seedVersion === 2) return parsed;
+    return null;
+  }catch(x){return null}
+}
 function save(){try{localStorage.setItem(K,JSON.stringify(D))}catch(x){}}
 let D=load()||seed();
 save();
 
-function avail(tid,date,start,dur,ign){
-  return !D.svcs.some(s=>s.tid==tid&&s.date==date&&s.st!='Cancelado'&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF);
+// Obtener las unidades activas según capacidadSimultanea
+function getActiveUnitsForCapacity(){
+  const allTechs = D.techs || [];
+  const active = allTechs.filter(t => t.act);
+  const result = [];
+  for(let i = 0; i < capacidadSimultanea; i++){
+    if(active[i]) result.push(active[i]);
+    else if(allTechs[i]) result.push(allTechs[i]);
+    else result.push({id: 'u'+(i+1), nom: `Profesional TENS · Unidad ${i+1}`, veh: `Unidad ${i+1}`, act: true});
+  }
+  return result;
 }
 
-function getAvailTechs(date,startMin,dur){
-  const act=D.techs.filter(t=>t.act);
-  return act.filter(t=>avail(t.id,date,startMin,dur));
+// Determinar qué bloque ocupa un servicio guardado
+function inferServiceBlock(s){
+  if(s.fullDay || s.block === 'full' || s.svcType === '5' || /interregional/i.test(s.dx || '')) return 'full';
+  if(s.block === 'manana' || s.block === 'tarde') return s.block;
+  return (s.start < 13 * 60 + 30) ? 'manana' : 'tarde';
+}
+
+// Determinar si un servicio termina después de las 22:00 hrs (1320 min)
+function doesServiceEndAfter22(s){
+  if(s.blocksNextMorning) return true;
+  return (Number(s.start) + Number(s.dur)) > (22 * 60);
+}
+
+// Evaluar el estado detallado de capacidad y bloqueos para una fecha YYYY-MM-DD
+function evaluateDateCapacity(dateStr){
+  const { minMs, todayStr, maxDateStr } = getBookingWindowBounds();
+  if(dateStr < todayStr || dateStr > maxDateStr){
+    return {
+      inRange: false,
+      outReason: dateStr < todayStr ? 'Fecha pasada' : 'Supera el límite máximo de 30 días',
+      manana: { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Fuera de rango permitido' },
+      tarde:  { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Fuera de rango permitido' },
+      interregional: { availUnits: [], free: 0, available: false, reason: 'Fuera de rango permitido' },
+      status: 'off'
+    };
+  }
+
+  const units = getActiveUnitsForCapacity();
+  const prevDateStr = addDaysYMD(dateStr, -1);
+
+  const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && s.st !== 'Cancelado');
+  const prevDaySvcs = (D.svcs || []).filter(s => s.date === prevDateStr && s.st !== 'Cancelado');
+
+  // Revisar qué horas dentro de cada bloque cumplen las 24 horas de anticipación
+  const validHoursManana = BLOCK_HOURS.manana.filter(h => isSlotAtLeast24hAhead(dateStr, h));
+  const validHoursTarde  = getBlockHoursList('tarde').filter(h => isSlotAtLeast24hAhead(dateStr, h));
+
+  const mananaTimeOk = validHoursManana.length > 0;
+  const tardeTimeOk  = validHoursTarde.length > 0;
+
+  if(!mananaTimeOk && !tardeTimeOk){
+    return {
+      inRange: false,
+      outReason: 'Requiere mínimo 24 horas de anticipación',
+      manana: { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Bloqueado (menos de 24 hrs de anticipación)' },
+      tarde:  { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Bloqueado (menos de 24 hrs de anticipación)' },
+      interregional: { availUnits: [], free: 0, available: false, reason: 'Bloqueado (menos de 24 hrs de anticipación)' },
+      status: 'off'
+    };
+  }
+
+  let availUnitsManana = [];
+  let availUnitsTarde = [];
+  let availUnitsFullDay = [];
+
+  let reasonMananaList = [];
+  let reasonTardeList = [];
+
+  units.forEach((u, idx) => {
+    const unitSvcs = daySvcs.filter(s => s.tid === u.id || (idx === 0 && !units.some(x => x.id === s.tid)));
+    const prevUnitSvcs = prevDaySvcs.filter(s => s.tid === u.id || (idx === 0 && !units.some(x => x.id === s.tid)));
+
+    const hasFullDay = unitSvcs.some(s => inferServiceBlock(s) === 'full');
+    const hasManana  = unitSvcs.some(s => inferServiceBlock(s) === 'manana');
+    const hasTarde   = unitSvcs.some(s => inferServiceBlock(s) === 'tarde');
+    const prevNightRestBlock = prevUnitSvcs.some(s => doesServiceEndAfter22(s));
+
+    let mFree = true;
+    let tFree = true;
+
+    if(!mananaTimeOk){
+      mFree = false;
+      reasonMananaList.push('Requiere mínimo 24 hrs de anticipación');
+    } else if(hasFullDay){
+      mFree = false;
+      reasonMananaList.push('Día bloqueado por Programa Interregional reservado');
+    } else if(prevNightRestBlock){
+      mFree = false;
+      reasonMananaList.push('Bloqueado por descanso obligatorio (evento nocturno el día anterior > 22:00 hrs)');
+    } else if(hasManana){
+      mFree = false;
+      reasonMananaList.push('Turno Mañana ya reservado en esta fecha');
+    }
+
+    if(!tardeTimeOk){
+      tFree = false;
+      reasonTardeList.push('Requiere mínimo 24 hrs de anticipación');
+    } else if(hasFullDay){
+      tFree = false;
+      reasonTardeList.push('Día bloqueado por Programa Interregional reservado');
+    } else if(hasTarde){
+      tFree = false;
+      reasonTardeList.push('Turno Tarde ya reservado en esta fecha');
+    }
+
+    if(mFree) availUnitsManana.push(u);
+    if(tFree) availUnitsTarde.push(u);
+    if(mFree && tFree) availUnitsFullDay.push(u);
+  });
+
+  const freeM = availUnitsManana.length;
+  const freeT = availUnitsTarde.length;
+  const freeFull = availUnitsFullDay.length;
+
+  let dayStatus = 'disp'; // 'disp' | 'last' | 'full'
+  if(freeM === 0 && freeT === 0){
+    dayStatus = 'full';
+  } else if(freeM === 0 || freeT === 0 || (freeM + freeT === 1)){
+    dayStatus = 'last';
+  } else {
+    dayStatus = 'disp';
+  }
+
+  let interReason = 'Disponible (bloquea jornada completa Mañana + Tarde)';
+  if(freeFull === 0){
+    if(freeM === 0 && freeT === 0) interReason = reasonMananaList[0] || reasonTardeList[0] || 'Sin cupos disponibles en esta fecha';
+    else interReason = 'Programa Interregional requiere día completo (ambos bloques libres)';
+  }
+
+  return {
+    inRange: true,
+    manana: {
+      availUnits: availUnitsManana,
+      used: capacidadSimultanea - freeM,
+      free: freeM,
+      available: freeM > 0,
+      validHours: validHoursManana,
+      reason: freeM > 0 ? '' : (reasonMananaList[0] || 'Horario ocupado')
+    },
+    tarde: {
+      availUnits: availUnitsTarde,
+      used: capacidadSimultanea - freeT,
+      free: freeT,
+      available: freeT > 0,
+      validHours: validHoursTarde,
+      reason: freeT > 0 ? '' : (reasonTardeList[0] || 'Horario ocupado')
+    },
+    interregional: {
+      availUnits: availUnitsFullDay,
+      free: freeFull,
+      available: freeFull > 0,
+      validHours: validHoursManana,
+      reason: interReason
+    },
+    status: dayStatus
+  };
+}
+
+function findFirstAvailableDate(){
+  const { todayStr } = getBookingWindowBounds();
+  const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
+  for(let i = 1; i <= 30; i++){
+    const dStr = addDaysYMD(todayStr, i);
+    const ev = evaluateDateCapacity(dStr);
+    if(!ev.inRange) continue;
+    if(isInter && ev.interregional.available) return dStr;
+    if(!isInter && (ev.manana.available || ev.tarde.available)) return dStr;
+  }
+  return addDaysYMD(todayStr, 1);
+}
+
+function changeCalMonth(delta){
+  calViewMonth += delta;
+  if(calViewMonth > 11){ calViewMonth = 0; calViewYear++; }
+  if(calViewMonth < 0){ calViewMonth = 11; calViewYear--; }
+  renderCalendar();
+}
+
+function selectCalendarDate(dateStr){
+  const ev = evaluateDateCapacity(dateStr);
+  if(!ev.inRange) return;
+  $('#b_date').value = dateStr;
+  const dt = parseYMD(dateStr);
+  calViewYear = dt.getFullYear();
+  calViewMonth = dt.getMonth();
+
+  // Si el bloque actualmente seleccionado está ocupado en la nueva fecha, cambiar automáticamente al bloque disponible
+  const mode = $('#b_svc_type').value;
+  if(mode === '5'){
+    selectedBlock = 'manana';
+  } else {
+    if(selectedBlock === 'manana' && !ev.manana.available && ev.tarde.available){
+      selectedBlock = 'tarde';
+    } else if(selectedBlock === 'tarde' && !ev.tarde.available && ev.manana.available){
+      selectedBlock = 'manana';
+    }
+  }
+  updateSlots();
+  syncJornadaFromSchedule();
+}
+
+function selectShiftBlock(blockId){
+  const dateStr = $('#b_date').value;
+  const ev = evaluateDateCapacity(dateStr);
+  const mode = $('#b_svc_type').value;
+  if(mode === '5'){
+    selectedBlock = 'manana';
+  } else {
+    if(blockId === 'manana' && !ev.manana.available) return;
+    if(blockId === 'tarde' && !ev.tarde.available) return;
+    selectedBlock = blockId;
+  }
+  updateSlots();
+  syncJornadaFromSchedule();
+}
+
+function onPickupTimeChange(){
+  updateSlots(true);
+  syncJornadaFromSchedule();
+}
+
+function syncJornadaFromSchedule(){
+  const dateStr = $('#b_date').value;
+  const timeStr = $('#b_time').value || '08:00';
+  if(!dateStr || !timeStr) return;
+  const dt = parseYMD(dateStr);
+  const day = dt.getDay();
+  const mins = tm(timeStr);
+  const dur = getSelectedTotalMinutes();
+  const endMins = mins + dur;
+  if(day === 0 || mins >= 23*60 || mins < 7*60){
+    setJornada('nocturno');
+  } else if(day === 6 || mins >= 18*60 || endMins > 18*60 + 30){
+    setJornada('tarde');
+  } else {
+    setJornada('habil');
+  }
+}
+
+function onDateTimeChange(){
+  updateSlots();
+  syncJornadaFromSchedule();
+}
+
+function renderCalendar(){
+  const grid = $('#calGrid');
+  if(!grid) return;
+
+  const { now, todayStr, maxDateStr } = getBookingWindowBounds();
+  const minMonthKey = now.getFullYear() * 12 + now.getMonth();
+  const maxDt = parseYMD(maxDateStr);
+  const maxMonthKey = maxDt.getFullYear() * 12 + maxDt.getMonth();
+  const curMonthKey = calViewYear * 12 + calViewMonth;
+
+  $('#calMonthLabel').textContent = `${MONTH_NAMES[calViewMonth]} ${calViewYear}`;
+  $('#calPrevBtn').disabled = curMonthKey <= minMonthKey;
+  $('#calNextBtn').disabled = curMonthKey >= maxMonthKey;
+
+  const firstDay = new Date(calViewYear, calViewMonth, 1);
+  const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+  // Lunes = 0 ... Domingo = 6
+  const startOffset = (firstDay.getDay() + 6) % 7;
+
+  const selectedDate = $('#b_date').value;
+  const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
+
+  let html = '';
+  for(let i = 0; i < startOffset; i++){
+    html += `<div class="cal-day empty"></div>`;
+  }
+
+  for(let d = 1; d <= daysInMonth; d++){
+    const dateStr = `${calViewYear}-${pad(calViewMonth+1)}-${pad(d)}`;
+    const ev = evaluateDateCapacity(dateStr);
+    const isSel = dateStr === selectedDate;
+
+    let stClass = 'st-off';
+    let tagText = 'No disp.';
+    let clickable = false;
+    let titleTip = '';
+
+    if(!ev.inRange){
+      stClass = 'st-off';
+      tagText = dateStr <= todayStr ? '< 24h' : '> 30d';
+      titleTip = ev.outReason;
+    } else if(isInter){
+      if(ev.interregional.available){
+        stClass = 'st-disp';
+        tagText = 'Disponible';
+        clickable = true;
+        titleTip = 'Día completo disponible para Programa Interregional';
+      } else {
+        stClass = 'st-full';
+        tagText = 'Agotado';
+        clickable = false;
+        titleTip = ev.interregional.reason;
+      }
+    } else {
+      if(ev.status === 'disp'){
+        stClass = 'st-disp';
+        tagText = 'Disponible';
+        clickable = true;
+        titleTip = 'Mañana y Tarde disponibles';
+      } else if(ev.status === 'last'){
+        stClass = 'st-last';
+        tagText = 'Último cupo';
+        clickable = true;
+        titleTip = ev.manana.available ? 'Último cupo: solo Bloque Mañana disponible' : 'Último cupo: solo Bloque Tarde disponible';
+      } else {
+        stClass = 'st-full';
+        tagText = 'Agotado';
+        clickable = false;
+        titleTip = 'Sin cupos disponibles en esta fecha';
+      }
+    }
+
+    html += `
+      <div class="cal-day ${stClass} ${isSel ? 'selected' : ''}"
+           title="${e(titleTip)}"
+           ${clickable ? `onclick="selectCalendarDate('${dateStr}')"` : ''}>
+        <span class="cd-num">${d}</span>
+        <span class="cd-tag">${tagText}</span>
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
+}
+
+function updateSlots(keepCurrentTime = false){
+  D = load() || D;
+  const mode = $('#b_svc_type').value;
+  const isInter = mode === '5';
+
+  $('#lblCapBadge').textContent = `Capacidad activa: ${capacidadSimultanea} ${capacidadSimultanea === 1 ? 'unidad' : 'unidades'}`;
+
+  let dateStr = $('#b_date').value;
+  if(!dateStr){
+    dateStr = findFirstAvailableDate();
+    $('#b_date').value = dateStr;
+    const dt = parseYMD(dateStr);
+    calViewYear = dt.getFullYear();
+    calViewMonth = dt.getMonth();
+  }
+
+  const ev = evaluateDateCapacity(dateStr);
+  $('#lblSelectedDateHuman').textContent = formatHumanDate(dateStr);
+
+  // Si la modalidad cambió o el bloque elegido quedó sin cupo en esta fecha, auto-ajustar bloque
+  if(isInter){
+    selectedBlock = 'manana';
+  } else if(ev.inRange){
+    if(selectedBlock === 'manana' && !ev.manana.available && ev.tarde.available){
+      selectedBlock = 'tarde';
+    } else if(selectedBlock === 'tarde' && !ev.tarde.available && ev.manana.available){
+      selectedBlock = 'manana';
+    }
+  }
+
+  renderCalendar();
+
+  // Actualizar botones de Bloque Mañana y Bloque Tarde
+  const btnM = $('#btnBlock_manana');
+  const btnT = $('#btnBlock_tarde');
+  const badgeM = $('#badgeBlock_manana');
+  const badgeT = $('#badgeBlock_tarde');
+  const subM = $('#subBlock_manana');
+  const subT = $('#subBlock_tarde');
+  const reasonM = $('#reasonBlock_manana');
+  const reasonT = $('#reasonBlock_tarde');
+
+  if(isInter){
+    const okInter = ev.inRange && ev.interregional.available;
+    btnM.disabled = !okInter;
+    btnT.disabled = !okInter;
+    btnM.classList.toggle('active', okInter);
+    btnT.classList.toggle('active', okInter);
+
+    badgeM.className = 'block-badge ' + (okInter ? 'ok' : 'occ');
+    badgeM.textContent = okInter ? `Jornada Completa (${ev.interregional.free} cupo)` : 'No disponible';
+    subM.textContent = 'Salida en Bloque Mañana (08:00 a 09:30 hrs) · Bloquea día completo';
+    reasonM.style.display = okInter ? 'none' : 'block';
+    reasonM.textContent = okInter ? '' : `🔒 ${ev.interregional.reason}`;
+
+    badgeT.className = 'block-badge ' + (okInter ? 'ok' : 'occ');
+    badgeT.textContent = okInter ? 'Incluido en Día Completo' : 'No disponible';
+    subT.textContent = 'Regla Interregional: bloquea automáticamente Mañana y Tarde para su traslado';
+    reasonT.style.display = okInter ? 'none' : 'block';
+    reasonT.textContent = okInter ? '' : `🔒 ${ev.interregional.reason}`;
+  } else {
+    // Modalidades 1 a 4
+    const okM = ev.inRange && ev.manana.available;
+    const okT = ev.inRange && ev.tarde.available;
+
+    btnM.disabled = !okM;
+    btnM.classList.toggle('active', okM && selectedBlock === 'manana');
+    badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
+    badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : 'Ocupado / Bloqueado';
+    subM.textContent = 'Horas de inicio seleccionables entre 08:00 y 09:30 hrs';
+    reasonM.style.display = okM ? 'none' : 'block';
+    reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
+
+    btnT.disabled = !okT;
+    btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
+    badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
+    badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : 'Ocupado / Bloqueado';
+    subT.textContent = mode === '4'
+      ? 'Horas de inicio seleccionables entre 15:00 y 16:30 hrs (y horarios vespertinos para eventos)'
+      : 'Horas de inicio seleccionables entre 15:00 y 16:30 hrs';
+    reasonT.style.display = okT ? 'none' : 'block';
+    reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
+  }
+
+  // Poblar desplegable #b_time según el bloque activo
+  const timeSelect = $('#b_time');
+  const prevTime = timeSelect.value;
+  const hoursList = isInter ? BLOCK_HOURS.manana : getBlockHoursList(selectedBlock);
+  const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : ev.tarde);
+
+  if(!ev.inRange || !activeBlockObj.available){
+    timeSelect.innerHTML = `<option value="">Sin horarios disponibles en este bloque</option>`;
+    timeSelect.disabled = true;
+  } else {
+    timeSelect.disabled = false;
+    timeSelect.innerHTML = hoursList.map(h => {
+      const ok24 = isSlotAtLeast24hAhead(dateStr, h);
+      const tag = (! isInter && selectedBlock === 'tarde' && tm(h) > 16*60+30) ? ' (Horario especial Evento Social)' : '';
+      return `<option value="${h}" ${!ok24 ? 'disabled' : ''}>${h} hrs — Hora exacta de recogida${tag}${!ok24 ? ' (Menos de 24h)' : ''}</option>`;
+    }).join('');
+
+    const validChoices = hoursList.filter(h => isSlotAtLeast24hAhead(dateStr, h));
+    if(keepCurrentTime && validChoices.includes(prevTime)){
+      timeSelect.value = prevTime;
+    } else if(validChoices.length > 0){
+      timeSelect.value = validChoices[0];
+    }
+  }
+
+  const curTime = timeSelect.value;
+  const dur = getSelectedTotalMinutes();
+  const stBox = $('#availStatus');
+  const tensSelect = $('#b_tens');
+  const subBtn = $('#submitBtn');
+  const nightNotice = $('#nightRuleNotice');
+  const estWindow = $('#lblEstimatedWindow');
+
+  if(ev.inRange && activeBlockObj.available && curTime){
+    const stMin = tm(curTime);
+    const endMin = stMin + dur;
+    const endsAfter22 = endMin > 22 * 60;
+    const blockLabel = isInter
+      ? 'Jornada Completa Interregional (Bloquea Mañana + Tarde)'
+      : (selectedBlock === 'manana' ? 'Bloque 1 · Mañana (08:00 a 09:30)' : 'Bloque 2 · Tarde (15:00 a 16:30)');
+
+    estWindow.innerHTML = `🕒 <b>Recogida:</b> ${curTime} hrs → <b>Término estimado:</b> ${fm(endMin % 1440)} hrs (${dur} min estimados · ${blockLabel}).`;
+
+    if(endsAfter22){
+      nightNotice.style.display = 'block';
+      nightNotice.innerHTML = `🌙 <b>Regla de Eventos Nocturnos (&gt; 22:00 hrs):</b> Como este servicio finaliza a las <b>${fm(endMin % 1440)} hrs</b>, el sistema bloqueará automáticamente el <b>Bloque Mañana del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar el descanso obligatorio de conducción.`;
+    } else if(isInter){
+      nightNotice.style.display = 'block';
+      nightNotice.innerHTML = `🗺️ <b>Regla de Programa Interregional:</b> Esta reserva bloquea automáticamente <b>el día completo (Bloque Mañana y Bloque Tarde)</b> para dedicación exclusiva a su traslado interregional.`;
+    } else {
+      nightNotice.style.display = 'none';
+    }
+
+    const availUnits = activeBlockObj.availUnits;
+    stBox.className = 'status-box ok';
+    stBox.innerHTML = `<span>✅ <b>Cupo verificado y disponible</b> para el <b>${formatHumanDate(dateStr)}</b> a las <b>${curTime} hrs</b> (${availUnits.length} de ${capacidadSimultanea} unidad disponible).</span>`;
+    tensSelect.innerHTML = availUnits.map((t,idx)=>`<option value="${t.id}">${idx===0?'Asignación titular: ':''}${e(t.nom)} (${e(t.veh||'Unidad TENS')})</option>`).join('');
+    tensSelect.disabled = false;
+    subBtn.disabled = false;
+  } else {
+    estWindow.textContent = '';
+    nightNotice.style.display = 'none';
+    stBox.className = 'status-box err';
+    const errReason = !ev.inRange ? ev.outReason : activeBlockObj.reason;
+    stBox.innerHTML = `<span>⚠️ <b>No disponible en la selección actual:</b> ${e(errReason)}. Por favor elija otro bloque o seleccione una fecha disponible en el calendario.</span>`;
+    tensSelect.innerHTML = `<option value="">Sin unidad disponible en este bloque</option>`;
+    tensSelect.disabled = true;
+    subBtn.disabled = true;
+  }
 }
 
 async function initForm(){
   applyTheme(getTheme());
-  $('#b_date').value = TODAY;
+  const firstDate = findFirstAvailableDate();
+  $('#b_date').value = firstDate;
+  const dt = parseYMD(firstDate);
+  calViewYear = dt.getFullYear();
+  calViewMonth = dt.getMonth();
+
   $('#b_mob').innerHTML = MOB.map(m=>`<option value="${e(m)}">${e(m)}</option>`).join('');
   $('#reqContainer').innerHTML = REQ.map((r,i)=>`
     <label class="rq-item">
@@ -1574,49 +2227,6 @@ async function initForm(){
   }catch(e){}
 }
 
-function selectSlot(h){
-  $('#b_time').value = h;
-  onDateTimeChange();
-}
-
-function updateSlots(){
-  D = load() || D;
-  const date = $('#b_date').value || TODAY;
-  const dur = getSelectedTotalMinutes();
-  const curTime = $('#b_time').value || '10:00';
-  
-  const grid = $('#slotsGrid');
-  grid.innerHTML = PRESET_HOURS.map(h => {
-    const mins = tm(h);
-    const okTechs = getAvailTechs(date, mins, dur);
-    const isAvail = okTechs.length > 0;
-    const isSel = curTime === h;
-    return `<button type="button" class="slot ${isSel?'active':''}" ${!isAvail?'disabled title="Sin disponibilidad en este bloque"':''} onclick="selectSlot('${h}')">
-      ${h}
-    </button>`;
-  }).join('');
-
-  const stMin = tm(curTime);
-  const ok = getAvailTechs(date, stMin, dur);
-  const stBox = $('#availStatus');
-  const tensSelect = $('#b_tens');
-  const subBtn = $('#submitBtn');
-
-  if(ok.length > 0){
-    stBox.className = 'status-box ok';
-    stBox.innerHTML = `<span>✅ <b>Horario disponible (${curTime} a ${fm(stMin+dur)})</b> · ${ok.length} profesional(es) TENS disponible(s).</span>`;
-    tensSelect.innerHTML = ok.map((t,idx)=>`<option value="${t.id}">${idx===0?'Asignación inmediata: ':''}${e(t.nom)} (${e(t.veh||'TENS en terreno')})</option>`).join('');
-    tensSelect.disabled = false;
-    subBtn.disabled = false;
-  } else {
-    stBox.className = 'status-box err';
-    stBox.innerHTML = `<span>⚠️ <b>El horario de las ${curTime} ya se encuentra reservado o en tiempo de traslado.</b> Por favor seleccione otro horario disponible arriba.</span>`;
-    tensSelect.innerHTML = `<option value="">Sin TENS disponible en este horario</option>`;
-    tensSelect.disabled = true;
-    subBtn.disabled = true;
-  }
-}
-
 async function submitBooking(ev){
   ev.preventDefault();
   D = load() || D;
@@ -1625,6 +2235,7 @@ async function submitBooking(ev){
   const svcName = SVC_NAMES[mode];
   const showMap = isMapEnabledForCurrentState();
   const showDest = (mode === '1' || mode === '2' || mode === '5');
+  const isInter = mode === '5';
 
   // Asegurar que la dirección (y la ruta si aplica) esté geocodificada
   if(!ptFrom && $('#b_from').value.trim()){
@@ -1642,15 +2253,24 @@ async function submitBooking(ev){
 
   const date = $('#b_date').value;
   const timeStr = $('#b_time').value;
-  const start = tm(timeStr);
-  const dur = getSelectedTotalMinutes();
-  const tid = $('#b_tens').value;
+  if(!date || !timeStr){
+    alert('Por favor seleccione una fecha disponible en el calendario y una hora de recogida dentro del bloque.');
+    return;
+  }
 
-  if(!tid || !avail(tid, date, start, dur)){
-    alert('Este horario acaba de ocuparse. Por favor elija otro horario disponible.');
+  const capEval = evaluateDateCapacity(date);
+  const targetBlockObj = isInter ? capEval.interregional : (selectedBlock === 'manana' ? capEval.manana : capEval.tarde);
+  if(!capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr)){
+    alert('Este bloque horario ya no se encuentra disponible o no cumple con las 24 horas de anticipación. Por favor seleccione otro bloque o fecha.');
     updateSlots();
     return;
   }
+
+  const start = tm(timeStr);
+  const dur = getSelectedTotalMinutes();
+  const endMin = start + dur;
+  const endsAfter22 = endMin > 22 * 60;
+  const tid = $('#b_tens').value || (targetBlockObj.availUnits[0] && targetBlockObj.availUnits[0].id) || 't1';
 
   const pat = $('#b_pat').value.trim();
   const age = +$('#b_age').value;
@@ -1672,6 +2292,9 @@ async function submitBooking(ev){
   const fmtTotalKm = showMap ? (lastTotalKm.toFixed(1).replace('.', ',') + ' km') : 'No aplica';
   const ringLabel = detectedRing ? `${detectedRing.name} (Mín. ${$c(detectedRing.minFare)})` : 'Verificado en dirección';
   const saldo50 = lastFinalTotal - lastAbono50;
+  const blockHuman = isInter
+    ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
+    : (selectedBlock === 'manana' ? 'Bloque 1 · Mañana (08:00 a 09:30 hrs)' : 'Bloque 2 · Tarde (15:00 a 16:30 hrs)');
 
   const newId = D.nid++;
   const newSvc = {
@@ -1692,19 +2315,25 @@ async function submitBooking(ev){
     comp,
     fare: lastFinalTotal,
     paid: 0,
-    st: 'Pendiente'
+    st: 'Confirmado',
+    svcType: mode,
+    block: isInter ? 'full' : selectedBlock,
+    fullDay: isInter,
+    blocksNextMorning: endsAfter22
   };
 
   D.svcs.push(newSvc);
   save();
 
-  const techObj = D.techs.find(t=>t.id===tid) || {nom:'TENS Asignado'};
+  const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};
   const waText = `Hola, acabo de agendar una hora en la web (Reserva #MSA-${newId}).\n` +
     `• Modalidad: ${svcName}\n` +
     (mode === '5'
       ? `• Región de origen: ${selectedInterRegion}\n• Programa y desglose: ${lastInterBreakdown}\n`
       : `• Jornada: ${JORNADA_LABELS[currentJornada]}\n`) +
-    `• Fecha y Hora: ${date} a las ${timeStr} (${dur} min)\n` +
+    `• Fecha: ${formatHumanDate(date)} (${date})\n` +
+    `• Turno / Bloque: ${blockHuman}\n` +
+    `• Hora exacta de recogida: ${timeStr} hrs (término estimado ${fm(endMin % 1440)} hrs)\n` +
     `• Dirección de Recogida (A): ${from}\n` +
     (showDest ? `• Destino (B): ${to}\n` : '') +
     (showMap ? `• Recorrido: ${modeLabel} (${fmtTotalKm} = ${$c(lastKmCost)})\n` : '') +
@@ -1720,21 +2349,25 @@ async function submitBooking(ev){
     <section class="card" style="text-align:center;padding:36px 24px">
       <div style="font-size:3rem;margin-bottom:8px">🎉</div>
       <span class="step-tag">Solicitud Registrada · Folio #MSA-${newId}</span>
-      <h2 style="margin-top:6px">¡Su hora ha sido pre-agendada con éxito!</h2>
+      <h2 style="margin-top:6px">¡Su bloque horario ha sido reservado con éxito!</h2>
       <p style="color:var(--mute);max-width:62ch;margin:8px auto 20px">
-        Su solicitud ya está registrada. A continuación encontrará el desglose exacto de su tarifa y el monto del 50% de abono para confirmar su reserva.
+        Su bloque ya quedó bloqueado en nuestra agenda. A continuación encontrará el desglose exacto de su tarifa y el monto del 50% de abono para confirmar su reserva.
       </p>
 
       <ul class="summary-list" style="max-width:660px;margin:20px auto;text-align:left">
         <li><span>🛎️ <b>Modalidad de Servicio:</b></span> <span>${e(svcName)}</span></li>
         ${mode === '5' ? `<li><span>🗺️ <b>Región del Programa:</b></span> <span><b>${e(selectedInterRegion)}</b></span></li>` : ''}
+        <li><span>📅 <b>Fecha Reservada:</b></span> <span><b>${e(formatHumanDate(date))}</b></span></li>
+        <li><span>🌅 <b>Bloque de Agenda:</b></span> <span><b>${e(blockHuman)}</b></span></li>
+        <li><span>🕒 <b>Hora Exacta de Recogida:</b></span> <span><b>${e(timeStr)} hrs</b> (a ${fm(endMin % 1440)} hrs aprox.)</span></li>
+        ${endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : ''}
         <li><span>📍 <b>Dirección de Recogida (A):</b></span> <span>${e(from)}</span></li>
         ${showDest ? `<li><span>🏁 <b>Dirección de Destino (B):</b></span> <span>${e(to)}</span></li>` : ''}
         ${showMap ? `
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
           <li><span>🛣️ <b>Kilómetros (${e(modeLabel)}):</b></span> <span><b>${e(fmtTotalKm)}</b> (${$c(lastKmCost)})</span></li>
         ` : ''}
-        <li><span>🕒 <b>${mode === '5' ? 'Programa y Tiempo:' : 'Jornada y Tiempo:'}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : `${e(JORNADA_LABELS[currentJornada])} · ${dur} min (${$c(lastTimeCost)})`}</span></li>
+        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : 'Jornada y Tiempo:'}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : `${e(JORNADA_LABELS[currentJornada])} · ${dur} min (${$c(lastTimeCost)})`}</span></li>
         <li style="background:var(--mist);border-color:var(--teal)">
           <span>💰 <b>VALOR REAL TOTAL A PAGAR:</b></span> <span style="font-size:1.15rem;font-weight:800;color:var(--teal)">${$c(lastFinalTotal)}</span>
         </li>
@@ -1742,7 +2375,6 @@ async function submitBooking(ev){
           <span>🔒 <b>ABONO 50% PARA RESERVAR:</b></span> <span style="font-size:1.15rem;font-weight:800;color:#8fe0c0">${$c(lastAbono50)}</span>
         </li>
         <li><span>🏁 <b>Saldo 50% al terminar la atención:</b></span> <span><b>${$c(saldo50)}</b></span></li>
-        <li><span>📅 <b>Fecha y Hora:</b></span> <span>${e(date)} · ${fm(start)} a ${fm(start+dur)} hrs</span></li>
         <li><span>🩺 <b>Profesional TENS:</b></span> <span>${e(techObj.nom)}</span></li>
         <li><span>👤 <b>Paciente:</b></span> <span>${e(pat)} (${age} años) · ${e(dxInput)}</span></li>
         <li><span>📞 <b>Coordinador:</b></span> <span>${e(coord)} (${e(ph)})</span></li>
