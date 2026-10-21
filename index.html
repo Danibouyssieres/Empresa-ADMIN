@@ -63,9 +63,15 @@ nav a:not(.btn):hover{color:var(--sage)}
 .band{margin-top:22px;background:#0E4A55;color:#fff;border-radius:var(--r);padding:20px 24px;display:grid;gap:8px}
 .band h3{color:#fff}.band b{color:#8fe0c0}
 .alt{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.formula{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;font-family:Georgia,serif;font-size:clamp(1.15rem,3.6vw,1.6rem);color:var(--teal);background:var(--mist);border-radius:var(--r);padding:20px 24px;margin-bottom:18px}
+.formula{display:flex;flex-direction:column;align-items:flex-start;gap:4px;background:var(--mist);border-radius:var(--r);padding:18px 24px;margin-bottom:18px}
+.formula .f-sub{font:600 .84rem system-ui;color:var(--mute);letter-spacing:.2px}
+.formula .f-main{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;font-family:Georgia,serif;font-size:clamp(1.15rem,3.6vw,1.6rem);color:var(--teal)}
 .formula span.op{color:var(--sage);font-weight:700}
 .bullets{padding-left:1.2rem;margin:10px 0 24px}.bullets li{margin:6px 0}
+.icon-bullets{list-style:none;padding:0;margin:10px 0 26px;display:grid;gap:10px}
+.icon-bullets li{display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.icon-bullets .ib-ic{font-size:1.15rem;line-height:1.35;flex-shrink:0}
+#tarifas{padding-bottom:100px}
 .rings{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:start;margin:28px 0}
 @media(max-width:720px){.rings{grid-template-columns:1fr}}
 .target{position:relative;width:200px;height:200px;margin:0 auto}
@@ -252,14 +258,17 @@ footer .wrap{display:grid;gap:8px}
 <section id="tarifas" class="alt"><div class="wrap">
   <h2>Tarifas claras, sin sorpresas</h2>
   <p class="lead">Creemos que una familia que cuida a un ser querido no debería enfrentarse a letra chica. Así calculamos cada servicio:</p>
-  <div class="formula"><span>$1.000 por kilómetro</span><span class="op">+</span><span>tiempo de asistencia o espera</span></div>
-  <ul class="bullets">
-    <li><b>El kilómetro</b> se calcula antes de confirmar, con la ruta más rápida de Google Maps, en circuito de ida y vuelta.</li>
-    <li><b>Tarifa cerrada:</b> el monto acordado no cambia por tacos, congestión o desvíos. Incluye combustible y peajes/TAG urbanos en la Región Metropolitana.</li>
-    <li><b>Tiempo:</b> incluye una base de 1 hora; luego se cobra en bloques de 30 minutos.</li>
+  <div class="formula">
+    <span class="f-sub">Aplica para servicios de traslado en la Región Metropolitana</span>
+    <div class="f-main"><span>$1.000 por kilómetro</span><span class="op">+</span><span>tiempo de asistencia o espera</span></div>
+  </div>
+  <ul class="icon-bullets">
+    <li><span class="ib-ic" aria-hidden="true">🗺️</span><span><b>El kilómetro</b> se calcula antes de confirmar, con la ruta más rápida de Google Maps, en circuito de ida y vuelta.</span></li>
+    <li><span class="ib-ic" aria-hidden="true">🛡️</span><span><b>Tarifa cerrada:</b> el monto acordado no cambia por tacos, congestión o desvíos. Incluye combustible y peajes/TAG urbanos en la Región Metropolitana.</span></li>
+    <li><span class="ib-ic" aria-hidden="true">⏱️</span><span><b>Tiempo:</b> incluye una base de 1 hora; luego se cobra en bloques de 30 minutos.</span></li>
   </ul>
-  <h3>Nuestra base está en Maipú: por eso existe una tarifa mínima según su zona de origen (Anillo)</h3>
-  <p class="lead" style="margin-bottom:0">Mantener un vehículo y un profesional dedicados a su horario requiere organización. Si el cálculo (kilómetros + tiempo) resulta menor a la tarifa mínima de su zona, se cobra la tarifa mínima. Si resulta mayor, se cobra exactamente el cálculo. <b>Las tarifas mínimas aplican al Servicio Integral y al Traslado Exclusivo con Espera;</b> no aplican a Cuidados a Domicilio, Eventos Sociales ni Programas Interregionales.</p>
+  <h3>Tarifas mínimas por zona (Base en Maipú)</h3>
+  <p class="lead" style="margin-bottom:0">Para garantizar la puntualidad y movilización de nuestro personal desde Maipú, cada sector de Santiago cuenta con una tarifa mínima de salida. Si el cálculo de tu trayecto supera la base mínima, pagas solo el cálculo; si es menor, se aplica el valor mínimo de tu zona. (Aplica exclusivamente a traslados locales; no aplica a cuidados sin vehículo ni interregionales).</p>
   <div class="rings">
     <div class="target" role="img" aria-label="Tres anillos concéntricos desde Maipú"><i></i><i></i><i></i><b>Maipú</b></div>
     <div class="rl">
@@ -271,7 +280,7 @@ footer .wrap{display:grid;gap:8px}
         <p class="coms">Alhué, Buin, Colina, Curacaví, El Monte, Isla de Maipo, La Reina, Lampa, Las Condes, Lo Barnechea, María Pinto, Melipilla, Paine, Pirque, Puente Alto, San José de Maipo, San Pedro, Tiltil, Vitacura.</p></details>
     </div>
   </div>
-  <p>Las tarifas mínimas nos permiten asegurar la disponibilidad del profesional y el vehículo en su comuna, cubriendo el viaje de ida, el regreso y 1 hora de asistencia o espera. Si su asistencia o espera toma más tiempo del presupuestado en un inicio, este excedente será cobrado en bloques de 30 minutos.</p>
+  <p style="padding-bottom:28px">Las tarifas mínimas nos permiten asegurar la disponibilidad del profesional y el vehículo en su comuna, cubriendo el viaje de ida, el regreso y 1 hora de asistencia o espera. Si su asistencia o espera toma más tiempo del presupuestado en un inicio, este excedente será cobrado en bloques de 30 minutos.</p>
   <h3 style="margin-top:34px">Dos ejemplos para entender el cobro</h3>
   <div class="grid">
     <article class="card"><span class="tag">Se cobra la tarifa mínima</span><h3>Ejemplo 1: Maipú, Anillo 1</h3>
