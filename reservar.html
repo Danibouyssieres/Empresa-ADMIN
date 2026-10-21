@@ -925,14 +925,10 @@ function recalcAll(){
     $('#lblRateHabil').textContent = `$1.000/km + ${$c(RATES[mode].habil.hour)}/hora`;
     $('#lblRateTarde').textContent = `$1.000/km + ${$c(RATES[mode].tarde.hour)}/hora`;
     $('#lblRateNocturno').textContent = `$1.000/km + ${$c(RATES[mode].nocturno.hour)}/hora`;
-  } else if(mode === '3'){
-    $('#lblRateHabil').innerHTML = `$12.000/hora <small style="display:inline">(Frac. 30min: $6.000)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 2 hrs: <b>$24.000</b> · 3 hrs: <b>$36.000</b><br>Plan Tope 4 hrs: <b>$40.000</b> (✨ Ahorro de $8.000)</small>`;
-    $('#lblRateTarde').innerHTML = `$15.000/hora <small style="display:inline">(Frac. 30min: $7.500)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 2 hrs: <b>$30.000</b> · 3 hrs: <b>$45.000</b><br>Plan Tope 4 hrs: <b>$50.000</b> (✨ Ahorro de $10.000)</small>`;
-    $('#lblRateNocturno').innerHTML = `$18.000/hora <small style="display:inline">(Frac. 30min: $9.000)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 2 hrs: <b>$36.000</b> · 3 hrs: <b>$54.000</b><br>Plan Tope 4 hrs: <b>$60.000</b> (✨ Ahorro de $12.000)</small>`;
-  } else if(mode === '4'){
-    $('#lblRateHabil').innerHTML = `$12.000/hora <small style="display:inline">(Frac. 30min: $6.000)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 4 hrs: <b>$48.000</b> · 5 hrs: <b>$60.000</b><br>Plan Tope 6 hrs: <b>$64.000</b> (✨ Ahorro de $8.000)</small>`;
-    $('#lblRateTarde').innerHTML = `$15.000/hora <small style="display:inline">(Frac. 30min: $7.500)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 4 hrs: <b>$60.000</b> · 5 hrs: <b>$75.000</b><br>Plan Tope 6 hrs: <b>$80.000</b> (✨ Ahorro de $10.000)</small>`;
-    $('#lblRateNocturno').innerHTML = `$18.000/hora <small style="display:inline">(Frac. 30min: $9.000)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 4 hrs: <b>$72.000</b> · 5 hrs: <b>$90.000</b><br>Plan Tope 6 hrs: <b>$96.000</b> (✨ Ahorro de $12.000)</small>`;
+  } else if(mode === '3' || mode === '4'){
+    $('#lblRateHabil').innerHTML = `$12.000/hora <small style="display:inline">(Frac. 30min: $6.000)</small>`;
+    $('#lblRateTarde').innerHTML = `$15.000/hora <small style="display:inline">(Frac. 30min: $7.500)</small>`;
+    $('#lblRateNocturno').innerHTML = `$18.000/hora <small style="display:inline">(Frac. 30min: $9.000)</small>`;
   } else if(mode === '5'){
     const interHtml = `Estándar (hasta 4h): $250.000 · Crónico/Oncológico (hasta 6h): $300.000<small style="display:block;margin-top:3px;color:var(--ink)">Tiempo adicional: <b>$15.000</b> (frac. 30 min) · <b>$25.000</b>/hora</small>`;
     $('#lblRateHabil').innerHTML = interHtml;
