@@ -307,23 +307,42 @@ footer a{color:#fff}
           Seleccione la jornada horaria en que necesita el servicio y la cantidad de horas/minutos. Cada bloque adicional de 30 minutos se calcula a la mitad del valor hora de su jornada.
         </p>
 
-        <!-- SELECTOR DE JORNADA HORARIA -->
-        <label>1. Jornada horaria en que requiere la atención:</label>
-        <div class="rate-pill-bar">
-          <div id="pillJornada_habil" class="rate-pill active" onclick="setJornada('habil')">
-            <strong>Hábil</strong>
-            <small>Lun a Vie 08:00 a 18:00</small>
-            <div class="rp-val" id="lblRateHabil">$12.000/hora</div>
+        <!-- SELECTOR DE JORNADA HORARIA (MODALIDADES 1 A 4) -->
+        <div id="jornadaSelectorWrap">
+          <label>1. Jornada horaria en que requiere la atención:</label>
+          <div class="rate-pill-bar">
+            <div id="pillJornada_habil" class="rate-pill active" onclick="setJornada('habil')">
+              <strong>Hábil</strong>
+              <small>Lun a Vie 08:00 a 18:00</small>
+              <div class="rp-val" id="lblRateHabil">$12.000/hora</div>
+            </div>
+            <div id="pillJornada_tarde" class="rate-pill" onclick="setJornada('tarde')">
+              <strong>Tarde y sábados</strong>
+              <small>Lun a Vie 18:00 a 23:00 · Sáb 08:00 a 23:00</small>
+              <div class="rp-val" id="lblRateTarde">$15.000/hora</div>
+            </div>
+            <div id="pillJornada_nocturno" class="rate-pill" onclick="setJornada('nocturno')">
+              <strong>Nocturno, domingos y festivos</strong>
+              <small>23:00 a 07:00 · Dom y Festivos</small>
+              <div class="rp-val" id="lblRateNocturno">$18.000/hora</div>
+            </div>
           </div>
-          <div id="pillJornada_tarde" class="rate-pill" onclick="setJornada('tarde')">
-            <strong>Tarde y sábados</strong>
-            <small>Lun a Vie 18:00 a 23:00 · Sáb 08:00 a 23:00</small>
-            <div class="rp-val" id="lblRateTarde">$15.000/hora</div>
-          </div>
-          <div id="pillJornada_nocturno" class="rate-pill" onclick="setJornada('nocturno')">
-            <strong>Nocturno, domingos y festivos</strong>
-            <small>23:00 a 07:00 · Dom y Festivos</small>
-            <div class="rp-val" id="lblRateNocturno">$18.000/hora</div>
+        </div>
+
+        <!-- SELECTOR DE PROGRAMA INTERREGIONAL (EXCLUSIVO MODALIDAD 5: 2 TARJETAS) -->
+        <div id="interProgSelectorWrap" style="display:none">
+          <label>1. Selección de Programa:</label>
+          <div class="rate-pill-bar" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+            <div id="pillProg_4" class="rate-pill active" onclick="setInterProgram(4)">
+              <strong>Programa Interregional Estándar</strong>
+              <small>Hasta 4 horas de permanencia/asistencia en destino</small>
+              <div class="rp-val">$250.000</div>
+            </div>
+            <div id="pillProg_6" class="rate-pill" onclick="setInterProgram(6)">
+              <strong>Programa Crónico / Oncológico</strong>
+              <small>Hasta 6 horas de cobertura continua (ideal quimioterapias, diálisis o cirugías)</small>
+              <div class="rp-val">$300.000</div>
+            </div>
           </div>
         </div>
 
@@ -351,7 +370,7 @@ footer a{color:#fff}
 
         <!-- COMBOBOX DE HORAS Y MINUTOS HABILITADO PARA MODALIDAD 3, 4 Y 5 -->
         <div id="durationBox34" class="grid" style="display:none">
-          <div>
+          <div id="hours34Col">
             <label for="selHours34" id="lblHours34">Cantidad de horas de asistencia (mínimo 2 horas)</label>
             <select id="selHours34" onchange="onHours34Change()">
               <option value="2" selected>2 horas (Plan Base)</option>
@@ -359,7 +378,7 @@ footer a{color:#fff}
               <option value="4">4 horas (Plan Tope)</option>
             </select>
           </div>
-          <div>
+          <div id="mins34Col">
             <label for="selMins34" id="lblMins34">Bloque adicional de 30 minutos (50% valor hora)</label>
             <select id="selMins34" onchange="onHours34Change()">
               <option value="0" selected>0 minutos (sin bloque adicional)</option>
@@ -659,6 +678,8 @@ function toggleTheme(){
 // ===== ESTADO DE CÁLCULO DE TARIFA Y MODALIDAD =====
 let currentJornada = 'habil'; // 'habil' | 'tarde' | 'nocturno'
 let selectedInterRegion = 'Región de Valparaíso';
+let selectedInterProgram = 4; // 4 = Programa Interregional Estándar ($250.000), 6 = Programa Crónico / Oncológico ($300.000)
+let lastInterBreakdown = '';
 let detectedRing = null;
 let detectedComuna = '';
 
@@ -708,6 +729,14 @@ function selectInterRegion(regName){
   recalcAll();
 }
 
+function setInterProgram(hours){
+  selectedInterProgram = hours;
+  $('#pillProg_4').classList.toggle('active', hours === 4);
+  $('#pillProg_6').classList.toggle('active', hours === 6);
+  recalcAll();
+  updateSlots();
+}
+
 // ===== REGLAS POR MODALIDAD DE SERVICIO =====
 function isMapEnabledForCurrentState(){
   const mode = $('#b_svc_type').value;
@@ -721,36 +750,41 @@ function refreshDuration34Options(resetSelection = false){
   const prevH = $('#selHours34').value;
   const prevM = $('#selMins34').value;
 
-  $('#lblMins34').textContent = 'Bloque adicional de 30 minutos (50% valor hora)';
-  $('#selMins34').innerHTML = `
-    <option value="0">0 minutos (sin bloque adicional)</option>
-    <option value="30">+ 30 minutos extra (1/2 hora)</option>
-  `;
-  $('#selMins34').value = (!resetSelection && ['0','30'].includes(prevM)) ? prevM : '0';
+  if(mode === '3' || mode === '4'){
+    $('#lblMins34').textContent = 'Bloque adicional de 30 minutos (50% valor hora)';
+    $('#selMins34').innerHTML = `
+      <option value="0">0 minutos (sin bloque adicional)</option>
+      <option value="30">+ 30 minutos extra (1/2 hora)</option>
+    `;
+    $('#selMins34').value = (!resetSelection && ['0','30'].includes(prevM)) ? prevM : '0';
 
-  if(mode === '3'){
-    $('#lblHours34').textContent = 'Cantidad de horas de asistencia (mínimo 2 horas, máximo 4 horas)';
-    $('#selHours34').innerHTML = `
-      <option value="2">2 horas (Plan Base)</option>
-      <option value="3">3 horas</option>
-      <option value="4">4 horas (Plan Tope)</option>
-    `;
-    $('#selHours34').value = (!resetSelection && ['2','3','4'].includes(prevH)) ? prevH : '2';
-  } else if(mode === '4'){
-    $('#lblHours34').textContent = 'Cantidad de horas de asistencia (mínimo 4 horas, máximo 6 horas)';
-    $('#selHours34').innerHTML = `
-      <option value="4">4 horas (Plan Base)</option>
-      <option value="5">5 horas</option>
-      <option value="6">6 horas (Plan Tope)</option>
-    `;
-    $('#selHours34').value = (!resetSelection && ['4','5','6'].includes(prevH)) ? prevH : '4';
+    if(mode === '3'){
+      $('#lblHours34').textContent = 'Cantidad de horas de asistencia (mínimo 2 horas, máximo 4 horas)';
+      $('#selHours34').innerHTML = `
+        <option value="2">2 horas (Plan Base)</option>
+        <option value="3">3 horas</option>
+        <option value="4">4 horas (Plan Tope)</option>
+      `;
+      $('#selHours34').value = (!resetSelection && ['2','3','4'].includes(prevH)) ? prevH : '2';
+    } else {
+      $('#lblHours34').textContent = 'Cantidad de horas de asistencia (mínimo 4 horas, máximo 6 horas)';
+      $('#selHours34').innerHTML = `
+        <option value="4">4 horas (Plan Base)</option>
+        <option value="5">5 horas</option>
+        <option value="6">6 horas (Plan Tope)</option>
+      `;
+      $('#selHours34').value = (!resetSelection && ['4','5','6'].includes(prevH)) ? prevH : '4';
+    }
   } else if(mode === '5'){
-    $('#lblHours34').textContent = 'Cantidad de horas de asistencia (4 horas o 6 horas)';
-    $('#selHours34').innerHTML = `
-      <option value="4">4 horas (Programa Estándar)</option>
-      <option value="6">6 horas (Programa Crónico / Oncológico)</option>
+    $('#lblMins34').textContent = 'Tiempo adicional no programado (en destino)';
+    $('#selMins34').innerHTML = `
+      <option value="0">0 minutos adicionales ($0)</option>
+      <option value="30">+ 30 minutos extra ($15.000)</option>
+      <option value="60">+ 1 hora extra ($25.000)</option>
+      <option value="90">+ 1 hora 30 min ($40.000)</option>
+      <option value="120">+ 2 horas extra ($50.000)</option>
     `;
-    $('#selHours34').value = (!resetSelection && ['4','6'].includes(prevH)) ? prevH : '4';
+    $('#selMins34').value = (!resetSelection && ['0','30','60','90','120'].includes(prevM)) ? prevM : '0';
   }
 }
 
@@ -776,6 +810,16 @@ function applyModalityVisibility(){
 
   // Mostrar/ocultar los 2 cuadrados de Región Interregional
   $('#interregionalRegionBox').style.display = (mode === '5') ? 'block' : 'none';
+
+  // Mostrar tarjetas de Jornada (1-4) vs tarjetas de Programa Interregional (5)
+  $('#jornadaSelectorWrap').style.display = (mode === '5') ? 'none' : 'block';
+  $('#interProgSelectorWrap').style.display = (mode === '5') ? 'block' : 'none';
+
+  if(mode === '5'){
+    $('#timeSectionSub').textContent = 'Seleccione el programa requerido según las horas de permanencia en destino. En caso de requerir tiempo adicional, cada bloque de 30 minutos tiene un valor de $15.000 ($25.000 por hora).';
+  } else {
+    $('#timeSectionSub').textContent = 'Seleccione la jornada horaria en que necesita el servicio y la cantidad de horas/minutos. Cada bloque adicional de 30 minutos se calcula a la mitad del valor hora de su jornada.';
+  }
 
   if(showMap){
     layoutBox.classList.remove('no-map');
@@ -824,11 +868,17 @@ function applyModalityVisibility(){
     $('#durationBox12').style.display = 'none';
     $('#durationBox34').style.display = 'grid';
     if(mode === '3'){
+      $('#hours34Col').style.display = 'block';
+      $('#durationBox34').style.gridTemplateColumns = '';
       $('#timeSectionTitle').textContent = '⏱️ Horario y Tiempo de Asistencia (Mínimo 2 horas · Cada 30 min extra es un bloque a pagar)';
     } else if(mode === '4'){
+      $('#hours34Col').style.display = 'block';
+      $('#durationBox34').style.gridTemplateColumns = '';
       $('#timeSectionTitle').textContent = '⏱️ Horario y Tiempo de Asistencia (Mínimo 4 horas · Cada 30 min extra es un bloque a pagar)';
     } else if(mode === '5'){
-      $('#timeSectionTitle').textContent = '⏱️ Horario y Tiempo de Asistencia (4 o 6 horas · Cada 30 min extra es un bloque a pagar)';
+      $('#hours34Col').style.display = 'none';
+      $('#durationBox34').style.gridTemplateColumns = '1fr';
+      $('#timeSectionTitle').textContent = '⏱️ Selección de Programa Interregional y Tiempo Adicional';
     }
   }
 
@@ -884,6 +934,10 @@ function getSelectedTotalMinutes(){
     const h = +$('#selHours12').value || 1;
     const m = +$('#selMins12').value || 0;
     return h * 60 + m;
+  } else if(mode === '5'){
+    const h = selectedInterProgram || 4;
+    const m = +$('#selMins34').value || 0;
+    return h * 60 + m;
   } else {
     const defH = mode === '3' ? 2 : 4;
     const h = +$('#selHours34').value || defH;
@@ -905,11 +959,6 @@ function recalcAll(){
     $('#lblRateHabil').textContent = `$12.000/hora`;
     $('#lblRateTarde').textContent = `$15.000/hora`;
     $('#lblRateNocturno').textContent = `$18.000/hora`;
-  } else if(mode === '5'){
-    const interText = `$250.000 (4h) · $300.000 (6h)`;
-    $('#lblRateHabil').textContent = interText;
-    $('#lblRateTarde').textContent = interText;
-    $('#lblRateNocturno').textContent = interText;
   }
 
   let timeCost = 0;
@@ -930,16 +979,31 @@ function recalcAll(){
     timeCost = basePkgCost + extraHalfCost;
     durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
   } else if(mode === '5'){
-    const h = +$('#selHours34').value || 4;
+    const h = selectedInterProgram || 4;
     const m = +$('#selMins34').value || 0;
-    const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : 250000;
-    const extraHalfCost = m === 30 ? r.half : 0;
-    timeCost = basePkgCost + extraHalfCost;
-    durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
+    const basePkgCost = h === 6 ? 300000 : 250000;
+    const progShortName = h === 6 ? 'Programa Crónico / Oncológico' : 'Programa Estándar';
+    const extraHours = Math.floor(m / 60);
+    const extraHalf = (m % 60 === 30) ? 1 : 0;
+    const extraCost = (extraHours * 25000) + (extraHalf * 15000);
+    timeCost = basePkgCost + extraCost;
+
+    let extraPart = '';
+    if(m === 30) extraPart = ` + 30 min extra (${$c(extraCost)})`;
+    else if(m === 60) extraPart = ` + 1 hora extra (${$c(extraCost)})`;
+    else if(m === 90) extraPart = ` + 1 hora 30 min (${$c(extraCost)})`;
+    else if(m === 120) extraPart = ` + 2 horas extra (${$c(extraCost)})`;
+
+    lastInterBreakdown = `${progShortName} (${$c(basePkgCost)})${extraPart} = Total: ${$c(timeCost)}`;
+    durationText = lastInterBreakdown;
   }
 
   lastTimeCost = timeCost;
-  $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · Jornada ${currentJornada === 'habil' ? 'Hábil' : currentJornada === 'tarde' ? 'Tarde/Sáb' : 'Nocturno/Dom'}):`;
+  if(mode === '5'){
+    $('#lblTimeSummaryDesc').textContent = lastInterBreakdown;
+  } else {
+    $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · Jornada ${currentJornada === 'habil' ? 'Hábil' : currentJornada === 'tarde' ? 'Tarde/Sáb' : 'Nocturno/Dom'}):`;
+  }
   $('#lblTimeSummaryVal').textContent = $c(timeCost);
 
   const showMap = isMapEnabledForCurrentState();
@@ -988,10 +1052,11 @@ function recalcAll(){
     if(mode === '5'){
       $('#dirRegionRow').style.display = 'flex';
       $('#dirRegionVal').textContent = selectedInterRegion;
+      $('#dirTimeDesc').textContent = lastInterBreakdown;
     } else {
       $('#dirRegionRow').style.display = 'none';
+      $('#dirTimeDesc').textContent = `${durationText} · ${JORNADA_LABELS[currentJornada].split(' (')[0]}`;
     }
-    $('#dirTimeDesc').textContent = `${durationText} · ${JORNADA_LABELS[currentJornada].split(' (')[0]}`;
     lastFinalTotal = timeCost;
     lastAbono50 = Math.round(timeCost * 0.5);
     const saldo50 = timeCost - lastAbono50;
@@ -1612,8 +1677,9 @@ async function submitBooking(ev){
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'TENS Asignado'};
   const waText = `Hola, acabo de agendar una hora en la web (Reserva #MSA-${newId}).\n` +
     `• Modalidad: ${svcName}\n` +
-    (mode === '5' ? `• Región de origen: ${selectedInterRegion}\n` : '') +
-    `• Jornada: ${JORNADA_LABELS[currentJornada]}\n` +
+    (mode === '5'
+      ? `• Región de origen: ${selectedInterRegion}\n• Programa y desglose: ${lastInterBreakdown}\n`
+      : `• Jornada: ${JORNADA_LABELS[currentJornada]}\n`) +
     `• Fecha y Hora: ${date} a las ${timeStr} (${dur} min)\n` +
     `• Dirección de Recogida (A): ${from}\n` +
     (showDest ? `• Destino (B): ${to}\n` : '') +
@@ -1644,7 +1710,7 @@ async function submitBooking(ev){
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
           <li><span>🛣️ <b>Kilómetros (${e(modeLabel)}):</b></span> <span><b>${e(fmtTotalKm)}</b> (${$c(lastKmCost)})</span></li>
         ` : ''}
-        <li><span>🕒 <b>Jornada y Tiempo:</b></span> <span>${e(JORNADA_LABELS[currentJornada])} · ${dur} min (${$c(lastTimeCost)})</span></li>
+        <li><span>🕒 <b>${mode === '5' ? 'Programa y Tiempo:' : 'Jornada y Tiempo:'}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : `${e(JORNADA_LABELS[currentJornada])} · ${dur} min (${$c(lastTimeCost)})`}</span></li>
         <li style="background:var(--mist);border-color:var(--teal)">
           <span>💰 <b>VALOR REAL TOTAL A PAGAR:</b></span> <span style="font-size:1.15rem;font-weight:800;color:var(--teal)">${$c(lastFinalTotal)}</span>
         </li>
