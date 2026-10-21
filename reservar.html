@@ -1681,14 +1681,18 @@ function seed(){
       sv(1,'t1',dMananaOcupada,'08:30',120,'Rosa Medina',82,'1. Servicio Integral · Control cardiológico','Andrea Medina','+56977778888','Maipú, Av. Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
       sv(2,'t1',dInterregional,'08:00',360,'Jorge Salas',76,'5. Programas Interregionales (Región de Valparaíso) · Control Oncológico','Luis Salas','+56966665555','Viña del Mar, Av. Libertad 450','Instituto Nacional del Cáncer, Santiago','Camina con asistencia/bastón',['Acompañamiento en box médico','Control de signos vitales'],true,300000,150000,'Confirmado',{block:'full',fullDay:true,svcType:'5'}),
       sv(3,'t1',dEventoNocturno,'16:30',360,'María Opazo',84,'4. Acompañamiento a Eventos Sociales · Matrimonio familiar','Pía Opazo','+56944443333','Maipú, Camino a Rinconada 800','Centro de Eventos, Calera de Tango','Silla de ruedas plegable',['Control de signos vitales','Asistencia de higiene/confort'],true,80000,40000,'Confirmado',{block:'tarde',svcType:'4',blocksNextMorning:true})
-    ]
+    ],
+    blocks:[]
   };
 }
 
 function load(){
   try{
     const parsed = JSON.parse(localStorage.getItem(K));
-    if(parsed && parsed.seedVersion === 2) return parsed;
+    if(parsed && parsed.seedVersion === 2){
+      if(!Array.isArray(parsed.blocks)) parsed.blocks = [];
+      return parsed;
+    }
     return null;
   }catch(x){return null}
 }
@@ -1741,6 +1745,7 @@ function evaluateDateCapacity(dateStr){
 
   const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && s.st !== 'Cancelado');
   const prevDaySvcs = (D.svcs || []).filter(s => s.date === prevDateStr && s.st !== 'Cancelado');
+  const dayManualBlocks = (D.blocks || []).filter(b => b.date === dateStr);
 
   // Revisar qué horas dentro de cada bloque cumplen las 24 horas de anticipación
   const validHoursManana = BLOCK_HOURS.manana.filter(h => isSlotAtLeast24hAhead(dateStr, h));
@@ -1766,10 +1771,17 @@ function evaluateDateCapacity(dateStr){
 
   let reasonMananaList = [];
   let reasonTardeList = [];
+  let manualBlockedM = false;
+  let manualBlockedT = false;
 
   units.forEach((u, idx) => {
     const unitSvcs = daySvcs.filter(s => s.tid === u.id || (idx === 0 && !units.some(x => x.id === s.tid)));
     const prevUnitSvcs = prevDaySvcs.filter(s => s.tid === u.id || (idx === 0 && !units.some(x => x.id === s.tid)));
+    const unitManual = dayManualBlocks.filter(b => !b.tid || b.tid === 'all' || b.tid === u.id || (idx === 0 && !units.some(x => x.id === b.tid)));
+
+    const hasManualFull   = unitManual.some(b => b.type === 'full');
+    const hasManualManana = unitManual.some(b => b.type === 'manana' || b.type === 'full');
+    const hasManualTarde  = unitManual.some(b => b.type === 'tarde' || b.type === 'full');
 
     const hasFullDay = unitSvcs.some(s => inferServiceBlock(s) === 'full');
     const hasManana  = unitSvcs.some(s => inferServiceBlock(s) === 'manana');
@@ -1782,6 +1794,10 @@ function evaluateDateCapacity(dateStr){
     if(!mananaTimeOk){
       mFree = false;
       reasonMananaList.push('Requiere mínimo 24 hrs de anticipación');
+    } else if(hasManualManana){
+      mFree = false;
+      manualBlockedM = true;
+      reasonMananaList.push('No disponible en agenda');
     } else if(hasFullDay){
       mFree = false;
       reasonMananaList.push('Día bloqueado por Programa Interregional reservado');
@@ -1796,6 +1812,10 @@ function evaluateDateCapacity(dateStr){
     if(!tardeTimeOk){
       tFree = false;
       reasonTardeList.push('Requiere mínimo 24 hrs de anticipación');
+    } else if(hasManualTarde){
+      tFree = false;
+      manualBlockedT = true;
+      reasonTardeList.push('No disponible en agenda');
     } else if(hasFullDay){
       tFree = false;
       reasonTardeList.push('Día bloqueado por Programa Interregional reservado');
@@ -1813,9 +1833,9 @@ function evaluateDateCapacity(dateStr){
   const freeT = availUnitsTarde.length;
   const freeFull = availUnitsFullDay.length;
 
-  let dayStatus = 'disp'; // 'disp' | 'last' | 'full'
+  let dayStatus = 'disp'; // 'disp' | 'last' | 'full' | 'closed'
   if(freeM === 0 && freeT === 0){
-    dayStatus = 'full';
+    dayStatus = (manualBlockedM && manualBlockedT) ? 'closed' : 'full';
   } else if(freeM === 0 || freeT === 0 || (freeM + freeT === 1)){
     dayStatus = 'last';
   } else {
@@ -1824,7 +1844,7 @@ function evaluateDateCapacity(dateStr){
 
   let interReason = 'Disponible (bloquea jornada completa Mañana + Tarde)';
   if(freeFull === 0){
-    if(freeM === 0 && freeT === 0) interReason = reasonMananaList[0] || reasonTardeList[0] || 'Sin cupos disponibles en esta fecha';
+    if(freeM === 0 && freeT === 0) interReason = reasonMananaList[0] || reasonTardeList[0] || 'No disponible en esta fecha';
     else interReason = 'Programa Interregional requiere día completo (ambos bloques libres)';
   }
 
@@ -1835,16 +1855,18 @@ function evaluateDateCapacity(dateStr){
       used: capacidadSimultanea - freeM,
       free: freeM,
       available: freeM > 0,
+      manualBlocked: manualBlockedM,
       validHours: validHoursManana,
-      reason: freeM > 0 ? '' : (reasonMananaList[0] || 'Horario ocupado')
+      reason: freeM > 0 ? '' : (reasonMananaList[0] || 'No disponible')
     },
     tarde: {
       availUnits: availUnitsTarde,
       used: capacidadSimultanea - freeT,
       free: freeT,
       available: freeT > 0,
+      manualBlocked: manualBlockedT,
       validHours: validHoursTarde,
-      reason: freeT > 0 ? '' : (reasonTardeList[0] || 'Horario ocupado')
+      reason: freeT > 0 ? '' : (reasonTardeList[0] || 'No disponible')
     },
     interregional: {
       availUnits: availUnitsFullDay,
@@ -2007,6 +2029,11 @@ function renderCalendar(){
         tagText = 'Último cupo';
         clickable = true;
         titleTip = ev.manana.available ? 'Último cupo: solo Bloque Mañana disponible' : 'Último cupo: solo Bloque Tarde disponible';
+      } else if(ev.status === 'closed'){
+        stClass = 'st-full';
+        tagText = 'No disponible';
+        clickable = false;
+        titleTip = 'Fecha no disponible en agenda';
       } else {
         stClass = 'st-full';
         tagText = 'Agotado';
@@ -2096,7 +2123,7 @@ function updateSlots(keepCurrentTime = false){
     btnM.disabled = !okM;
     btnM.classList.toggle('active', okM && selectedBlock === 'manana');
     badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
-    badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : 'Ocupado / Bloqueado';
+    badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : (ev.manana.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
     subM.textContent = 'Horas de inicio seleccionables entre 08:00 y 09:30 hrs';
     reasonM.style.display = okM ? 'none' : 'block';
     reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
@@ -2104,7 +2131,7 @@ function updateSlots(keepCurrentTime = false){
     btnT.disabled = !okT;
     btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
     badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
-    badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : 'Ocupado / Bloqueado';
+    badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : (ev.tarde.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
     subT.textContent = mode === '4'
       ? 'Horas de inicio seleccionables entre 15:00 y 16:30 hrs (y horarios vespertinos para eventos)'
       : 'Horas de inicio seleccionables entre 15:00 y 16:30 hrs';
