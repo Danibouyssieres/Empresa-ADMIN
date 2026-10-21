@@ -739,9 +739,9 @@ function refreshDuration34Options(resetSelection = false){
   } else if(mode === '4'){
     $('#lblHours34').textContent = 'Cantidad de horas de asistencia (mínimo 4 horas, máximo 6 horas)';
     $('#selHours34').innerHTML = `
-      <option value="4">4 horas (mínimo base)</option>
+      <option value="4">4 horas (Plan Base)</option>
       <option value="5">5 horas</option>
-      <option value="6">6 horas</option>
+      <option value="6">6 horas (Plan Tope)</option>
     `;
     $('#selHours34').value = (!resetSelection && ['4','5','6'].includes(prevH)) ? prevH : '4';
   } else if(mode === '5'){
