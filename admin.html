@@ -77,8 +77,8 @@ const TODAY=toYMD(new Date());
 const MONTH_NAMES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const BLOCK_LABELS={
   full:'Día completo cerrado',
-  manana:'Solo Turno Mañana (08:00 a 13:30)',
-  tarde:'Solo Turno Tarde (15:00 a 19:30)'
+  manana:'Solo Turno Mañana (06:00 a 12:00)',
+  tarde:'Solo Turno Tarde (14:00 a 20:00)'
 };
 
 function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x){}return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}
@@ -432,15 +432,15 @@ function blocksView(){
               <label class="blk-opt ${U.blkType==='manana'?'on':''}" onclick="setBlkType('manana')">
                 <input type="radio" name="blk_t" value="manana" ${U.blkType==='manana'?'checked':''}>
                 <div>
-                  <b>b) Solo Turno Mañana (08:00 a 13:30)</b>
-                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Bloque 1 (Mañana) y deja disponible el Turno Tarde.</div>
+                  <b>b) Solo Turno Mañana (06:00 a 12:00)</b>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Turno Mañana (06:00 a 11:30) y deja disponible el Turno Tarde.</div>
                 </div>
               </label>
               <label class="blk-opt ${U.blkType==='tarde'?'on':''}" onclick="setBlkType('tarde')">
                 <input type="radio" name="blk_t" value="tarde" ${U.blkType==='tarde'?'checked':''}>
                 <div>
-                  <b>c) Solo Turno Tarde (15:00 a 19:30)</b>
-                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Bloque 2 (Tarde) y deja disponible el Turno Mañana.</div>
+                  <b>c) Solo Turno Tarde (14:00 a 20:00)</b>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Turno Tarde (14:00 a 17:30) y deja disponible el Turno Mañana.</div>
                 </div>
               </label>
             </div>

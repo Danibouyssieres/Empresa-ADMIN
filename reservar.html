@@ -119,6 +119,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-col
 .rate-pill.active{border:2px solid #168F4A;background:rgba(22,143,74,.08);box-shadow:0 3px 10px rgba(22,143,74,.12);opacity:1}
 :root[data-theme="dark"] .rate-pill.active{border-color:#22c55e;background:rgba(34,197,94,.14)}
 .rate-pill.active::after{content:"✔";position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;background:#168F4A;color:#fff;font-size:.78rem;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+.rate-pill.disabled{opacity:.44;cursor:not-allowed;background:var(--bg);border-style:dashed}
+.rate-pill.disabled:hover{border-color:var(--line);opacity:.44}
 .rate-pill strong{display:block;color:var(--teal);font-size:.95rem}
 .rate-pill small{display:block;color:var(--mute);font-size:.8rem;margin:2px 0 4px}
 .rate-pill .rp-val{font-weight:800;color:var(--ink);font-size:.95rem}
@@ -368,21 +370,24 @@ footer a{color:#fff}
           <label>1. Jornada horaria en que requiere la atención:</label>
           <div class="rate-pill-bar">
             <div id="pillJornada_habil" class="rate-pill active" onclick="setJornada('habil')">
-              <strong>Hábil</strong>
-              <small>Lun a Vie 08:00 a 18:00</small>
-              <div class="rp-val" id="lblRateHabil">$12.000/hora</div>
+              <strong>Hábil (Lun a Vie 06:00 a 20:00)</strong>
+              <small>Jornada diurna de lunes a viernes</small>
+              <div class="rp-val" id="lblRateHabil">$12.000/h ($1.000/km)</div>
             </div>
             <div id="pillJornada_tarde" class="rate-pill" onclick="setJornada('tarde')">
-              <strong>Tarde y sábados</strong>
-              <small>Lun a Vie 18:00 a 23:00 · Sáb 08:00 a 23:00</small>
-              <div class="rp-val" id="lblRateTarde">$15.000/hora</div>
+              <strong>Sábados (08:00 a 20:00)</strong>
+              <small>Jornada diurna de día sábado</small>
+              <div class="rp-val" id="lblRateTarde">$15.000/h ($1.000/km)</div>
             </div>
             <div id="pillJornada_nocturno" class="rate-pill" onclick="setJornada('nocturno')">
-              <strong>Nocturno, domingos y festivos</strong>
-              <small>23:00 a 07:00 · Dom y Festivos</small>
-              <div class="rp-val" id="lblRateNocturno">$18.000/hora</div>
+              <strong>Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)</strong>
+              <small id="subJornadaNocturno">Domingos, festivos y eventos/cuidados nocturnos</small>
+              <div class="rp-val" id="lblRateNocturno">$18.000/h ($1.000/km)</div>
             </div>
           </div>
+          <p id="jornadaFootNote" style="font-size:.83rem;color:var(--teal);font-weight:600;margin:-6px 0 14px">
+            * Los traslados clínicos operan de 06:00 a 20:00 hrs. El horario nocturno (20:00 a 06:00) aplica exclusivamente para Eventos Sociales y Cuidados a Domicilio previamente coordinados.
+          </p>
         </div>
 
         <!-- SELECTOR DE PROGRAMA INTERREGIONAL (EXCLUSIVO MODALIDAD 5: 2 TARJETAS) -->
@@ -426,6 +431,21 @@ footer a{color:#fff}
 
         <!-- COMBOBOX DE HORAS Y MINUTOS HABILITADO PARA MODALIDAD 3, 4 Y 5 -->
         <div id="durationBox34" class="grid" style="display:none">
+          <div id="eventStartCol" style="display:none">
+            <label for="selEventStart1">Hora de inicio del evento (cruza 20:00 = proporcional)</label>
+            <select id="selEventStart1" onchange="onEventStart1Change()">
+              <option value="09:00">09:00 hrs (Turno Mañana)</option>
+              <option value="10:00">10:00 hrs (Turno Mañana)</option>
+              <option value="11:00">11:00 hrs (Turno Mañana)</option>
+              <option value="14:00">14:00 hrs (Turno Tarde)</option>
+              <option value="15:00">15:00 hrs (Turno Tarde)</option>
+              <option value="16:00" selected>16:00 hrs (Turno Tarde)</option>
+              <option value="16:30">16:30 hrs (Cruza 20:00 hrs → Proporcional)</option>
+              <option value="17:00">17:00 hrs (Cruza 20:00 hrs → Proporcional)</option>
+              <option value="17:30">17:30 hrs (Cruza 20:00 hrs → Proporcional)</option>
+              <option value="20:00">20:00 hrs (Horario Especial Nocturno)</option>
+            </select>
+          </div>
           <div id="hours34Col">
             <label for="selHours34" id="lblHours34">Cantidad de horas de asistencia (mínimo 2 horas)</label>
             <select id="selHours34" onchange="onHours34Change()">
@@ -554,10 +574,10 @@ footer a{color:#fff}
           <!-- BLOQUE 1: MAÑANA -->
           <button type="button" id="btnBlock_manana" class="block-btn active" onclick="selectShiftBlock('manana')">
             <div class="block-btn-top">
-              <span class="block-btn-title">🌅 Bloque 1 · Mañana (08:00 a 09:30 hrs)</span>
+              <span class="block-btn-title">🌅 Turno Mañana (06:00 a 11:30 hrs)</span>
               <span id="badgeBlock_manana" class="block-badge ok">Disponible</span>
             </div>
-            <div class="block-btn-sub" id="subBlock_manana">Horas de inicio seleccionables entre 08:00 y 09:30 hrs</div>
+            <div class="block-btn-sub" id="subBlock_manana">Horas de recogida seleccionables entre 06:00 y 11:30 hrs</div>
             <div class="block-btn-reason" id="reasonBlock_manana" style="display:none"></div>
           </button>
 
@@ -565,18 +585,18 @@ footer a{color:#fff}
           <div class="buffer-strip">
             <span style="font-size:1.2rem">🛡️</span>
             <div>
-              <b>Ventana de resguardo operativo (13:30 a 15:00 hrs · No agendable):</b>
-              Reservada para absorber demoras médicas, retorno a base Maipú y sanitización clínica del vehículo.
+              <b>Buffer técnico no agendable (12:00 a 14:00 hrs):</b>
+              Reservado para absorber demoras médicas, retorno a base Maipú y sanitización clínica del vehículo.
             </div>
           </div>
 
           <!-- BLOQUE 2: TARDE -->
           <button type="button" id="btnBlock_tarde" class="block-btn" onclick="selectShiftBlock('tarde')">
             <div class="block-btn-top">
-              <span class="block-btn-title">🌇 Bloque 2 · Tarde (15:00 a 16:30 hrs)</span>
+              <span class="block-btn-title">🌇 Turno Tarde (14:00 a 17:30 hrs)</span>
               <span id="badgeBlock_tarde" class="block-badge ok">Disponible</span>
             </div>
-            <div class="block-btn-sub" id="subBlock_tarde">Horas de inicio seleccionables entre 15:00 y 16:30 hrs</div>
+            <div class="block-btn-sub" id="subBlock_tarde">Horas de recogida seleccionables entre 14:00 y 17:30 hrs</div>
             <div class="block-btn-reason" id="reasonBlock_tarde" style="display:none"></div>
           </button>
 
@@ -721,9 +741,9 @@ const RATES = {
 };
 
 const JORNADA_LABELS = {
-  habil: 'Hábil (Lun a Vie 08:00 a 18:00)',
-  tarde: 'Tarde y sábados (Lun a Vie 18:00 a 23:00 · Sáb 08:00 a 23:00)',
-  nocturno: 'Nocturno, domingos y festivos (23:00 a 07:00)'
+  habil: 'Hábil (Lun a Vie 06:00 a 20:00)',
+  tarde: 'Sábados (08:00 a 20:00)',
+  nocturno: 'Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)'
 };
 
 const RINGS_DATA = [
@@ -931,8 +951,27 @@ function applyModalityVisibility(){
   $('#jornadaSelectorWrap').style.display = (mode === '5') ? 'none' : 'block';
   $('#interProgSelectorWrap').style.display = (mode === '5') ? 'block' : 'none';
 
+  // En Modalidades 1 y 2 (Traslados), deshabilitar la selección de horario nocturno
+  const noctPill = $('#pillJornada_nocturno');
+  const noctSub = $('#subJornadaNocturno');
+  if(mode === '1' || mode === '2'){
+    noctPill.classList.add('disabled');
+    noctSub.textContent = '🚫 Horario nocturno deshabilitado en traslados (operan de 06:00 a 20:00 hrs)';
+    if(currentJornada === 'nocturno'){
+      currentJornada = 'habil';
+      ['habil','tarde','nocturno'].forEach(k => {
+        $('#pillJornada_' + k).classList.toggle('active', k === currentJornada);
+      });
+    }
+  } else {
+    noctPill.classList.remove('disabled');
+    noctSub.textContent = 'Domingos, festivos y eventos/cuidados nocturnos (20:00 a 06:00)';
+  }
+
   if(mode === '5'){
     $('#timeSectionSub').textContent = 'Seleccione el programa requerido según las horas de permanencia en destino. En caso de requerir tiempo adicional, cada bloque de 30 minutos tiene un valor de $15.000 ($25.000 por hora).';
+  } else if(mode === '4'){
+    $('#timeSectionSub').textContent = 'Seleccione la jornada horaria, hora de inicio y duración. Si el horario del evento cruza las 20:00 hrs, se aplica cálculo proporcional (horas antes de las 20:00 a tarifa diurna y horas posteriores a $18.000/h).';
   } else {
     $('#timeSectionSub').textContent = 'Seleccione la jornada horaria en que necesita el servicio y la cantidad de horas/minutos. Cada bloque adicional de 30 minutos se calcula a la mitad del valor hora de su jornada.';
   }
@@ -984,14 +1023,17 @@ function applyModalityVisibility(){
     $('#durationBox12').style.display = 'none';
     $('#durationBox34').style.display = 'grid';
     if(mode === '3'){
+      $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'block';
       $('#durationBox34').style.gridTemplateColumns = '';
       $('#timeSectionTitle').textContent = '⏱️ Horario y Tiempo de Asistencia (Mínimo 2 horas · Cada 30 min extra es un bloque a pagar)';
     } else if(mode === '4'){
+      $('#eventStartCol').style.display = 'block';
       $('#hours34Col').style.display = 'block';
       $('#durationBox34').style.gridTemplateColumns = '';
-      $('#timeSectionTitle').textContent = '⏱️ Horario y Tiempo de Asistencia (Mínimo 4 horas · Cada 30 min extra es un bloque a pagar)';
+      $('#timeSectionTitle').textContent = '⏱️ Horario y Tiempo de Asistencia en Eventos (Mínimo 4 horas · Proporcional si cruza las 20:00 hrs)';
     } else if(mode === '5'){
+      $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'none';
       $('#durationBox34').style.gridTemplateColumns = '1fr';
       $('#timeSectionTitle').textContent = '⏱️ Selección de Programa Interregional y Tiempo Adicional';
@@ -1012,16 +1054,45 @@ function applyModalityVisibility(){
 
 function onHours34Change(){
   recalcAll();
-  updateSlots();
+  updateSlots(true);
+}
+
+function onEventStart1Change(){
+  const val = $('#selEventStart1').value;
+  if(val){
+    const mins = tm(val);
+    selectedBlock = mins < 12 * 60 ? 'manana' : 'tarde';
+    const bTime = $('#b_time');
+    if(bTime){
+      updateSlots(false);
+      if([...bTime.options].some(o => o.value === val && !o.disabled)){
+        bTime.value = val;
+      }
+    }
+  }
+  recalcAll();
+  updateSlots(true);
 }
 
 function setJornada(j){
+  const mode = $('#b_svc_type').value;
+  if((mode === '1' || mode === '2') && j === 'nocturno'){
+    return; // Deshabilitado en Modalidades 1 y 2 (Traslados)
+  }
   currentJornada = j;
   ['habil','tarde','nocturno'].forEach(k => {
     $('#pillJornada_' + k).classList.toggle('active', k === j);
   });
   refreshDuration34Options(false);
   recalcAll();
+}
+
+function fmtHoursClean(mins){
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if(h > 0 && m > 0) return `${h} h ${m} min`;
+  if(h > 0) return `${h} h`;
+  return `${m} min`;
 }
 
 function getSelectedTotalMinutes(){
@@ -1048,13 +1119,13 @@ function recalcAll(){
 
   // Actualizar etiquetas de precios en las píldoras de jornada según la modalidad activa
   if(mode === '1' || mode === '2'){
-    $('#lblRateHabil').textContent = `$1.000/km + ${$c(RATES[mode].habil.hour)}/hora`;
-    $('#lblRateTarde').textContent = `$1.000/km + ${$c(RATES[mode].tarde.hour)}/hora`;
-    $('#lblRateNocturno').textContent = `$1.000/km + ${$c(RATES[mode].nocturno.hour)}/hora`;
+    $('#lblRateHabil').textContent = `${$c(RATES[mode].habil.hour)}/h ($1.000/km)`;
+    $('#lblRateTarde').textContent = `${$c(RATES[mode].tarde.hour)}/h ($1.000/km)`;
+    $('#lblRateNocturno').textContent = `No habilitado en traslados`;
   } else if(mode === '3' || mode === '4'){
-    $('#lblRateHabil').textContent = `$12.000/hora`;
-    $('#lblRateTarde').textContent = `$15.000/hora`;
-    $('#lblRateNocturno').textContent = `$18.000/hora`;
+    $('#lblRateHabil').textContent = `$12.000/h ($1.000/km)`;
+    $('#lblRateTarde').textContent = `$15.000/h ($1.000/km)`;
+    $('#lblRateNocturno').textContent = `$18.000/h ($1.000/km)`;
   }
 
   let timeCost = 0;
@@ -1066,14 +1137,38 @@ function recalcAll(){
     const extraHalfBlocks = m === 30 ? 1 : 0;
     timeCost = (h * r.hour) + (extraHalfBlocks * r.half);
     durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(r.hour)}/h${m ? ` + ${$c(r.half)} bloque 30m` : ''})`;
-  } else if(mode === '3' || mode === '4'){
-    const defH = mode === '3' ? 2 : 4;
-    const h = +$('#selHours34').value || defH;
+  } else if(mode === '3'){
+    const h = +$('#selHours34').value || 2;
     const m = +$('#selMins34').value || 0;
     const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
     const extraHalfCost = m === 30 ? r.half : 0;
     timeCost = basePkgCost + extraHalfCost;
     durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
+  } else if(mode === '4'){
+    const h = +$('#selHours34').value || 4;
+    const m = +$('#selMins34').value || 0;
+    const totalMins = h * 60 + m;
+    const startStr = ($('#b_time') && $('#b_time').value) || ($('#selEventStart1') && $('#selEventStart1').value) || '16:00';
+    const startMin = tm(startStr);
+    const endMin = startMin + totalMins;
+    const cutoff20 = 20 * 60; // 20:00 hrs = 1200 min
+
+    // En Modalidad 4 (Eventos Sociales), aplicar cálculo proporcional si el horario cruza las 20:00 hrs
+    if(startMin < cutoff20 && endMin > cutoff20 && currentJornada !== 'nocturno'){
+      const minsBefore20 = cutoff20 - startMin;
+      const minsAfter20  = endMin - cutoff20;
+      const diurnalRate  = currentJornada === 'tarde' ? 15000 : 12000;
+      const nocturnalRate = 18000;
+      const costBefore20 = Math.round((minsBefore20 / 60) * diurnalRate);
+      const costAfter20  = Math.round((minsAfter20 / 60) * nocturnalRate);
+      timeCost = Math.round((costBefore20 + costAfter20) / 100) * 100;
+      durationText = `Proporcional (${startStr} a ${fm(endMin % 1440)}): ${fmtHoursClean(minsBefore20)} antes de 20:00 a ${$c(diurnalRate)}/h (${$c(costBefore20)}) + ${fmtHoursClean(minsAfter20)} post-20:00 a $18.000/h (${$c(costAfter20)})`;
+    } else {
+      const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
+      const extraHalfCost = m === 30 ? r.half : 0;
+      timeCost = basePkgCost + extraHalfCost;
+      durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
+    }
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
     const m = +$('#selMins34').value || 0;
@@ -1098,7 +1193,8 @@ function recalcAll(){
   if(mode === '5'){
     $('#lblTimeSummaryDesc').textContent = lastInterBreakdown;
   } else {
-    $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · Jornada ${currentJornada === 'habil' ? 'Hábil' : currentJornada === 'tarde' ? 'Tarde/Sáb' : 'Nocturno/Dom'}):`;
+    const jShort = currentJornada === 'habil' ? 'Hábil (Lun-Vie 06:00-20:00)' : currentJornada === 'tarde' ? 'Sábados (08:00-20:00)' : 'Dom/Fest/Nocturno (20:00-06:00)';
+    $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · ${jShort}):`;
   }
   $('#lblTimeSummaryVal').textContent = $c(timeCost);
 
@@ -1602,9 +1698,9 @@ function setRouteStatus(msg){
 let capacidadSimultanea = 1;
 
 const BLOCK_HOURS = {
-  manana: ['08:00', '08:30', '09:00', '09:30'],
-  tarde:  ['15:00', '15:30', '16:00', '16:30'],
-  tarde_eventos: ['15:00', '15:30', '16:00', '16:30', '17:00', '18:00', '19:00', '20:00']
+  manana: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30'],
+  tarde:  ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'],
+  tarde_eventos: ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '19:00', '20:00']
 };
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -1717,7 +1813,7 @@ function getActiveUnitsForCapacity(){
 function inferServiceBlock(s){
   if(s.fullDay || s.block === 'full' || s.svcType === '5' || /interregional/i.test(s.dx || '')) return 'full';
   if(s.block === 'manana' || s.block === 'tarde') return s.block;
-  return (s.start < 13 * 60 + 30) ? 'manana' : 'tarde';
+  return (s.start < 12 * 60) ? 'manana' : 'tarde';
 }
 
 // Determinar si un servicio termina después de las 22:00 hrs (1320 min)
@@ -1940,23 +2036,44 @@ function selectShiftBlock(blockId){
 function onPickupTimeChange(){
   updateSlots(true);
   syncJornadaFromSchedule();
+  const mode = $('#b_svc_type') ? $('#b_svc_type').value : '1';
+  if(mode === '4'){
+    const curTime = $('#b_time') ? $('#b_time').value : '';
+    const evSelect = $('#selEventStart1');
+    if(evSelect && curTime && [...evSelect.options].some(o => o.value === curTime)){
+      evSelect.value = curTime;
+    }
+    recalcAll();
+  }
 }
 
 function syncJornadaFromSchedule(){
   const dateStr = $('#b_date').value;
   const timeStr = $('#b_time').value || '08:00';
+  const mode = $('#b_svc_type') ? $('#b_svc_type').value : '1';
   if(!dateStr || !timeStr) return;
   const dt = parseYMD(dateStr);
   const day = dt.getDay();
   const mins = tm(timeStr);
-  const dur = getSelectedTotalMinutes();
-  const endMins = mins + dur;
-  if(day === 0 || mins >= 23*60 || mins < 7*60){
-    setJornada('nocturno');
-  } else if(day === 6 || mins >= 18*60 || endMins > 18*60 + 30){
-    setJornada('tarde');
+
+  if(mode === '1' || mode === '2'){
+    // Traslados clínicos operan de 06:00 a 20:00 (horario nocturno deshabilitado)
+    if(day === 0){
+      setJornada('nocturno'); // Domingos y festivos
+    } else if(day === 6){
+      setJornada('tarde'); // Sábados
+    } else {
+      setJornada('habil'); // Hábil Lun a Vie
+    }
   } else {
-    setJornada('habil');
+    // Eventos sociales y Cuidados a domicilio
+    if(day === 0 || mins >= 20*60 || mins < 6*60){
+      setJornada('nocturno');
+    } else if(day === 6){
+      setJornada('tarde');
+    } else {
+      setJornada('habil');
+    }
   }
 }
 
@@ -2106,7 +2223,7 @@ function updateSlots(keepCurrentTime = false){
 
     badgeM.className = 'block-badge ' + (okInter ? 'ok' : 'occ');
     badgeM.textContent = okInter ? `Jornada Completa (${ev.interregional.free} cupo)` : 'No disponible';
-    subM.textContent = 'Salida en Bloque Mañana (08:00 a 09:30 hrs) · Bloquea día completo';
+    subM.textContent = 'Salida en Turno Mañana (06:00 a 11:30 hrs) · Bloquea día completo';
     reasonM.style.display = okInter ? 'none' : 'block';
     reasonM.textContent = okInter ? '' : `🔒 ${ev.interregional.reason}`;
 
@@ -2124,7 +2241,7 @@ function updateSlots(keepCurrentTime = false){
     btnM.classList.toggle('active', okM && selectedBlock === 'manana');
     badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
     badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : (ev.manana.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-    subM.textContent = 'Horas de inicio seleccionables entre 08:00 y 09:30 hrs';
+    subM.textContent = 'Horas de inicio seleccionables entre 06:00 y 11:30 hrs';
     reasonM.style.display = okM ? 'none' : 'block';
     reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
 
@@ -2133,8 +2250,8 @@ function updateSlots(keepCurrentTime = false){
     badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
     badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : (ev.tarde.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
     subT.textContent = mode === '4'
-      ? 'Horas de inicio seleccionables entre 15:00 y 16:30 hrs (y horarios vespertinos para eventos)'
-      : 'Horas de inicio seleccionables entre 15:00 y 16:30 hrs';
+      ? 'Horas de inicio seleccionables entre 14:00 y 17:30 hrs (y horarios vespertinos para eventos)'
+      : 'Horas de inicio seleccionables entre 14:00 y 17:30 hrs';
     reasonT.style.display = okT ? 'none' : 'block';
     reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
   }
@@ -2152,7 +2269,7 @@ function updateSlots(keepCurrentTime = false){
     timeSelect.disabled = false;
     timeSelect.innerHTML = hoursList.map(h => {
       const ok24 = isSlotAtLeast24hAhead(dateStr, h);
-      const tag = (! isInter && selectedBlock === 'tarde' && tm(h) > 16*60+30) ? ' (Horario especial Evento Social)' : '';
+      const tag = (! isInter && selectedBlock === 'tarde' && tm(h) > 17*60+30) ? ' (Horario especial Evento Social)' : '';
       return `<option value="${h}" ${!ok24 ? 'disabled' : ''}>${h} hrs — Hora exacta de recogida${tag}${!ok24 ? ' (Menos de 24h)' : ''}</option>`;
     }).join('');
 
@@ -2178,7 +2295,7 @@ function updateSlots(keepCurrentTime = false){
     const endsAfter22 = endMin > 22 * 60;
     const blockLabel = isInter
       ? 'Jornada Completa Interregional (Bloquea Mañana + Tarde)'
-      : (selectedBlock === 'manana' ? 'Bloque 1 · Mañana (08:00 a 09:30)' : 'Bloque 2 · Tarde (15:00 a 16:30)');
+      : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 11:30 hrs)' : 'Turno Tarde (14:00 a 17:30 hrs)');
 
     estWindow.innerHTML = `🕒 <b>Recogida:</b> ${curTime} hrs → <b>Término estimado:</b> ${fm(endMin % 1440)} hrs (${dur} min estimados · ${blockLabel}).`;
 
@@ -2321,7 +2438,7 @@ async function submitBooking(ev){
   const saldo50 = lastFinalTotal - lastAbono50;
   const blockHuman = isInter
     ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
-    : (selectedBlock === 'manana' ? 'Bloque 1 · Mañana (08:00 a 09:30 hrs)' : 'Bloque 2 · Tarde (15:00 a 16:30 hrs)');
+    : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 11:30 hrs)' : 'Turno Tarde (14:00 a 17:30 hrs)');
 
   const newId = D.nid++;
   const newSvc = {

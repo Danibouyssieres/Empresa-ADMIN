@@ -349,16 +349,16 @@ footer .wrap{display:grid;gap:8px}
   </div>
   <h3 style="margin-top:0">Valor por hora según jornada</h3>
   <div class="rate-tabs" role="tablist" aria-label="Seleccionar jornada horaria">
-    <button type="button" class="rate-tab active" data-tab-btn="1" onclick="setRateTab(1)">Hábil<small>Lun-Vie 08:00-18:00</small></button>
-    <button type="button" class="rate-tab" data-tab-btn="2" onclick="setRateTab(2)">Tarde y sáb.<small>18:00-23:00 · Sáb</small></button>
-    <button type="button" class="rate-tab" data-tab-btn="3" onclick="setRateTab(3)">Nocturno<small>23:00-07:00 · Dom/Fest</small></button>
+    <button type="button" class="rate-tab active" data-tab-btn="1" onclick="setRateTab(1)">Hábil<small>Lun a Vie 06:00 a 20:00</small></button>
+    <button type="button" class="rate-tab" data-tab-btn="2" onclick="setRateTab(2)">Sábados<small>08:00 a 20:00</small></button>
+    <button type="button" class="rate-tab" data-tab-btn="3" onclick="setRateTab(3)">Dom., Festivos y Nocturno*<small>20:00 a 06:00</small></button>
   </div>
   <div class="tw" id="rateTableWrap" data-active-col="1"><table>
     <thead><tr>
       <th>Modalidades del servicio</th>
-      <th data-col="1">Horario Hábil<small>Lun a Vie 08:00 a 18:00</small></th>
-      <th data-col="2">Horario Tarde y sáb.<small>Lun a Vie 18:00 a 23:00 · Sáb 08:00 a 23:00</small></th>
-      <th data-col="3">Horario Nocturno, Domingos y Festivos<small>23:00 a 07:00</small></th>
+      <th data-col="1">Hábil<small>Lun a Vie 06:00 a 20:00</small></th>
+      <th data-col="2">Sábados<small>08:00 a 20:00</small></th>
+      <th data-col="3">Domingos, Festivos y Horario Especial Nocturno*<small>20:00 a 06:00</small></th>
     </tr></thead>
     <tbody>
     <tr>
@@ -416,7 +416,8 @@ footer .wrap{display:grid;gap:8px}
       </td>
     </tr>
     </tbody></table></div>
-  <p style="font-size:.92rem;color:var(--mute);margin-top:8px">En traslados, cada fracción de 30 minutos equivale a la mitad del valor por hora. En eventos, el traslado se cotiza aparte según los kilómetros.</p>
+  <p style="font-size:.9rem;color:var(--teal);font-weight:600;margin-top:10px">* Los traslados clínicos operan de 06:00 a 20:00 hrs. El horario nocturno (20:00 a 06:00) aplica exclusivamente para Eventos Sociales y Cuidados a Domicilio previamente coordinados.</p>
+  <p style="font-size:.92rem;color:var(--mute);margin-top:6px">En traslados, cada fracción de 30 minutos equivale a la mitad del valor por hora. En eventos, el traslado se cotiza aparte según los kilómetros.</p>
   <div class="note"><b>Para que no haya sorpresas</b>
     <ul class="bullets" style="margin:8px 0 0">
       <li><b>Horarios:</b> el valor por hora depende de la jornada (ver tabla). El kilómetro se mantiene en $1.000 en todas.</li>
