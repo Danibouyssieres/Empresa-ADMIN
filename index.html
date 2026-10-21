@@ -81,7 +81,7 @@ nav a:not(.btn):hover{color:var(--sage)}
 #clinico{padding:28px 0 28px}
 #profesional{padding:28px 0 26px}
 #seguridad{padding:26px 0 28px}
-#agendar{padding:28px 0 48px}
+#agendar{padding:28px 0 44px}
 .rings{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:start;margin:28px 0}
 @media(max-width:720px){.rings{grid-template-columns:1fr}}
 .target{position:relative;width:200px;height:200px;margin:0 auto}
@@ -178,7 +178,7 @@ nav a:not(.btn):hover{color:var(--sage)}
 .step::before{content:counter(s);width:42px;height:42px;border-radius:50%;background:#0E4A55;color:#fff;display:grid;place-items:center;font:700 1.2rem Georgia,serif;margin-bottom:6px}
 .step .btn{margin-top:auto}
 .cancel{margin-top:22px;border-left:6px solid var(--sage);background:var(--card);border-radius:var(--r);padding:22px 26px}
-.final{background:#0E4A55;text-align:center;color:#fff}
+.final{background:#0E4A55;text-align:center;color:#fff;padding:44px 0}
 .final h2{color:#fff;max-width:20ch;margin:0 auto 22px}
 footer{background:#0A363F;color:#c9dcd8;font-size:.92rem;padding:36px 0 110px}
 footer a{color:#fff}
@@ -510,15 +510,14 @@ footer .wrap{display:grid;gap:8px}
 <section id="agendar" class="alt"><div class="wrap">
   <h2>Reservar es simple</h2>
   <div class="steps" style="margin-top:22px">
-    <div class="step"><h3>Agende su hora en línea o por WhatsApp</h3><p>Elija fecha, horario disponible y datos del recorrido en nuestro formulario directo (sin registro) o escríbanos por WhatsApp.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">
-        <a class="btn sm" href="reservar.html">📅 Agendar hora en línea</a>
-      </div>
-    </div>
+    <div class="step"><h3>Agende su hora en línea o por WhatsApp</h3><p>Elija fecha, horario disponible y datos del recorrido en nuestro formulario directo (sin registro) o escríbanos por WhatsApp.</p></div>
     <div class="step"><h3>Abone el 50 % y bloquee su hora en exclusiva</h3><p>El abono es el 50 % del total cotizado (o de la tarifa mínima de su zona, si el cálculo resulta menor). Reservamos el vehículo y el profesional solo para usted. Tras recibir los datos bancarios, el cupo se mantiene 1 hora; al recibir su comprobante por WhatsApp, la reserva queda confirmada.</p></div>
     <div class="step"><h3>Pague el saldo al finalizar</h3><p>El 50 % restante se paga al terminar, ajustado al tiempo real de asistencia: efectivo, transferencia o tarjeta de débito/crédito (con terminal de pago en terreno).</p></div>
   </div>
-  <div class="cancel"><h3>Cambios y cancelaciones</h3>
+  <div style="text-align:center;margin-top:25px">
+    <a class="btn" href="reservar.html">🗓️ Agendar hora en línea</a>
+  </div>
+  <div class="cancel" style="margin-top:28px"><h3>Cambios y cancelaciones</h3>
     <ul class="bullets" style="margin:8px 0">
       <li><b>No realizamos devoluciones de dinero:</b> al reservar una hora, bloqueamos el vehículo y el profesional exclusivamente para su familia, rechazando otras solicitudes. Por ello, el abono no es reembolsable bajo ninguna circunstancia (incluyendo cancelaciones anticipadas o ausencia del paciente a la llegada).</li>
       <li><b>Reprogramación de servicios:</b> si necesita cambiar su hora, debe avisar con al menos 12 horas de anticipación. Su abono se conservará íntegro como saldo a favor para agendar una nueva fecha dentro de los próximos 15 días (máximo una reprogramación por servicio).</li>
@@ -530,7 +529,9 @@ footer .wrap{display:grid;gap:8px}
 <!-- BLOQUE 7: CIERRE -->
 <section class="final"><div class="wrap">
   <h2>Usted cuida a quien más quiere. Permítanos cuidarlos a ambos.</h2>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <a class="btn" style="background:#fff;color:#0E4A55" href="reservar.html">🗓️ Reservar servicio aquí</a>
+    <a class="btn wa" data-msg="Hola, vengo de la página web y necesito cotizar un servicio" href="#">💬 Hablar por WhatsApp</a>
   </div>
 </div></section>
 </main>
