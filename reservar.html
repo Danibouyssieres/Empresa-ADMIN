@@ -354,9 +354,9 @@ footer a{color:#fff}
           <div>
             <label for="selHours34" id="lblHours34">Cantidad de horas de asistencia (mínimo 2 horas)</label>
             <select id="selHours34" onchange="onHours34Change()">
-              <option value="2" selected>2 horas (mínimo base)</option>
+              <option value="2" selected>2 horas (Plan Base)</option>
               <option value="3">3 horas</option>
-              <option value="4">4 horas</option>
+              <option value="4">4 horas (Plan Tope)</option>
             </select>
           </div>
           <div>
@@ -731,9 +731,9 @@ function refreshDuration34Options(resetSelection = false){
   if(mode === '3'){
     $('#lblHours34').textContent = 'Cantidad de horas de asistencia (mínimo 2 horas, máximo 4 horas)';
     $('#selHours34').innerHTML = `
-      <option value="2">2 horas (mínimo base)</option>
+      <option value="2">2 horas (Plan Base)</option>
       <option value="3">3 horas</option>
-      <option value="4">4 horas</option>
+      <option value="4">4 horas (Plan Tope)</option>
     `;
     $('#selHours34').value = (!resetSelection && ['2','3','4'].includes(prevH)) ? prevH : '2';
   } else if(mode === '4'){
