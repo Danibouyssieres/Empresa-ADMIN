@@ -78,7 +78,9 @@ nav a:not(.btn):hover{color:var(--sage)}
 .icon-bullets .ib-ic{font-size:1.15rem;line-height:1.35;flex-shrink:0}
 #servicios{padding:48px 0 32px}
 #tarifas{padding:36px 0 28px}
-#clinico{padding:28px 0 48px}
+#clinico{padding:28px 0 28px}
+#profesional{padding:28px 0 28px}
+#seguridad{padding:28px 0 56px}
 .rings{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:start;margin:28px 0}
 @media(max-width:720px){.rings{grid-template-columns:1fr}}
 .target{position:relative;width:200px;height:200px;margin:0 auto}
@@ -151,11 +153,16 @@ nav a:not(.btn):hover{color:var(--sage)}
 .vit .big .free{align-self:flex-start;display:inline-block;background:#8fe0c0;color:#0A363F;font-weight:800;border-radius:999px;padding:3px 14px;margin-bottom:12px;font-size:.9rem}
 .vit-col{display:flex;flex-direction:column;gap:18px;height:100%}
 .vit-img{width:100%;flex:1;min-height:175px;max-height:225px;object-fit:cover;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.1);display:block}
-.pro{display:grid;grid-template-columns:220px 1fr;gap:30px;align-items:center;background:var(--card);border:2px solid var(--sage);border-radius:var(--r);padding:28px}
+.pro{display:grid;grid-template-columns:220px 1fr;gap:30px;align-items:center;background:var(--card);border:2px solid var(--sage);border-radius:var(--r);padding:28px;margin-bottom:24px}
 .pro .ph{width:220px;height:220px;border-radius:50%;padding:20px}
-.pro dl{margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:1rem}
-.pro dt{color:var(--mute)}.pro dd{font-weight:700}
-@media(max-width:720px){.pro{grid-template-columns:1fr;text-align:center;justify-items:center}.pro dl{text-align:left}}
+.pro-creds{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:10px}
+.pro-creds li{display:flex;align-items:flex-start;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:.95rem;line-height:1.42}
+.pro-creds .pc-ic{font-size:1.2rem;line-height:1.25;flex-shrink:0}
+.pro-creds .pc-lbl{color:var(--mute);font-weight:600}
+.pro-creds .pc-val{font-weight:700;color:var(--ink)}
+.sis-badge{display:inline-flex;align-items:center;gap:4px;margin-top:4px;background:var(--mist);color:var(--teal);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.82rem;font-weight:700;text-decoration:none}
+.sis-badge:hover{background:var(--sage);color:#fff;border-color:var(--sage)}
+@media(max-width:720px){.pro{grid-template-columns:1fr;text-align:center;justify-items:center}.pro-creds{text-align:left}}
 .sf{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 @media(max-width:900px){.sf{grid-template-columns:1fr}}
 .stop{margin-top:22px;background:var(--warn);border:2px solid var(--warnb);border-radius:var(--r);padding:24px}
@@ -441,11 +448,23 @@ footer .wrap{display:grid;gap:8px}
       <h3 style="font-size:1.7rem">Daniela González Bouyssieres</h3>
       <p class="dest">TENS Y CONDUCTORA PROFESIONAL</p>
       <p>Profesional con sólida vocación clínica y experiencia directa en casas de reposo. Especialista en la administración de medicamentos, control de signos vitales, aseo y confort, brindando siempre un trato digno y empático a pacientes mayores y personas con movilidad reducida.</p>
-      <dl>
-        <dt>Título</dt><dd>Técnico en Enfermería de Nivel Superior (TENS)</dd>
-        <dt>Conducción Profesional</dt><dd>Licencia Clase A2 vigente (Transporte de Pasajeros).</dd>
-        <dt>Registro</dt><dd>N° 442762, Registro Nacional de Prestadores Individuales de Salud</dd>
-      </dl>
+      <ul class="pro-creds">
+        <li>
+          <span class="pc-ic" aria-hidden="true">🎓</span>
+          <div><span class="pc-lbl">Título Clínico:</span> <span class="pc-val">Técnico en Enfermería de Nivel Superior (TENS)</span></div>
+        </li>
+        <li>
+          <span class="pc-ic" aria-hidden="true">🪪</span>
+          <div><span class="pc-lbl">Conducción Profesional:</span> <span class="pc-val">Licencia Clase A2 vigente (Transporte de Pasajeros)</span></div>
+        </li>
+        <li>
+          <span class="pc-ic" aria-hidden="true">🛡️</span>
+          <div>
+            <span class="pc-lbl">Registro Oficial:</span> <span class="pc-val">Nº 442762, Registro Nacional de Prestadores Individuales de Salud (Superintendencia de Salud)</span><br>
+            <a class="sis-badge" href="https://www.supersalud.gob.cl/servicios/669/w3-article-5587.html" target="_blank" rel="noopener">✓ Registro verificable en supersalud.gob.cl</a>
+          </div>
+        </li>
+      </ul>
     </div>
   </div>
 </div></section>
