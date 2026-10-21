@@ -57,9 +57,14 @@ nav a:not(.btn):hover{color:var(--sage)}
 @media(max-width:820px){.trust ul{grid-template-columns:1fr 1fr}.trust li{padding:10px 0;font-size:.9rem}}
 .grid{display:grid;gap:18px;grid-template-columns:repeat(2,1fr)}
 @media(max-width:720px){.grid{grid-template-columns:1fr}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px}
-.card .tag{display:inline-block;background:var(--mist);color:var(--teal);font-size:.85rem;font-weight:700;padding:3px 12px;border-radius:999px;margin-bottom:10px}
-.card .for{margin-top:12px;font-size:.95rem;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column}
+.card .tag{align-self:flex-start;display:inline-block;background:var(--mist);color:var(--teal);font-size:.85rem;font-weight:700;padding:3px 12px;border-radius:999px;margin-bottom:10px}
+.svc-list{list-style:none;padding:0;margin:6px 0 12px;display:grid;gap:7px;font-size:.96rem}
+.svc-list li{display:flex;align-items:flex-start;gap:8px;line-height:1.45}
+.svc-list li .chk{color:var(--sage);font-weight:800;flex-shrink:0}
+.card .for{margin-top:auto;padding-top:10px;border-top:1px solid var(--line);font-size:.92rem;color:var(--mute);line-height:1.45}
+.card .for b{color:var(--ink)}
+.card .svc-cta{align-self:flex-start;margin-top:14px}
 .band{margin-top:22px;background:#0E4A55;color:#fff;border-radius:var(--r);padding:20px 24px;display:grid;gap:8px}
 .band h3{color:#fff}.band b{color:#8fe0c0}
 .alt{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -207,20 +212,52 @@ footer .wrap{display:grid;gap:8px}
 <!-- BLOQUE 2: SERVICIOS -->
 <section id="servicios"><div class="wrap">
   <h2>Un servicio a la medida de lo que su familia necesita</h2>
-  <p class="lead">Cada persona y cada trámite son distintos. Por eso ofrecemos cuatro modalidades, todas con la atención directa de un TENS.</p>
+  <p class="lead">Cada persona y cada situación son distintas. Por eso ofrecemos 5 modalidades de servicio adaptadas a su nivel de autonomía, con asistencia clínica TENS o transporte exclusivo dedicado.</p>
   <div class="grid">
-    <article class="card"><span class="tag">La más completa</span><h3>Servicio Integral: asistencia TENS + traslado</h3>
-      <p>El servicio comienza con el retiro de la persona en su domicilio, lo ayudamos a subir al vehículo y lo acompañamos dentro del recinto y durante todo el proceso, colaborando con la admisión, compañía en sala de espera, en box y otros, apoyo para subir y bajar de camillas, escaleras, etc., hasta regresarlo seguro a su domicilio. Realizamos un registro de indicaciones médicas y, al volver, entregamos a la familia un reporte con recetas y órdenes.</p>
-      <p class="for">Ideal para ir a un Cesfam, consulta médica, un procedimiento ambulatorio, supermercado y otros.</p></article>
-    <article class="card"><span class="tag">Solo transporte</span><h3>Traslado Exclusivo con Espera</h3>
-      <p>Transporte seguro, con el vehículo a su disposición esperando en el estacionamiento del recinto que necesita visitar. Una salida tranquila y con regreso en el momento deseado sin apuros y sin tener que esperar a que otro vehículo lo lleve de regreso.</p>
-      <p class="for">Ideal para personas que se desenvuelven bien dentro del recinto, con buen equilibrio, sin riesgo de caídas, pero que necesiten ayuda para ir y volver.</p></article>
-    <article class="card"><span class="tag">Desde 2 horas</span><h3>Cuidados a Domicilio</h3>
-      <p>Un TENS en su hogar: aseo y confort, cambios de posición y transferencias, alimentación asistida, supervisión de medicación oral según receta, compañía y estimulación. Caminatas asistidas, paseos o trámites breves cercanos a pie.</p>
-      <p class="for">Ideal para dar un descanso a la familia o evitar su preocupación cuando su ser querido necesite compañía profesional durante el día, tarde o noche para desenvolverse normalmente y con seguridad.</p></article>
-    <article class="card"><span class="tag">Desde 4 horas</span><h3>Acompañamiento en Eventos Sociales</h3>
-      <p>Que su ser querido no se pierda el matrimonio, aniversario o celebración familiar. Lo acompañamos con asistencia profesional durante el evento para que todos disfruten y se diviertan con tranquilidad, mientras nos encargamos de entregar los cuidados y atenciones necesarias que su ser querido necesite (si necesita traslado en nuestro vehículo, se cotiza el valor del viaje por separado según los kilómetros estimados).</p>
-      <p class="for">Ideal para que las familias completas disfruten al máximo sin preocupaciones.</p></article>
+    <article class="card">
+      <span class="tag">Asistencia TENS + Traslado</span>
+      <h3>Servicio Integral: asistencia TENS + traslado</h3>
+      <ul class="svc-list">
+        <li><span class="chk">✓</span><span>Retiro en domicilio, traslado seguro y asistencia para subir/bajar del auto.</span></li>
+        <li><span class="chk">✓</span><span>Acompañamiento continuo en admisión, salas de espera y box médico.</span></li>
+        <li><span class="chk">✓</span><span>Reporte de indicaciones, recetas y órdenes médicas entregado a la familia al regreso.</span></li>
+      </ul>
+      <p class="for"><b>Ideal para:</b> Personas con movilidad reducida o que requieren supervisión clínica durante su atención.</p>
+      <a class="btn sm ghost svc-cta" href="reservar.html?svc=1#secModalidad">Cotizar esta modalidad</a>
+    </article>
+    <article class="card">
+      <span class="tag">Solo Transporte y Espera</span>
+      <h3>Traslado Exclusivo con Espera</h3>
+      <ul class="svc-list">
+        <li><span class="chk">✓</span><span>Vehículo a su entera disposición esperando en el estacionamiento del recinto.</span></li>
+        <li><span class="chk">✓</span><span>Retorno inmediato garantizado al terminar su consulta o trámite.</span></li>
+        <li><span class="chk">✓</span><span>Sin apuros ni esperas de aplicaciones de transporte.</span></li>
+      </ul>
+      <p class="for"><b>Ideal para:</b> Pacientes autovalentes con buen equilibrio que solo necesitan transporte puntual y confiable.</p>
+      <a class="btn sm ghost svc-cta" href="reservar.html?svc=2#secModalidad">Cotizar esta modalidad</a>
+    </article>
+    <article class="card">
+      <span class="tag">Atención en Hogar · Desde 2 hrs</span>
+      <h3>Cuidados a Domicilio</h3>
+      <ul class="svc-list">
+        <li><span class="chk">✓</span><span>Aseo y confort, cambios de posición y transferencias seguras.</span></li>
+        <li><span class="chk">✓</span><span>Supervisión de medicación oral según receta y alimentación asistida.</span></li>
+        <li><span class="chk">✓</span><span>Estimulación, compañía activa y paseos breves cercanos a pie.</span></li>
+      </ul>
+      <p class="for"><b>Ideal para:</b> Descanso de la familia o cuando su ser querido requiere apoyo profesional en casa.</p>
+      <a class="btn sm ghost svc-cta" href="reservar.html?svc=3#secModalidad">Cotizar esta modalidad</a>
+    </article>
+    <article class="card">
+      <span class="tag">Acompañamiento · Desde 4 hrs</span>
+      <h3>Acompañamiento en Eventos Sociales</h3>
+      <ul class="svc-list">
+        <li><span class="chk">✓</span><span>Asistencia continua durante matrimonios, cumpleaños o salidas familiares.</span></li>
+        <li><span class="chk">✓</span><span>Administración de cuidados y monitoreo para que la familia disfrute con calma.</span></li>
+        <li><span class="chk">✓</span><span>Traslado vehicular opcional (se cotiza por separado según kilometraje).</span></li>
+      </ul>
+      <p class="for"><b>Ideal para:</b> Incluir a personas mayores o con requerimientos especiales en las celebraciones familiares.</p>
+      <a class="btn sm ghost svc-cta" href="reservar.html?svc=4#secModalidad">Cotizar esta modalidad</a>
+    </article>
   </div>
   <div class="band">
     <h3>Programas interregionales: Valparaíso y O'Higgins</h3>
@@ -249,8 +286,11 @@ footer .wrap{display:grid;gap:8px}
       </li>
     </ul>
     <p class="band-note">Todo tiempo adicional no programado tendrá un valor de <b>$15.000 por fracción de 30 minutos</b> y <b>$25.000 por hora</b>. No incluye estacionamiento en recinto.</p>
+    <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <a class="btn sm" style="background:#8fe0c0;color:#0A363F;box-shadow:none" href="reservar.html?svc=5#secModalidad">Cotizar esta modalidad</a>
+      <a class="btn sm ghost" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.45)" data-msg="Hola, quiero consultar por los programas interregionales, mi consulta es: " href="#">Consultar por mi caso</a>
+    </div>
   </div>
-  <p style="margin-top:24px"><a class="btn ghost" data-msg="Hola, quiero consultar por los programas interregionales, mi consulta es: " href="#">Consultar por mi caso</a></p>
 </div></section>
 
 <!-- BLOQUE 3: TARIFAS -->

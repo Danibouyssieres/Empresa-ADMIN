@@ -176,7 +176,7 @@ footer a{color:#fff}
     <!-- =========================================================================
          SECCIÓN 1: MODALIDAD (DE EXTREMO A EXTREMO), DIRECCIÓN/MAPA, TIEMPO Y TOTAL
          ========================================================================= -->
-    <section class="card">
+    <section class="card" id="secModalidad">
       <span class="step-tag">Sección 1 de 4 · Modalidad, Dirección y Cálculo de Tarifa</span>
       <h2>1. Seleccione su modalidad de servicio y cotice su atención</h2>
 
@@ -1536,6 +1536,16 @@ async function initForm(){
 
   try{
     const params = new URLSearchParams(window.location.search);
+    const svcParam = params.get('svc');
+    if(svcParam && ['1','2','3','4','5'].includes(svcParam)){
+      $('#b_svc_type').value = svcParam;
+      onServiceTypeChange();
+      setTimeout(() => {
+        const sec = document.getElementById('secModalidad');
+        if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+      }, 120);
+    }
+
     if(params.get('mode') === 'solo_ida') setTripMode(1);
     else setTripMode(2);
 
