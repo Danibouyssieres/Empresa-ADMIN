@@ -367,10 +367,13 @@ footer a{color:#fff}
           </div>
         </div>
 
-        <!-- NOTA EXCLUSIVA DE MODALIDAD 5 SOBRE FRACCIONES POSTERIORES -->
+        <!-- NOTA EXCLUSIVA DE MODALIDAD 5 SOBRE COBERTURA Y TIEMPO ADICIONAL -->
         <div id="interregionalFractionNote" class="info-banner" style="display:none;margin-top:12px">
-          <b>📌 Nota sobre tiempo adicional en Programas Interregionales:</b><br>
-          Toda fracción posterior a las horas contempladas en cada paquete se regirá por el valor de hora clínica de asistencia según corresponda en tarifario horario (<b>$12.000/hora</b> Hábil · <b>$15.000/hora</b> Tarde y sábados · <b>$18.000/hora</b> Nocturno, domingos y festivos; cada bloque de 30 minutos equivale a la mitad del valor hora).
+          <b>📌 Cobertura y tiempo adicional en Programas Interregionales (Valparaíso y O'Higgins):</b><br>
+          Aplican tarifas planas paquetizadas con garantía de cobertura integral (incluyen traslado ida y vuelta puerta a puerta, combustible, TAG urbano, totalidad de peajes interurbanos de ida y regreso, y acompañamiento clínico del TENS):<br>
+          • <b>Programa Interregional Estándar:</b> hasta 4 horas de permanencia y asistencia por <b>$250.000</b>.<br>
+          • <b>Programa Interregional Crónico / Oncológico:</b> hasta 6 horas de cobertura continua y acompañamiento por <b>$300.000</b>.<br>
+          • Todo tiempo adicional no programado tendrá un valor de <b>$15.000 por fracciones de 30 minutos</b> y <b>$25.000 por hora</b>.
         </div>
 
         <!-- RESUMEN DEL VALOR DEL TIEMPO SELECCIONADO -->
@@ -573,20 +576,20 @@ const RATES = {
     tarde:    { hour: 10000, half: 5000 },
     nocturno: { hour: 12000, half: 6000 }
   },
-  '3': { // Cuidados a Domicilio (2h y 4h + bloques de 30m a mitad de valor hora)
-    habil:    { hour: 12000, half: 6000, pkg: {2: 24000, 4: 40000} },
-    tarde:    { hour: 15000, half: 7500, pkg: {2: 30000, 4: 50000} },
-    nocturno: { hour: 18000, half: 9000, pkg: {2: 36000, 4: 60000} }
+  '3': { // c) Cuidados a domicilio (Sin Traslado Vehicular): 2h, 3h, Plan Tope 4h + frac. 30m
+    habil:    { hour: 12000, half: 6000, pkg: {2: 24000, 3: 36000, 4: 40000}, savings: {4: 8000} },
+    tarde:    { hour: 15000, half: 7500, pkg: {2: 30000, 3: 45000, 4: 50000}, savings: {4: 10000} },
+    nocturno: { hour: 18000, half: 9000, pkg: {2: 36000, 3: 54000, 4: 60000}, savings: {4: 12000} }
   },
-  '4': { // Eventos Sociales (4h y 6h + bloques de 30m a mitad de valor hora)
-    habil:    { hour: 12000, half: 6000, pkg: {4: 48000, 6: 60000} },
-    tarde:    { hour: 15000, half: 7500, pkg: {4: 60000, 6: 75000} },
-    nocturno: { hour: 18000, half: 9000, pkg: {4: 72000, 6: 90000} }
+  '4': { // d) Asistencia en eventos (Matrimonios / Fiestas / Salidas Sociales): 4h, 5h, Plan Tope 6h + frac. 30m
+    habil:    { hour: 12000, half: 6000, pkg: {4: 48000, 5: 60000, 6: 64000}, savings: {6: 8000} },
+    tarde:    { hour: 15000, half: 7500, pkg: {4: 60000, 5: 75000, 6: 80000}, savings: {6: 10000} },
+    nocturno: { hour: 18000, half: 9000, pkg: {4: 72000, 5: 90000, 6: 96000}, savings: {6: 12000} }
   },
-  '5': { // Programas Interregionales (3h = $250.000, 6h = $300.000; fracciones extra según valor hora clínica de asistencia)
-    habil:    { hour: 12000, half: 6000, pkg: {3: 250000, 6: 300000} },
-    tarde:    { hour: 15000, half: 7500, pkg: {3: 250000, 6: 300000} },
-    nocturno: { hour: 18000, half: 9000, pkg: {3: 250000, 6: 300000} }
+  '5': { // e) Programas Interregionales (Estándar hasta 4h = $250.000, Crónico/Oncológico hasta 6h = $300.000; extra: $15.000/30min y $25.000/hora)
+    habil:    { hour: 25000, half: 15000, pkg: {4: 250000, 6: 300000} },
+    tarde:    { hour: 25000, half: 15000, pkg: {4: 250000, 6: 300000} },
+    nocturno: { hour: 25000, half: 15000, pkg: {4: 250000, 6: 300000} }
   }
 };
 
@@ -719,34 +722,61 @@ function isMapEnabledForCurrentState(){
   return mode === '1' || mode === '2';
 }
 
-function onServiceTypeChange(){
-  const mode = $('#b_svc_type').value; // '1', '2', '3', '4', '5'
-  setRouteStatus('');
+function refreshDuration34Options(resetSelection = false){
+  const mode = $('#b_svc_type').value;
+  if(mode !== '3' && mode !== '4' && mode !== '5') return;
 
-  // Configurar combobox de horas para Modalidad 3 (2 o 4 h), Modalidad 4 (4 o 6 h) y Modalidad 5 (3 o 6 h)
+  const r = RATES[mode][currentJornada];
+  const prevH = $('#selHours34').value;
+  const prevM = $('#selMins34').value;
+
   if(mode === '3'){
     $('#lblHours34').textContent = 'Seleccione cantidad de horas de asistencia (mínimo 2 h, máximo 4 h)';
     $('#selHours34').innerHTML = `
-      <option value="2" selected>2 horas</option>
-      <option value="4">4 horas</option>
+      <option value="2">Plan Base 2 hrs (${$c(r.pkg[2])})</option>
+      <option value="3">3 hrs (${$c(r.pkg[3])})</option>
+      <option value="4">Plan Tope 4 hrs (${$c(r.pkg[4])} · ✨ Ahorro de ${$c(r.savings[4])})</option>
     `;
-    $('#selMins34').value = '0';
+    $('#selMins34').innerHTML = `
+      <option value="0">0 minutos</option>
+      <option value="30">+ 30 minutos (Frac. 30min: ${$c(r.half)})</option>
+    `;
+    $('#selHours34').value = (!resetSelection && ['2','3','4'].includes(prevH)) ? prevH : '2';
+    $('#selMins34').value = (!resetSelection && ['0','30'].includes(prevM)) ? prevM : '0';
   } else if(mode === '4'){
     $('#lblHours34').textContent = 'Seleccione cantidad de horas del evento (mínimo 4 h, máximo 6 h)';
     $('#selHours34').innerHTML = `
-      <option value="4" selected>4 horas</option>
-      <option value="6">6 horas</option>
+      <option value="4">Plan Base 4 hrs (${$c(r.pkg[4])})</option>
+      <option value="5">5 hrs (${$c(r.pkg[5])})</option>
+      <option value="6">Plan Tope 6 hrs (${$c(r.pkg[6])} · ✨ Ahorro de ${$c(r.savings[6])})</option>
     `;
-    $('#selMins34').value = '0';
+    $('#selMins34').innerHTML = `
+      <option value="0">0 minutos</option>
+      <option value="30">+ 30 minutos (Frac. 30min: ${$c(r.half)})</option>
+    `;
+    $('#selHours34').value = (!resetSelection && ['4','5','6'].includes(prevH)) ? prevH : '4';
+    $('#selMins34').value = (!resetSelection && ['0','30'].includes(prevM)) ? prevM : '0';
   } else if(mode === '5'){
-    $('#lblHours34').textContent = 'Seleccione sub-modalidad del Programa Interregional (3 o 6 horas)';
+    $('#lblHours34').textContent = 'Seleccione sub-modalidad del Programa Interregional (hasta 4 h o hasta 6 h)';
     $('#selHours34').innerHTML = `
-      <option value="3" selected>3 horas — Programa Estándar ($250.000)</option>
-      <option value="6">6 horas — Programa Crónico / Oncológico ($300.000)</option>
+      <option value="4">Programa Interregional Estándar — hasta 4 horas ($250.000)</option>
+      <option value="6">Programa Interregional Crónico / Oncológico — hasta 6 horas ($300.000)</option>
     `;
-    $('#selMins34').value = '0';
+    $('#selMins34').innerHTML = `
+      <option value="0">0 minutos (sin tiempo adicional)</option>
+      <option value="30">+ 30 minutos adicionales ($15.000)</option>
+      <option value="60">+ 1 hora adicional ($25.000)</option>
+      <option value="90">+ 1 hora y 30 min adicionales ($40.000)</option>
+      <option value="120">+ 2 horas adicionales ($50.000)</option>
+    `;
+    $('#selHours34').value = (!resetSelection && ['4','6'].includes(prevH)) ? prevH : '4';
+    $('#selMins34').value = (!resetSelection && ['0','30','60','90','120'].includes(prevM)) ? prevM : '0';
   }
+}
 
+function onServiceTypeChange(){
+  setRouteStatus('');
+  refreshDuration34Options(true);
   applyModalityVisibility();
   recalcAll();
   updateSlots();
@@ -821,8 +851,8 @@ function applyModalityVisibility(){
       $('#timeSectionTitle').textContent = '⏱️ Horario y Cantidad de Horas del Evento Social (Mínimo 4 h, Máximo 6 h)';
       $('#lblMins34').textContent = 'Minutos adicionales (bloques de 30 min a mitad del valor hora)';
     } else if(mode === '5'){
-      $('#timeSectionTitle').textContent = '⏱️ Sub-modalidad del Programa Interregional (3 horas o 6 horas)';
-      $('#lblMins34').textContent = 'Fracción adicional posterior al paquete (bloques de 30 min según tarifario horario)';
+      $('#timeSectionTitle').textContent = '⏱️ Sub-modalidad del Programa Interregional (Estándar hasta 4 h o Crónico/Oncológico hasta 6 h)';
+      $('#lblMins34').textContent = 'Tiempo adicional no programado ($15.000 por frac. de 30 min · $25.000 por hora)';
     }
   }
 
@@ -848,6 +878,7 @@ function setJornada(j){
   ['habil','tarde','nocturno'].forEach(k => {
     $('#pillJornada_' + k).classList.toggle('active', k === j);
   });
+  refreshDuration34Options(false);
   recalcAll();
 }
 
@@ -878,7 +909,7 @@ function getSelectedTotalMinutes(){
     const m = +$('#selMins12').value || 0;
     return h * 60 + m;
   } else {
-    const defH = mode === '3' ? 2 : (mode === '4' ? 4 : 3);
+    const defH = mode === '3' ? 2 : 4;
     const h = +$('#selHours34').value || defH;
     const m = +$('#selMins34').value || 0;
     return h * 60 + m;
@@ -895,17 +926,18 @@ function recalcAll(){
     $('#lblRateTarde').textContent = `$1.000/km + ${$c(RATES[mode].tarde.hour)}/hora`;
     $('#lblRateNocturno').textContent = `$1.000/km + ${$c(RATES[mode].nocturno.hour)}/hora`;
   } else if(mode === '3'){
-    $('#lblRateHabil').innerHTML = `$12.000/h <small style="display:inline">(2h: $24.000 · 4h: $40.000)</small>`;
-    $('#lblRateTarde').innerHTML = `$15.000/h <small style="display:inline">(2h: $30.000 · 4h: $50.000)</small>`;
-    $('#lblRateNocturno').innerHTML = `$18.000/h <small style="display:inline">(2h: $36.000 · 4h: $60.000)</small>`;
+    $('#lblRateHabil').innerHTML = `$12.000/hora <small style="display:inline">(Frac. 30min: $6.000)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 2 hrs: <b>$24.000</b> · 3 hrs: <b>$36.000</b><br>Plan Tope 4 hrs: <b>$40.000</b> (✨ Ahorro de $8.000)</small>`;
+    $('#lblRateTarde').innerHTML = `$15.000/hora <small style="display:inline">(Frac. 30min: $7.500)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 2 hrs: <b>$30.000</b> · 3 hrs: <b>$45.000</b><br>Plan Tope 4 hrs: <b>$50.000</b> (✨ Ahorro de $10.000)</small>`;
+    $('#lblRateNocturno').innerHTML = `$18.000/hora <small style="display:inline">(Frac. 30min: $9.000)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 2 hrs: <b>$36.000</b> · 3 hrs: <b>$54.000</b><br>Plan Tope 4 hrs: <b>$60.000</b> (✨ Ahorro de $12.000)</small>`;
   } else if(mode === '4'){
-    $('#lblRateHabil').innerHTML = `$12.000/h <small style="display:inline">(4h: $48.000 · 6h: $60.000)</small>`;
-    $('#lblRateTarde').innerHTML = `$15.000/h <small style="display:inline">(4h: $60.000 · 6h: $75.000)</small>`;
-    $('#lblRateNocturno').innerHTML = `$18.000/h <small style="display:inline">(4h: $72.000 · 6h: $90.000)</small>`;
+    $('#lblRateHabil').innerHTML = `$12.000/hora <small style="display:inline">(Frac. 30min: $6.000)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 4 hrs: <b>$48.000</b> · 5 hrs: <b>$60.000</b><br>Plan Tope 6 hrs: <b>$64.000</b> (✨ Ahorro de $8.000)</small>`;
+    $('#lblRateTarde').innerHTML = `$15.000/hora <small style="display:inline">(Frac. 30min: $7.500)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 4 hrs: <b>$60.000</b> · 5 hrs: <b>$75.000</b><br>Plan Tope 6 hrs: <b>$80.000</b> (✨ Ahorro de $10.000)</small>`;
+    $('#lblRateNocturno').innerHTML = `$18.000/hora <small style="display:inline">(Frac. 30min: $9.000)</small><small style="display:block;margin-top:3px;color:var(--ink)">Plan Base 4 hrs: <b>$72.000</b> · 5 hrs: <b>$90.000</b><br>Plan Tope 6 hrs: <b>$96.000</b> (✨ Ahorro de $12.000)</small>`;
   } else if(mode === '5'){
-    $('#lblRateHabil').innerHTML = `3h: $250.000 · 6h: $300.000 <small style="display:block">Hora clínica extra: $12.000/h ($6.000 cada 30m)</small>`;
-    $('#lblRateTarde').innerHTML = `3h: $250.000 · 6h: $300.000 <small style="display:block">Hora clínica extra: $15.000/h ($7.500 cada 30m)</small>`;
-    $('#lblRateNocturno').innerHTML = `3h: $250.000 · 6h: $300.000 <small style="display:block">Hora clínica extra: $18.000/h ($9.000 cada 30m)</small>`;
+    const interHtml = `Estándar (hasta 4h): $250.000 · Crónico/Oncológico (hasta 6h): $300.000<small style="display:block;margin-top:3px;color:var(--ink)">Tiempo adicional: <b>$15.000</b> (frac. 30 min) · <b>$25.000</b>/hora</small>`;
+    $('#lblRateHabil').innerHTML = interHtml;
+    $('#lblRateTarde').innerHTML = interHtml;
+    $('#lblRateNocturno').innerHTML = interHtml;
   }
 
   let timeCost = 0;
@@ -917,14 +949,31 @@ function recalcAll(){
     const extraHalfBlocks = m === 30 ? 1 : 0;
     timeCost = (h * r.hour) + (extraHalfBlocks * r.half);
     durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(r.hour)}/h${m ? ` + ${$c(r.half)} bloque 30m` : ''})`;
-  } else {
-    const defH = mode === '3' ? 2 : (mode === '4' ? 4 : 3);
+  } else if(mode === '3' || mode === '4'){
+    const defH = mode === '3' ? 2 : 4;
     const h = +$('#selHours34').value || defH;
     const m = +$('#selMins34').value || 0;
     const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
     const extraHalfCost = m === 30 ? r.half : 0;
+    const sav = (r.savings && r.savings[h]) ? ` · ✨ Ahorro de ${$c(r.savings[h])}` : '';
     timeCost = basePkgCost + extraHalfCost;
-    durationText = `${h} horas${m ? ' + 30 min extra' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} fracción 30m` : ''})`;
+    durationText = `${h} horas${m ? ' + 30 min extra' : ''} (${$c(basePkgCost)}${sav}${m ? ` + ${$c(extraHalfCost)} frac. 30m` : ''})`;
+  } else if(mode === '5'){
+    const h = +$('#selHours34').value || 4;
+    const m = +$('#selMins34').value || 0;
+    const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : 250000;
+    const extraHours = Math.floor(m / 60);
+    const extraHalf = (m % 60 === 30) ? 1 : 0;
+    const extraCost = (extraHours * 25000) + (extraHalf * 15000);
+    timeCost = basePkgCost + extraCost;
+    const progName = h === 6 ? 'Programa Crónico / Oncológico (hasta 6 h)' : 'Programa Estándar (hasta 4 h)';
+    let extraLabel = '';
+    if(m > 0){
+      if(extraHours > 0 && extraHalf > 0) extraLabel = ` + ${extraHours} h y 30 min extra (${$c(extraCost)})`;
+      else if(extraHours > 0) extraLabel = ` + ${extraHours} h extra (${$c(extraCost)})`;
+      else extraLabel = ` + 30 min extra (${$c(extraCost)})`;
+    }
+    durationText = `${progName}: ${$c(basePkgCost)}${extraLabel}`;
   }
 
   lastTimeCost = timeCost;
