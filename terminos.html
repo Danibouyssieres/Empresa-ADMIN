@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Términos y Condiciones del Servicio · Movilidad y Salud Asistida</title>
-<meta name="description" content="Términos y condiciones legales, políticas de reserva, horarios de operación y exclusiones del servicio de Movilidad y Salud Asistida SpA.">
+<meta name="description" content="Términos y Condiciones Generales de Servicios Integrales de Asistencia, Cuidados y Traslados SpA. Políticas de reserva, tarifas, exclusiones y derechos del paciente.">
 <link rel="icon" href="Logo de Movilidad y Salud Asistida.png" type="image/png">
 <script>
   try{
@@ -24,7 +24,7 @@
   --mute: #536B66;
   --line: #D0E4DE;
   --radius: 14px;
-  --max: 920px;
+  --max: 960px;
 }
 :root[data-theme="dark"] {
   --bg: #0F171A;
@@ -44,7 +44,7 @@ body {
   color: var(--text);
   background: var(--bg);
   line-height: 1.65;
-  font-size: 16px;
+  font-size: 15.5px;
   -webkit-font-smoothing: antialiased;
 }
 header {
@@ -112,12 +112,12 @@ header {
 main {
   max-width: var(--max);
   margin: 0 auto;
-  padding: 36px 20px 60px;
+  padding: 34px 20px 60px;
 }
 .doc-header {
-  margin-bottom: 30px;
+  margin-bottom: 26px;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 20px;
+  padding-bottom: 18px;
 }
 .doc-header h1 {
   font-size: 2rem;
@@ -126,44 +126,18 @@ main {
   line-height: 1.25;
 }
 .doc-meta {
-  font-size: .92rem;
+  font-size: .94rem;
   color: var(--mute);
+  line-height: 1.55;
 }
 
-.legal-section {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 24px;
-  margin-bottom: 22px;
-  box-shadow: 0 4px 18px rgba(0,0,0,.03);
-}
-.legal-section h2 {
-  font-size: 1.28rem;
-  color: var(--teal);
-  margin: 0 0 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.legal-section p, .legal-section li {
-  font-size: .98rem;
-  color: var(--text);
-  margin: 0 0 10px;
-}
-.legal-section ul {
-  margin: 8px 0 12px;
-  padding-left: 22px;
-}
-.legal-section li { margin-bottom: 6px; }
-
-/* Recuadro de Exclusión Taxativa */
+/* Banner de Alerta Taxativa */
 .alert-taxative {
   background: rgba(220, 38, 38, .08);
   border: 2px solid #dc2626;
   border-radius: var(--radius);
   padding: 20px 22px;
-  margin-bottom: 24px;
+  margin-bottom: 26px;
 }
 .alert-taxative h3 {
   margin: 0 0 8px;
@@ -179,6 +153,115 @@ main {
   color: var(--text);
   font-size: 1.02rem;
   line-height: 1.6;
+}
+
+.legal-section {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 26px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.03);
+}
+.legal-section h2 {
+  font-size: 1.32rem;
+  color: var(--teal);
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.legal-section h3 {
+  font-size: 1.08rem;
+  color: var(--teal);
+  margin: 18px 0 8px;
+}
+.legal-section p, .legal-section li {
+  font-size: .98rem;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+.legal-section ul {
+  margin: 8px 0 14px;
+  padding-left: 22px;
+}
+.legal-section li { margin-bottom: 6px; }
+
+.sub-card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 12px 0 16px;
+}
+
+/* Cajas de ejemplo tarifario */
+.example-box {
+  background: var(--mist);
+  border-left: 4px solid var(--teal);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 10px 0;
+  font-size: .93rem;
+}
+.example-box b { color: var(--teal); }
+
+/* Tabla tarifaria */
+.tw{margin-top:14px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.tw table{width:100%;border-collapse:collapse;font-size:.92rem;line-height:1.48}
+.tw th,.tw td{padding:12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.tw tbody tr:last-child th,.tw tbody tr:last-child td{border-bottom:0}
+.tw thead th{background:var(--mist);color:var(--teal);vertical-align:top}
+.tw th small{display:block;font-weight:400;color:var(--mute);font-size:.78rem}
+.tw tbody th{background:var(--card);color:var(--text);width:24%}
+.tw td b{white-space:nowrap}
+.tw .t-sub{color:var(--mute);font-weight:400;white-space:nowrap;display:inline-block}
+.tw .t-sub.cell-note{white-space:normal;display:block;margin-top:5px;font-size:.82rem;line-height:1.35}
+.tw .t-tope{font-weight:700;color:var(--text);white-space:nowrap}
+.tw .t-sav{display:block;color:var(--teal);font-weight:700;white-space:nowrap;margin-top:2px}
+.rate-tabs{display:none;gap:8px;margin-top:12px;margin-bottom:8px}
+.rate-tab{flex:1;padding:10px 8px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);border-radius:10px;font:700 .88rem system-ui;cursor:pointer;text-align:center;transition:.15s}
+.rate-tab small{display:block;font-weight:400;font-size:.74rem;margin-top:2px}
+.rate-tab.active{background:#0E4A55;color:#fff;border-color:#0E4A55}
+.rate-tab.active small{color:#d3e6e1}
+@media(max-width:760px){
+  .rate-tabs{display:flex}
+  .tw th[data-col],.tw td[data-col]{display:none}
+  .tw[data-active-col="1"] th[data-col="1"],.tw[data-active-col="1"] td[data-col="1"],
+  .tw[data-active-col="2"] th[data-col="2"],.tw[data-active-col="2"] td[data-col="2"],
+  .tw[data-active-col="3"] th[data-col="3"],.tw[data-active-col="3"] td[data-col="3"]{display:table-cell}
+  .tw tbody th{width:40%}
+}
+
+.callout-box{background:rgba(14,74,85,.05);border:1px solid rgba(14,74,85,.18);border-left:4px solid var(--teal);border-radius:10px;padding:14px 18px;margin-top:16px;font-size:.92rem;line-height:1.55}
+:root[data-theme="dark"] .callout-box{background:rgba(143,224,192,.06);border-color:rgba(143,224,192,.2);border-left-color:var(--sage)}
+
+/* Datos bancarios */
+.bank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 12px;
+}
+.bank-item {
+  font-size: .95rem;
+}
+.bank-item span {
+  display: block;
+  font-size: .8rem;
+  color: var(--mute);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.bank-item strong {
+  color: var(--teal);
+  font-size: 1.05rem;
 }
 
 footer {
@@ -209,94 +292,304 @@ footer a:hover { text-decoration: underline; }
 </header>
 
 <main>
+  <!-- ENCABEZADO -->
   <div class="doc-header">
     <h1>Términos y Condiciones Generales del Servicio</h1>
     <div class="doc-meta">
       <strong>Servicios Integrales de Asistencia, Cuidados y Traslados SpA</strong> · RUT: 78.521.776-4<br>
-      Maipú, Región Metropolitana · Vigencia: 2026 · Última actualización: Octubre 2026
+      Contacto Oficial: <b>+56 9 2999 0095</b> | <b>movilidadysaludasistida@gmail.com</b><br>
+      Santiago, Región Metropolitana · Vigencia: 2026
     </div>
   </div>
 
-  <!-- CLÁUSULA TAXATIVA OBLIGATORIA -->
+  <!-- BANNER DESTACADO DE ALERTA -->
   <div class="alert-taxative" role="alert">
-    <h3>⚠️ Exclusión Taxativa de Horario y Naturaleza del Servicio</h3>
+    <h3>⚠️ Exclusión Estricta de Traslado Médico Nocturno y Urgencias</h3>
     <p>
-      <b>Exclusión Estricta de Traslado Médico Nocturno:</b> Los servicios de traslado y asistencia clínica vehicular (Modalidades 1 y 2) operan de forma exclusiva en jornada diurna de 06:00 a 20:00 horas. La empresa no presta servicios de traslado clínico después de las 20:00 horas ni atenciones de urgencia médica / ambulancia (SAMU). El horario nocturno queda restringido de manera privativa a servicios programados de Cuidados a Domicilio y Acompañamiento en Eventos Sociales previamente pactados.
+      Los servicios de asistencia clínica y traslado vehicular (Modalidades 1 y 2) operan de forma exclusiva en jornada diurna de 06:00 a 20:00 horas. La empresa no presta servicios de traslado clínico después de las 20:00 horas ni atenciones de urgencia médica / ambulancia (SAMU). El horario nocturno queda restringido de manera privativa a servicios programados de Cuidados a Domicilio y Acompañamiento en Eventos Sociales previamente acordados.
     </p>
   </div>
 
-  <!-- 1. IDENTIFICACIÓN Y NATURALEZA -->
+  <!-- SECCIÓN 1: ALCANCE Y NATURALEZA DEL SERVICIO -->
   <section class="legal-section">
-    <h2>1. Identificación y Alcance del Servicio</h2>
+    <h2>1. Alcance y Naturaleza del Servicio</h2>
     <p>
-      El presente documento regula la contratación y prestación de los servicios ofrecidos por <b>Servicios Integrales de Asistencia, Cuidados y Traslados SpA</b> (en adelante, "la Empresa"), RUT 78.521.776-4, con domicilio de operaciones en la comuna de Maipú, Región Metropolitana de Santiago.
+      <b>Servicios Integrales de Asistencia, Cuidados y Traslados SpA</b> presta servicios privados de asistencia en cuidados, acompañamiento clínico y movilización asistida para personas con movilidad reducida temporal o permanente.
     </p>
-    <p>
-      La Empresa brinda servicios de acompañamiento clínico preventivo, asistencia de enfermería técnica y traslado programado puerta a puerta ejecutados por Técnicos en Enfermería de Nivel Superior (TENS) con registro formal en la Superintendencia de Salud (SIS Nº 442762) y licencia de conducir profesional Clase A2 vigente.
-    </p>
+
+    <div class="sub-card">
+      <h3>• Rol profesional y alcance de las atenciones TENS</h3>
+      <p>
+        La atención es ejecutada de forma directa y personalizada por un(a) <b>Técnico en Enfermería de Nivel Superior (TENS)</b>, enfocado en el confort, la seguridad motriz y el bienestar integral del usuario según la modalidad requerida.
+      </p>
+      <p>
+        Independientemente de la modalidad solicitada, el usuario a quien va dirigido el servicio tiene derecho de manera gratuita a una <b>Ficha de Control Preventivo de Signos Vitales</b>, en donde se realiza una valoración preventiva y registro de signos vitales no invasivos (presión arterial, saturación de oxígeno, frecuencia cardíaca, y glicemia capilar/HGT a requerimiento) al inicio de la atención (en niños de 2 a 13 años, PA y HGT solo se realizan de manera exclusiva si el menor padece patologías crónicas de base, como hipertensión o diabetes, y es indicado por el tutor; en lactantes no está permitido tomar estos signos vitales).
+      </p>
+    </div>
+
+    <div class="sub-card">
+      <h3>• En acompañamiento y traslados</h3>
+      <ul>
+        <li><b>Asistencia en marcha y movilidad:</b> Apoyo físico para la movilización desde el interior de la vivienda hasta el vehículo, manejo y estiba de ayudas técnicas (bastones, andadores, sillas de ruedas manuales) y embarque/desembarque ergonómico.</li>
+        <li><b>Acompañamiento continuo en recintos:</b> Traslado interno en silla de ruedas o guiado por pasillos y rampas, apoyo en gestión de turnos/admisión en mesón o tótems, y compañía permanente en salas de espera, box médico y otros.</li>
+        <li><b>Soporte en consultas médicas:</b> Ayuda para subir/bajar de camillas de examen, apoyo para desvestir/vestir al paciente si la atención lo requiere, toma de apuntes de las indicaciones del médico y entrega de un reporte ordenado a los familiares con recetas y órdenes al volver al hogar.</li>
+      </ul>
+    </div>
+
+    <div class="sub-card">
+      <h3>• En Cuidados y Asistencia Domiciliaria (Sin Traslado)</h3>
+      <ul>
+        <li><b>Higiene, confort y bienestar:</b> Asistencia en aseo diario (higiene, cambio de pañal si corresponde, lavado de manos/rostro y cuidado básico de la piel).</li>
+        <li><b>Transferencias y cambios posturales:</b> Apoyo ergonómico para levantarse o acostarse, prevención de lesiones por apoyo prolongado y pequeñas caminatas asistidas dentro del hogar o patio.</li>
+        <li><b>Alimentación asistida:</b> Asistencia y paciencia para la ingesta de comidas y líquidos preparados previamente por la familia.</li>
+        <li><b>Acompañamiento y estimulación:</b> Compañía activa, conversación, estimulación básica o acompañamiento peatonal cercano para compras o trámites breves.</li>
+        <li><b>Supervisión de medicación oral:</b> Recordatorio y apoyo en la toma oportuna de fármacos orales de uso habitual, según la receta e indicaciones prescritas por el médico tratante y dispuestas por la familia.</li>
+      </ul>
+    </div>
+
+    <div class="sub-card">
+      <h3>• Criterios de seguridad en ruta y acompañamiento</h3>
+      <p>
+        Por razones estrictas de seguridad vial, resguardo y bienestar del paciente, el servicio se realiza en modalidad de conductor-asistente. Por lo tanto, en traslados de pacientes que se encuentren estables pero que cursen con diagnóstico de demencia, Alzheimer, pérdida de memoria o desorientación, es requisito obligatorio que viaje un familiar directo (cónyuge, hijos o padres) o tutor legal responsable en la cabina para brindar compañía, tranquilidad y contención emocional durante el trayecto (sin costo adicional de traslado para el acompañante).
+      </p>
+    </div>
+
+    <div class="sub-card">
+      <h3>• Traslado de menores de edad (Políticas de protección y tutoría)</h3>
+      <p>
+        Todo traslado o atención que involucre a un paciente menor de 18 años exige, de manera obligatoria e inexcusable, la presencia y acompañamiento continuo de su madre, padre o tutor legal durante todo el trayecto y la permanencia en el recinto asistencial. La empresa no realiza traslados de menores de edad en solitario. (En caso de menores que requieran Sistema de Retención Infantil según la normativa de tránsito vigente, el tutor deberá proveer la silla o alzador correspondiente).
+      </p>
+    </div>
+
+    <div class="sub-card">
+      <h3>• Exclusión estricta de emergencias médicas y pacientes inestables</h3>
+      <p>
+        El servicio corresponde exclusivamente a traslados programados y <b>no constituye una ambulancia de urgencia ni soporte vital avanzado (SAMU)</b>. No se realizan traslados de pacientes en riesgo vital inminente, con descompensaciones médicas agudas, requerimiento de soporte invasivo en ruta, ni pacientes en crisis psiquiátrica activa, agitación psicomotora o conductas combativas/agresivas. El servicio no contempla procedimientos invasivos, ni la administración de medicamentos inyectables, tampoco curaciones complejas de heridas o escaras avanzadas y la instalación/manejo de sondas. De presentarse una situación de este tipo, el traslado será suspendido de inmediato por razones de seguridad.
+      </p>
+    </div>
+
+    <div class="sub-card">
+      <h3>• Capacidad del vehículo y compatibilidad de ayudas técnicas</h3>
+      <ul>
+        <li><b>Capacidad de cabina:</b> Se admite al paciente más un máximo de 2 acompañantes, garantizando el uso individual y obligatorio de cinturón de seguridad de tres puntas.</li>
+        <li><b>Ayudas técnicas permitidas:</b> Para garantizar un traslado seguro y prevenir caídas, el servicio cuenta con disponibilidad de silla de ruedas manual plegable y andador (burrito) para uso durante la atención sin costo adicional. En caso de que el usuario prefiera utilizar su propio equipamiento, el móvil está acondicionado exclusivamente para estibar ayudas técnicas plegables (bastones, andadores o sillas manuales), no admitiéndose sillas neurológicas rígidas ni motorizadas por razones de capacidad vehicular.</li>
+      </ul>
+    </div>
   </section>
 
-  <!-- 2. JORNADAS Y HORARIOS DE OPERACIÓN -->
+  <!-- SECCIÓN 2: MODALIDADES DE ATENCIÓN Y TARIFARIO VIGENTE -->
   <section class="legal-section">
-    <h2>2. Jornadas Operativas, Horarios y Exclusiones</h2>
-    <p>La operación se estructura en las siguientes jornadas tarifarias y operativas:</p>
+    <h2>2. Modalidades de Atención y Tarifario Vigente</h2>
+
+    <h3>• Tarifas Mínimas Garantizadas de Salida (Región Metropolitana)</h3>
+    <p>
+      Para resguardar la rentabilidad, rigen pisos mínimos garantizados de salida según la distancia desde nuestra base operativa en Maipú. Si al sumar la cantidad de tiempo de espera/asistencia más los kilómetros por recorrer, este valor resulta inferior a la tarifa base del anillo de la comuna, se cobrará siempre la tarifa mínima correspondiente a dicho anillo. Si el valor calculado es mayor, se cobrará el valor mayor resultante. (Estas tarifas mínimas no aplican para Cuidados en Domicilio, Eventos Sociales ni Programas Interregionales).
+    </p>
     <ul>
-      <li><b>Jornada Hábil (Lunes a Viernes de 06:00 a 20:00 hrs):</b> Tarifa base de $12.000 por hora ($1.000 por kilómetro en traslados).</li>
-      <li><b>Jornada Sábados (08:00 a 20:00 hrs):</b> Tarifa de $15.000 por hora ($1.000 por kilómetro en traslados).</li>
-      <li><b>Jornada Domingos y Días Festivos (08:00 a 20:00 hrs):</b> Tarifa de $18.000 por hora ($1.000 por kilómetro en traslados).</li>
-      <li><b>Horario Especial Nocturno (20:00 a 06:00 hrs):</b> Tarifa de $18.000 por hora. <u>Aplica de forma privativa</u> a servicios de Acompañamiento en Eventos Sociales y Cuidados a Domicilio previamente coordinados. En eventos que crucen las 20:00 hrs, se aplica cálculo proporcional a partir de dicha hora. Toda atención nocturna se considera un servicio especial, no se agenda automáticamente en la web y debe coordinarse previamente vía WhatsApp.</li>
+      <li><b>Anillo 1 ($18.000):</b> Cerrillos, Lo Espejo, Lo Prado, Maipú, Padre Hurtado, Pedro Aguirre Cerda, Quinta Normal.</li>
+      <li><b>Anillo 2 ($35.000):</b> Calera de Tango, Estación Central, Cerro Navia, Pudahuel, Conchalí, El Bosque, Huechuraba, Independencia, La Cisterna, La Florida, La Granja, La Pintana, Macul, Ñuñoa, Peñaflor, Peñalolén, Providencia, Quilicura, Recoleta, Renca, San Bernardo, San Joaquín, San Miguel, San Ramón, Santiago Centro, Talagante.</li>
+      <li><b>Anillo 3 ($50.000):</b> Alhué, Buin, Colina, Curacaví, El Monte, Isla de Maipo, La Reina, Lampa, Las Condes, Lo Barnechea, María Pinto, Melipilla, Paine, Pirque, Puente Alto, San José de Maipo, San Pedro, Tiltil, Vitacura.</li>
     </ul>
-    <p>
-      <b>Exclusión Estricta de Traslado Médico Nocturno:</b> Los servicios de traslado y asistencia clínica vehicular (Modalidades 1 y 2) operan de forma exclusiva en jornada diurna de 06:00 a 20:00 horas. La empresa no presta servicios de traslado clínico después de las 20:00 horas ni atenciones de urgencia médica / ambulancia (SAMU). El horario nocturno queda restringido de manera privativa a servicios programados de Cuidados a Domicilio y Acompañamiento en Eventos Sociales previamente pactados.
-    </p>
-    <p>
-      <b>Estructura de Turnos en Agenda:</b> Los traslados clínicos operan bajo un límite de capacidad de hasta dos (2) atenciones diarias por unidad activa, divididas en <b>Turno Mañana</b> (recogidas de 06:00 a 11:30 hrs) y <b>Turno Tarde</b> (recogidas de 14:00 a 17:30 hrs), mediando un buffer técnico bloqueado de 12:00 a 14:00 hrs. Los Programas Interregionales bloquean automáticamente la jornada completa (ambos turnos).
-    </p>
-  </section>
+    <p style="font-size:.9rem;color:var(--mute)">*(Nota: Cubren el circuito ida y vuelta e incluyen hasta 1 hora de espera vehicular o asistencia inicial).*</p>
 
-  <!-- 3. EXCLUSIONES CLÍNICAS -->
-  <section class="legal-section">
-    <h2>3. Exclusiones Médicas y Situaciones de Urgencia</h2>
-    <p>
-      <b>No somos ambulancia de soporte vital avanzado (SAMU).</b> El servicio está diseñado exclusivamente para pacientes estables que requieren acompañamiento asistencial, comodidad y supervisión preventiva.
-    </p>
+    <div class="example-box">
+      <b>Ejemplo 1 (Cobro de Piso Mínimo en horario hábil):</b><br>
+      Traslado ida y vuelta en Maipú (Anillo 1) a Clínica Indisa Maipú con 1 hora de TENS:<br>
+      • 4 km × $1.000 = $4.000<br>
+      • 1 hora TENS = $12.000<br>
+      • Total calculado = $16.000.<br>
+      <em>Como $16.000 es inferior al piso de Anillo 1 ($18.000), se factura el Piso Mínimo Garantizado de <b>$18.000</b>.</em>
+    </div>
+
+    <div class="example-box">
+      <b>Ejemplo 2 (Cobro de Valor Calculado en horario hábil):</b><br>
+      Traslado ida y vuelta desde Pudahuel (Anillo 2) a Hospital FACH en Las Condes con 2,5 horas de espera TENS:<br>
+      • 42 km × $1.000 = $42.000<br>
+      • 2,5 horas TENS (1h base $12.000 + 3 fracciones $6.000 c/u) = $30.000<br>
+      • Total calculado = $72.000.<br>
+      <em>Como superó el piso de Pudahuel ($35.000), se factura exactamente el valor calculado: <b>$72.000</b>.</em>
+    </div>
+
+    <h3>• Detalle de Modalidades</h3>
     <ul>
-      <li>Queda expresamente excluida la atención de urgencias con riesgo vital, emergencias médicas o pacientes descompensados. En tales casos, debe contactarse de inmediato al <b>131 (SAMU)</b> o al servicio de urgencia más cercano.</li>
-      <li>No se realizan procedimientos invasivos, punzociones complejas, instalación o reposición de sondas vesicales o nasogástricas, ni administración de medicamentos que requieran indicación médica inmediata no documentada.</li>
-      <li>No se trasladan personas bajo agitación psicomotora aguda, cuadros de agresividad física o descompensación psiquiátrica severa no controlada.</li>
+      <li><b>Servicio Integral (Asistencia + Traslado):</b> Base mínima de 1 hora; tiempo posterior se liquida en bloques sucesivos de 30 minutos. Traslado medido por Google Maps (ruta más rápida sugerida). Incluye vehículo, combustible y TAG dentro de la RM bajo tarifa cerrada garantizada.</li>
+      <li><b>Traslado Exclusivo con Espera (Sin Asistencia):</b> Para transporte y permanencia del vehículo a disposición (sin acompañamiento al interior). Kilometraje ida y vuelta más 1 hora base de espera vehicular; tiempo extra en fracciones de 30 minutos.</li>
+      <li><b>Cuidados en Domicilio o Trámites Peatonales:</b> Contratación mínima de 2 horas continuas (tope sugerido 4 horas con tarifa preferencial). Fracciones intermedias cada 30 minutos.</li>
+      <li><b>Acompañamiento en Eventos Sociales:</b> Contratación mínima garantizada de 4 horas continuas. Cubre asistencia clínica; si requiere traslado en el vehículo, el kilometraje se cotiza por separado.</li>
+      <li><b>Programas Interregionales (Valparaíso y O'Higgins):</b> Tarifas paquetizadas con traslado ida y vuelta, peajes, TAG y asistencia: Programa Estándar (hasta 4 hrs) por <b>$250.000</b> / Programa Crónico-Oncológico (hasta 6 hrs) por <b>$300.000</b>. Fracción extra de 30 min: $15.000 (hora extra: $25.000).</li>
+      <li><b>Estacionamientos:</b> No forman parte de la tarifa. Se rinden y reembolsan al término según boleta o ticket exacto emitido por el recinto.</li>
     </ul>
-  </section>
 
-  <!-- 4. CAPACIDAD DEL VEHÍCULO Y AYUDAS TÉCNICAS -->
-  <section class="legal-section">
-    <h2>4. Capacidad del Vehículo, Acompañantes y Ayudas Técnicas</h2>
+    <h3>• Jornadas Operativas</h3>
     <ul>
-      <li><b>Acompañantes:</b> El vehículo acondicionado permite el traslado de hasta dos (2) acompañantes familiares junto al paciente, todos con cinturón de seguridad de tres puntas reglamentario.</li>
-      <li><b>Ayudas Técnicas a Bordo:</b> La Empresa dispone a bordo de silla de ruedas manual plegable y andador de uso gratuito durante el servicio.</li>
-      <li><b>Equipamiento del Paciente:</b> Por resguardo y dimensiones del maletero, solo se transportan ayudas técnicas plegables aportadas por la familia (bastones, andadores plegables y sillas de ruedas manuales plegables). No se transportan sillas neurológicas rígidas ni sillas de ruedas motorizadas/eléctricas de gran volumen.</li>
-      <li><b>Acompañamiento Obligatorio:</b> Los menores de 18 años deben viajar acompañados por su padre, madre o tutor legal. Asimismo, pacientes con demencia, deterioro cognitivo severo o Alzheimer deben viajar acompañados por un familiar o cuidador responsable.</li>
+      <li><b>Jornada Hábil:</b> Lunes a viernes entre 06:00 y 20:00 hrs.</li>
+      <li><b>Jornada Sábado:</b> Sábados entre 08:00 y 20:00 hrs.</li>
+      <li><b>Jornada Inhábil y Especial:</b> Domingos completos, festivos y horario nocturno (20:00 a 06:00 hrs).</li>
     </ul>
+
+    <!-- TABLA COMPLETA DEL TARIFARIO UNIFICADO -->
+    <h3>• Tabla Oficial del Tarifario Unificado</h3>
+    <div class="rate-tabs" role="tablist" aria-label="Seleccionar jornada horaria">
+      <button type="button" class="rate-tab active" data-tab-btn="1" onclick="setRateTab(1)">Hábil<small>Lun a Vie 06:00 a 20:00</small></button>
+      <button type="button" class="rate-tab" data-tab-btn="2" onclick="setRateTab(2)">Sábados<small>08:00 a 20:00</small></button>
+      <button type="button" class="rate-tab" data-tab-btn="3" onclick="setRateTab(3)">Dom., Festivos y Nocturno*<small>20:00 a 06:00</small></button>
+    </div>
+    <div class="tw" id="rateTableWrap" data-active-col="1">
+      <table>
+        <thead>
+          <tr>
+            <th>Modalidades del servicio</th>
+            <th data-col="1">Hábil<small>Lun a Vie 06:00 a 20:00</small></th>
+            <th data-col="2">Sábados<small>08:00 a 20:00</small></th>
+            <th data-col="3">Domingos, Festivos y Horario Especial Nocturno*<small>20:00 a 06:00</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">a) Servicio Integral <small>(Asistencia TENS + Traslado)</small></th>
+            <td data-col="1"><b>$1.000 / km + $12.000 / hr</b><br><span class="t-sub">(Frac. 30min: $6.000)</span></td>
+            <td data-col="2"><b>$1.000 / km + $15.000 / hr</b><br><span class="t-sub">(Frac. 30min: $7.500)</span></td>
+            <td data-col="3">
+              <b>$1.000 / km + $18.000 / hr</b><br><span class="t-sub">(Frac. 30min: $9.000)</span>
+              <span class="t-sub cell-note" style="color:var(--teal);font-weight:600">(Aplica solo en horario de 08:00 a 20:00 hrs · Sin servicio nocturno)</span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">b) Traslado Exclusivo con Espera <small>(Sin Asistencia)</small></th>
+            <td data-col="1"><b>$1.000 / km + $8.000 / hr</b><br><span class="t-sub">(Frac. 30min: $4.000)</span></td>
+            <td data-col="2"><b>$1.000 / km + $10.000 / hr</b><br><span class="t-sub">(Frac. 30min: $5.000)</span></td>
+            <td data-col="3">
+              <b>$1.000 / km + $12.000 / hr</b><br><span class="t-sub">(Frac. 30min: $6.000)</span>
+              <span class="t-sub cell-note" style="color:var(--teal);font-weight:600">(Aplica solo en horario de 08:00 a 20:00 hrs · Sin servicio nocturno)</span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">c) Cuidados a domicilio <small>(Sin Traslado Vehicular)</small></th>
+            <td data-col="1">
+              <b>$12.000 / hr</b> <span class="t-sub">(Frac. 30min: $6.000)</span><br>
+              <b>Plan Base 2 hrs: $24.000</b><br><span class="t-sub">· 3 hrs: $36.000</span><br>
+              <span class="t-tope">Plan Tope 4 hrs: $40.000</span>
+              <span class="t-sav">✨ Ahorro de $8.000</span>
+            </td>
+            <td data-col="2">
+              <b>$15.000 / hr</b> <span class="t-sub">(Frac. 30min: $7.500)</span><br>
+              <b>Plan Base 2 hrs: $30.000</b><br><span class="t-sub">· 3 hrs: $45.000</span><br>
+              <span class="t-tope">Plan Tope 4 hrs: $50.000</span>
+              <span class="t-sav">✨ Ahorro de $10.000</span>
+            </td>
+            <td data-col="3">
+              <b>$18.000 / hr</b><br>
+              <span class="t-sub">(Frac. 30min: $9.000)</span><br>
+              <b>Plan Base 2 hrs: $36.000</b><br><span class="t-sub">· 3 hrs: $54.000</span><br>
+              <span class="t-tope">Plan Tope 4 hrs: $60.000</span>
+              <span class="t-sav">✨ Ahorro de $12.000</span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">d) Asistencia en eventos <small>(Matrimonios / Fiestas / Salidas Sociales)</small></th>
+            <td data-col="1">
+              <b>$12.000 / hr</b> <span class="t-sub">(Frac. 30min: $6.000)</span><br>
+              <b>Plan Base 4 hrs: $48.000</b><br><span class="t-sub">· 5 hrs: $60.000</span><br>
+              <span class="t-tope">Plan Tope 6 hrs: $64.000</span>
+              <span class="t-sav">✨ Ahorro de $8.000</span>
+            </td>
+            <td data-col="2">
+              <b>$15.000 / hr</b> <span class="t-sub">(Frac. 30min: $7.500)</span><br>
+              <b>Plan Base 4 hrs: $60.000</b><br><span class="t-sub">· 5 hrs: $75.000</span><br>
+              <span class="t-tope">Plan Tope 6 hrs: $80.000</span>
+              <span class="t-sav">✨ Ahorro de $10.000</span>
+            </td>
+            <td data-col="3">
+              <b>$18.000 / hr</b><br>
+              <span class="t-sub">(Frac. 30min: $9.000)</span><br>
+              <b>Plan Base 4 hrs: $72.000</b><br><span class="t-sub">· 5 hrs: $90.000</span><br>
+              <span class="t-tope">Plan Tope 6 hrs: $96.000</span>
+              <span class="t-sav">✨ Ahorro de $12.000</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout-box">
+      <b>🌙 Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos.
+    </div>
   </section>
 
-  <!-- 5. POLÍTICAS DE RESERVA, ABONO Y CANCELACIONES -->
+  <!-- SECCIÓN 3: RESERVA DE AGENDA Y FORMAS DE PAGO -->
   <section class="legal-section">
-    <h2>5. Políticas de Reserva, Abono del 50%, Cancelación y Reprogramación</h2>
+    <h2>3. Reserva de Agenda y Formas de Pago</h2>
     <ul>
-      <li><b>Bloqueo en Exclusiva:</b> Toda reserva web o telefónica requiere el pago anticipado del <b>50% del valor total cotizado</b> (o el mínimo de su anillo comunal). Tras recibir los datos de transferencia, el cupo se reserva por 60 minutos; al remitir el comprobante de pago por WhatsApp, la reserva adquiere carácter definitivo.</li>
-      <li><b>No Devolución del Abono:</b> Al confirmar la reserva, la Empresa bloquea la fecha, el vehículo y el profesional TENS de forma exclusiva para la familia requirente, rechazando otras solicitudes. Por este motivo, <b>el abono no es reembolsable bajo ninguna circunstancia</b> (incluyendo cancelaciones imputables al cliente o incomparecencia del paciente).</li>
-      <li><b>Reprogramación con anticipación mínima de 12 horas:</b> Si la familia notifica la necesidad de reprogramar con al menos 12 horas de antelación al horario pactado de recogida, el 100% de su abono se conservará como saldo a favor para una nueva fecha dentro de los 15 días corridos siguientes (máximo una reprogramación por servicio).</li>
-      <li><b>Avisos con menos de 12 horas:</b> Notificaciones con menos de 12 horas de anticipación implican la pérdida total del abono para cubrir el bloqueo operativo y cesantía del turno. Requerir una nueva atención implicará agendar desde cero.</li>
-      <li><b>Saldo del 50%:</b> Se cancela en terreno al término de la atención (mediante transferencia, efectivo o tarjeta de débito/crédito con terminal POS).</li>
-      <li><b>Estacionamiento:</b> El costo de estacionamiento en clínicas, hospitales o recintos privados no forma parte de la tarifa y es de cargo exclusivo del cliente, reembolsándose contra exhibición del ticket o boleta física emitida por el recinto.</li>
+      <li><b>Abono de Reserva (50%):</b> Obligatorio para confirmar y bloquear la agenda exclusiva del móvil y la profesional (calculado sobre el valor cotizado o piso mínimo según corresponda).</li>
+      <li><b>Plazo de Confirmación:</b> El cupo se bloquea temporalmente por un lapso máximo de 1 hora. La reserva se formaliza al recibir el comprobante de transferencia por WhatsApp (+56 9 2999 0095).</li>
+      <li><b>Liquidación del Saldo:</b> El 50% restante (más tiempos extras o estacionamientos) se cancela al término de la atención vía transferencia bancaria, efectivo o tarjeta de débito/crédito con terminal POS.</li>
+      <li><b>Comprobante Tributario:</b> Se emite boleta de ventas y servicios exenta de IVA al concluir la atención.</li>
     </ul>
   </section>
 
-  <!-- 6. CONFIDENCIALIDAD Y DATOS PERSONALES -->
+  <!-- SECCIÓN 4: POLÍTICAS DE MODIFICACIONES, REPROGRAMACIONES Y CANCELACIONES -->
   <section class="legal-section">
-    <h2>6. Confidencialidad y Protección de Datos Personales</h2>
+    <h2>4. Políticas de Modificaciones, Reprogramaciones y Cancelaciones</h2>
+    <ul>
+      <li><b>Reprogramaciones Oportunas (Con más de 12 horas):</b> Permite reprogramar manteniendo el 100% del abono a favor para una nueva fecha dentro de 15 días corridos (máximo 1 reprogramación). Si el cliente desiste voluntariamente de reprogramar, el abono no se devuelve, imputándose como compensación por el bloqueo de agenda.</li>
+      <li><b>Cancelaciones Tardías e Inasistencias (Menos de 12 horas):</b> Toda anulación con menos de 12 horas o la no presentación a la llegada del vehículo implica la pérdida total del abono (100% retenido) por concepto de lucro cesante y bloqueo de agenda no aprovechada.</li>
+      <li><b>Suspensión en Terreno por Inaptitud o Incumplimiento:</b> Si al llegar al domicilio el paciente presenta descompensación médica aguda, crisis psiquiátrica violenta, si un menor no cuenta con tutor/alzador, o si existió omisión de datos clínicos críticos, el servicio se cancela de inmediato por seguridad con retención del 100% del abono.</li>
+      <li><b>Liberación Anticipada de Espera:</b> Si en un servicio de ida y vuelta el cliente decide prescindir del regreso por hospitalización o demora del recinto, se cobra el kilometraje total de circuito más el tiempo exacto de espera transcurrido, liquidándose en el acto.</li>
+      <li><b>Política de Cero Devolución:</b> No se realizan reembolsos en dinero en efectivo ni bancario bajo ninguna circunstancia.</li>
+    </ul>
+  </section>
+
+  <!-- SECCIÓN 5: DERECHOS Y DEBERES DEL USUARIO Y FAMILIARES -->
+  <section class="legal-section">
+    <h2>5. Derechos y Deberes del Usuario y Familiares</h2>
+    <ul>
+      <li><b>Derechos:</b> Trato digno, respetuoso y confidencial; profesional capacitado e identificado con insumos de bioseguridad; información clara y anticipada de costos; vehículo limpio, climatizado y acondicionado para ayudas técnicas.</li>
+      <li><b>Deberes:</b> Informar verazmente diagnósticos y movilidad; acompañamiento obligatorio de un familiar directo para pacientes con demencia o Alzheimer; tutoría obligatoria para menores de edad; puntualidad para no afectar la agenda de otros pacientes; uso obligatorio de cinturón de seguridad y respeto en cabina.</li>
+      <li><b>Confidencialidad y Secreto Profesional (Leyes N° 20.584 y N° 19.628):</b> Toda la información médica y antecedentes observados están amparados bajo estricto secreto profesional. Los reportes se entregan únicamente al tutor o familiar individualizado.</li>
+      <li><b>Privacidad en Cabina:</b> Queda prohibido a los usuarios y acompañantes realizar grabaciones de video, audio o fotografías dentro del móvil sin consentimiento expreso.</li>
+      <li><b>Dispositivos de Seguridad a Bordo (Dashcam):</b> El vehículo cuenta con cámaras de seguridad para resguardo vial y probatorio ante siniestros. Las grabaciones son estrictamente confidenciales, con borrado cíclico regular, y solo se exhibirán ante tribunales, fiscalía o aseguradoras por requerimiento fundado.</li>
+    </ul>
+  </section>
+
+  <!-- SECCIÓN 6: ACEPTACIÓN DE CONDICIONES -->
+  <section class="legal-section">
+    <h2>6. Aceptación de Condiciones</h2>
     <p>
-      La Empresa y su personal se rigen bajo los más estrictos estándares de secreto profesional y confidencialidad clínica en conformidad con la <b>Ley Nº 20.584</b> (Derechos y Deberes de los Pacientes) y la <b>Ley Nº 19.628</b> (Protección de la Vida Privada). Los antecedentes de salud suministrados y los registros preventivos de signos vitales se utilizan exclusivamente para la adecuada ejecución de la atención contratada.
+      La transferencia electrónica del abono (50%) o la contratación expresa constituye la aceptación íntegra de estas cláusulas. Comprobantes deben enviarse a <b>WhatsApp: +56 9 2999 0095</b>.
     </p>
+  </section>
+
+  <!-- SECCIÓN 7: CANALES DE PAGO Y DATOS BANCARIOS OFICIALES -->
+  <section class="legal-section">
+    <h2>7. Canales de Pago y Datos Bancarios Oficiales</h2>
+    <p>Para transferencias del 50% de abono y liquidación de servicios, utilice exclusivamente las siguientes coordenadas oficiales:</p>
+    
+    <div class="bank-grid">
+      <div class="bank-item">
+        <span>Razón Social</span>
+        <strong>Servicios Integrales de Asistencia, Cuidados y Traslados SpA</strong>
+      </div>
+      <div class="bank-item">
+        <span>RUT de la Empresa</span>
+        <strong>78.521.776-4</strong>
+      </div>
+      <div class="bank-item">
+        <span>Institución Bancaria</span>
+        <strong>[Completar con tu Banco]</strong>
+      </div>
+      <div class="bank-item">
+        <span>Tipo de Cuenta</span>
+        <strong>Cuenta Corriente</strong>
+      </div>
+      <div class="bank-item">
+        <span>Número de Cuenta</span>
+        <strong>[Completar con tu Número de Cuenta]</strong>
+      </div>
+      <div class="bank-item">
+        <span>Correo de Notificación</span>
+        <strong>movilidadysaludasistida@gmail.com</strong>
+      </div>
+    </div>
   </section>
 
   <div style="text-align:center;margin-top:32px">
@@ -305,10 +598,10 @@ footer a:hover { text-decoration: underline; }
 </main>
 
 <footer>
-  <div style="max-width:920px;margin:0 auto">
+  <div style="max-width:960px;margin:0 auto">
     <strong>Servicios Integrales de Asistencia, Cuidados y Traslados SpA</strong><br>
     <span>RUT 78.521.776-4 · Maipú, Región Metropolitana · WhatsApp: +56 9 2999 0095</span><br>
-    <span><a href="index.html">Página Principal</a> · <a href="reservar.html">Agendar Hora</a> · <a href="admin.html">Acceso Administradores</a></span>
+    <span><a href="index.html">Página Principal</a> · <a href="reservar.html">Agendar Hora</a> · <a href="calcular-ruta.html">Cotizador de Ruta</a> · <a href="admin.html">Acceso Administradores</a></span>
   </div>
 </footer>
 
@@ -327,6 +620,14 @@ function toggleTheme(){
 }
 applyTheme(getTheme());
 addEventListener('storage',function(ev){if(ev.key===TM_K)applyTheme(ev.newValue)});
+
+function setRateTab(col){
+  var wrap = document.getElementById("rateTableWrap");
+  if(wrap) wrap.setAttribute("data-active-col", String(col));
+  document.querySelectorAll(".rate-tab").forEach(function(btn){
+    btn.classList.toggle("active", btn.getAttribute("data-tab-btn") === String(col));
+  });
+}
 </script>
 </body>
 </html>
