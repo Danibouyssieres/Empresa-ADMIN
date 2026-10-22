@@ -380,13 +380,13 @@ footer a{color:#fff}
               <div class="rp-val" id="lblRateTarde">$15.000/h ($1.000/km)</div>
             </div>
             <div id="pillJornada_nocturno" class="rate-pill" onclick="setJornada('nocturno')">
-              <strong>Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)</strong>
+              <strong id="titleJornadaNocturno">Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)</strong>
               <small id="subJornadaNocturno">Domingos, festivos y eventos/cuidados nocturnos</small>
               <div class="rp-val" id="lblRateNocturno">$18.000/h ($1.000/km)</div>
             </div>
           </div>
           <p id="jornadaFootNote" style="font-size:.83rem;color:var(--teal);font-weight:600;margin:-6px 0 14px">
-            * Los traslados clínicos operan de 06:00 a 20:00 hrs. El horario nocturno (20:00 a 06:00) aplica exclusivamente para Eventos Sociales y Cuidados a Domicilio previamente coordinados.
+            (*) Horario de Traslados: Los traslados clínicos (Modalidades 1 y 2) operan de forma estricta y exclusiva entre las 06:00 y las 20:00 hrs. No se realizan traslados en días de semana después de las 20:00 hrs ni urgencias de ambulancia. El horario especial nocturno (20:00 a 06:00) aplica de forma privativa a servicios de Acompañamiento en Eventos Sociales y Cuidados a Domicilio coordinados con antelación.
           </p>
         </div>
 
@@ -692,7 +692,7 @@ footer a{color:#fff}
 <footer>
   <div class="wrap">
     <strong>Servicios Integrales de Asistencia, Cuidados y Traslados SpA</strong><br>
-    <span>Maipú, Región Metropolitana · WhatsApp: +56 9 2999 0095</span> · <a href="index.html">Volver al Inicio</a> · <a href="admin.html">Acceso Personal</a>
+    <span>Maipú, Región Metropolitana · WhatsApp: +56 9 2999 0095</span> · <a href="terminos.html">Términos y Condiciones</a> · <a href="index.html">Volver al Inicio</a> · <a href="admin.html">Acceso Personal</a>
   </div>
 </footer>
 
@@ -745,6 +745,13 @@ const JORNADA_LABELS = {
   tarde: 'Sábados (08:00 a 20:00)',
   nocturno: 'Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)'
 };
+
+function getJornadaLabel(jornada, mode){
+  if((mode === '1' || mode === '2') && jornada === 'nocturno'){
+    return 'Domingos y Festivos (08:00 a 20:00)';
+  }
+  return JORNADA_LABELS[jornada] || jornada;
+}
 
 const RINGS_DATA = [
   {
@@ -951,21 +958,21 @@ function applyModalityVisibility(){
   $('#jornadaSelectorWrap').style.display = (mode === '5') ? 'none' : 'block';
   $('#interProgSelectorWrap').style.display = (mode === '5') ? 'block' : 'none';
 
-  // En Modalidades 1 y 2 (Traslados), deshabilitar la selección de horario nocturno
+  // En Modalidades 1 y 2 (Traslados Clínicos): solo permitir Hábil, Sábados y Domingos/Festivos (08:00 a 20:00). No hay traslados nocturnos.
   const noctPill = $('#pillJornada_nocturno');
-  const noctSub = $('#subJornadaNocturno');
+  const titleNoct = $('#titleJornadaNocturno');
+  const subNoct = $('#subJornadaNocturno');
+  const footNote = $('#jornadaFootNote');
+  noctPill.classList.remove('disabled');
+
   if(mode === '1' || mode === '2'){
-    noctPill.classList.add('disabled');
-    noctSub.textContent = '🚫 Horario nocturno deshabilitado en traslados (operan de 06:00 a 20:00 hrs)';
-    if(currentJornada === 'nocturno'){
-      currentJornada = 'habil';
-      ['habil','tarde','nocturno'].forEach(k => {
-        $('#pillJornada_' + k).classList.toggle('active', k === currentJornada);
-      });
-    }
+    if(titleNoct) titleNoct.textContent = 'Domingos y Festivos (08:00 a 20:00)';
+    if(subNoct) subNoct.textContent = 'Jornada diurna de domingos y días festivos';
+    if(footNote) footNote.innerHTML = '(*) <b>Horario de Traslados:</b> Los traslados clínicos (Modalidades 1 y 2) operan de forma estricta y exclusiva entre las 06:00 y las 20:00 hrs. No se realizan traslados en días de semana después de las 20:00 hrs ni urgencias de ambulancia.';
   } else {
-    noctPill.classList.remove('disabled');
-    noctSub.textContent = 'Domingos, festivos y eventos/cuidados nocturnos (20:00 a 06:00)';
+    if(titleNoct) titleNoct.textContent = 'Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)';
+    if(subNoct) subNoct.textContent = 'Domingos, festivos y eventos/cuidados nocturnos (20:00 a 06:00)';
+    if(footNote) footNote.innerHTML = '(*) <b>Horario Especial Nocturno:</b> Aplica de forma privativa a servicios de Acompañamiento en Eventos Sociales y Cuidados a Domicilio previamente coordinados (20:00 a 06:00 hrs).';
   }
 
   if(mode === '5'){
@@ -1247,7 +1254,7 @@ function recalcAll(){
       $('#dirTimeDesc').textContent = lastInterBreakdown;
     } else {
       $('#dirRegionRow').style.display = 'none';
-      $('#dirTimeDesc').textContent = `${durationText} · ${JORNADA_LABELS[currentJornada].split(' (')[0]}`;
+      $('#dirTimeDesc').textContent = `${durationText} · ${getJornadaLabel(currentJornada, mode).split(' (')[0]}`;
     }
     lastFinalTotal = Math.round(timeCost / 100) * 100;
     lastAbono50 = Math.round((lastFinalTotal * 0.5) / 50) * 50;
@@ -2474,7 +2481,7 @@ async function submitBooking(ev){
     `• Modalidad: ${svcName}\n` +
     (mode === '5'
       ? `• Región de origen: ${selectedInterRegion}\n• Programa y desglose: ${lastInterBreakdown}\n`
-      : `• Jornada: ${JORNADA_LABELS[currentJornada]}\n`) +
+      : `• Jornada: ${getJornadaLabel(currentJornada, mode)}\n`) +
     `• Fecha: ${formatHumanDate(date)} (${date})\n` +
     `• Turno / Bloque: ${blockHuman}\n` +
     `• Hora exacta de recogida: ${timeStr} hrs (término estimado ${fm(endMin % 1440)} hrs)\n` +
@@ -2511,7 +2518,7 @@ async function submitBooking(ev){
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
           <li><span>🛣️ <b>Kilómetros (${e(modeLabel)}):</b></span> <span><b>${e(fmtTotalKm)}</b> (${$c(lastKmCost)})</span></li>
         ` : ''}
-        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : 'Jornada y Tiempo:'}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : `${e(JORNADA_LABELS[currentJornada])} · ${dur} min (${$c(lastTimeCost)})`}</span></li>
+        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : 'Jornada y Tiempo:'}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : `${e(getJornadaLabel(currentJornada, mode))} · ${dur} min (${$c(lastTimeCost)})`}</span></li>
         <li style="background:var(--mist);border-color:var(--teal)">
           <span>💰 <b>VALOR REAL TOTAL A PAGAR:</b></span> <span style="font-size:1.15rem;font-weight:800;color:var(--teal)">${$c(lastFinalTotal)}</span>
         </li>
