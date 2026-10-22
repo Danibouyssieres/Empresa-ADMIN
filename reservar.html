@@ -47,6 +47,7 @@ nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 label{display:block;font-size:.88rem;font-weight:700;color:var(--mute);margin-bottom:5px}
 input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-color:transparent}
+select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-allowed;border-color:var(--line)}
 
 /* SELECTOR DE MODALIDAD DE EXTREMO A EXTREMO */
 .full-modality-bar{width:100%;background:var(--mist);border:2px solid var(--sage);border-radius:var(--r);padding:18px 20px;margin-bottom:20px}
@@ -425,7 +426,7 @@ footer a{color:#fff}
           <div>
             <label for="selMins12">Bloque adicional de 30 minutos (50% valor hora)</label>
             <select id="selMins12" onchange="onHours34Change()">
-              <option value="0" selected>0 minutos (sin bloque adicional)</option>
+              <option value="0" selected>+ 0 minutos (sin bloque adicional)</option>
               <option value="30">+ 30 minutos extra (1/2 hora)</option>
             </select>
           </div>
@@ -459,10 +460,15 @@ footer a{color:#fff}
           <div id="mins34Col">
             <label for="selMins34" id="lblMins34">Bloque adicional de 30 minutos (50% valor hora)</label>
             <select id="selMins34" onchange="onHours34Change()">
-              <option value="0" selected>0 minutos (sin bloque adicional)</option>
+              <option value="0" selected>+ 0 minutos (sin bloque adicional)</option>
               <option value="30">+ 30 minutos extra (1/2 hora)</option>
             </select>
           </div>
+        </div>
+
+        <!-- NOTA INFORMATIVA TOPE MÁXIMO DE HORAS Y LIQUIDACIÓN EN TERRENO -->
+        <div id="maxDurationNotice" class="callout-box" style="margin-top:14px;margin-bottom:14px">
+          ⏱️ Por capacidad operativa, la agenda web permite reservas de hasta un máximo de 6 horas. Si en terreno la atención médica o evento requiere extenderse más allá del tiempo programado, todo tiempo extra se liquidará al término del servicio en bloques de 30 minutos según la tarifa horaria correspondiente.
         </div>
 
         <!-- RESUMEN DEL VALOR DEL TIEMPO SELECCIONADO -->
@@ -885,6 +891,7 @@ function setInterProgram(hours){
   selectedInterProgram = hours;
   $('#pillProg_4').classList.toggle('active', hours === 4);
   $('#pillProg_6').classList.toggle('active', hours === 6);
+  applyMaxDurationRule();
   recalcAll();
   updateSlots();
 }
@@ -905,7 +912,7 @@ function refreshDuration34Options(resetSelection = false){
   if(mode === '3' || mode === '4'){
     $('#lblMins34').textContent = 'Bloque adicional de 30 minutos (50% valor hora)';
     $('#selMins34').innerHTML = `
-      <option value="0">0 minutos (sin bloque adicional)</option>
+      <option value="0">+ 0 minutos (sin bloque adicional)</option>
       <option value="30">+ 30 minutos extra (1/2 hora)</option>
     `;
     $('#selMins34').value = (!resetSelection && ['0','30'].includes(prevM)) ? prevM : '0';
@@ -930,7 +937,7 @@ function refreshDuration34Options(resetSelection = false){
   } else if(mode === '5'){
     $('#lblMins34').textContent = 'Tiempo adicional no programado (en destino)';
     $('#selMins34').innerHTML = `
-      <option value="0">0 minutos adicionales ($0)</option>
+      <option value="0">+ 0 minutos adicionales ($0)</option>
       <option value="30">+ 30 minutos extra ($15.000)</option>
       <option value="60">+ 1 hora extra ($25.000)</option>
       <option value="90">+ 1 hora 30 min ($40.000)</option>
@@ -938,12 +945,15 @@ function refreshDuration34Options(resetSelection = false){
     `;
     $('#selMins34').value = (!resetSelection && ['0','30','60','90','120'].includes(prevM)) ? prevM : '0';
   }
+
+  applyMaxDurationRule();
 }
 
 function onServiceTypeChange(){
   setRouteStatus('');
   refreshDuration34Options(true);
   applyModalityVisibility();
+  applyMaxDurationRule();
   recalcAll();
   updateSlots();
 }
@@ -1069,7 +1079,56 @@ function applyModalityVisibility(){
   updateRingDisplay();
 }
 
+function applyMaxDurationRule(){
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+
+  // 1. Modalidades 1 y 2 (Traslados)
+  const selH12 = $('#selHours12');
+  const selM12 = $('#selMins12');
+  if(selH12 && selM12){
+    const h12 = +selH12.value || 1;
+    if(h12 >= 6){
+      selM12.value = '0';
+      selM12.disabled = true;
+      selM12.title = 'Tope máximo de 6 horas alcanzado en la agenda web.';
+    } else {
+      selM12.disabled = false;
+      selM12.removeAttribute('title');
+    }
+  }
+
+  // 2. Modalidades 3, 4 y 5
+  const selH34 = $('#selHours34');
+  const selM34 = $('#selMins34');
+  if(mode === '3' || mode === '4'){
+    if(selH34 && selM34){
+      const h34 = +selH34.value || (mode === '3' ? 2 : 4);
+      if(h34 >= 6){
+        selM34.value = '0';
+        selM34.disabled = true;
+        selM34.title = 'Tope máximo de 6 horas alcanzado en la agenda web.';
+      } else {
+        selM34.disabled = false;
+        selM34.removeAttribute('title');
+      }
+    }
+  } else if(mode === '5'){
+    if(selM34){
+      const progH = selectedInterProgram || 4;
+      if(progH >= 6){
+        selM34.value = '0';
+        selM34.disabled = true;
+        selM34.title = 'El Programa Crónico ya incluye 6 horas continuas (tope máximo web).';
+      } else {
+        selM34.disabled = false;
+        selM34.removeAttribute('title');
+      }
+    }
+  }
+}
+
 function onHours34Change(){
+  applyMaxDurationRule();
   recalcAll();
   updateSlots(true);
 }
@@ -1114,20 +1173,22 @@ function fmtHoursClean(mins){
 
 function getSelectedTotalMinutes(){
   const mode = $('#b_svc_type').value;
+  let totalMin = 60;
   if(mode === '1' || mode === '2'){
     const h = +$('#selHours12').value || 1;
-    const m = +$('#selMins12').value || 0;
-    return h * 60 + m;
+    const m = (h >= 6) ? 0 : (+$('#selMins12').value || 0);
+    totalMin = h * 60 + m;
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
-    const m = +$('#selMins34').value || 0;
-    return h * 60 + m;
+    const m = (h >= 6) ? 0 : (+$('#selMins34').value || 0);
+    totalMin = h * 60 + m;
   } else {
     const defH = mode === '3' ? 2 : 4;
     const h = +$('#selHours34').value || defH;
-    const m = +$('#selMins34').value || 0;
-    return h * 60 + m;
+    const m = (h >= 6) ? 0 : (+$('#selMins34').value || 0);
+    totalMin = h * 60 + m;
   }
+  return Math.min(totalMin, 360); // Nunca admitir más de 6 horas (360 minutos) en la simulación web
 }
 
 function recalcAll(){
@@ -1149,22 +1210,39 @@ function recalcAll(){
   let durationText = '';
 
   if(mode === '1' || mode === '2'){
-    const h = +$('#selHours12').value || 1;
-    const m = +$('#selMins12').value || 0;
-    const extraHalfBlocks = m === 30 ? 1 : 0;
+    let h = +$('#selHours12').value || 1;
+    let m = +$('#selMins12').value || 0;
+    if(h >= 6){
+      h = 6;
+      m = 0;
+    }
+    const extraHalfBlocks = (h < 6 && m === 30) ? 1 : 0;
     timeCost = (h * r.hour) + (extraHalfBlocks * r.half);
-    durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(r.hour)}/h${m ? ` + ${$c(r.half)} bloque 30m` : ''})`;
+    durationText = `${h} h${extraHalfBlocks ? ' y 30 min' : ''} (${$c(r.hour)}/h${extraHalfBlocks ? ` + ${$c(r.half)} bloque 30m` : ''})`;
   } else if(mode === '3'){
-    const h = +$('#selHours34').value || 2;
-    const m = +$('#selMins34').value || 0;
+    let h = +$('#selHours34').value || 2;
+    let m = +$('#selMins34').value || 0;
+    if(h >= 6){
+      h = 6;
+      m = 0;
+    } else if(h * 60 + m > 360){
+      m = 0;
+    }
+    const extraHalfCost = (h < 6 && m === 30) ? r.half : 0;
     const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
-    const extraHalfCost = m === 30 ? r.half : 0;
     timeCost = basePkgCost + extraHalfCost;
-    durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
+    durationText = `${h} h${extraHalfCost ? ' y 30 min' : ''} (${$c(basePkgCost)}${extraHalfCost ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
   } else if(mode === '4'){
-    const h = +$('#selHours34').value || 4;
-    const m = +$('#selMins34').value || 0;
-    const totalMins = h * 60 + m;
+    let h = +$('#selHours34').value || 4;
+    let m = +$('#selMins34').value || 0;
+    if(h >= 6){
+      h = 6;
+      m = 0;
+    } else if(h * 60 + m > 360){
+      m = 0;
+    }
+    const extraHalfCost = (h < 6 && m === 30) ? r.half : 0;
+    const totalMins = Math.min(h * 60 + (extraHalfCost ? 30 : 0), 360);
     const startStr = ($('#b_time') && $('#b_time').value) || ($('#selEventStart1') && $('#selEventStart1').value) || '16:00';
     const startMin = tm(startStr);
     const endMin = startMin + totalMins;
@@ -1182,13 +1260,15 @@ function recalcAll(){
       durationText = `Proporcional (${startStr} a ${fm(endMin % 1440)}): ${fmtHoursClean(minsBefore20)} antes de 20:00 a ${$c(diurnalRate)}/h (${$c(costBefore20)}) + ${fmtHoursClean(minsAfter20)} post-20:00 a $18.000/h (${$c(costAfter20)})`;
     } else {
       const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
-      const extraHalfCost = m === 30 ? r.half : 0;
       timeCost = basePkgCost + extraHalfCost;
-      durationText = `${h} h${m ? ' y 30 min' : ''} (${$c(basePkgCost)}${m ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
+      durationText = `${h} h${extraHalfCost ? ' y 30 min' : ''} (${$c(basePkgCost)}${extraHalfCost ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
     }
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
-    const m = +$('#selMins34').value || 0;
+    let m = +$('#selMins34').value || 0;
+    if(h >= 6 || h * 60 + m > 360){
+      m = 0;
+    }
     const basePkgCost = h === 6 ? 300000 : 250000;
     const progShortName = h === 6 ? 'Programa Crónico / Oncológico' : 'Programa Estándar';
     const extraHours = Math.floor(m / 60);
@@ -2386,6 +2466,7 @@ async function initForm(){
       await searchAddr('to', true);
     }
   }catch(e){}
+  applyMaxDurationRule();
 }
 
 async function submitBooking(ev){
