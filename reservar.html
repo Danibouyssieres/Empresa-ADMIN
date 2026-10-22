@@ -386,7 +386,7 @@ footer a{color:#fff}
             </div>
           </div>
           <p id="jornadaFootNote" style="font-size:.83rem;color:var(--teal);font-weight:600;margin:-6px 0 14px">
-            (*) Horario de Traslados: Los traslados clínicos (Modalidades 1 y 2) operan de forma estricta y exclusiva entre las 06:00 y las 20:00 hrs. No se realizan traslados en días de semana después de las 20:00 hrs ni urgencias de ambulancia. El horario especial nocturno (20:00 a 06:00) aplica de forma privativa a servicios de Acompañamiento en Eventos Sociales y Cuidados a Domicilio coordinados con antelación.
+            🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Toda atención nocturna se considera un servicio especial, no se agenda automáticamente en la web y debe coordinarse previamente vía WhatsApp (tarifa base de $18.000/hora).
           </p>
         </div>
 
@@ -965,14 +965,15 @@ function applyModalityVisibility(){
   const footNote = $('#jornadaFootNote');
   noctPill.classList.remove('disabled');
 
+  const noctTextDefinitive = '🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Toda atención nocturna se considera un servicio especial, no se agenda automáticamente en la web y debe coordinarse previamente vía WhatsApp (tarifa base de $18.000/hora).';
   if(mode === '1' || mode === '2'){
     if(titleNoct) titleNoct.textContent = 'Domingos y Festivos (08:00 a 20:00)';
     if(subNoct) subNoct.textContent = 'Jornada diurna de domingos y días festivos';
-    if(footNote) footNote.innerHTML = '(*) <b>Horario de Traslados:</b> Los traslados clínicos (Modalidades 1 y 2) operan de forma estricta y exclusiva entre las 06:00 y las 20:00 hrs. No se realizan traslados en días de semana después de las 20:00 hrs ni urgencias de ambulancia.';
+    if(footNote) footNote.innerHTML = noctTextDefinitive;
   } else {
     if(titleNoct) titleNoct.textContent = 'Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)';
     if(subNoct) subNoct.textContent = 'Domingos, festivos y eventos/cuidados nocturnos (20:00 a 06:00)';
-    if(footNote) footNote.innerHTML = '(*) <b>Horario Especial Nocturno:</b> Aplica de forma privativa a servicios de Acompañamiento en Eventos Sociales y Cuidados a Domicilio previamente coordinados (20:00 a 06:00 hrs).';
+    if(footNote) footNote.innerHTML = noctTextDefinitive;
   }
 
   if(mode === '5'){
