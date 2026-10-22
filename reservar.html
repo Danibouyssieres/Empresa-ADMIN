@@ -656,6 +656,13 @@ footer a{color:#fff}
         <label>Requerimientos asistenciales durante la atención (puede marcar varios):</label>
         <div class="rqs" id="reqContainer"></div>
       </div>
+
+      <div style="margin-top:20px;padding:14px 16px;background:var(--mist);border:1px solid var(--line);border-radius:10px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-size:.95rem;font-weight:600;color:var(--ink)">
+          <input type="checkbox" id="b_terms_sec3" required style="width:18px;height:18px;accent-color:var(--teal);cursor:pointer;flex-shrink:0">
+          <span>He leído y acepto los <a href="terminos.html" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:underline">Términos y Condiciones del Servicio</a> *</span>
+        </label>
+      </div>
     </section>
 
     <!-- =========================================================================
@@ -681,6 +688,13 @@ footer a{color:#fff}
       <div class="info-banner">
         <b>📌 Información importante sobre su reserva:</b><br>
         Al confirmar este formulario, su bloque horario quedará pre-registrado inmediatamente en nuestro sistema. Para confirmar el bloqueo exclusivo del vehículo y profesional TENS, deberá abonar el 50 % calculado arriba, y el 50 % restante se paga al finalizar la atención.
+      </div>
+
+      <div style="margin-top:18px;padding:14px 16px;background:var(--mist);border:1px solid var(--line);border-radius:10px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-size:.95rem;font-weight:600;color:var(--ink)">
+          <input type="checkbox" id="b_terms_sec4" required style="width:18px;height:18px;accent-color:var(--teal);cursor:pointer;flex-shrink:0">
+          <span>He leído y acepto los <a href="terminos.html" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:underline">Términos y Condiciones del Servicio</a> *</span>
+        </label>
       </div>
 
       <div style="margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
@@ -2353,6 +2367,14 @@ async function initForm(){
     </label>
   `).join('');
 
+  // Sincronización de casillas obligatorias de Términos y Condiciones
+  const tSec3 = $('#b_terms_sec3');
+  const tSec4 = $('#b_terms_sec4');
+  if(tSec3 && tSec4){
+    tSec3.addEventListener('change', () => { tSec4.checked = tSec3.checked; });
+    tSec4.addEventListener('change', () => { tSec3.checked = tSec4.checked; });
+  }
+
   onServiceTypeChange();
 
   try{
@@ -2384,6 +2406,13 @@ async function initForm(){
 async function submitBooking(ev){
   ev.preventDefault();
   D = load() || D;
+
+  const tSec3 = $('#b_terms_sec3');
+  const tSec4 = $('#b_terms_sec4');
+  if((tSec3 && !tSec3.checked) || (tSec4 && !tSec4.checked)){
+    alert('Debe leer y aceptar los Términos y Condiciones del Servicio para confirmar su hora.');
+    return;
+  }
 
   const mode = $('#b_svc_type').value;
   const svcName = SVC_NAMES[mode];
@@ -2496,7 +2525,7 @@ async function submitBooking(ev){
     `• Saldo 50% al finalizar: ${$c(saldo50)}\n` +
     `• Paciente: ${pat} (${age} años) · ${dxInput}\n` +
     `• Contacto: ${coord} (${ph})\n` +
-    `Quedo atento/a a los datos de transferencia para realizar el abono del 50% (${$c(lastAbono50)}).`;
+    `Adjunto comprobante del abono del 50% (${$c(lastAbono50)}) transferido a Scotiabank Cta Cte 994989122.`;
   const waUrl = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waText)}`;
 
   $('#mainContent').innerHTML = `
@@ -2505,7 +2534,7 @@ async function submitBooking(ev){
       <span class="step-tag">Solicitud Registrada · Folio #MSA-${newId}</span>
       <h2 style="margin-top:6px">¡Su bloque horario ha sido reservado con éxito!</h2>
       <p style="color:var(--mute);max-width:62ch;margin:8px auto 20px">
-        Su bloque ya quedó bloqueado en nuestra agenda. A continuación encontrará el desglose exacto de su tarifa y el monto del 50% de abono para confirmar su reserva.
+        Su bloque ya quedó registrado en nuestra agenda. A continuación encontrará el desglose de su atención y las <b>coordenadas bancarias oficiales</b> para transferir el abono del 50%.
       </p>
 
       <ul class="summary-list" style="max-width:660px;margin:20px auto;text-align:left">
@@ -2534,13 +2563,54 @@ async function submitBooking(ev){
         <li><span>📞 <b>Coordinador:</b></span> <span>${e(coord)} (${e(ph)})</span></li>
       </ul>
 
+      <!-- COORDENADAS BANCARIAS OFICIALES -->
+      <div style="max-width:660px;margin:24px auto;text-align:left;background:var(--mist);border:2px solid var(--teal);border-radius:12px;padding:22px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-size:1.5rem">🏦</span>
+          <h3 style="margin:0;font-size:1.18rem;color:var(--teal)">Datos Bancarios para Pago del Abono (50%: ${$c(lastAbono50)})</h3>
+        </div>
+        <p style="font-size:.92rem;color:var(--mute);margin:0 0 14px;line-height:1.5">
+          Para confirmar y bloquear formalmente la agenda exclusiva de la unidad TENS y el vehículo, realice la transferencia del 50% a la cuenta bancaria oficial de la empresa:
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px">
+          <div>
+            <span style="font-size:.78rem;text-transform:uppercase;color:var(--mute);font-weight:700;display:block">Razón Social</span>
+            <strong style="color:var(--ink);font-size:.92rem">Servicios Integrales de Asistencia, Cuidados y Traslados SpA</strong>
+          </div>
+          <div>
+            <span style="font-size:.78rem;text-transform:uppercase;color:var(--mute);font-weight:700;display:block">RUT de la Empresa</span>
+            <strong style="color:var(--teal);font-size:1.02rem">78.521.776-4</strong>
+          </div>
+          <div>
+            <span style="font-size:.78rem;text-transform:uppercase;color:var(--mute);font-weight:700;display:block">Banco</span>
+            <strong style="color:var(--teal);font-size:1.05rem">Scotiabank</strong>
+          </div>
+          <div>
+            <span style="font-size:.78rem;text-transform:uppercase;color:var(--mute);font-weight:700;display:block">Tipo de Cuenta</span>
+            <strong style="color:var(--ink);font-size:.95rem">Cuenta Corriente</strong>
+          </div>
+          <div>
+            <span style="font-size:.78rem;text-transform:uppercase;color:var(--mute);font-weight:700;display:block">Número de Cuenta</span>
+            <strong style="color:var(--teal);font-size:1.15rem;letter-spacing:.03em">994989122</strong>
+          </div>
+          <div>
+            <span style="font-size:.78rem;text-transform:uppercase;color:var(--mute);font-weight:700;display:block">Correo de Notificación</span>
+            <strong style="color:var(--ink);font-size:.9rem">movilidadysaludasistida@gmail.com</strong>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:.85rem;color:var(--mute);display:flex;align-items:center;gap:6px">
+          <span>📋</span> <span>El cupo se reserva temporalmente por 1 hora a la espera del comprobante. Consulte nuestros <a href="terminos.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600;text-decoration:underline">Términos y Condiciones</a>.</span>
+        </div>
+      </div>
+
       <div class="info-banner" style="max-width:660px;margin:18px auto;text-align:left">
-        <b>Siguiente paso (Pago del Abono del 50%: ${$c(lastAbono50)}):</b><br>
-        Envíe el resumen de su reserva por WhatsApp tocando el botón verde abajo para recibir los datos bancarios y enviar su comprobante.
+        <b>Siguiente paso (Envío de Comprobante de Abono):</b><br>
+        1. Realice la transferencia electrónica del abono del 50% (${$c(lastAbono50)}) a la cuenta Scotiabank indicada arriba.<br>
+        2. Presione el botón verde a continuación para enviar los detalles de la reserva y adjuntar su comprobante vía WhatsApp (+56 9 2999 0095).
       </div>
 
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px">
-        <a class="btn" href="${waUrl}" target="_blank" rel="noopener">💬 Confirmar y Abonar 50% por WhatsApp</a>
+        <a class="btn" href="${waUrl}" target="_blank" rel="noopener">💬 Confirmar y Enviar Comprobante por WhatsApp</a>
         <a class="btn ghost" href="reservar.html">📅 Agendar otra hora</a>
         <a class="btn ghost" href="index.html">← Volver al inicio</a>
       </div>
