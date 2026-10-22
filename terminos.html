@@ -68,12 +68,12 @@ header {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: var(--text);
-  font-weight: 700;
 }
 .brand img {
-  height: 40px;
+  height: 48px;
   width: auto;
+  max-width: 100%;
+  display: block;
 }
 .nav-actions {
   display: flex;
@@ -279,9 +279,8 @@ footer a:hover { text-decoration: underline; }
 
 <header>
   <div class="header-wrap">
-    <a href="index.html" class="brand">
+    <a href="index.html" class="brand" aria-label="Movilidad y Salud Asistida, ir al inicio">
       <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida">
-      <span>Movilidad y Salud Asistida</span>
     </a>
     <div class="nav-actions">
       <button type="button" class="btn" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>

@@ -656,13 +656,6 @@ footer a{color:#fff}
         <label>Requerimientos asistenciales durante la atención (puede marcar varios):</label>
         <div class="rqs" id="reqContainer"></div>
       </div>
-
-      <div style="margin-top:20px;padding:14px 16px;background:var(--mist);border:1px solid var(--line);border-radius:10px">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-size:.95rem;font-weight:600;color:var(--ink)">
-          <input type="checkbox" id="b_terms_sec3" required style="width:18px;height:18px;accent-color:var(--teal);cursor:pointer;flex-shrink:0">
-          <span>He leído y acepto los <a href="terminos.html" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:underline">Términos y Condiciones del Servicio</a> *</span>
-        </label>
-      </div>
     </section>
 
     <!-- =========================================================================
@@ -692,7 +685,7 @@ footer a{color:#fff}
 
       <div style="margin-top:18px;padding:14px 16px;background:var(--mist);border:1px solid var(--line);border-radius:10px">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-size:.95rem;font-weight:600;color:var(--ink)">
-          <input type="checkbox" id="b_terms_sec4" required style="width:18px;height:18px;accent-color:var(--teal);cursor:pointer;flex-shrink:0">
+          <input type="checkbox" id="b_terms" required style="width:18px;height:18px;accent-color:var(--teal);cursor:pointer;flex-shrink:0">
           <span>He leído y acepto los <a href="terminos.html" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:underline">Términos y Condiciones del Servicio</a> *</span>
         </label>
       </div>
@@ -2367,14 +2360,6 @@ async function initForm(){
     </label>
   `).join('');
 
-  // Sincronización de casillas obligatorias de Términos y Condiciones
-  const tSec3 = $('#b_terms_sec3');
-  const tSec4 = $('#b_terms_sec4');
-  if(tSec3 && tSec4){
-    tSec3.addEventListener('change', () => { tSec4.checked = tSec3.checked; });
-    tSec4.addEventListener('change', () => { tSec3.checked = tSec4.checked; });
-  }
-
   onServiceTypeChange();
 
   try{
@@ -2407,10 +2392,10 @@ async function submitBooking(ev){
   ev.preventDefault();
   D = load() || D;
 
-  const tSec3 = $('#b_terms_sec3');
-  const tSec4 = $('#b_terms_sec4');
-  if((tSec3 && !tSec3.checked) || (tSec4 && !tSec4.checked)){
+  const termsChk = $('#b_terms');
+  if(termsChk && !termsChk.checked){
     alert('Debe leer y aceptar los Términos y Condiciones del Servicio para confirmar su hora.');
+    termsChk.focus();
     return;
   }
 
