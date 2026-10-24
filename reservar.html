@@ -457,6 +457,12 @@ footer a{color:#fff}
             <div id="sugFrom" class="suggestions"></div>
           </div>
 
+          <!-- DETALLE DOMICILIARIO (DEPTO / BLOCK / CONDOMINIO) -->
+          <div style="margin-top:10px;margin-bottom:12px">
+            <label for="b_depto" style="font-size:.85rem;color:var(--mute);font-weight:600">Depto / Block / N° de Casa / Nombre de Condominio (Opcional)</label>
+            <input id="b_depto" type="text" placeholder="Ej: Depto 504, Torre B / Condominio Los Robles" style="width:100%;padding:9px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);font-size:.92rem;color:var(--ink)">
+          </div>
+
           <!-- ANILLO COMUNAL DETECTADO Y TARIFA MÍNIMA (SOLO VISIBLE EN MODALIDAD 1 Y 2) -->
           <div id="ringInfoBox" class="ring-badge-box">
             <strong id="ringTitle">📍 Anillo detectado: —</strong>
@@ -812,6 +818,11 @@ footer a{color:#fff}
         <label>Requerimientos asistenciales durante la atención (puede marcar varios):</label>
         <div class="rqs" id="reqContainer"></div>
       </div>
+
+      <div style="margin-top:18px">
+        <label for="b_obs" style="font-weight:600">Observaciones especiales o indicaciones para la llegada (Opcional)</label>
+        <textarea id="b_obs" rows="3" placeholder="Indique antecedentes relevantes para el traslado: accesos, timbres, uso de oxígeno portátil propio, propensión a mareos, etc." style="width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);font-size:.92rem;color:var(--ink);font-family:inherit;resize:vertical"></textarea>
+      </div>
     </section>
 
     <!-- =========================================================================
@@ -830,6 +841,44 @@ footer a{color:#fff}
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-weight:700;padding:10px 12px;background:var(--mist);border:1px solid var(--line);border-radius:10px;color:var(--teal)">+569</span>
             <input id="b_ph" type="tel" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- SELECCIÓN DE DOCUMENTO TRIBUTARIO (BOLETA VS. FACTURA) -->
+      <div style="margin-top:18px;padding:16px 18px;background:var(--bg);border:1px solid var(--line);border-radius:10px">
+        <label style="font-weight:700;color:var(--teal);margin-bottom:10px;display:block;font-size:1rem">Tipo de Documento Tributario requerido *</label>
+        <div style="display:flex;flex-wrap:wrap;gap:18px;margin-bottom:6px">
+          <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.92rem;font-weight:600">
+            <input type="radio" name="b_tax_doc" value="boleta" checked onchange="toggleTaxDocFields(this.value)" style="accent-color:var(--teal);cursor:pointer;width:18px;height:18px">
+            <span>Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)</span>
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.92rem;font-weight:600">
+            <input type="radio" name="b_tax_doc" value="factura" onchange="toggleTaxDocFields(this.value)" style="accent-color:var(--teal);cursor:pointer;width:18px;height:18px">
+            <span>Factura Electrónica Exenta (Empresas, Fundaciones o ELEAM)</span>
+          </label>
+        </div>
+
+        <!-- CAMPOS CONDICIONALES PARA FACTURA ELECTRÓNICA -->
+        <div id="invoiceFieldsBox" style="display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)">
+          <div style="font-size:.85rem;color:var(--mute);margin-bottom:12px">Ingrese los antecedentes de facturación de la persona jurídica o institución:</div>
+          <div class="grid">
+            <div>
+              <label for="b_tax_rs">Razón Social *</label>
+              <input id="b_tax_rs" type="text" placeholder="Ej: Fundación Hogar y Salud SpA">
+            </div>
+            <div>
+              <label for="b_tax_rut">RUT Empresa *</label>
+              <input id="b_tax_rut" type="text" placeholder="Ej: 76.123.456-7">
+            </div>
+            <div>
+              <label for="b_tax_giro">Giro Comercial *</label>
+              <input id="b_tax_giro" type="text" placeholder="Ej: Servicios de salud / Cuidados de adulto mayor">
+            </div>
+            <div>
+              <label for="b_tax_dir">Dirección Tributaria Comunal *</label>
+              <input id="b_tax_dir" type="text" placeholder="Ej: Av. Providencia 1234, Of. 601, Providencia">
+            </div>
           </div>
         </div>
       </div>
@@ -1459,6 +1508,20 @@ function checkCompanionRecommendation(){
   } else {
     notice.style.display = 'none';
   }
+}
+
+function toggleTaxDocFields(val){
+  const box = $('#invoiceFieldsBox');
+  const isFactura = val === 'factura';
+  if(box) box.style.display = isFactura ? 'block' : 'none';
+  const reqFields = ['b_tax_rs', 'b_tax_rut', 'b_tax_giro', 'b_tax_dir'];
+  reqFields.forEach(id => {
+    const el = $('#' + id);
+    if(el){
+      el.required = isFactura;
+      if(!isFactura) el.value = '';
+    }
+  });
 }
 
 function applyMaxDurationRule(){
@@ -3498,6 +3561,7 @@ async function submitBooking(ev){
         : `${svcName} · ${dxInput}`);
   const mob = $('#b_mob').value;
   const from = $('#b_from').value.trim();
+  const depto = ($('#b_depto') && $('#b_depto').value.trim()) || '';
   const to = showDest ? $('#b_to').value.trim() : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
   const compVal = $('#b_comp').value;
   const comp = compVal.startsWith('Sí');
@@ -3506,6 +3570,24 @@ async function submitBooking(ev){
   const reqs = [...document.querySelectorAll('.rq-cb:checked')].map(x=>x.value);
   if(reqs.length === 0){
     reqs.push(mode === '2' ? 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)' : (mode === '3' ? 'Ficha de Valoración y Control de Signos Vitales (Marcada por defecto - Gratuita)' : (mode === '5' ? 'Ficha de Valoración y Signos Vitales al inicio del viaje (Marcada por defecto - Gratuita)' : 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)')));
+  }
+  const obs = ($('#b_obs') && $('#b_obs').value.trim()) || '';
+
+  const taxDocRadio = document.querySelector('input[name="b_tax_doc"]:checked');
+  const taxDocType = taxDocRadio ? taxDocRadio.value : 'boleta';
+  const isInvoice = taxDocType === 'factura';
+  const taxRS = isInvoice ? (($('#b_tax_rs') && $('#b_tax_rs').value.trim()) || '') : '';
+  const taxRUT = isInvoice ? (($('#b_tax_rut') && $('#b_tax_rut').value.trim()) || '') : '';
+  const taxGiro = isInvoice ? (($('#b_tax_giro') && $('#b_tax_giro').value.trim()) || '') : '';
+  const taxDir = isInvoice ? (($('#b_tax_dir') && $('#b_tax_dir').value.trim()) || '') : '';
+
+  if(isInvoice && (!taxRS || !taxRUT || !taxGiro || !taxDir)){
+    alert('Por favor complete todos los campos obligatorios para Factura Electrónica Exenta (Razón Social, RUT, Giro y Dirección Tributaria).');
+    if(!taxRS && $('#b_tax_rs')) $('#b_tax_rs').focus();
+    else if(!taxRUT && $('#b_tax_rut')) $('#b_tax_rut').focus();
+    else if(!taxGiro && $('#b_tax_giro')) $('#b_tax_giro').focus();
+    else if(!taxDir && $('#b_tax_dir')) $('#b_tax_dir').focus();
+    return;
   }
 
   const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 12 * 60 && endMin > 12 * 60);
@@ -3538,9 +3620,19 @@ async function submitBooking(ev){
     coord,
     ph,
     from,
+    depto,
     to,
     mob,
     req: reqs,
+    obs,
+    taxDoc: {
+      type: taxDocType,
+      label: isInvoice ? 'Factura Electrónica Exenta' : 'Boleta Electrónica Exenta',
+      rs: taxRS,
+      rut: taxRUT,
+      giro: taxGiro,
+      dir: taxDir
+    },
     comp,
     compDesc: compVal,
     fare: lastFinalTotal,
@@ -3557,6 +3649,10 @@ async function submitBooking(ev){
   D.svcs.push(newSvc);
   save();
 
+  const taxDocWa = isInvoice
+    ? `• Documento Tributario: Factura Electrónica Exenta\n  - Razón Social: ${taxRS}\n  - RUT: ${taxRUT}\n  - Giro: ${taxGiro}\n  - Dirección Tributaria: ${taxDir}\n`
+    : `• Documento Tributario: Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)\n`;
+
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};
   const waText = `Hola, acabo de agendar una hora en la web (Reserva #MSA-${newId}).\n` +
     `• Modalidad: ${svcName}\n` +
@@ -3568,7 +3664,7 @@ async function submitBooking(ev){
     `• Fecha: ${formatHumanDate(date)} (${date})\n` +
     `• Turno / Bloque: ${blockHuman}\n` +
     `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n` +
-    `• Dirección: ${from}\n` +
+    `• Dirección: ${from}${depto ? ` (${depto})` : ''}\n` +
     (showDest ? `• Destino / Recinto: ${to}\n` : '') +
     (showMap && (mode === '1' || mode === '2') ? `• Recorrido: ${modeLabel} (${fmtTotalKm} = ${$c(lastKmCost)})\n` : '') +
     `• Valor Total Real: ${$c(lastFinalTotal)}\n` +
@@ -3578,7 +3674,9 @@ async function submitBooking(ev){
     `• Condición de Movilidad: ${mob}\n` +
     `• Acompañante Familiar: ${compVal}\n` +
     `• Requerimientos asistenciales: ${reqs.join(', ')}\n` +
+    (obs ? `• Observaciones e Indicaciones: ${obs}\n` : '') +
     `• Contacto: ${coord} (${ph})\n` +
+    taxDocWa +
     `Adjunto comprobante del abono del 50% (${$c(lastAbono50)}) transferido a Scotiabank Cta Cte 994989122.`;
   const waUrl = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waText)}`;
 
@@ -3600,7 +3698,7 @@ async function submitBooking(ev){
         <li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>
         ${endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : ''}
         ${mode === '5' ? `<li><span>🛡️ <b>Seguridad Vial y Descanso:</b></span> <span>Bloquea jornada completa de la fecha y el Turno Noche de la víspera (noche anterior)</span></li>` : ''}
-        <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : 'Dirección de Recogida / Inicio (A):'}</b></span> <span>${e(from)}</span></li>
+        <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : 'Dirección de Recogida / Inicio (A):'}</b></span> <span>${e(from)}${depto ? ` · <b>${e(depto)}</b>` : ''}</span></li>
         ${showDest ? `<li><span>🏁 <b>Dirección de Destino / Recinto (B):</b></span> <span>${e(to)}</span></li>` : ''}
         ${showMap && (mode === '1' || mode === '2') ? `
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
@@ -3619,7 +3717,9 @@ async function submitBooking(ev){
         <li><span>♿ <b>Condición de Movilidad:</b></span> <span>${e(mob)}</span></li>
         <li><span>👥 <b>Acompañante Familiar:</b></span> <span>${e(compVal)}</span></li>
         <li><span>📋 <b>Requerimientos Asistenciales:</b></span> <span>${reqs.map(r=>e(r)).join('; ')}</span></li>
+        ${obs ? `<li><span>📝 <b>Observaciones / Indicaciones:</b></span> <span>${e(obs)}</span></li>` : ''}
         <li><span>📞 <b>Coordinador:</b></span> <span>${e(coord)} (${e(ph)})</span></li>
+        <li><span>📑 <b>Documento Tributario:</b></span> <span>${isInvoice ? `Factura Electrónica Exenta<br><small style="color:var(--mute)">Razón Social: <b>${e(taxRS)}</b> · RUT: <b>${e(taxRUT)}</b> · Giro: <b>${e(taxGiro)}</b><br>Dirección Tributaria: <b>${e(taxDir)}</b></small>` : 'Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)'}</span></li>
       </ul>
 
       <!-- COORDENADAS BANCARIAS OFICIALES -->

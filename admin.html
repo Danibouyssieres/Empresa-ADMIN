@@ -522,7 +522,9 @@ function detail(){const s=D.svcs.find(x=>x.id==U.sel);if(!s)return '';
 const opts=D.techs.filter(t=>t.act&&(t.id==s.tid||avail(t.id,s.date,s.start,s.dur,s.id)));
 return `<div class=card id=det style="margin-top:10px"><h2>Folio #MSA-${s.id} · ${e(s.pat)} (${s.age}) · ${fm(s.start)}–${fm(s.start+s.dur)} <span class=badge style="background:${COL[s.st]}">${s.st}</span></h2>
 <div><b>Motivo:</b> ${e(s.dx)} · <b>Movilidad:</b> ${e(s.mob)}${s.comp?' (Con acompañante)':''}</div>
-<div><b>Ruta:</b> ${e(s.from)} → ${e(s.to)}</div>
+<div><b>Ruta:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''} → ${e(s.to)}</div>
+${s.obs?`<div><b>Observaciones:</b> ${e(s.obs)}</div>`:''}
+${s.taxDoc?`<div><b>Doc. Tributario:</b> ${e(s.taxDoc.label||s.taxDoc.type)}${s.taxDoc.type==='factura'?' ('+e(s.taxDoc.rs)+' · RUT '+e(s.taxDoc.rut)+' · Giro '+e(s.taxDoc.giro)+' · Dir: '+e(s.taxDoc.dir)+')':''}</div>`:''}
 <div><b>Contacto:</b> ${e(s.coord)} (${e(s.ph)})</div>
 <div class=msg>Bloqueo operativo hasta ${fm(s.start+s.dur+BUF)} · Tarifa ${$c(s.fare)} · Abono ${$c(s.paid)} · Saldo ${$c(s.fare-s.paid)}</div>
 <div class=row style="margin-top:8px">
@@ -600,7 +602,8 @@ return `<div class=card><div class=row style="justify-content:space-between"><b>
 <h2 style="margin-top:6px">${e(s.pat)}, ${s.age} años</h2><div>${e(s.dx)}</div>
 <div class=al>⚠ ${e(s.mob)}${s.comp?' · Viaja con acompañante':''}<br>${s.req.map(e).join(' · ')}</div>
 <div>Contacto: ${e(s.coord)} ${e(s.ph)}</div><div style="margin:4px 0"><a class=b href="tel:${e(s.ph)}">📞 Llamar</a><a class=b href="https://wa.me/${wa}" target=_blank rel=noopener>WhatsApp</a></div>
-<div><b>Recogida:</b> ${e(s.from)}<br><b>Destino:</b> ${e(s.to)}</div>
+<div><b>Recogida:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''}<br><b>Destino:</b> ${e(s.to)}</div>
+${s.obs?`<div style="font-size:12px;color:var(--pri);margin-top:2px"><b>📝 Observaciones:</b> ${e(s.obs)}</div>`:''}
 <div style="margin:4px 0"><a class=b href="https://waze.com/ul?q=${qo}&navigate=yes" target=_blank rel=noopener>Waze (recogida)</a><a class=b href="https://www.google.com/maps/dir/?api=1&origin=${qo}&destination=${q}" target=_blank rel=noopener>Google Maps (ruta)</a></div>
 <div class=msg>Saldo a cobrar en terreno: <b>${$c(s.fare-s.paid)}</b></div>
 ${n?`<button class=p style="width:100%;margin-top:8px;padding:12px" onclick="setSt(${s.id},'${n[0]}')">[${n[1]}]</button>`:'<div class=msg>✔ Servicio finalizado</div>'}</div>`}
