@@ -2344,7 +2344,13 @@ const BLOCK_HOURS = {
   noche:  ['22:00', '22:30', '23:00', '23:30']
 };
 
-const INTERREGIONAL_HOURS = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30'];
+const INTERREGIONAL_HOURS = [
+  '05:00', '05:15', '05:30', '05:45',
+  '06:00', '06:15', '06:30', '06:45',
+  '07:00', '07:15', '07:30', '07:45',
+  '08:00', '08:15', '08:30', '08:45',
+  '09:00'
+];
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DAY_NAMES_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -2418,7 +2424,7 @@ function seed(){
     ],
     svcs:[
       sv(1,'t1',dMananaOcupada,'08:30',120,'Rosa Medina',82,'1. Servicio Integral · Control cardiológico','Andrea Medina','+56977778888','Maipú, Av. Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
-      sv(2,'t1',dInterregional,'08:00',360,'Jorge Salas',76,'5. Programas Interregionales (Región de Valparaíso) · Control Oncológico','Luis Salas','+56966665555','Viña del Mar, Av. Libertad 450','Instituto Nacional del Cáncer, Santiago','Camina con asistencia/bastón',['Acompañamiento en box médico','Control de signos vitales'],true,300000,150000,'Confirmado',{block:'full',fullDay:true,svcType:'5'}),
+      sv(2,'t1',dInterregional,'08:00',360,'Jorge Salas',76,'5. Programas Interregionales (Región de Valparaíso) · Control Oncológico','Luis Salas','+56966665555','Viña del Mar, Av. Libertad 450','Instituto Nacional del Cáncer, Santiago','Camina con asistencia/bastón',['Acompañamiento en box médico','Control de signos vitales'],true,300000,150000,'Confirmado',{block:'full',fullDay:true,svcType:'5',blocksPrevNight:true}),
       sv(3,'t1',dEventoNocturno,'22:00',360,'María Opazo',84,'4. Acompañamiento a Eventos Sociales · Matrimonio familiar','Pía Opazo','+56944443333','Maipú, Camino a Rinconada 800','Centro de Eventos, Calera de Tango','Silla de ruedas plegable',['Control de signos vitales','Asistencia de higiene/confort'],true,80000,40000,'Confirmado',{block:'noche',svcType:'4',blocksNextMorning:true}),
       sv(4,'t1',dDosTurnos,'08:30',120,'Héctor Muñoz',79,'1. Servicio Integral · Control traumatología','Carmen Muñoz','+56955556666','Maipú, Pajaritos 2200','Hospital del Trabajador, Providencia','Camina con bastón',['Acompañamiento en box médico'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
       sv(5,'t1',dDosTurnos,'15:00',180,'Elena Valdés',81,'2. Traslado con Espera · Sesión Kinesiología','Carlos Valdés','+56933332222','Maipú, Segunda Transversal 500','Centro Médico, Las Condes','Silla de ruedas plegable',['Acompañamiento en box médico'],true,36000,18000,'Confirmado',{block:'tarde',svcType:'2'})
@@ -2495,9 +2501,11 @@ function evaluateDateCapacity(dateStr){
 
   const units = getActiveUnitsForCapacity();
   const prevDateStr = addDaysYMD(dateStr, -1);
+  const nextDateStr = addDaysYMD(dateStr, 1);
 
   const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && s.st !== 'Cancelado');
   const prevDaySvcs = (D.svcs || []).filter(s => s.date === prevDateStr && s.st !== 'Cancelado');
+  const nextDaySvcs = (D.svcs || []).filter(s => s.date === nextDateStr && s.st !== 'Cancelado');
   const dayManualBlocks = (D.blocks || []).filter(b => b.date === dateStr);
 
   // Revisar qué horas dentro de cada bloque cumplen las 24 horas de anticipación
@@ -2537,6 +2545,7 @@ function evaluateDateCapacity(dateStr){
   units.forEach((u, idx) => {
     const unitSvcs = daySvcs.filter(s => s.tid === u.id || (idx === 0 && !units.some(x => x.id === s.tid)));
     const prevUnitSvcs = prevDaySvcs.filter(s => s.tid === u.id || (idx === 0 && !units.some(x => x.id === s.tid)));
+    const nextUnitSvcs = nextDaySvcs.filter(s => s.tid === u.id || (idx === 0 && !units.some(x => x.id === s.tid)));
     const unitManual = dayManualBlocks.filter(b => !b.tid || b.tid === 'all' || b.tid === u.id || (idx === 0 && !units.some(x => x.id === b.tid)));
 
     const hasManualFull   = unitManual.some(b => b.type === 'full');
@@ -2567,6 +2576,9 @@ function evaluateDateCapacity(dateStr){
 
     // Regla 3: Descanso biológico post-nocturno si el día anterior hubo servicio en Turno Noche o finalizado > 22:00 hrs
     const prevNightRestBlock = prevUnitSvcs.some(s => doesServiceEndAfter22(s));
+
+    // Regla de Seguridad Vial / Descanso Pre-Interregional: Bloqueo de noche previa si al día siguiente la unidad tiene un Programa Interregional
+    const nextInterregionalBlock = nextUnitSvcs.some(s => s.svcType === '5' || s.blocksPrevNight);
 
     // Regla 2: Máximo 2 turnos por fecha. Si ya existen 2 turnos reservados, cualquier 3er turno queda bloqueado.
     const isDailyCapReached = bookedShifts.size >= 2 || hasFullDay;
@@ -2627,6 +2639,9 @@ function evaluateDateCapacity(dateStr){
     } else if(hasFullDay){
       nFree = false;
       reasonNocheList.push('Día bloqueado por servicio extenso o Programa Interregional');
+    } else if(nextInterregionalBlock){
+      nFree = false;
+      reasonNocheList.push('Bloqueado por protocolo de seguridad vial y descanso: la profesional tiene un viaje interregional de larga distancia la madrugada siguiente');
     } else if(hasNoche){
       nFree = false;
       reasonNocheList.push('Turno Noche ya reservado en esta fecha');
@@ -2659,10 +2674,15 @@ function evaluateDateCapacity(dateStr){
   let interReason = 'Disponible (bloquea jornada completa Mañana + Tarde)';
   let interAvail = (freeFull > 0 && validHoursInter.length > 0);
   if(freeFull === 0){
-    if(freeM === 0 && freeT === 0) interReason = reasonMananaList[0] || reasonTardeList[0] || 'No disponible en esta fecha';
-    else interReason = 'Programa Interregional requiere día completo (ambos bloques libres)';
+    if(prevDaySvcs.some(s => doesServiceEndAfter22(s))){
+      interReason = 'Bloqueado por protocolo de seguridad vial y descanso preventivo (atención en Turno Noche el día anterior)';
+    } else if(freeM === 0 && freeT === 0){
+      interReason = reasonMananaList[0] || reasonTardeList[0] || 'No disponible en esta fecha';
+    } else {
+      interReason = 'Programa Interregional requiere día completo (ambos bloques Mañana y Tarde libres)';
+    }
   } else if(validHoursInter.length === 0){
-    interReason = 'Requiere mínimo 24 hrs de anticipación para salida temprana interregional (06:00 a 08:30 AM)';
+    interReason = 'Requiere mínimo 24 hrs de anticipación para salida temprana interregional (05:00 a 09:00 AM)';
   }
 
   return {
@@ -3053,7 +3073,7 @@ function updateSlots(keepCurrentTime = false){
     btnM.classList.toggle('active', okInter);
     badgeM.className = 'block-badge ' + (okInter ? 'ok' : 'occ');
     badgeM.textContent = okInter ? `Turno de Inicio (${ev.interregional.free} cupo)` : 'No disponible';
-    subM.textContent = 'Salida temprana interregional (recogidas entre 06:00 y 08:30 AM) · Bloquea día completo';
+    subM.textContent = 'Salida temprana interregional (recogidas entre 05:00 y 09:00 AM) · Bloquea día completo';
     reasonM.style.display = okInter ? 'none' : 'block';
     reasonM.textContent = okInter ? '' : `🔒 ${ev.interregional.reason}`;
 
@@ -3073,7 +3093,7 @@ function updateSlots(keepCurrentTime = false){
       badgeN.textContent = 'Inhabilitado';
       subN.textContent = 'Exclusivo para Cuidados a Domicilio y Eventos';
       reasonN.style.display = 'block';
-      reasonN.textContent = '🔒 Programa Interregional opera exclusivamente en jornada diurna completa (06:00 a 20:00).';
+      reasonN.textContent = '🔒 Programa Interregional opera exclusivamente en jornada diurna completa (05:00 a 20:00).';
     }
   } else if(!allowsNight){
     // Modalidades 1 y 2 (Traslados vehiculares): Turno Noche completamente inhabilitado
@@ -3207,7 +3227,7 @@ function updateSlots(keepCurrentTime = false){
       nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar ${reasonText} (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (06:00 a 12:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:30 hrs).`;
     } else if(isInter){
       nightNotice.style.display = 'block';
-      nightNotice.innerHTML = `🗺️ <b>Regla de Programa Interregional:</b> Esta reserva bloquea automáticamente <b>el día completo (Bloque Mañana y Bloque Tarde)</b> para dedicación exclusiva a su traslado interregional.`;
+      nightNotice.innerHTML = `🗺️ <b>Regla de Programa Interregional:</b> Esta reserva bloquea automáticamente <b>el día completo (Bloque Mañana y Bloque Tarde)</b> y el <b>Turno Noche de la víspera (día anterior)</b> para dedicación exclusiva, descanso preventivo y seguridad vial en carretera.`;
     } else if(isInvadingCrossShift){
       nightNotice.style.display = 'block';
       nightNotice.innerHTML = `⚠️ <b>Bloqueo de Turnos Cruzados:</b> Por su duración (${fmtHoursClean(dur)}), esta atención finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia (12:00-14:30) y el Turno Tarde. El sistema bloqueará automáticamente <b>ambos turnos (Mañana y Tarde)</b> de este día en la agenda.`;
@@ -3269,9 +3289,9 @@ function calcSuggestedPickup(){
   const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
   if(isInter){
     targetBlock = 'manana';
-    targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
-    if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00 AM
-    if(targetSlotMin > 510) targetSlotMin = 510; // Máximo 08:30 AM para asegurar llegada a Santiago
+    targetSlotMin = Math.floor(rawPickupMin / 15) * 15;
+    if(targetSlotMin < 300) targetSlotMin = 300; // Mínimo 05:00 AM (300 min)
+    if(targetSlotMin > 540) targetSlotMin = 540; // Máximo 09:00 AM (540 min)
   } else if(rawPickupMin <= 600){ // 10:00 AM o antes -> Turno Mañana (06:00 a 10:00)
     targetBlock = 'manana';
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
@@ -3298,16 +3318,16 @@ function calcSuggestedPickup(){
 
   let ajusteAgendaTexto = '';
   if(holguraMin > 0){
-    ajusteAgendaTexto = `→ <b>Ajuste preventivo a bloque de agenda (cada 30 min):</b> Redondeado al bloque anterior de las <b>${targetSlotStr} hrs</b> (+${holguraMin} min de holgura preventiva ante imprevistos de tráfico).<br>
+    ajusteAgendaTexto = `→ <b>Ajuste preventivo a bloque de agenda (${isInter ? 'cada 15 min' : 'cada 30 min'}):</b> Redondeado al bloque anterior de las <b>${targetSlotStr} hrs</b> (+${holguraMin} min de holgura preventiva ante imprevistos de tráfico).<br>
     <b>Anticipación total con holgura:</b> ${totalAnticipacionEfectiva} minutos (${fmtHoursClean(totalAnticipacionEfectiva)}).`;
   } else if(holguraMin === 0){
     ajusteAgendaTexto = `→ <b>Alineación con agenda:</b> Coincide exactamente con el bloque agendable de las <b>${targetSlotStr} hrs</b> (${totalAnticipacionExacta} min de anticipación previa).`;
   } else {
-    // Cuando se topa con el límite del turno (ej: mínimo 06:00 o máximo 10:00)
-    ajusteAgendaTexto = `→ <b>Ajuste por ventana operativa:</b> Fijado en <b>${targetSlotStr} hrs</b> (${targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde'}, límite de ventana disponible).`;
+    // Cuando se topa con el límite del turno (ej: mínimo 05:00 o máximo 09:00/10:00)
+    ajusteAgendaTexto = `→ <b>Ajuste por ventana operativa:</b> Fijado en <b>${targetSlotStr} hrs</b> (${isInter ? 'Salida temprana interregional' : (targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde')}, límite de ventana disponible).`;
   }
 
-  const blockHuman = targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde';
+  const blockHuman = isInter ? 'Turno Mañana (Salida Temprana Interregional)' : (targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde');
 
   msg.innerHTML = `
     Para llegar con tiempo suficiente a tu compromiso de las <b>${appTimeStr} hrs</b>, te sugerimos fijar tu recogida a las <b>${targetSlotStr} hrs</b> (${blockHuman}).<br>
@@ -3530,7 +3550,8 @@ async function submitBooking(ev){
     block: (isInter || isCrossShift) ? 'full' : selectedBlock,
     fullDay: (isInter || isCrossShift),
     crossShift: isCrossShift,
-    blocksNextMorning: endsAfter22
+    blocksNextMorning: endsAfter22,
+    blocksPrevNight: (mode === '5')
   };
 
   D.svcs.push(newSvc);
@@ -3578,6 +3599,7 @@ async function submitBooking(ev){
         <li><span>🌅 <b>Bloque de Agenda:</b></span> <span><b>${e(blockHuman)}</b></span></li>
         <li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>
         ${endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : ''}
+        ${mode === '5' ? `<li><span>🛡️ <b>Seguridad Vial y Descanso:</b></span> <span>Bloquea jornada completa de la fecha y el Turno Noche de la víspera (noche anterior)</span></li>` : ''}
         <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : 'Dirección de Recogida / Inicio (A):'}</b></span> <span>${e(from)}</span></li>
         ${showDest ? `<li><span>🏁 <b>Dirección de Destino / Recinto (B):</b></span> <span>${e(to)}</span></li>` : ''}
         ${showMap && (mode === '1' || mode === '2') ? `
