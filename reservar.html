@@ -396,6 +396,9 @@ footer a{color:#fff}
           <option value="4">4. Acompañamiento a Eventos Sociales</option>
           <option value="5">5. Programas Interregionales</option>
         </select>
+        <div id="interregionalBlockWarn" class="rule-alert" style="display:none;margin-top:8px">
+          ⚠️ Los Programas Interregionales (Valparaíso / O'Higgins) contemplan entre 4 y 6 horas de permanencia más traslados de larga distancia, por lo que únicamente pueden iniciarse en el Turno Mañana.
+        </div>
       </div>
 
       <!-- SELECTOR EXCLUSIVO MODALIDAD 5: 2 CUADRADOS PARA MARCAR REGIÓN (VALPARAÍSO U O'HIGGINS) -->
@@ -1071,6 +1074,11 @@ function refreshDuration34Options(resetSelection = false){
 }
 
 function onServiceTypeChange(){
+  const mode = $('#b_svc_type').value;
+  if(mode === '5'){
+    // Al seleccionar Programas Interregionales, fijar automáticamente Turno Mañana
+    selectedBlock = 'manana';
+  }
   setRouteStatus('');
   refreshDuration34Options(true);
   applyModalityVisibility();
@@ -2052,6 +2060,8 @@ const BLOCK_HOURS = {
   noche:  ['22:00', '22:30', '23:00', '23:30']
 };
 
+const INTERREGIONAL_HOURS = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30'];
+
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DAY_NAMES_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
@@ -2210,6 +2220,7 @@ function evaluateDateCapacity(dateStr){
   const validHoursManana = BLOCK_HOURS.manana.filter(h => isSlotAtLeast24hAhead(dateStr, h));
   const validHoursTarde  = BLOCK_HOURS.tarde.filter(h => isSlotAtLeast24hAhead(dateStr, h));
   const validHoursNoche  = BLOCK_HOURS.noche.filter(h => isSlotAtLeast24hAhead(dateStr, h));
+  const validHoursInter  = INTERREGIONAL_HOURS.filter(h => isSlotAtLeast24hAhead(dateStr, h));
 
   const mananaTimeOk = validHoursManana.length > 0;
   const tardeTimeOk  = validHoursTarde.length > 0;
@@ -2362,9 +2373,12 @@ function evaluateDateCapacity(dateStr){
   }
 
   let interReason = 'Disponible (bloquea jornada completa Mañana + Tarde)';
+  let interAvail = (freeFull > 0 && validHoursInter.length > 0);
   if(freeFull === 0){
     if(freeM === 0 && freeT === 0) interReason = reasonMananaList[0] || reasonTardeList[0] || 'No disponible en esta fecha';
     else interReason = 'Programa Interregional requiere día completo (ambos bloques libres)';
+  } else if(validHoursInter.length === 0){
+    interReason = 'Requiere mínimo 24 hrs de anticipación para salida temprana interregional (06:00 a 08:30 AM)';
   }
 
   return {
@@ -2398,9 +2412,9 @@ function evaluateDateCapacity(dateStr){
     },
     interregional: {
       availUnits: availUnitsFullDay,
-      free: freeFull,
-      available: freeFull > 0,
-      validHours: validHoursManana,
+      free: interAvail ? freeFull : 0,
+      available: interAvail,
+      validHours: validHoursInter,
       reason: interReason
     },
     status: dayStatus
@@ -2465,9 +2479,13 @@ function selectCalendarDate(dateStr){
 function selectShiftBlock(blockId){
   const dateStr = $('#b_date').value;
   const ev = evaluateDateCapacity(dateStr);
-  const mode = $('#b_svc_type').value;
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
 
   if(mode === '5'){
+    if(blockId !== 'manana'){
+      alert("⚠️ Los Programas Interregionales (Valparaíso / O'Higgins) contemplan entre 4 y 6 horas de permanencia más traslados de larga distancia, por lo que únicamente pueden iniciarse en el Turno Mañana.");
+      return;
+    }
     selectedBlock = 'manana';
   } else if(blockId === 'noche'){
     if(mode !== '3' && mode !== '4'){
@@ -2718,24 +2736,49 @@ function updateSlots(keepCurrentTime = false){
   const reasonT = $('#reasonBlock_tarde');
   const reasonN = $('#reasonBlock_noche');
 
-  if(isInter){
-    const okInter = ev.inRange && ev.interregional.available;
-    btnM.disabled = !okInter;
-    btnT.disabled = !okInter;
-    btnM.classList.toggle('active', okInter);
-    btnT.classList.toggle('active', okInter);
+  // Restricción cruzada en combobox de modalidades (Sección 2):
+  // Si el usuario tiene seleccionado Turno Tarde o Noche, la opción 5 queda disabled y se muestra advertencia.
+  const optInter = $('#b_svc_type') ? $('#b_svc_type').querySelector('option[value="5"]') : null;
+  const warnInter = $('#interregionalBlockWarn');
 
+  if(selectedBlock !== 'manana'){
+    if(optInter){
+      optInter.disabled = true;
+    }
+    if(warnInter){
+      warnInter.style.display = 'block';
+      warnInter.innerHTML = `⚠️ Los Programas Interregionales (Valparaíso / O'Higgins) contemplan entre 4 y 6 horas de permanencia más traslados de larga distancia, por lo que únicamente pueden iniciarse en el Turno Mañana.`;
+    }
+  } else {
+    if(optInter){
+      optInter.disabled = false;
+    }
+    if(warnInter){
+      warnInter.style.display = 'none';
+    }
+  }
+
+  if(isInter){
+    selectedBlock = 'manana';
+    const okInter = ev.inRange && ev.interregional.available;
+
+    // a) Turno Mañana: Fijado automáticamente en la Sección 1
+    btnM.disabled = !okInter;
+    btnM.classList.toggle('active', okInter);
     badgeM.className = 'block-badge ' + (okInter ? 'ok' : 'occ');
-    badgeM.textContent = okInter ? `Jornada Completa (${ev.interregional.free} cupo)` : 'No disponible';
-    subM.textContent = 'Salida en Turno Mañana (06:00 a 10:00 hrs) · Bloquea día completo';
+    badgeM.textContent = okInter ? `Turno de Inicio (${ev.interregional.free} cupo)` : 'No disponible';
+    subM.textContent = 'Salida temprana interregional (recogidas entre 06:00 y 08:30 AM) · Bloquea día completo';
     reasonM.style.display = okInter ? 'none' : 'block';
     reasonM.textContent = okInter ? '' : `🔒 ${ev.interregional.reason}`;
 
-    badgeT.className = 'block-badge ' + (okInter ? 'ok' : 'occ');
-    badgeT.textContent = okInter ? 'Incluido en Día Completo' : 'No disponible';
-    subT.textContent = 'Regla Interregional: bloquea automáticamente Mañana y Tarde para su traslado';
-    reasonT.style.display = okInter ? 'none' : 'block';
-    reasonT.textContent = okInter ? '' : `🔒 ${ev.interregional.reason}`;
+    // b) Turno Tarde: Marcar como NO DISPONIBLE informando al usuario que la reserva adquiere y bloquea la jornada completa
+    btnT.disabled = true;
+    btnT.classList.remove('active');
+    badgeT.className = 'block-badge occ';
+    badgeT.textContent = 'No disponible';
+    subT.textContent = 'Adquiere y bloquea la jornada completa de la unidad (Mañana y Tarde)';
+    reasonT.style.display = 'block';
+    reasonT.textContent = '🔒 No disponible: La reserva del Programa Interregional adquiere y bloquea la jornada completa de la unidad (Mañana y Tarde) por tiempos de traslado y permanencia.';
 
     if(btnN){
       btnN.disabled = true;
@@ -2814,7 +2857,7 @@ function updateSlots(keepCurrentTime = false){
   // Poblar desplegable #b_time según el bloque activo
   const timeSelect = $('#b_time');
   const prevTime = timeSelect.value;
-  const hoursList = isInter ? BLOCK_HOURS.manana : getBlockHoursList(selectedBlock);
+  const hoursList = isInter ? INTERREGIONAL_HOURS : getBlockHoursList(selectedBlock);
   const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : (selectedBlock === 'noche' ? ev.noche : ev.tarde));
 
   if(!ev.inRange || !activeBlockObj.available){
@@ -2822,7 +2865,9 @@ function updateSlots(keepCurrentTime = false){
     timeSelect.disabled = true;
   } else {
     timeSelect.disabled = false;
-    const timeLabelSuffix = (selectedBlock === 'noche') ? 'Hora de inicio de atención nocturna' : 'Hora exacta de recogida';
+    const timeLabelSuffix = isInter
+      ? 'Salida temprana interregional (hacia Santiago)'
+      : ((selectedBlock === 'noche') ? 'Hora de inicio de atención nocturna' : 'Hora exacta de recogida');
     timeSelect.innerHTML = hoursList.map(h => {
       const ok24 = isSlotAtLeast24hAhead(dateStr, h);
       return `<option value="${h}" ${!ok24 ? 'disabled' : ''}>${h} hrs — ${timeLabelSuffix}${!ok24 ? ' (Menos de 24h)' : ''}</option>`;
@@ -2934,7 +2979,13 @@ function calcSuggestedPickup(){
   let targetBlock = 'manana';
   let targetSlotMin = 510; // 08:30
 
-  if(rawPickupMin <= 600){ // 10:00 AM o antes -> Turno Mañana (06:00 a 10:00)
+  const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
+  if(isInter){
+    targetBlock = 'manana';
+    targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
+    if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00 AM
+    if(targetSlotMin > 510) targetSlotMin = 510; // Máximo 08:30 AM para asegurar llegada a Santiago
+  } else if(rawPickupMin <= 600){ // 10:00 AM o antes -> Turno Mañana (06:00 a 10:00)
     targetBlock = 'manana';
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
     if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00
