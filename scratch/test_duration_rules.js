@@ -207,72 +207,51 @@ assert(sandbox.$('#selMins34').disabled === true, 'Modalidad 4 minutes disabled'
 
 // TEST 6: Modalidad 4 Pricing
 // Pure daytime event (09:00, 4h and 6h)
+// TEST 6: Modalidad 4 Flat Rates
+// Option A: Sin Traslado
 vm.runInContext(`
   $('#b_date').value = '2026-10-28'; // Miércoles hábil
   $('#b_time').value = '09:00';
-  currentJornada = 'habil';
+  selectedEventSubMode = 'sin_traslado';
   $('#selHours34').value = '4';
   recalcAll();
 `, sandbox);
 let cost = vm.runInContext('lastTimeCost', sandbox);
-assert(cost === 48000, `Modalidad 4 hábil diurno 4h cost should be $48.000 (got: ${cost})`);
+assert(cost === 65000, `Modalidad 4 Sin Traslado 4h flat cost should be $65.000 (got: ${cost})`);
 
 vm.runInContext(`
   $('#selHours34').value = '6';
   recalcAll();
 `, sandbox);
 cost = vm.runInContext('lastTimeCost', sandbox);
-assert(cost === 64000, `Modalidad 4 hábil diurno 6h cost should be $64.000 (got: ${cost})`);
+assert(cost === 95000, `Modalidad 4 Sin Traslado 6h flat cost should be $95.000 (got: ${cost})`);
 
-// Proportional crossing 20:00 (14:30 + 6h = ends at 20:30: 5.5h @ $12k + 0.5h @ $18k = $75.000)
+// Option B: Con Traslado
 vm.runInContext(`
-  $('#b_time').value = '14:30';
-  recalcAll();
-`, sandbox);
-cost = vm.runInContext('lastTimeCost', sandbox);
-assert(cost === 75000, `Modalidad 4 crossing 20:00 (14:30 to 20:30) proportional cost should be $75.000 (got: ${cost})`);
-
-// Weekend diurno (+25%)
-vm.runInContext(`
-  currentJornada = 'tarde';
-  $('#b_time').value = '09:00';
+  selectedEventSubMode = 'con_traslado';
   $('#selHours34').value = '4';
   recalcAll();
 `, sandbox);
 cost = vm.runInContext('lastTimeCost', sandbox);
-assert(cost === 60000, `Modalidad 4 fin de semana diurno 4h cost should be $60.000 (got: ${cost})`);
+assert(cost === 95000, `Modalidad 4 Con Traslado 4h flat cost should be $95.000 (got: ${cost})`);
 
 vm.runInContext(`
   $('#selHours34').value = '6';
   recalcAll();
 `, sandbox);
 cost = vm.runInContext('lastTimeCost', sandbox);
-assert(cost === 80000, `Modalidad 4 fin de semana diurno 6h cost should be $80.000 (got: ${cost})`);
+assert(cost === 125000, `Modalidad 4 Con Traslado 6h flat cost should be $125.000 (got: ${cost})`);
 
-// Weekend proportional crossing 20:00 (14:30 to 20:30: 5.5h @ $15k ($82.5k) + 0.5h @ $18k ($9k) = $91.500)
-vm.runInContext(`
-  $('#b_time').value = '14:30';
-  recalcAll();
-`, sandbox);
-cost = vm.runInContext('lastTimeCost', sandbox);
-assert(cost === 91500, `Modalidad 4 weekend crossing 20:00 proportional cost should be $91.500 (got: ${cost})`);
-
-// Nocturno (+50%)
+// Eventos flat rates apply uniformly across weekend/night schedules without surcharge
 vm.runInContext(`
   currentJornada = 'nocturno';
   $('#b_time').value = '22:00';
-  $('#selHours34').value = '4';
-  recalcAll();
-`, sandbox);
-cost = vm.runInContext('lastTimeCost', sandbox);
-assert(cost === 72000, `Modalidad 4 nocturno 4h cost should be $72.000 (got: ${cost})`);
-
-vm.runInContext(`
+  selectedEventSubMode = 'con_traslado';
   $('#selHours34').value = '6';
   recalcAll();
 `, sandbox);
 cost = vm.runInContext('lastTimeCost', sandbox);
-assert(cost === 96000, `Modalidad 4 nocturno 6h cost should be $96.000 (got: ${cost})`);
+assert(cost === 125000, `Modalidad 4 Con Traslado in nocturno remains flat $125.000 (got: ${cost})`);
 
 // TEST 7: Modalidad 4 Biological rest & night schedule
 const svcNight = {

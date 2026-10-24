@@ -401,6 +401,27 @@ footer a{color:#fff}
         </div>
       </div>
 
+      <!-- SELECTOR EXCLUSIVO MODALIDAD 4: FORMATO DE ASISTENCIA EN EVENTO (SIN TRASLADO VS CON TRASLADO) -->
+      <div id="eventSubModeBox" class="interregional-box" style="display:none">
+        <label style="color:var(--teal);font-size:.96rem;font-weight:700">Seleccione el formato de contratación para su Evento Social *</label>
+        <div class="region-squares">
+          <button type="button" id="eventBtn_sin" class="reg-sq active" onclick="selectEventSubMode('sin_traslado')">
+            <span class="reg-check" id="eventChk_sin">✓</span>
+            <div>
+              <strong>Pack Asistencia en Recinto (Sin Traslado)</strong>
+              <small>La familia lleva al paciente · Atención TENS continua durante la celebración</small>
+            </div>
+          </button>
+          <button type="button" id="eventBtn_con" class="reg-sq" onclick="selectEventSubMode('con_traslado')">
+            <span class="reg-check" id="eventChk_con"></span>
+            <div>
+              <strong>Pack Integral Puerta a Puerta (Con Traslado)</strong>
+              <small>Incluye traslados completos Ida y Vuelta en vehículo exclusivo + Atención TENS</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
       <!-- SELECTOR EXCLUSIVO MODALIDAD 5: 2 CUADRADOS PARA MARCAR REGIÓN (VALPARAÍSO U O'HIGGINS) -->
       <div id="interregionalRegionBox" class="interregional-box">
         <label style="color:var(--teal);font-size:.96rem">Seleccione la región de origen de su Programa Interregional *</label>
@@ -917,10 +938,12 @@ const RATES = {
     tarde:    { hour: 15000, half: 7500 },
     nocturno: { hour: 18000, half: 9000, pkg: { 6: 96000 }, savings: { 6: 12000 } }
   },
-  '4': { // d) Asistencia en eventos (Matrimonios / Fiestas / Salidas Sociales): 4h, 5h, Plan Tope 6h + frac. 30m
-    habil:    { hour: 12000, half: 6000, pkg: {4: 48000, 5: 60000, 6: 64000}, savings: {6: 8000} },
-    tarde:    { hour: 15000, half: 7500, pkg: {4: 60000, 5: 75000, 6: 80000}, savings: {6: 10000} },
-    nocturno: { hour: 18000, half: 9000, pkg: {4: 72000, 5: 90000, 6: 96000}, savings: {6: 12000} }
+  '4': { // d) Asistencia en eventos (Tarifas planas paquetizadas cerradas para toda la RM)
+    sin_traslado: { 4: 65000, 6: 95000 },
+    con_traslado: { 4: 95000, 6: 125000 },
+    habil:    { hour: 16250, half: 8125 },
+    tarde:    { hour: 16250, half: 8125 },
+    nocturno: { hour: 16250, half: 8125 }
   },
   '5': { // e) Programas Interregionales (Estándar hasta 4h = $250.000, Crónico/Oncológico hasta 6h = $300.000; extra: $15.000/30min y $25.000/hora)
     habil:    { hour: 25000, half: 15000, pkg: {4: 250000, 6: 300000} },
@@ -1073,8 +1096,29 @@ function setInterProgram(hours){
 }
 
 // ===== REGLAS POR MODALIDAD DE SERVICIO =====
+let selectedEventSubMode = 'sin_traslado'; // 'sin_traslado' | 'con_traslado'
+
+function selectEventSubMode(subMode){
+  selectedEventSubMode = subMode;
+  const isSin = (subMode === 'sin_traslado');
+  const btnSin = $('#eventBtn_sin');
+  const btnCon = $('#eventBtn_con');
+  const chkSin = $('#eventChk_sin');
+  const chkCon = $('#eventChk_con');
+
+  if(btnSin) btnSin.classList.toggle('active', isSin);
+  if(btnCon) btnCon.classList.toggle('active', !isSin);
+  if(chkSin) chkSin.textContent = isSin ? '✓' : '';
+  if(chkCon) chkCon.textContent = isSin ? '' : '✓';
+
+  applyModalityVisibility();
+  refreshDuration34Options();
+  recalcAll();
+}
+
 function isMapEnabledForCurrentState(){
-  const mode = $('#b_svc_type').value;
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  if(mode === '4') return selectedEventSubMode === 'con_traslado';
   return mode === '1' || mode === '2' || mode === '5';
 }
 
@@ -1125,10 +1169,16 @@ function refreshDuration34Options(resetSelection = false){
       $('#selMins34').value = (!resetSelection && ['0','30'].includes(prevM)) ? prevM : '0';
     }
   } else if(mode === '4'){
-    $('#lblHours34').textContent = 'Plan de cobertura para evento (formato paquetizado)';
-    $('#selHours34').innerHTML = `
-      <option value="4">Plan Base Evento (4 horas continuas)</option>
-      <option value="6">Plan Cobertura Total (6 horas continuas - Tope)</option>
+    const isCon = selectedEventSubMode === 'con_traslado';
+    $('#lblHours34').textContent = isCon
+      ? 'Pack Integral Puerta a Puerta (Traslados Ida/Vuelta + Asistencia TENS)'
+      : 'Plan de Asistencia en Recinto (Sin Traslado Vehicular)';
+    $('#selHours34').innerHTML = isCon ? `
+      <option value="4">Pack Base (4 horas en evento + Traslados incluidos) · $95.000</option>
+      <option value="6">Pack Cobertura Total (6 horas en evento + Traslados incluidos) · $125.000</option>
+    ` : `
+      <option value="4">Plan Base (4 horas continuas en recinto) · $65.000</option>
+      <option value="6">Plan Cobertura Total (6 horas continuas en recinto) · $95.000</option>
     `;
     $('#selHours34').value = (!resetSelection && prevH === '6') ? '6' : '4';
 
@@ -1171,8 +1221,8 @@ function onServiceTypeChange(){
 
 function applyModalityVisibility(){
   const mode = $('#b_svc_type').value;
-  const showMap = isMapEnabledForCurrentState(); // true en '1', '2' y '5'
-  const showDestAddress = (mode === '1' || mode === '2' || mode === '5');
+  const showMap = isMapEnabledForCurrentState(); // true en '1', '2', '5' y en '4' (con traslado)
+  const showDestAddress = (mode === '1' || mode === '2' || mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado'));
 
   const layoutBox = $('#routeLayoutBox');
   const mapCol = $('#mapColumn');
@@ -1181,15 +1231,20 @@ function applyModalityVisibility(){
   const bFrom = $('#b_from');
   const bTo = $('#b_to');
 
-  // Mostrar/ocultar los 2 cuadrados de Región Interregional
+  // Mostrar/ocultar selectores exclusivos de Modalidad 4 y 5
+  const eventSubBox = $('#eventSubModeBox');
+  if(eventSubBox){
+    eventSubBox.style.display = (mode === '4') ? 'block' : 'none';
+  }
   $('#interregionalRegionBox').style.display = (mode === '5') ? 'block' : 'none';
 
-  // Mostrar tarjetas de Jornada (1-4) vs tarjetas de Programa Interregional (5)
-  $('#jornadaSelectorWrap').style.display = (mode === '5') ? 'none' : 'block';
+  // Mostrar tarjetas de Jornada (1 a 3) vs Ocultar en Eventos (4) y Programas Interregionales (5)
+  // En Eventos y Programas Interregionales rigen tarifas planas paquetizadas cerradas
+  $('#jornadaSelectorWrap').style.display = (mode === '4' || mode === '5') ? 'none' : 'block';
   $('#interProgSelectorWrap').style.display = (mode === '5') ? 'block' : 'none';
 
-  if(mode === '5'){
-    setTripMode(2); // Por defecto Ida y Vuelta en Programa Interregional
+  if(mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado')){
+    setTripMode(2); // Por defecto Ida y Vuelta
   }
 
   // En Modalidades 1 y 2 (Traslados Clínicos): solo permitir Hábil, Sábados y Domingos/Festivos (08:00 a 20:00). No hay traslados nocturnos.
@@ -1213,7 +1268,7 @@ function applyModalityVisibility(){
   if(mode === '5'){
     $('#timeSectionSub').textContent = 'Seleccione el programa requerido según las horas de permanencia en destino. En caso de requerir tiempo adicional, cada bloque de 30 minutos tiene un valor de $15.000 ($25.000 por hora).';
   } else if(mode === '4'){
-    $('#timeSectionSub').textContent = 'Seleccione la jornada horaria, hora de inicio y duración. Si el horario del evento cruza las 20:00 hrs, se aplica cálculo proporcional (horas antes de las 20:00 a tarifa diurna y horas posteriores a $18.000/h).';
+    $('#timeSectionSub').textContent = 'Seleccione el plan de cobertura (4 o 6 horas continuas). En Eventos Sociales rigen tarifas planas paquetizadas cerradas para toda la Región Metropolitana, sin recargo nocturno ni por día festivo.';
   } else {
     $('#timeSectionSub').textContent = 'Seleccione la jornada horaria en que necesita el servicio y la cantidad de horas/minutos. Cada bloque adicional de 30 minutos se calcula a la mitad del valor hora de su jornada.';
   }
@@ -1221,7 +1276,7 @@ function applyModalityVisibility(){
   if(showMap){
     layoutBox.classList.remove('no-map');
     mapCol.style.display = 'block';
-    kmControls.style.display = 'block';
+    kmControls.style.display = (mode === '1' || mode === '2') ? 'block' : 'none';
     setTimeout(() => map.invalidateSize(), 80);
   } else {
     layoutBox.classList.add('no-map');
@@ -1242,6 +1297,16 @@ function applyModalityVisibility(){
     $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección de Recogida / Inicio (Calle, número exacto y comuna) *`;
     $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección de Destino (Clínica, Hospital o dirección con numeración) *`;
     bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
+  } else if(mode === '4'){
+    if(selectedEventSubMode === 'con_traslado'){
+      $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección de recogida en Domicilio (Calle, número exacto y comuna) *`;
+      $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección del Centro de Eventos o Salón (Destino) *`;
+      bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
+      bTo.placeholder = 'Ej: Centro de Eventos El Manantial, Pirque';
+    } else {
+      $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección del Centro de Eventos o Salón (Calle, número exacto y comuna) *`;
+      bFrom.placeholder = 'Ej: Centro de Eventos El Manantial, Camino El Volcán 450, Pirque';
+    }
   } else if(mode === '5'){
     $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección exacta donde debemos ir a buscarlo (Valparaíso u O'Higgins) *`;
     $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección exacta a donde necesita ir (Clínica, Hospital o Centro en Santiago) *`;
@@ -1275,12 +1340,15 @@ function applyModalityVisibility(){
       $('#timeSectionTitle').textContent = `⏱️ Tiempo de Asistencia en Domicilio (Piso mínimo ${minH}h según comuna · Máximo 6h)`;
       $('#timeSectionSub').textContent = 'Seleccione la cantidad de horas continuas de atención en el hogar. Cada bloque adicional de 30 minutos se calcula al 50% del valor hora.';
     } else if(mode === '4'){
-      $('#eventStartCol').style.display = 'block';
+      $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'block';
-      $('#mins34Col').style.display = 'block';
-      $('#durationBox34').style.gridTemplateColumns = '';
-      $('#timeSectionTitle').textContent = '⏱️ Planes de Asistencia en Eventos Sociales (Formato Paquetizado Cerrado)';
-      $('#timeSectionSub').textContent = 'Seleccione el plan de cobertura (4 o 6 horas continuas). Si el evento cruza las 20:00 hrs o se agenda en turno nocturno, aplica la tarifa correspondiente.';
+      $('#mins34Col').style.display = 'none';
+      $('#durationBox34').style.gridTemplateColumns = '1fr';
+      const isCon = selectedEventSubMode === 'con_traslado';
+      $('#timeSectionTitle').textContent = isCon
+        ? '⏱️ Pack Integral Puerta a Puerta (Traslados Ida/Vuelta + Atención en Evento)'
+        : '⏱️ Plan de Asistencia en Recinto / Salón (Tarifa Plana Cerrada)';
+      $('#timeSectionSub').textContent = 'Seleccione la cobertura deseada (4 o 6 horas continuas). En Eventos Sociales rigen tarifas planas paquetizadas cerradas para toda la Región Metropolitana.';
     } else if(mode === '5'){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'none';
@@ -1289,8 +1357,8 @@ function applyModalityVisibility(){
     }
   }
 
-  // Mostrar/ocultar sección de Suma (KM + TIEMPO) vs Valor Directo sin suma de KM
-  if(showMap){
+  // Mostrar/ocultar sección de Suma (KM + TIEMPO) vs Valor Directo sin suma de KM (Tarjeta Azul)
+  if(mode === '1' || mode === '2'){
     $('#sumKmTimeSection').style.display = 'block';
     $('#directTimeOnlySection').style.display = 'none';
   } else {
@@ -1308,7 +1376,9 @@ function applyModalityVisibility(){
     if(mode === '3'){
       lblPick.textContent = 'Hora exacta de inicio de la atención domiciliaria *';
     } else if(mode === '4'){
-      lblPick.textContent = 'Hora exacta de inicio del acompañamiento en evento *';
+      lblPick.textContent = (selectedEventSubMode === 'con_traslado')
+        ? 'Hora exacta de recogida en domicilio para iniciar viaje al evento *'
+        : 'Hora exacta de llegada de la TENS al centro de eventos / salón *';
     } else {
       lblPick.textContent = 'Hora exacta de recogida requerida (dentro del turno de Paso 1) *';
     }
@@ -1327,6 +1397,8 @@ function applyModalityVisibility(){
       noticeBox.innerHTML = `🛡️ <b>Garantía de Espera Vehicular Exclusiva:</b> El vehículo y su conductora permanecen a su total disposición en el recinto durante todo el tiempo contratado. Si la atención demora más de lo presupuestado, el excedente se liquida al regreso en bloques de 30 minutos según la tarifa horaria de espera.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
     } else if(mode === '3'){
       noticeBox.innerHTML = `🛡️ <b>Garantía de Cuidado Clínico en el Hogar:</b> Atención personalizada realizada por una Técnico en Enfermería de Nivel Superior (TENS), enfocada en el confort, higiene, seguridad y bienestar del paciente dentro de su domicilio. Si por requerimiento familiar la atención debe extenderse más allá de las horas reservadas, el tiempo adicional se regularizará al término del servicio en bloques de 30 minutos (sujeto a disponibilidad y tope máximo de 6 hrs continuas).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
+    } else if(mode === '4'){
+      noticeBox.innerHTML = `🛡️ <b>Garantía de Cobertura y Bienestar en Eventos:</b> Acompañamiento exclusivo y dedicado por una profesional TENS durante toda la celebración, asegurando el confort, movilidad asistida en salón, supervisión de medicamentos y tranquilidad integral para la familia. Si la celebración amerita extender el servicio más allá del tiempo contratado, cada bloque adicional de 30 minutos se regularizará al término del evento (sujeto a disponibilidad técnica).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
     } else {
       noticeBox.innerHTML = `🛡️ <b>Garantía de acompañamiento y espera:</b> Sabemos que las consultas de salud, filas en notarías o gestiones pueden extenderse de forma imprevista. Tu profesional TENS y el móvil te esperarán todo el tiempo necesario. Cualquier sobretiempo que exceda la reserva se regularizará al volver al hogar en bloques de 30 minutos según la tarifa horaria correspondiente.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
     }
@@ -1600,28 +1672,14 @@ function recalcAll(){
     let h = +$('#selHours34').value || 4;
     if(h >= 6) h = 6;
     else h = 4;
-    const totalMins = h * 60;
-    const startStr = ($('#b_time') && $('#b_time').value) || ($('#selEventStart1') && $('#selEventStart1').value) || '16:00';
-    const startMin = tm(startStr);
-    const endMin = startMin + totalMins;
-    const cutoff20 = 20 * 60; // 20:00 hrs = 1200 min
-    const planName = h === 6 ? 'Plan Cobertura Total (6 horas continuas)' : 'Plan Base Evento (4 horas continuas)';
+    const isCon = (selectedEventSubMode === 'con_traslado');
+    const basePkgCost = isCon ? (h === 6 ? 125000 : 95000) : (h === 6 ? 95000 : 65000);
+    const planTitle = isCon
+      ? (h === 6 ? 'Pack Cobertura Total (6 hrs en evento + Traslados Ida/Vuelta)' : 'Pack Base (4 hrs en evento + Traslados Ida/Vuelta)')
+      : (h === 6 ? 'Plan Cobertura Total (6 hrs continuas en recinto · Sin traslado)' : 'Plan Base (4 hrs continuas en recinto · Sin traslado)');
 
-    // En Modalidad 4 (Eventos Sociales), aplicar cálculo proporcional si el horario cruza las 20:00 hrs
-    if(startMin < cutoff20 && endMin > cutoff20 && currentJornada !== 'nocturno'){
-      const minsBefore20 = cutoff20 - startMin;
-      const minsAfter20  = endMin - cutoff20;
-      const diurnalRate  = currentJornada === 'tarde' ? 15000 : 12000;
-      const nocturnalRate = 18000;
-      const costBefore20 = Math.round((minsBefore20 / 60) * diurnalRate);
-      const costAfter20  = Math.round((minsAfter20 / 60) * nocturnalRate);
-      timeCost = Math.round((costBefore20 + costAfter20) / 100) * 100;
-      durationText = `${planName} · Proporcional (${startStr} a ${fm(endMin % 1440)}): ${fmtHoursClean(minsBefore20)} antes de 20:00 a ${$c(diurnalRate)}/h (${$c(costBefore20)}) + ${fmtHoursClean(minsAfter20)} post-20:00 a $18.000/h (${$c(costAfter20)})`;
-    } else {
-      const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
-      timeCost = basePkgCost;
-      durationText = `${planName} (${$c(basePkgCost)})`;
-    }
+    timeCost = basePkgCost;
+    durationText = `${planTitle} (${$c(basePkgCost)})`;
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
     let m = +$('#selMins34').value || 0;
@@ -1648,6 +1706,8 @@ function recalcAll(){
   lastTimeCost = timeCost;
   if(mode === '5'){
     $('#lblTimeSummaryDesc').textContent = lastInterBreakdown;
+  } else if(mode === '4'){
+    $('#lblTimeSummaryDesc').textContent = `Valor cerrado (${durationText} · Tarifa Plana RM):`;
   } else {
     const jShort = currentJornada === 'habil' ? 'Hábil (Lun a Vie · 06:00 a 20:00)' : currentJornada === 'tarde' ? 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)' : 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
     $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · ${jShort}):`;
@@ -1698,10 +1758,17 @@ function recalcAll(){
     // Modalidad 3 (Cuidados a Domicilio), Modalidad 4 (Eventos Sociales) o Modalidad 5 (Programas Interregionales)
     $('#dirSvcName').textContent = SVC_NAMES[mode];
     if(mode === '5'){
+      $('#dirSvcName').textContent = SVC_NAMES[mode];
       $('#dirRegionRow').style.display = 'flex';
       $('#dirRegionVal').textContent = selectedInterRegion;
       $('#dirTimeDesc').textContent = lastInterBreakdown;
+    } else if(mode === '4'){
+      const isCon = (selectedEventSubMode === 'con_traslado');
+      $('#dirSvcName').textContent = `4. Acompañamiento en Eventos Sociales (${isCon ? 'Pack Puerta a Puerta con Traslados' : 'Pack Asistencia en Recinto sin Traslado'})`;
+      $('#dirRegionRow').style.display = 'none';
+      $('#dirTimeDesc').textContent = `${durationText} · Tarifa Plana Cerrada RM`;
     } else {
+      $('#dirSvcName').textContent = SVC_NAMES[mode];
       $('#dirRegionRow').style.display = 'none';
       $('#dirTimeDesc').textContent = `${durationText} · ${getJornadaLabel(currentJornada, mode).split(' (')[0]}`;
     }
@@ -3334,9 +3401,12 @@ async function submitBooking(ev){
   }
 
   const mode = $('#b_svc_type').value;
-  const svcName = SVC_NAMES[mode];
+  const isConEvento = (mode === '4' && selectedEventSubMode === 'con_traslado');
+  const svcName = mode === '4'
+    ? `4. Acompañamiento en Eventos Sociales (${isConEvento ? 'Pack Puerta a Puerta con Traslados' : 'Pack Asistencia en Recinto sin Traslado'})`
+    : SVC_NAMES[mode];
   const showMap = isMapEnabledForCurrentState();
-  const showDest = (mode === '1' || mode === '2' || mode === '5');
+  const showDest = (mode === '1' || mode === '2' || mode === '5' || isConEvento);
   const isInter = mode === '5';
 
   // Asegurar que la dirección (y la ruta si aplica) esté geocodificada
@@ -3347,7 +3417,7 @@ async function submitBooking(ev){
     await searchAddr('to', true);
   }
   if(showMap && (!ptFrom || !ptTo)){
-    alert('Por favor ingrese y verifique las direcciones de Inicio (A) y Destino (B) para calcular los kilómetros.');
+    alert('Por favor ingrese y verifique las direcciones de Inicio (A) y Destino (B) para continuar.');
     return;
   }
 
@@ -3380,10 +3450,12 @@ async function submitBooking(ev){
   const dxInput = $('#b_dx').value.trim();
   const fullDx = mode === '5'
     ? `${svcName} (${selectedInterRegion}) · ${dxInput}`
-    : `${svcName} · ${dxInput}`;
+    : (mode === '4'
+        ? `${svcName} · ${dxInput}`
+        : `${svcName} · ${dxInput}`);
   const mob = $('#b_mob').value;
   const from = $('#b_from').value.trim();
-  const to = showDest ? $('#b_to').value.trim() : 'Atención en domicilio / lugar del evento';
+  const to = showDest ? $('#b_to').value.trim() : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
   const compVal = $('#b_comp').value;
   const comp = compVal.startsWith('Sí');
   const coord = $('#b_coord').value.trim();
@@ -3444,15 +3516,17 @@ async function submitBooking(ev){
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};
   const waText = `Hola, acabo de agendar una hora en la web (Reserva #MSA-${newId}).\n` +
     `• Modalidad: ${svcName}\n` +
-    (mode === '5'
-      ? `• Región de origen: ${selectedInterRegion}\n• Programa y desglose: ${lastInterBreakdown}\n`
-      : `• Jornada: ${getJornadaLabel(currentJornada, mode)}\n`) +
+    (mode === '4'
+      ? `• Formato y Plan: ${durationText}\n• Tarifa: Plana paquetizada cerrada para toda la RM\n`
+      : (mode === '5'
+          ? `• Región de origen: ${selectedInterRegion}\n• Programa y desglose: ${lastInterBreakdown}\n`
+          : `• Jornada: ${getJornadaLabel(currentJornada, mode)}\n`)) +
     `• Fecha: ${formatHumanDate(date)} (${date})\n` +
     `• Turno / Bloque: ${blockHuman}\n` +
-    `• Servicio Completo: Recogida ${timeStr} hrs → Retorno al hogar aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n` +
-    `• Dirección de Recogida (A): ${from}\n` +
-    (showDest ? `• Destino (B): ${to}\n` : '') +
-    (showMap ? `• Recorrido: ${modeLabel} (${fmtTotalKm} = ${$c(lastKmCost)})\n` : '') +
+    `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n` +
+    `• Dirección: ${from}\n` +
+    (showDest ? `• Destino / Recinto: ${to}\n` : '') +
+    (showMap && (mode === '1' || mode === '2') ? `• Recorrido: ${modeLabel} (${fmtTotalKm} = ${$c(lastKmCost)})\n` : '') +
     `• Valor Total Real: ${$c(lastFinalTotal)}\n` +
     `• Abono 50% para Reservar: ${$c(lastAbono50)}\n` +
     `• Saldo 50% al finalizar: ${$c(saldo50)}\n` +
@@ -3475,18 +3549,19 @@ async function submitBooking(ev){
 
       <ul class="summary-list" style="max-width:660px;margin:20px auto;text-align:left">
         <li><span>🛎️ <b>Modalidad de Servicio:</b></span> <span>${e(svcName)}</span></li>
+        ${mode === '4' ? `<li><span>🎉 <b>Formato y Plan de Evento:</b></span> <span><b>${e(durationText)} · Tarifa Plana Cerrada RM</b></span></li>` : ''}
         ${mode === '5' ? `<li><span>🗺️ <b>Región del Programa:</b></span> <span><b>${e(selectedInterRegion)}</b></span></li>` : ''}
         <li><span>📅 <b>Fecha Reservada:</b></span> <span><b>${e(formatHumanDate(date))}</b></span></li>
         <li><span>🌅 <b>Bloque de Agenda:</b></span> <span><b>${e(blockHuman)}</b></span></li>
-        <li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno al hogar aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>
+        <li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>
         ${endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : ''}
-        <li><span>📍 <b>Dirección de Recogida (A):</b></span> <span>${e(from)}</span></li>
-        ${showDest ? `<li><span>🏁 <b>Dirección de Destino (B):</b></span> <span>${e(to)}</span></li>` : ''}
-        ${showMap ? `
+        <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : 'Dirección de Recogida / Inicio (A):'}</b></span> <span>${e(from)}</span></li>
+        ${showDest ? `<li><span>🏁 <b>Dirección de Destino / Recinto (B):</b></span> <span>${e(to)}</span></li>` : ''}
+        ${showMap && (mode === '1' || mode === '2') ? `
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
           <li><span>🛣️ <b>Kilómetros (${e(modeLabel)}):</b></span> <span><b>${e(fmtTotalKm)}</b> (${$c(lastKmCost)})</span></li>
         ` : ''}
-        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : 'Jornada y Tiempo:'}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : `${e(getJornadaLabel(currentJornada, mode))} · ${dur} min (${$c(lastTimeCost)})`}</span></li>
+        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : (mode === '4' ? 'Plan de Cobertura:' : 'Jornada y Tiempo:')}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : (mode === '4' ? `${e(durationText)} · Tarifa Plana Cerrada` : `${e(getJornadaLabel(currentJornada, mode))} · ${dur} min (${$c(lastTimeCost)})`)}</span></li>
         <li style="background:var(--mist);border-color:var(--teal)">
           <span>💰 <b>VALOR REAL TOTAL A PAGAR:</b></span> <span style="font-size:1.15rem;font-weight:800;color:var(--teal)">${$c(lastFinalTotal)}</span>
         </li>
