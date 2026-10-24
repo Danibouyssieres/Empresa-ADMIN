@@ -430,7 +430,7 @@ footer a{color:#fff}
           <div class="search-wrap">
             <label for="b_from" id="lblFromAddr"><span class="pin-badge pin-a">A</span>Dirección de Recogida / Inicio (Calle, número exacto y comuna) *</label>
             <div class="input-row">
-              <input id="b_from" type="text" placeholder="Ej: Pasaje Los Océanos 424, Maipú" autocomplete="off" required oninput="onType('from')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('from',true)}">
+              <input id="b_from" type="text" placeholder="Ej: Pasaje Los Océanos 424, Maipú" autocomplete="off" required oninput="onType('from')" onblur="onFromBlur()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('from',true)}">
               <button type="button" class="search-btn" onclick="searchAddr('from',true)">Buscar</button>
             </div>
             <div id="sugFrom" class="suggestions"></div>
@@ -663,7 +663,9 @@ footer a{color:#fff}
             <select id="selHours34" onchange="onHours34Change()">
               <option value="2" selected>2 horas (Plan Base)</option>
               <option value="3">3 horas</option>
-              <option value="4">4 horas (Plan Tope)</option>
+              <option value="4">4 horas</option>
+              <option value="5">5 horas</option>
+              <option value="6">6 horas (Tope)</option>
             </select>
           </div>
           <div id="mins34Col">
@@ -1030,34 +1032,61 @@ function refreshDuration34Options(resetSelection = false){
   const mode = $('#b_svc_type').value;
   if(mode !== '3' && mode !== '4' && mode !== '5') return;
 
-  const prevH = $('#selHours34').value;
-  const prevM = $('#selMins34').value;
+  const prevH = $('#selHours34') ? $('#selHours34').value : '';
+  const prevM = $('#selMins34') ? $('#selMins34').value : '';
 
-  if(mode === '3' || mode === '4'){
+  if(mode === '3'){
+    let minH = 2;
+    if(detectedRing && detectedRing.id === 2) minH = 3;
+    else if(detectedRing && detectedRing.id === 3) minH = 4;
+
+    const ringLabel = detectedRing ? detectedRing.name : 'Anillo 1';
+    $('#lblHours34').textContent = `Cantidad de horas de asistencia (mínimo ${minH} horas según comuna, máximo 6 horas)`;
+
+    let opts = '';
+    for(let h = minH; h <= 6; h++){
+      let tag = '';
+      if(h === minH) tag = ` (Piso mínimo ${ringLabel})`;
+      else if(h === 6) tag = ' (Tope máximo)';
+      opts += `<option value="${h}">${h} horas${tag}</option>`;
+    }
+    $('#selHours34').innerHTML = opts;
+
+    const prevHNum = +prevH;
+    if(!resetSelection && prevHNum >= minH && prevHNum <= 6){
+      $('#selHours34').value = String(prevHNum);
+    } else {
+      $('#selHours34').value = String(minH);
+    }
+
     $('#lblMins34').textContent = 'Bloque adicional de 30 minutos (50% valor hora)';
     $('#selMins34').innerHTML = `
       <option value="0">+ 0 minutos (sin bloque adicional)</option>
       <option value="30">+ 30 minutos extra (1/2 hora)</option>
     `;
-    $('#selMins34').value = (!resetSelection && ['0','30'].includes(prevM)) ? prevM : '0';
-
-    if(mode === '3'){
-      $('#lblHours34').textContent = 'Cantidad de horas de asistencia (mínimo 2 horas, máximo 4 horas)';
-      $('#selHours34').innerHTML = `
-        <option value="2">2 horas (Plan Base)</option>
-        <option value="3">3 horas</option>
-        <option value="4">4 horas (Plan Tope)</option>
-      `;
-      $('#selHours34').value = (!resetSelection && ['2','3','4'].includes(prevH)) ? prevH : '2';
+    const curH = +$('#selHours34').value;
+    if(curH >= 6){
+      $('#selMins34').value = '0';
+      $('#selMins34').disabled = true;
+      $('#selMins34').title = 'Tope máximo de 6 horas alcanzado en la agenda web.';
     } else {
-      $('#lblHours34').textContent = 'Cantidad de horas de asistencia (mínimo 4 horas, máximo 6 horas)';
-      $('#selHours34').innerHTML = `
-        <option value="4">4 horas (Plan Base)</option>
-        <option value="5">5 horas</option>
-        <option value="6">6 horas (Plan Tope)</option>
-      `;
-      $('#selHours34').value = (!resetSelection && ['4','5','6'].includes(prevH)) ? prevH : '4';
+      $('#selMins34').disabled = false;
+      $('#selMins34').removeAttribute('title');
+      $('#selMins34').value = (!resetSelection && ['0','30'].includes(prevM)) ? prevM : '0';
     }
+  } else if(mode === '4'){
+    $('#lblHours34').textContent = 'Plan de cobertura para evento (formato paquetizado)';
+    $('#selHours34').innerHTML = `
+      <option value="4">Plan Base Evento (4 horas continuas)</option>
+      <option value="6">Plan Cobertura Total (6 horas continuas - Tope)</option>
+    `;
+    $('#selHours34').value = (!resetSelection && prevH === '6') ? '6' : '4';
+
+    $('#lblMins34').textContent = 'Minutos adicionales (cerrado en planes de evento)';
+    $('#selMins34').innerHTML = `<option value="0">+ 0 min (incluido en paquete)</option>`;
+    $('#selMins34').value = '0';
+    $('#selMins34').disabled = true;
+    $('#selMins34').title = 'Los eventos sociales se contratan en paquetes cerrados de 4 o 6 horas.';
   } else if(mode === '5'){
     $('#lblMins34').textContent = 'Tiempo adicional no programado (en destino)';
     $('#selMins34').innerHTML = `
@@ -1067,6 +1096,8 @@ function refreshDuration34Options(resetSelection = false){
       <option value="90">+ 1 hora 30 min ($40.000)</option>
       <option value="120">+ 2 horas extra ($50.000)</option>
     `;
+    $('#selMins34').disabled = false;
+    $('#selMins34').removeAttribute('title');
     $('#selMins34').value = (!resetSelection && ['0','30','60','90','120'].includes(prevM)) ? prevM : '0';
   }
 
@@ -1186,13 +1217,20 @@ function applyModalityVisibility(){
     if(mode === '3'){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'block';
+      $('#mins34Col').style.display = 'block';
       $('#durationBox34').style.gridTemplateColumns = '';
-      $('#timeSectionTitle').textContent = '⏱️ Horario y Tiempo de Asistencia (Mínimo 2 horas · Cada 30 min extra es un bloque a pagar)';
+      let minH = 2;
+      if(detectedRing && detectedRing.id === 2) minH = 3;
+      else if(detectedRing && detectedRing.id === 3) minH = 4;
+      $('#timeSectionTitle').textContent = `⏱️ Tiempo de Asistencia en Domicilio (Piso mínimo ${minH}h según comuna · Máximo 6h)`;
+      $('#timeSectionSub').textContent = 'Seleccione la cantidad de horas continuas de atención en el hogar. Cada bloque adicional de 30 minutos se calcula al 50% del valor hora.';
     } else if(mode === '4'){
       $('#eventStartCol').style.display = 'block';
       $('#hours34Col').style.display = 'block';
+      $('#mins34Col').style.display = 'block';
       $('#durationBox34').style.gridTemplateColumns = '';
-      $('#timeSectionTitle').textContent = '⏱️ Horario y Tiempo de Asistencia en Eventos (Mínimo 4 horas · Proporcional si cruza las 20:00 hrs)';
+      $('#timeSectionTitle').textContent = '⏱️ Planes de Asistencia en Eventos Sociales (Formato Paquetizado Cerrado)';
+      $('#timeSectionSub').textContent = 'Seleccione el plan de cobertura (4 o 6 horas continuas). Si el evento cruza las 20:00 hrs o se agenda en turno nocturno, aplica la tarifa correspondiente.';
     } else if(mode === '5'){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'none';
@@ -1262,9 +1300,9 @@ function applyMaxDurationRule(){
   // 2. Modalidades 3, 4 y 5
   const selH34 = $('#selHours34');
   const selM34 = $('#selMins34');
-  if(mode === '3' || mode === '4'){
+  if(mode === '3'){
     if(selH34 && selM34){
-      const h34 = +selH34.value || (mode === '3' ? 2 : 4);
+      const h34 = +selH34.value || 2;
       if(h34 >= 6){
         selM34.value = '0';
         selM34.disabled = true;
@@ -1273,6 +1311,12 @@ function applyMaxDurationRule(){
         selM34.disabled = false;
         selM34.removeAttribute('title');
       }
+    }
+  } else if(mode === '4'){
+    if(selM34){
+      selM34.value = '0';
+      selM34.disabled = true;
+      selM34.title = 'Los eventos sociales se contratan en paquetes cerrados de 4 o 6 horas.';
     }
   } else if(mode === '5'){
     if(selM34){
@@ -1291,6 +1335,7 @@ function applyMaxDurationRule(){
 
 function onHours34Change(){
   applyMaxDurationRule();
+  syncJornadaFromSchedule();
   recalcAll();
   updateSlots(true);
 }
@@ -1308,6 +1353,7 @@ function onEventStart1Change(){
       }
     }
   }
+  syncJornadaFromSchedule();
   recalcAll();
   updateSlots(true);
 }
@@ -1368,7 +1414,7 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
 }
 
 function getSelectedTotalMinutes(){
-  const mode = $('#b_svc_type').value;
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
   let totalMin = 60;
   if(mode === '1' || mode === '2'){
     const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
@@ -1383,9 +1429,15 @@ function getSelectedTotalMinutes(){
     const h = selectedInterProgram || 4;
     const m = (h >= 6) ? 0 : (+$('#selMins34').value || 0);
     totalMin = h * 60 + m;
+  } else if(mode === '4'){
+    const h = +$('#selHours34').value || 4;
+    totalMin = (h >= 6 ? 6 : 4) * 60;
   } else {
-    const defH = mode === '3' ? 2 : 4;
-    const h = +$('#selHours34').value || defH;
+    // Mode 3
+    let minH = 2;
+    if(detectedRing && detectedRing.id === 2) minH = 3;
+    else if(detectedRing && detectedRing.id === 3) minH = 4;
+    const h = +$('#selHours34').value || minH;
     const m = (h >= 6) ? 0 : (+$('#selMins34').value || 0);
     totalMin = h * 60 + m;
   }
@@ -1439,19 +1491,14 @@ function recalcAll(){
     durationText = `${h} h${extraHalfCost ? ' y 30 min' : ''} (${$c(basePkgCost)}${extraHalfCost ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
   } else if(mode === '4'){
     let h = +$('#selHours34').value || 4;
-    let m = +$('#selMins34').value || 0;
-    if(h >= 6){
-      h = 6;
-      m = 0;
-    } else if(h * 60 + m > 360){
-      m = 0;
-    }
-    const extraHalfCost = (h < 6 && m === 30) ? r.half : 0;
-    const totalMins = Math.min(h * 60 + (extraHalfCost ? 30 : 0), 360);
+    if(h >= 6) h = 6;
+    else h = 4;
+    const totalMins = h * 60;
     const startStr = ($('#b_time') && $('#b_time').value) || ($('#selEventStart1') && $('#selEventStart1').value) || '16:00';
     const startMin = tm(startStr);
     const endMin = startMin + totalMins;
     const cutoff20 = 20 * 60; // 20:00 hrs = 1200 min
+    const planName = h === 6 ? 'Plan Cobertura Total (6 horas continuas)' : 'Plan Base Evento (4 horas continuas)';
 
     // En Modalidad 4 (Eventos Sociales), aplicar cálculo proporcional si el horario cruza las 20:00 hrs
     if(startMin < cutoff20 && endMin > cutoff20 && currentJornada !== 'nocturno'){
@@ -1462,11 +1509,11 @@ function recalcAll(){
       const costBefore20 = Math.round((minsBefore20 / 60) * diurnalRate);
       const costAfter20  = Math.round((minsAfter20 / 60) * nocturnalRate);
       timeCost = Math.round((costBefore20 + costAfter20) / 100) * 100;
-      durationText = `Proporcional (${startStr} a ${fm(endMin % 1440)}): ${fmtHoursClean(minsBefore20)} antes de 20:00 a ${$c(diurnalRate)}/h (${$c(costBefore20)}) + ${fmtHoursClean(minsAfter20)} post-20:00 a $18.000/h (${$c(costAfter20)})`;
+      durationText = `${planName} · Proporcional (${startStr} a ${fm(endMin % 1440)}): ${fmtHoursClean(minsBefore20)} antes de 20:00 a ${$c(diurnalRate)}/h (${$c(costBefore20)}) + ${fmtHoursClean(minsAfter20)} post-20:00 a $18.000/h (${$c(costAfter20)})`;
     } else {
       const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
-      timeCost = basePkgCost + extraHalfCost;
-      durationText = `${h} h${extraHalfCost ? ' y 30 min' : ''} (${$c(basePkgCost)}${extraHalfCost ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
+      timeCost = basePkgCost;
+      durationText = `${planName} (${$c(basePkgCost)})`;
     }
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
@@ -1589,14 +1636,22 @@ function detectRingFromText(addrText, lat, lon){
 function updateRingDisplay(){
   const box = $('#ringInfoBox');
   const mode = $('#b_svc_type').value;
-  // Ocultar siempre en Servicio 3, 4 y 5, o si aún no hay anillo
-  if(!detectedRing || mode === '3' || mode === '4' || mode === '5'){
+  // Ocultar siempre en Modalidad 4 y 5, o si aún no hay anillo detectado
+  if(!detectedRing || mode === '4' || mode === '5'){
     box.style.display = 'none';
     return;
   }
   box.style.display = 'block';
-  $('#ringTitle').textContent = `📍 Comuna de recogida: ${detectedComuna} → ${detectedRing.name}`;
-  $('#ringDesc').innerHTML = `Tarifa mínima correspondiente a su dirección: <b>${$c(detectedRing.minFare)}</b> (aplica si la suma de KM + Tiempo resulta menor a este monto).`;
+
+  if(mode === '3'){
+    const minH = detectedRing.id === 1 ? 2 : (detectedRing.id === 2 ? 3 : 4);
+    $('#ringTitle').textContent = `📍 Domicilio de atención: ${detectedComuna} → ${detectedRing.name}`;
+    $('#ringDesc').innerHTML = `Por cobertura y distancia territorial, esta comuna contempla un piso mínimo de <b>${minH} horas continuas</b> de atención (mínimo ${minH}h hasta 6h tope).`;
+  } else {
+    // Modalidad 1 y 2
+    $('#ringTitle').textContent = `📍 Comuna de recogida: ${detectedComuna} → ${detectedRing.name}`;
+    $('#ringDesc').innerHTML = `Tarifa mínima correspondiente a su dirección: <b>${$c(detectedRing.minFare)}</b> (aplica si la suma de KM + Tiempo resulta menor a este monto).`;
+  }
 }
 
 // ===== MAPA Y BUSCADOR DE DIRECCIONES (ARCGIS + OSRM) =====
@@ -1626,7 +1681,13 @@ map.on('click', async function(ev){
       ptFrom.label = addrObj.label;
       $('#b_from').value = addrObj.label;
       const det = detectRingFromText(addrObj.full || addrObj.label, lat, lng);
-      if(det){ detectedRing = det.ring; detectedComuna = det.comuna; updateRingDisplay(); recalcAll(); }
+      if(det){
+        detectedRing = det.ring;
+        detectedComuna = det.comuna;
+        updateRingDisplay();
+        if($('#b_svc_type').value === '3') refreshDuration34Options(false);
+        recalcAll();
+      }
     } else {
       ptTo.label = addrObj.label;
       $('#b_to').value = addrObj.label;
@@ -1646,6 +1707,7 @@ function setPoint(which, lat, lon, label, fit=true, rawFull=''){
       detectedRing = det.ring;
       detectedComuna = det.comuna;
       updateRingDisplay();
+      if($('#b_svc_type').value === '3') refreshDuration34Options(false);
     }
     if(!markerFrom){
       markerFrom = L.marker([lat, lon], {icon:iconA, draggable:true}).addTo(map);
@@ -1657,7 +1719,12 @@ function setPoint(which, lat, lon, label, fit=true, rawFull=''){
           ptFrom.label = addrObj.label;
           $('#b_from').value = addrObj.label;
           const d2 = detectRingFromText(addrObj.full || addrObj.label, pos.lat, pos.lng);
-          if(d2){ detectedRing = d2.ring; detectedComuna = d2.comuna; updateRingDisplay(); }
+          if(d2){
+            detectedRing = d2.ring;
+            detectedComuna = d2.comuna;
+            updateRingDisplay();
+            if($('#b_svc_type').value === '3') refreshDuration34Options(false);
+          }
         }
         recalcAll();
         if(ptFrom && ptTo && isMapEnabledForCurrentState()) computeRoute();
@@ -1731,7 +1798,13 @@ function onType(which){
 
   if(which==='from' && val.length >= 3){
     const det = detectRingFromText(val, null, null);
-    if(det){ detectedRing = det.ring; detectedComuna = det.comuna; updateRingDisplay(); recalcAll(); }
+    if(det){
+      detectedRing = det.ring;
+      detectedComuna = det.comuna;
+      updateRingDisplay();
+      if($('#b_svc_type').value === '3') refreshDuration34Options(false);
+      recalcAll();
+    }
   }
 
   if(val.length < 3){
@@ -1739,6 +1812,20 @@ function onType(which){
     return;
   }
   typeTimers[which] = setTimeout(()=>searchAddr(which, false), 280);
+}
+
+function onFromBlur(){
+  const val = ($('#b_from') && $('#b_from').value || '').trim();
+  if(val.length >= 3){
+    const det = detectRingFromText(val, ptFrom ? ptFrom.lat : null, ptFrom ? ptFrom.lon : null);
+    if(det){
+      detectedRing = det.ring;
+      detectedComuna = det.comuna;
+      updateRingDisplay();
+      if($('#b_svc_type').value === '3') refreshDuration34Options(false);
+      recalcAll();
+    }
+  }
 }
 
 async function searchAddr(which, autoPickFirst){
@@ -2003,7 +2090,12 @@ function useMyLocation(){
       ptFrom.label = addrObj.label;
       $('#b_from').value = addrObj.label;
       const det = detectRingFromText(addrObj.full || addrObj.label, latitude, longitude);
-      if(det){ detectedRing = det.ring; detectedComuna = det.comuna; updateRingDisplay(); }
+      if(det){
+        detectedRing = det.ring;
+        detectedComuna = det.comuna;
+        updateRingDisplay();
+        if($('#b_svc_type').value === '3') refreshDuration34Options(false);
+      }
     }
     setPickMode('to');
     recalcAll();
@@ -2917,7 +3009,8 @@ function updateSlots(keepCurrentTime = false){
 
     if(selectedBlock === 'noche' || endsAfter22){
       nightNotice.style.display = 'block';
-      nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar en <b>Turno Noche</b> (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (06:00 a 12:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:30 hrs).`;
+      const reasonText = selectedBlock === 'noche' ? 'en <b>Turno Noche</b>' : 'un servicio con <b>término posterior a las 22:00 hrs</b>';
+      nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar ${reasonText} (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (06:00 a 12:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:30 hrs).`;
     } else if(isInter){
       nightNotice.style.display = 'block';
       nightNotice.innerHTML = `🗺️ <b>Regla de Programa Interregional:</b> Esta reserva bloquea automáticamente <b>el día completo (Bloque Mañana y Bloque Tarde)</b> para dedicación exclusiva a su traslado interregional.`;
