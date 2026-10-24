@@ -115,6 +115,9 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .time-calc-section{margin-top:22px;padding:20px;border-radius:var(--r);background:var(--bg);border:1px solid var(--line)}
 .rate-pill-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 16px}
 @media(max-width:720px){.rate-pill-bar{grid-template-columns:1fr}}
+.rate-pill-bar.locked .rate-pill{cursor:default;pointer-events:none}
+.rate-pill-bar.locked .rate-pill:not(.active){opacity:.45;filter:grayscale(15%)}
+.rate-pill-bar.locked .rate-pill.active{opacity:1;cursor:default}
 .rate-pill{position:relative;padding:14px 38px 14px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;text-align:left;transition:all .15s;opacity:.8}
 .rate-pill:hover{border-color:var(--sage);opacity:1}
 .rate-pill.active{border:2px solid #168F4A;background:rgba(22,143,74,.08);box-shadow:0 3px 10px rgba(22,143,74,.12);opacity:1}
@@ -151,10 +154,17 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .cal-nav button:disabled{opacity:.38;cursor:not-allowed}
 .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center;font-size:.76rem;font-weight:700;color:var(--mute);margin-bottom:6px;text-transform:uppercase}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
-.cal-day{position:relative;min-height:58px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s;user-select:none}
+.cal-day{position:relative;min-height:58px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);padding:5px 4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s;user-select:none}
 .cal-day.empty{background:transparent;border-color:transparent;cursor:default;min-height:0}
-.cal-day .cd-num{font-weight:800;font-size:.94rem;color:var(--ink);line-height:1.1}
-.cal-day .cd-tag{font-size:.63rem;font-weight:800;padding:2px 5px;border-radius:999px;line-height:1.1;text-align:center;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.cal-day .cd-top-row{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 2px;gap:2px}
+.cal-day .cd-num{font-weight:800;font-size:.92rem;color:var(--ink);line-height:1}
+.cal-day .cd-day-type{font-size:.54rem;font-weight:800;padding:1px 4px;border-radius:4px;line-height:1.1;white-space:nowrap;letter-spacing:.2px}
+.cal-day .cd-day-type.holiday{background:#f59e0b;color:#fff}
+.cal-day .cd-day-type.wknd{background:rgba(15,118,110,.14);color:var(--teal)}
+:root[data-theme="dark"] .cal-day .cd-day-type.wknd{background:rgba(45,212,191,.2);color:#2dd4bf}
+.cal-day.is-holiday:not(.st-off):not(.selected){border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.05)}
+.cal-day.is-weekend:not(.is-holiday):not(.st-off):not(.selected){background:rgba(15,118,110,.03)}
+.cal-day .cd-tag{font-size:.62rem;font-weight:800;padding:2px 5px;border-radius:999px;line-height:1.1;text-align:center;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .cal-day.st-disp{border-color:rgba(22,143,74,.4)}
 .cal-day.st-disp .cd-tag{background:rgba(22,143,74,.13);color:#12783E}
 :root[data-theme="dark"] .cal-day.st-disp .cd-tag{color:#4ade80}
@@ -167,7 +177,7 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .cal-day.st-off .cd-tag{color:var(--mute);font-weight:600}
 .cal-day:hover:not(.empty):not(.st-off):not(.st-full){border-color:var(--teal);transform:translateY(-1px)}
 .cal-day.selected{border:2.5px solid #168F4A !important;background:rgba(22,143,74,.1) !important;box-shadow:0 3px 10px rgba(22,143,74,.18)}
-.cal-day.selected::after{content:"✔";position:absolute;top:3px;right:4px;width:15px;height:15px;border-radius:50%;background:#168F4A;color:#fff;font-size:.6rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.cal-day.selected::after{content:"✔";position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;background:#168F4A;color:#fff;font-size:.6rem;font-weight:800;display:flex;align-items:center;justify-content:center}
 .cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:.78rem;color:var(--mute);justify-content:center}
 .cal-legend span{display:inline-flex;align-items:center;gap:5px}
 .lg-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -235,11 +245,142 @@ footer a{color:#fff}
   <form id="bookingForm" onsubmit="submitBooking(event)">
 
     <!-- =========================================================================
-         SECCIÓN 1: MODALIDAD (DE EXTREMO A EXTREMO), DIRECCIÓN/MAPA, TIEMPO Y TOTAL
+         SECCIÓN 1: FECHA, TURNO Y HORA DE RECOGIDA (GESTIÓN DE CAPACIDAD Y BLOQUES)
+         ========================================================================= -->
+    <section class="card" id="secAgenda">
+      <span class="step-tag">Sección 1 de 4 · Fecha, Turno y Hora de Recogida</span>
+      <h2>1. Seleccione la fecha, bloque de turno y hora exacta de recogida</h2>
+      <p style="font-size:.9rem;color:var(--mute);margin-bottom:12px">
+        Para garantizar puntualidad clínica, sin retrasos acumulados ni sobrecarga, operamos con un tope de <b>2 bloques diarios por unidad</b> separados por una ventana de resguardo y sanitización. Reservas con <b>mínimo 24 horas de anticipación</b> y hasta <b>30 días corridos</b> hacia adelante.
+      </p>
+
+      <input id="b_date" type="hidden" required>
+
+      <div class="sched-layout">
+        <!-- COLUMNA IZQUIERDA: CALENDARIO INTERACTIVO -->
+        <div class="cal-box">
+          <div class="cal-hdr">
+            <h3 id="calMonthLabel">Mes Año</h3>
+            <div class="cal-nav">
+              <button type="button" id="calPrevBtn" onclick="changeCalMonth(-1)" aria-label="Mes anterior">◀</button>
+              <button type="button" id="calNextBtn" onclick="changeCalMonth(1)" aria-label="Mes siguiente">▶</button>
+            </div>
+          </div>
+          <div class="cal-dow">
+            <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-legend">
+            <span><i class="lg-dot lg-disp"></i> Disponible</span>
+            <span><i class="lg-dot lg-last"></i> Último cupo</span>
+            <span><i class="lg-dot lg-full"></i> Agotado</span>
+            <span><i class="lg-dot lg-off"></i> Fuera de rango (&lt;24h / &gt;30d)</span>
+            <span><i class="lg-dot" style="background:#f59e0b"></i> Feriado (+50%)</span>
+            <span><i class="lg-dot" style="background:var(--teal)"></i> Fin de Semana (+25%)</span>
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: SELECCIÓN DE BLOQUE (MAÑANA / BUFFER / TARDE) Y HORA EXACTA -->
+        <div class="blocks-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+            <label style="margin:0;color:var(--teal);font-size:.95rem">Fecha seleccionada: <strong id="lblSelectedDateHuman">—</strong></label>
+            <span id="lblCapBadge" style="font-size:.78rem;background:var(--mist);color:var(--teal);padding:3px 10px;border-radius:999px;font-weight:700">Capacidad activa: 1 unidad</span>
+          </div>
+
+          <!-- BLOQUE 1: MAÑANA -->
+          <button type="button" id="btnBlock_manana" class="block-btn active" onclick="selectShiftBlock('manana')">
+            <div class="block-btn-top">
+              <span class="block-btn-title">🌅 Turno Mañana (06:00 a 12:00 hrs)</span>
+              <span id="badgeBlock_manana" class="block-badge ok">Disponible</span>
+            </div>
+            <div class="block-btn-sub" id="subBlock_manana">Horas de recogida seleccionables entre 06:00 y 10:00 hrs</div>
+            <div class="block-btn-reason" id="reasonBlock_manana" style="display:none"></div>
+          </button>
+
+          <!-- VENTANA DE RESGUARDO 1 (BUFFER MEDIODÍA NO AGENDABLE) -->
+          <div class="buffer-strip">
+            <span style="font-size:1.2rem">🛡️</span>
+            <div>
+              <b>Buffer Mediodía no agendable (12:00 a 14:00 hrs):</b>
+              Reservado para absorber demoras médicas, retorno a base Maipú y sanitización clínica del vehículo.
+            </div>
+          </div>
+
+          <!-- BLOQUE 2: TARDE -->
+          <button type="button" id="btnBlock_tarde" class="block-btn" onclick="selectShiftBlock('tarde')">
+            <div class="block-btn-top">
+              <span class="block-btn-title">🌇 Turno Tarde (14:00 a 20:00 hrs)</span>
+              <span id="badgeBlock_tarde" class="block-badge ok">Disponible</span>
+            </div>
+            <div class="block-btn-sub" id="subBlock_tarde">Horas de recogida seleccionables entre 14:30 y 17:00 hrs</div>
+            <div class="block-btn-reason" id="reasonBlock_tarde" style="display:none"></div>
+          </button>
+
+          <!-- VENTANA DE RESGUARDO 2 (BUFFER TARDE NO AGENDABLE) -->
+          <div class="buffer-strip" style="margin-top:4px">
+            <span style="font-size:1.2rem">🛡️</span>
+            <div>
+              <b>Buffer Tarde no agendable (20:00 a 22:00 hrs):</b>
+              Ventana de resguardo operacional, sanitización profunda de la unidad y cierre de jornada diurna.
+            </div>
+          </div>
+
+          <!-- ASISTENTE DE HORA DE RECOGIDA SUGERIDA (CÁLCULO DE SALIDA) -->
+          <div class="asistente-box" style="margin-top:12px;padding:14px 16px;border-radius:12px;background:var(--mist);border:1px solid var(--line)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+              <span style="font-weight:700;color:var(--teal);font-size:.92rem;display:flex;align-items:center;gap:6px">
+                ⏱️ Asistente de Hora de Recogida Sugerida
+              </span>
+              <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo de salida clínico</span>
+            </div>
+            <p style="font-size:.82rem;color:var(--mute);margin:0 0 10px;line-height:1.45">
+              ¿Tienes una cita médica o examen programado? Ingresa la hora de tu cita y calculamos tu hora recomendada de recogida considerando el tiempo de traslado (Sección 2), 15 min de abordaje/signos vitales TENS y 20 min de margen previo para recepción médica.
+            </p>
+            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+              <div style="flex:1;min-width:180px">
+                <label for="appTimeInput" style="font-size:.82rem;font-weight:700;color:var(--ink);margin-bottom:4px">
+                  ¿A qué hora es tu cita o examen médico?
+                </label>
+                <select id="appTimeInput" style="padding:9px 12px;font-size:.92rem;background:var(--card)"></select>
+              </div>
+              <button type="button" class="btn sm ghost" onclick="calcSuggestedPickup()" style="padding:9px 16px;font-size:.88rem;white-space:nowrap">
+                🧭 Calcular hora de recogida
+              </button>
+            </div>
+            <div id="suggestedPickupCallout" class="callout-box" style="display:none;margin-top:12px;margin-bottom:0;background:rgba(22,143,74,.08);border-left:4px solid var(--wa)">
+              <div id="suggestedPickupMsg" style="font-size:.9rem;color:var(--ink);line-height:1.5"></div>
+              <div style="margin-top:10px">
+                <button type="button" class="btn sm" id="btnApplySuggestedPickup" onclick="applySuggestedPickup()" style="font-size:.85rem;padding:7px 18px">
+                  ✅ Usar esta hora
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- DESPLEGABLE PARA HORA EXACTA DE RECOGIDA DENTRO DEL BLOQUE -->
+          <div class="pickup-time-box" style="margin-top:12px">
+            <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.92rem">Hora exacta de recogida requerida (dentro del bloque seleccionado) *</label>
+            <select id="b_time" required onchange="onPickupTimeChange()"></select>
+            <div id="lblEstimatedWindow" style="font-size:.83rem;color:var(--mute);margin-top:6px"></div>
+            <div id="nightRuleNotice" class="rule-alert"></div>
+          </div>
+
+          <div id="availStatus" class="status-box ok" style="margin-top:2px"></div>
+
+          <div>
+            <label for="b_tens">Profesional / Unidad TENS asignada</label>
+            <select id="b_tens" required></select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         SECCIÓN 2: MODALIDAD (DE EXTREMO A EXTREMO), DIRECCIÓN/MAPA, TIEMPO Y TOTAL
          ========================================================================= -->
     <section class="card" id="secModalidad">
-      <span class="step-tag">Sección 1 de 4 · Modalidad, Dirección y Cálculo de Tarifa</span>
-      <h2>1. Seleccione su modalidad de servicio y cotice su atención</h2>
+      <span class="step-tag">Sección 2 de 4 · Modalidad del Servicio y Cotización</span>
+      <h2>2. Seleccione su modalidad de servicio y cotice su atención</h2>
 
       <!-- SELECTOR DE MODALIDAD DE EXTREMO A EXTREMO -->
       <div class="full-modality-bar">
@@ -370,21 +511,24 @@ footer a{color:#fff}
 
         <!-- SELECTOR DE JORNADA HORARIA (MODALIDADES 1 A 4) -->
         <div id="jornadaSelectorWrap">
-          <label>1. Jornada horaria en que requiere la atención:</label>
-          <div class="rate-pill-bar">
-            <div id="pillJornada_habil" class="rate-pill active" onclick="setJornada('habil')">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            <label style="margin:0">Tarifa horaria aplicada a su reserva:</label>
+            <span style="font-size:.78rem;background:rgba(22,143,74,.12);color:#12783E;padding:3px 10px;border-radius:999px;font-weight:700">🔒 Asignada automáticamente según fecha</span>
+          </div>
+          <div class="rate-pill-bar locked">
+            <div id="pillJornada_habil" class="rate-pill active">
               <strong>Hábil (Lun a Vie · 06:00 a 20:00)</strong>
               <small>Jornada diurna de lunes a viernes</small>
               <div class="rp-val" id="lblRateHabil">$12.000/h ($1.000/km)</div>
             </div>
-            <div id="pillJornada_tarde" class="rate-pill" onclick="setJornada('tarde')">
+            <div id="pillJornada_tarde" class="rate-pill">
               <strong>Fin de Semana (Sáb y Dom · 06:00 a 20:00)</strong>
               <small>Jornada diurna de fin de semana (+25%)</small>
               <div class="rp-val" id="lblRateTarde">$15.000/h ($1.000/km)</div>
             </div>
-            <div id="pillJornada_nocturno" class="rate-pill" onclick="setJornada('nocturno')">
-              <strong id="titleJornadaNocturno">Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)</strong>
-              <small id="subJornadaNocturno">Días festivos y atención nocturna (+50%)</small>
+            <div id="pillJornada_nocturno" class="rate-pill">
+              <strong id="titleJornadaNocturno">Día Festivo (06:00 a 20:00)</strong>
+              <small id="subJornadaNocturno">Feriado oficial de calendario (+50%)</small>
               <div class="rp-val" id="lblRateNocturno">$18.000/h ($1.000/km)</div>
             </div>
           </div>
@@ -536,135 +680,6 @@ footer a{color:#fff}
         </div>
       </div>
 
-    </section>
-
-    <!-- =========================================================================
-         SECCIÓN 2: FECHA, HORA Y PROFESIONAL TENS (GESTIÓN DE CAPACIDAD Y BLOQUES)
-         ========================================================================= -->
-    <section class="card" id="secAgenda">
-      <span class="step-tag">Sección 2 de 4 · Fecha y Horario en Agenda</span>
-      <h2>2. Seleccione la fecha, bloque de turno y hora exacta de recogida</h2>
-      <p style="font-size:.9rem;color:var(--mute);margin-bottom:12px">
-        Para garantizar puntualidad clínica, sin retrasos acumulados ni sobrecarga, operamos con un tope de <b>2 bloques diarios por unidad</b> separados por una ventana de resguardo y sanitización. Reservas con <b>mínimo 24 horas de anticipación</b> y hasta <b>30 días corridos</b> hacia adelante.
-      </p>
-
-      <input id="b_date" type="hidden" required>
-
-      <div class="sched-layout">
-        <!-- COLUMNA IZQUIERDA: CALENDARIO INTERACTIVO -->
-        <div class="cal-box">
-          <div class="cal-hdr">
-            <h3 id="calMonthLabel">Mes Año</h3>
-            <div class="cal-nav">
-              <button type="button" id="calPrevBtn" onclick="changeCalMonth(-1)" aria-label="Mes anterior">◀</button>
-              <button type="button" id="calNextBtn" onclick="changeCalMonth(1)" aria-label="Mes siguiente">▶</button>
-            </div>
-          </div>
-          <div class="cal-dow">
-            <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
-          </div>
-          <div class="cal-grid" id="calGrid"></div>
-          <div class="cal-legend">
-            <span><i class="lg-dot lg-disp"></i> Disponible</span>
-            <span><i class="lg-dot lg-last"></i> Último cupo</span>
-            <span><i class="lg-dot lg-full"></i> Agotado</span>
-            <span><i class="lg-dot lg-off"></i> Fuera de rango (&lt;24h / &gt;30d)</span>
-          </div>
-        </div>
-
-        <!-- COLUMNA DERECHA: SELECCIÓN DE BLOQUE (MAÑANA / BUFFER / TARDE) Y HORA EXACTA -->
-        <div class="blocks-panel">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
-            <label style="margin:0;color:var(--teal);font-size:.95rem">Fecha seleccionada: <strong id="lblSelectedDateHuman">—</strong></label>
-            <span id="lblCapBadge" style="font-size:.78rem;background:var(--mist);color:var(--teal);padding:3px 10px;border-radius:999px;font-weight:700">Capacidad activa: 1 unidad</span>
-          </div>
-
-          <!-- BLOQUE 1: MAÑANA -->
-          <button type="button" id="btnBlock_manana" class="block-btn active" onclick="selectShiftBlock('manana')">
-            <div class="block-btn-top">
-              <span class="block-btn-title">🌅 Turno Mañana (06:00 a 12:00 hrs)</span>
-              <span id="badgeBlock_manana" class="block-badge ok">Disponible</span>
-            </div>
-            <div class="block-btn-sub" id="subBlock_manana">Horas de recogida seleccionables entre 06:00 y 10:00 hrs</div>
-            <div class="block-btn-reason" id="reasonBlock_manana" style="display:none"></div>
-          </button>
-
-          <!-- VENTANA DE RESGUARDO 1 (BUFFER MEDIODÍA NO AGENDABLE) -->
-          <div class="buffer-strip">
-            <span style="font-size:1.2rem">🛡️</span>
-            <div>
-              <b>Buffer Mediodía no agendable (12:00 a 14:00 hrs):</b>
-              Reservado para absorber demoras médicas, retorno a base Maipú y sanitización clínica del vehículo.
-            </div>
-          </div>
-
-          <!-- BLOQUE 2: TARDE -->
-          <button type="button" id="btnBlock_tarde" class="block-btn" onclick="selectShiftBlock('tarde')">
-            <div class="block-btn-top">
-              <span class="block-btn-title">🌇 Turno Tarde (14:00 a 20:00 hrs)</span>
-              <span id="badgeBlock_tarde" class="block-badge ok">Disponible</span>
-            </div>
-            <div class="block-btn-sub" id="subBlock_tarde">Horas de recogida seleccionables entre 14:00 y 18:00 hrs</div>
-            <div class="block-btn-reason" id="reasonBlock_tarde" style="display:none"></div>
-          </button>
-
-          <!-- VENTANA DE RESGUARDO 2 (BUFFER TARDE NO AGENDABLE) -->
-          <div class="buffer-strip" style="margin-top:4px">
-            <span style="font-size:1.2rem">🛡️</span>
-            <div>
-              <b>Buffer Tarde no agendable (20:00 a 22:00 hrs):</b>
-              Ventana de resguardo operacional, sanitización profunda de la unidad y cierre de jornada diurna.
-            </div>
-          </div>
-
-          <!-- ASISTENTE DE HORA DE RECOGIDA SUGERIDA (CÁLCULO DE SALIDA) -->
-          <div class="asistente-box" style="margin-top:12px;padding:14px 16px;border-radius:12px;background:var(--mist);border:1px solid var(--line)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-              <span style="font-weight:700;color:var(--teal);font-size:.92rem;display:flex;align-items:center;gap:6px">
-                ⏱️ Asistente de Hora de Recogida Sugerida
-              </span>
-              <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo de salida clínico</span>
-            </div>
-            <p style="font-size:.82rem;color:var(--mute);margin:0 0 10px;line-height:1.45">
-              ¿Tienes una cita médica o examen programado? Ingresa la hora de tu cita y calculamos tu hora recomendada de recogida considerando el tiempo de traslado (Sección 1), 15 min de abordaje/signos vitales TENS y 20 min de margen previo para recepción médica.
-            </p>
-            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-              <div style="flex:1;min-width:180px">
-                <label for="appTimeInput" style="font-size:.82rem;font-weight:700;color:var(--ink);margin-bottom:4px">
-                  ¿A qué hora es tu cita o examen médico?
-                </label>
-                <select id="appTimeInput" style="padding:9px 12px;font-size:.92rem;background:var(--card)"></select>
-              </div>
-              <button type="button" class="btn sm ghost" onclick="calcSuggestedPickup()" style="padding:9px 16px;font-size:.88rem;white-space:nowrap">
-                🧭 Calcular hora de recogida
-              </button>
-            </div>
-            <div id="suggestedPickupCallout" class="callout-box" style="display:none;margin-top:12px;margin-bottom:0;background:rgba(22,143,74,.08);border-left:4px solid var(--wa)">
-              <div id="suggestedPickupMsg" style="font-size:.9rem;color:var(--ink);line-height:1.5"></div>
-              <div style="margin-top:10px">
-                <button type="button" class="btn sm" id="btnApplySuggestedPickup" onclick="applySuggestedPickup()" style="font-size:.85rem;padding:7px 18px">
-                  ✅ Usar esta hora
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- DESPLEGABLE PARA HORA EXACTA DE RECOGIDA DENTRO DEL BLOQUE -->
-          <div class="pickup-time-box" style="margin-top:12px">
-            <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.92rem">Hora exacta de recogida requerida (dentro del bloque seleccionado) *</label>
-            <select id="b_time" required onchange="onPickupTimeChange()"></select>
-            <div id="lblEstimatedWindow" style="font-size:.83rem;color:var(--mute);margin-top:6px"></div>
-            <div id="nightRuleNotice" class="rule-alert"></div>
-          </div>
-
-          <div id="availStatus" class="status-box ok" style="margin-top:2px"></div>
-
-          <div>
-            <label for="b_tens">Profesional / Unidad TENS asignada</label>
-            <select id="b_tens" required></select>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- =========================================================================
@@ -999,6 +1014,7 @@ function onServiceTypeChange(){
   applyMaxDurationRule();
   recalcAll();
   updateSlots();
+  syncJornadaFromSchedule();
 }
 
 function applyModalityVisibility(){
@@ -1029,11 +1045,11 @@ function applyModalityVisibility(){
 
   const noctTextDefinitive = '🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Los Días Festivos operan en jornada diurna de 06:00 a 20:00 hrs.';
   if(mode === '1' || mode === '2'){
-    if(titleNoct) titleNoct.textContent = 'Días Festivos (06:00 a 20:00)';
-    if(subNoct) subNoct.textContent = 'Feriados de calendario en jornada diurna (+50%)';
+    if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00)';
+    if(subNoct) subNoct.textContent = 'Feriado oficial en jornada diurna (+50%)';
     if(footNote) footNote.innerHTML = noctTextDefinitive;
   } else {
-    if(titleNoct) titleNoct.textContent = 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
+    if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
     if(subNoct) subNoct.textContent = 'Días festivos diurnos y atención nocturna (+50%)';
     if(footNote) footNote.innerHTML = noctTextDefinitive;
   }
@@ -1194,13 +1210,10 @@ function onEventStart1Change(){
 }
 
 function setJornada(j){
-  const mode = $('#b_svc_type').value;
-  if((mode === '1' || mode === '2') && j === 'nocturno'){
-    return; // Deshabilitado en Modalidades 1 y 2 (Traslados)
-  }
   currentJornada = j;
   ['habil','tarde','nocturno'].forEach(k => {
-    $('#pillJornada_' + k).classList.toggle('active', k === j);
+    const el = $('#pillJornada_' + k);
+    if(el) el.classList.toggle('active', k === j);
   });
   refreshDuration34Options(false);
   recalcAll();
@@ -1839,20 +1852,42 @@ function setRouteStatus(msg){
 // Escalabilidad Multi-recurso: cambiar a 2 o más en el futuro habilita múltiples reservas por bloque automáticamente
 let capacidadSimultanea = 1;
 
-const CHILE_FERIADOS = [
-  '2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21','2026-06-29',
-  '2026-07-16','2026-08-15','2026-09-18','2026-09-19','2026-09-20','2026-10-12',
-  '2026-10-31','2026-11-01','2026-12-08','2026-12-25','2027-01-01'
-];
+const CHILE_FERIADOS = {
+  '2026-01-01': 'Año Nuevo',
+  '2026-04-03': 'Viernes Santo',
+  '2026-04-04': 'Sábado Santo',
+  '2026-05-01': 'Día del Trabajo',
+  '2026-05-21': 'Glorias Navales',
+  '2026-06-21': 'Pueblos Indígenas',
+  '2026-06-29': 'San Pedro y San Pablo',
+  '2026-07-16': 'Virgen del Carmen',
+  '2026-08-15': 'Asunción de la Virgen',
+  '2026-09-18': 'Fiestas Patrias',
+  '2026-09-19': 'Glorias del Ejército',
+  '2026-09-20': 'Fiestas Patrias',
+  '2026-10-12': 'Encuentro de Dos Mundos',
+  '2026-10-31': 'Iglesias Evangélicas',
+  '2026-11-01': 'Todos los Santos',
+  '2026-12-08': 'Inmaculada Concepción',
+  '2026-12-25': 'Navidad',
+  '2027-01-01': 'Año Nuevo',
+  '2027-03-26': 'Viernes Santo',
+  '2027-03-27': 'Sábado Santo',
+  '2027-05-01': 'Día del Trabajo',
+  '2027-05-21': 'Glorias Navales'
+};
 
 function isChileHoliday(dateStr){
-  return CHILE_FERIADOS.includes(dateStr);
+  return Boolean(CHILE_FERIADOS[dateStr]);
+}
+
+function getChileHolidayName(dateStr){
+  return CHILE_FERIADOS[dateStr] || '';
 }
 
 const BLOCK_HOURS = {
   manana: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00'],
-  tarde:  ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'],
-  tarde_festivo: ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00']
+  tarde:  ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00']
 };
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -1902,9 +1937,8 @@ function isSlotAtLeast24hAhead(dateStr, timeStr){
   return slotDt.getTime() >= minMs;
 }
 
-function getBlockHoursList(blockId, dateStr){
+function getBlockHoursList(blockId){
   if(blockId === 'manana') return BLOCK_HOURS.manana;
-  if(dateStr && isChileHoliday(dateStr)) return BLOCK_HOURS.tarde_festivo;
   return BLOCK_HOURS.tarde;
 }
 
@@ -2001,7 +2035,7 @@ function evaluateDateCapacity(dateStr){
 
   // Revisar qué horas dentro de cada bloque cumplen las 24 horas de anticipación
   const validHoursManana = BLOCK_HOURS.manana.filter(h => isSlotAtLeast24hAhead(dateStr, h));
-  const validHoursTarde  = getBlockHoursList('tarde', dateStr).filter(h => isSlotAtLeast24hAhead(dateStr, h));
+  const validHoursTarde  = getBlockHoursList('tarde').filter(h => isSlotAtLeast24hAhead(dateStr, h));
 
   const mananaTimeOk = validHoursManana.length > 0;
   const tardeTimeOk  = validHoursTarde.length > 0;
@@ -2204,32 +2238,35 @@ function onPickupTimeChange(){
 }
 
 function syncJornadaFromSchedule(){
-  const dateStr = $('#b_date').value;
-  const timeStr = $('#b_time').value || '08:00';
-  const mode = $('#b_svc_type') ? $('#b_svc_type').value : '1';
-  if(!dateStr || !timeStr) return;
+  const dateStr = $('#b_date') ? $('#b_date').value : '';
+  const timeStr = $('#b_time') ? ($('#b_time').value || '08:00') : '08:00';
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  if(!dateStr) return;
   const dt = parseYMD(dateStr);
   const day = dt.getDay();
   const mins = tm(timeStr);
   const isHoliday = isChileHoliday(dateStr);
+  const holidayName = getChileHolidayName(dateStr);
 
-  if(mode === '1' || mode === '2'){
-    // Traslados clínicos operan de 06:00 a 20:00 (no hay servicio nocturno)
-    if(isHoliday){
-      setJornada('nocturno'); // Días Festivos diurnos (+50%)
-    } else if(day === 0 || day === 6){
-      setJornada('tarde'); // Fin de Semana: Sábados y Domingos (06:00 a 20:00) (+25%)
-    } else {
-      setJornada('habil'); // Hábil Lun a Vie (06:00 a 20:00)
-    }
+  const titleNoct = $('#titleJornadaNocturno');
+  const subNoct = $('#subJornadaNocturno');
+
+  if(isHoliday){
+    // Feriado Oficial (cualquier día de la semana) -> Tarifa $18.000/h (+50%)
+    if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00)';
+    if(subNoct) subNoct.textContent = `Feriado oficial: ${holidayName || 'Festivo de calendario'} (+50%)`;
+    setJornada('nocturno');
+  } else if(day === 0 || day === 6){
+    // Sábados o Domingos (no feriado) -> Tarifa $15.000/h (+25%)
+    setJornada('tarde');
   } else {
-    // Eventos sociales y Cuidados a domicilio
-    if(isHoliday || mins >= 20*60 || mins < 6*60){
-      setJornada('nocturno'); // Festivos y Horario Especial Nocturno (+50%)
-    } else if(day === 0 || day === 6){
-      setJornada('tarde'); // Fin de Semana: Sábados y Domingos diurnos (+25%)
+    // Lunes a Viernes (no feriado) -> Tarifa Hábil $12.000/h
+    if((mode === '3' || mode === '4') && (mins >= 20*60 || mins < 6*60)){
+      if(titleNoct) titleNoct.textContent = 'Horario Nocturno (20:00 a 06:00)';
+      if(subNoct) subNoct.textContent = 'Atención nocturna exclusiva (+50%)';
+      setJornada('nocturno');
     } else {
-      setJornada('habil'); // Hábil Lun a Vie diurno
+      setJornada('habil');
     }
   }
 }
@@ -2268,6 +2305,11 @@ function renderCalendar(){
 
   for(let d = 1; d <= daysInMonth; d++){
     const dateStr = `${calViewYear}-${pad(calViewMonth+1)}-${pad(d)}`;
+    const dt = new Date(calViewYear, calViewMonth, d);
+    const dayOfWeek = dt.getDay(); // 0: Dom, 6: Sáb
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    const isHoliday = isChileHoliday(dateStr);
+    const holidayName = getChileHolidayName(dateStr);
     const ev = evaluateDateCapacity(dateStr);
     const isSel = dateStr === selectedDate;
 
@@ -2316,11 +2358,35 @@ function renderCalendar(){
       }
     }
 
+    if(isHoliday){
+      titleTip += ` · Feriado oficial: ${holidayName} (+50%)`;
+    } else if(isWeekend){
+      titleTip += ` · Fin de Semana (+25%)`;
+    }
+
+    const dayClasses = [
+      'cal-day',
+      stClass,
+      isWeekend ? 'is-weekend' : '',
+      isHoliday ? 'is-holiday' : '',
+      isSel ? 'selected' : ''
+    ].filter(Boolean).join(' ');
+
+    let badgeHtml = '';
+    if(isHoliday){
+      badgeHtml = `<span class="cd-day-type holiday" title="Feriado: ${e(holidayName)}">🎉 Festivo</span>`;
+    } else if(isWeekend){
+      badgeHtml = `<span class="cd-day-type wknd" title="Fin de Semana">Sáb/Dom</span>`;
+    }
+
     html += `
-      <div class="cal-day ${stClass} ${isSel ? 'selected' : ''}"
+      <div class="${dayClasses}"
            title="${e(titleTip)}"
            ${clickable ? `onclick="selectCalendarDate('${dateStr}')"` : ''}>
-        <span class="cd-num">${d}</span>
+        <div class="cd-top-row">
+          <span class="cd-num">${d}</span>
+          ${badgeHtml}
+        </div>
         <span class="cd-tag">${tagText}</span>
       </div>
     `;
@@ -2398,7 +2464,7 @@ function updateSlots(keepCurrentTime = false){
     btnM.classList.toggle('active', okM && selectedBlock === 'manana');
     badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
     badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : (ev.manana.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-    subM.textContent = 'Horas de inicio seleccionables entre 06:00 y 10:00 hrs';
+    subM.textContent = 'Horas de recogida seleccionables entre 06:00 y 10:00 hrs';
     reasonM.style.display = okM ? 'none' : 'block';
     reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
 
@@ -2407,7 +2473,7 @@ function updateSlots(keepCurrentTime = false){
     btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
     badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
     badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : (ev.tarde.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-    subT.textContent = isHoliday ? 'Horas de inicio seleccionables entre 14:30 y 17:00 hrs (Día Festivo)' : 'Horas de inicio seleccionables entre 14:00 y 18:00 hrs';
+    subT.textContent = 'Horas de recogida seleccionables entre 14:30 y 17:00 hrs' + (isHoliday ? ' (Día Festivo)' : '');
     reasonT.style.display = okT ? 'none' : 'block';
     reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
   }
@@ -2415,7 +2481,7 @@ function updateSlots(keepCurrentTime = false){
   // Poblar desplegable #b_time según el bloque activo
   const timeSelect = $('#b_time');
   const prevTime = timeSelect.value;
-  const hoursList = isInter ? BLOCK_HOURS.manana : getBlockHoursList(selectedBlock, dateStr);
+  const hoursList = isInter ? BLOCK_HOURS.manana : getBlockHoursList(selectedBlock);
   const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : ev.tarde);
 
   if(!ev.inRange || !activeBlockObj.available){
@@ -2509,14 +2575,14 @@ function calcSuggestedPickup(){
   const appTimeStr = $('#appTimeInput').value || '10:00';
   const appTimeMin = tm(appTimeStr);
 
-  // Tiempo de ruta estimado en Sección 1
+  // Tiempo de ruta estimado en Sección 2
   let routeMin = 0;
   if(lastRouteIdaMin > 0){
     routeMin = lastRouteIdaMin;
   } else if(lastIdaKm > 0){
     routeMin = Math.max(15, Math.round(lastIdaKm * 2.2));
   } else {
-    // Estimación urbana estándar si aún no traza direcciones en Sección 1
+    // Estimación urbana estándar si aún no traza direcciones en Sección 2
     routeMin = 30;
   }
 
@@ -2534,14 +2600,14 @@ function calcSuggestedPickup(){
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
     if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00
     if(targetSlotMin > 600) targetSlotMin = 600; // Máximo 10:00
-  } else if(rawPickupMin < 840){ // Entre 10:00 y 14:00 (Buffer de mediodía 12:00 a 14:00)
+  } else if(rawPickupMin < 870){ // Entre 10:00 y 14:30 (Buffer mediodía)
     targetBlock = 'manana';
-    targetSlotMin = 600; // 10:00 AM (último turno de recogida de mañana para llegar con seguridad)
-  } else { // 14:00 o después -> Turno Tarde (14:00 a 18:00)
+    targetSlotMin = 600; // 10:00 AM
+  } else { // 14:30 o después -> Turno Tarde (14:30 a 17:00)
     targetBlock = 'tarde';
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
-    if(targetSlotMin < 840) targetSlotMin = 840; // Mínimo 14:00
-    if(targetSlotMin > 1080) targetSlotMin = 1080; // Máximo 18:00
+    if(targetSlotMin < 870) targetSlotMin = 870; // Mínimo 14:30
+    if(targetSlotMin > 1020) targetSlotMin = 1020; // Máximo 17:00
   }
 
   const targetSlotStr = fm(targetSlotMin);
@@ -2549,7 +2615,7 @@ function calcSuggestedPickup(){
   currentSuggestedBlock = targetBlock;
 
   const routeNote = (lastRouteIdaMin > 0 || lastIdaKm > 0)
-    ? `${routeMin} min de traslado calculado en mapa`
+    ? `${routeMin} min de traslado calculado en mapa (Sección 2)`
     : `${routeMin} min de traslado estimado`;
 
   const callout = $('#suggestedPickupCallout');
@@ -2635,6 +2701,8 @@ async function initForm(){
     }
   }catch(e){}
   applyMaxDurationRule();
+  updateSlots(true);
+  syncJornadaFromSchedule();
 }
 
 async function submitBooking(ev){
