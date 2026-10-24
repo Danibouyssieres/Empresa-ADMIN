@@ -373,23 +373,23 @@ footer a{color:#fff}
           <label>1. Jornada horaria en que requiere la atención:</label>
           <div class="rate-pill-bar">
             <div id="pillJornada_habil" class="rate-pill active" onclick="setJornada('habil')">
-              <strong>Hábil (Lun a Vie 06:00 a 20:00)</strong>
+              <strong>Hábil (Lun a Vie · 06:00 a 20:00)</strong>
               <small>Jornada diurna de lunes a viernes</small>
               <div class="rp-val" id="lblRateHabil">$12.000/h ($1.000/km)</div>
             </div>
             <div id="pillJornada_tarde" class="rate-pill" onclick="setJornada('tarde')">
-              <strong>Fin de Semana: Sábados y Domingos (06:00 a 20:00)</strong>
+              <strong>Fin de Semana (Sáb y Dom · 06:00 a 20:00)</strong>
               <small>Jornada diurna de fin de semana (+25%)</small>
               <div class="rp-val" id="lblRateTarde">$15.000/h ($1.000/km)</div>
             </div>
             <div id="pillJornada_nocturno" class="rate-pill" onclick="setJornada('nocturno')">
-              <strong id="titleJornadaNocturno">Festivos y Horario Especial Nocturno (20:00 a 06:00)</strong>
+              <strong id="titleJornadaNocturno">Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)</strong>
               <small id="subJornadaNocturno">Días festivos y atención nocturna (+50%)</small>
               <div class="rp-val" id="lblRateNocturno">$18.000/h ($1.000/km)</div>
             </div>
           </div>
           <div id="jornadaFootNote" class="callout-box">
-            🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos.
+            🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Los Días Festivos operan en jornada diurna de 06:00 a 20:00 hrs.
           </div>
         </div>
 
@@ -797,9 +797,9 @@ const RATES = {
 };
 
 const JORNADA_LABELS = {
-  habil: 'Hábil (Lun a Vie 06:00 a 20:00)',
-  tarde: 'Fin de Semana: Sábados y Domingos (06:00 a 20:00)',
-  nocturno: 'Festivos y Horario Especial Nocturno (20:00 a 06:00)'
+  habil: 'Hábil (Lun a Vie · 06:00 a 20:00)',
+  tarde: 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)',
+  nocturno: 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)'
 };
 
 function getJornadaLabel(jornada, mode){
@@ -1027,14 +1027,14 @@ function applyModalityVisibility(){
   const footNote = $('#jornadaFootNote');
   noctPill.classList.remove('disabled');
 
-  const noctTextDefinitive = '🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos.';
+  const noctTextDefinitive = '🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Los Días Festivos operan en jornada diurna de 06:00 a 20:00 hrs.';
   if(mode === '1' || mode === '2'){
     if(titleNoct) titleNoct.textContent = 'Días Festivos (06:00 a 20:00)';
     if(subNoct) subNoct.textContent = 'Feriados de calendario en jornada diurna (+50%)';
     if(footNote) footNote.innerHTML = noctTextDefinitive;
   } else {
-    if(titleNoct) titleNoct.textContent = 'Festivos y Horario Especial Nocturno (20:00 a 06:00)';
-    if(subNoct) subNoct.textContent = 'Días festivos y atención nocturna (+50%)';
+    if(titleNoct) titleNoct.textContent = 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
+    if(subNoct) subNoct.textContent = 'Días festivos diurnos y atención nocturna (+50%)';
     if(footNote) footNote.innerHTML = noctTextDefinitive;
   }
 
@@ -1333,7 +1333,7 @@ function recalcAll(){
   if(mode === '5'){
     $('#lblTimeSummaryDesc').textContent = lastInterBreakdown;
   } else {
-    const jShort = currentJornada === 'habil' ? 'Hábil (Lun-Vie 06:00-20:00)' : currentJornada === 'tarde' ? 'Fin de Semana (Sáb-Dom 06:00-20:00)' : 'Festivos/Nocturno (+50%)';
+    const jShort = currentJornada === 'habil' ? 'Hábil (Lun a Vie · 06:00 a 20:00)' : currentJornada === 'tarde' ? 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)' : 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
     $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · ${jShort}):`;
   }
   $('#lblTimeSummaryVal').textContent = $c(timeCost);
@@ -1839,9 +1839,20 @@ function setRouteStatus(msg){
 // Escalabilidad Multi-recurso: cambiar a 2 o más en el futuro habilita múltiples reservas por bloque automáticamente
 let capacidadSimultanea = 1;
 
+const CHILE_FERIADOS = [
+  '2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21','2026-06-29',
+  '2026-07-16','2026-08-15','2026-09-18','2026-09-19','2026-09-20','2026-10-12',
+  '2026-10-31','2026-11-01','2026-12-08','2026-12-25','2027-01-01'
+];
+
+function isChileHoliday(dateStr){
+  return CHILE_FERIADOS.includes(dateStr);
+}
+
 const BLOCK_HOURS = {
   manana: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00'],
-  tarde:  ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00']
+  tarde:  ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'],
+  tarde_festivo: ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00']
 };
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -1891,8 +1902,9 @@ function isSlotAtLeast24hAhead(dateStr, timeStr){
   return slotDt.getTime() >= minMs;
 }
 
-function getBlockHoursList(blockId){
+function getBlockHoursList(blockId, dateStr){
   if(blockId === 'manana') return BLOCK_HOURS.manana;
+  if(dateStr && isChileHoliday(dateStr)) return BLOCK_HOURS.tarde_festivo;
   return BLOCK_HOURS.tarde;
 }
 
@@ -1989,7 +2001,7 @@ function evaluateDateCapacity(dateStr){
 
   // Revisar qué horas dentro de cada bloque cumplen las 24 horas de anticipación
   const validHoursManana = BLOCK_HOURS.manana.filter(h => isSlotAtLeast24hAhead(dateStr, h));
-  const validHoursTarde  = getBlockHoursList('tarde').filter(h => isSlotAtLeast24hAhead(dateStr, h));
+  const validHoursTarde  = getBlockHoursList('tarde', dateStr).filter(h => isSlotAtLeast24hAhead(dateStr, h));
 
   const mananaTimeOk = validHoursManana.length > 0;
   const tardeTimeOk  = validHoursTarde.length > 0;
@@ -2191,16 +2203,6 @@ function onPickupTimeChange(){
   }
 }
 
-const CHILE_FERIADOS = [
-  '2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21','2026-06-29',
-  '2026-07-16','2026-08-15','2026-09-18','2026-09-19','2026-09-20','2026-10-12',
-  '2026-10-31','2026-11-01','2026-12-08','2026-12-25','2027-01-01'
-];
-
-function isChileHoliday(dateStr){
-  return CHILE_FERIADOS.includes(dateStr);
-}
-
 function syncJornadaFromSchedule(){
   const dateStr = $('#b_date').value;
   const timeStr = $('#b_time').value || '08:00';
@@ -2400,11 +2402,12 @@ function updateSlots(keepCurrentTime = false){
     reasonM.style.display = okM ? 'none' : 'block';
     reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
 
+    const isHoliday = isChileHoliday(dateStr);
     btnT.disabled = !okT;
     btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
     badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
     badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : (ev.tarde.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-    subT.textContent = 'Horas de inicio seleccionables entre 14:00 y 18:00 hrs';
+    subT.textContent = isHoliday ? 'Horas de inicio seleccionables entre 14:30 y 17:00 hrs (Día Festivo)' : 'Horas de inicio seleccionables entre 14:00 y 18:00 hrs';
     reasonT.style.display = okT ? 'none' : 'block';
     reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
   }
@@ -2412,7 +2415,7 @@ function updateSlots(keepCurrentTime = false){
   // Poblar desplegable #b_time según el bloque activo
   const timeSelect = $('#b_time');
   const prevTime = timeSelect.value;
-  const hoursList = isInter ? BLOCK_HOURS.manana : getBlockHoursList(selectedBlock);
+  const hoursList = isInter ? BLOCK_HOURS.manana : getBlockHoursList(selectedBlock, dateStr);
   const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : ev.tarde);
 
   if(!ev.inRange || !activeBlockObj.available){

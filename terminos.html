@@ -432,24 +432,24 @@ footer a:hover { text-decoration: underline; }
     <ul>
       <li><b>Jornada Hábil:</b> Lunes a viernes entre 06:00 y 20:00 hrs (tarifa base).</li>
       <li><b>Jornada Fin de Semana (+25%):</b> Sábados y domingos completos en horario diurno de 06:00 a 20:00 hrs.</li>
-      <li><b>Jornada Especial (+50%):</b> Días festivos (feriados de calendario de 06:00 a 20:00 hrs) y horario nocturno (20:00 a 06:00 hrs exclusivo para cuidados y eventos).</li>
+      <li><b>Jornada Especial Festivos y Nocturna:</b> Días Festivos de 06:00 a 20:00 hrs y Horario Nocturno de 20:00 a 06:00 hrs (+50% sobre tarifa base).</li>
     </ul>
 
     <!-- TABLA COMPLETA DEL TARIFARIO UNIFICADO -->
     <h3>• Tabla Oficial del Tarifario Unificado</h3>
     <div class="rate-tabs" role="tablist" aria-label="Seleccionar jornada horaria">
-      <button type="button" class="rate-tab active" data-tab-btn="1" onclick="setRateTab(1)">Horario Hábil<small>Lun a Vie 06:00 a 20:00</small></button>
-      <button type="button" class="rate-tab" data-tab-btn="2" onclick="setRateTab(2)">Sábados y Domingos<small>06:00 a 20:00 [+25%]</small></button>
-      <button type="button" class="rate-tab" data-tab-btn="3" onclick="setRateTab(3)">Días Festivos y Nocturno*<small>20:00 a 06:00 [+50%]</small></button>
+      <button type="button" class="rate-tab active" data-tab-btn="1" onclick="setRateTab(1)">Hábil<small>Lun a Vie · 06:00 a 20:00</small></button>
+      <button type="button" class="rate-tab" data-tab-btn="2" onclick="setRateTab(2)">Fin de Semana<small>Sáb y Dom · 06:00 a 20:00 [+25%]</small></button>
+      <button type="button" class="rate-tab" data-tab-btn="3" onclick="setRateTab(3)">Festivos y Nocturno*<small>Festivos 06-20h · Noct. 20-06h [+50%]</small></button>
     </div>
     <div class="tw" id="rateTableWrap" data-active-col="1">
       <table>
         <thead>
           <tr>
             <th>Modalidades del servicio</th>
-            <th data-col="1">Horario Hábil<small>Lun a Vie 06:00 a 20:00</small></th>
-            <th data-col="2">Sábados y Domingos<small>06:00 a 20:00 [+25%]</small></th>
-            <th data-col="3">Días Festivos y Nocturno*<small>20:00 a 06:00 [+50%]</small></th>
+            <th data-col="1">Hábil<small>Lun a Vie · 06:00 a 20:00</small></th>
+            <th data-col="2">Fin de Semana<small>Sáb y Dom · 06:00 a 20:00 [+25%]</small></th>
+            <th data-col="3">Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)*<small>[+50%]</small></th>
           </tr>
         </thead>
         <tbody>
@@ -459,7 +459,7 @@ footer a:hover { text-decoration: underline; }
             <td data-col="2"><b>$1.000 / km + $15.000 / hr</b><br><span class="t-sub">(Frac. 30min: $7.500)</span></td>
             <td data-col="3">
               <b>$1.000 / km + $18.000 / hr</b><br><span class="t-sub">(Frac. 30min: $9.000)</span>
-              <span class="t-sub cell-note" style="color:var(--teal);font-weight:600">(Aplica en Días Festivos de 06:00 a 20:00 hrs · Sin servicio nocturno)</span>
+              <span class="t-sub cell-note" style="color:var(--teal);font-weight:600">(Aplica en Días Festivos diurnos de 06:00 a 20:00 hrs · Sin servicio nocturno)</span>
             </td>
           </tr>
           <tr>
@@ -468,7 +468,7 @@ footer a:hover { text-decoration: underline; }
             <td data-col="2"><b>$1.000 / km + $10.000 / hr</b><br><span class="t-sub">(Frac. 30min: $5.000)</span></td>
             <td data-col="3">
               <b>$1.000 / km + $12.000 / hr</b><br><span class="t-sub">(Frac. 30min: $6.000)</span>
-              <span class="t-sub cell-note" style="color:var(--teal);font-weight:600">(Aplica en Días Festivos de 06:00 a 20:00 hrs · Sin servicio nocturno)</span>
+              <span class="t-sub cell-note" style="color:var(--teal);font-weight:600">(Aplica en Días Festivos diurnos de 06:00 a 20:00 hrs · Sin servicio nocturno)</span>
             </td>
           </tr>
           <tr>
@@ -520,7 +520,7 @@ footer a:hover { text-decoration: underline; }
     </div>
 
     <div class="callout-box">
-      <b>🌙 Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos.
+      <b>🌙 Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Los Días Festivos operan en jornada diurna de 06:00 a 20:00 hrs.
     </div>
   </section>
 
