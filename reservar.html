@@ -895,9 +895,14 @@ footer a{color:#fff}
         </label>
       </div>
 
+      <!-- MENSAJE DE ADVERTENCIA VISIBLE SOBRE EL BOTÓN FINAL -->
+      <div id="submitBlockAlert" class="status-box err" style="display:none;margin-top:18px;text-align:left;font-size:.92rem;line-height:1.5">
+        <span>⚠️ <b>No es posible continuar con la reserva:</b> Existen observaciones en su selección de horario en el Paso 2 (la hora elegida no se encuentra disponible o excede la ventana del turno seleccionado en el calendario). Por favor revise la Sección 2 antes de confirmar.</span>
+      </div>
+
       <div style="margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
         <a class="btn ghost" href="index.html">Cancelar</a>
-        <button type="submit" id="submitBtn" class="btn" style="font-size:1.05rem;padding:14px 30px">📅 Confirmar Hora Ahora</button>
+        <button type="submit" id="submitBtn" class="btn" style="font-size:1.05rem;padding:14px 30px">📅 Confirmar y Abonar</button>
       </div>
     </section>
   </form>
@@ -3230,7 +3235,10 @@ function updateSlots(keepCurrentTime = false){
   const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : (selectedBlock === 'noche' ? ev.noche : ev.tarde));
 
   if(!ev.inRange || !activeBlockObj.available){
-    timeSelect.innerHTML = `<option value="">Sin horarios disponibles en este bloque</option>`;
+    const timeOptText = (dur >= 360 && (selectedBlock === 'manana' || !activeBlockObj.available))
+      ? 'Plan de 6 hrs excede el turno seleccionado en Paso 1'
+      : 'Sin horarios disponibles en este bloque';
+    timeSelect.innerHTML = `<option value="">${timeOptText}</option>`;
     timeSelect.disabled = true;
   } else {
     timeSelect.disabled = false;
@@ -3257,6 +3265,7 @@ function updateSlots(keepCurrentTime = false){
   const subBtn = $('#submitBtn');
   const nightNotice = $('#nightRuleNotice');
   const estWindow = $('#lblEstimatedWindow');
+  const submitAlert = $('#submitBlockAlert');
 
   if(ev.inRange && activeBlockObj.available && curTime){
     const stMin = tm(curTime);
@@ -3269,10 +3278,22 @@ function updateSlots(keepCurrentTime = false){
       estWindow.textContent = '';
       nightNotice.style.display = 'none';
       stBox.className = 'status-box err';
-      stBox.innerHTML = `<span>⚠️ <b>Conflicto de Turnos Cruzados:</b> Esta atención (${fmtHoursClean(dur)}) finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia y el Turno Tarde, pero el Turno Tarde ya se encuentra ocupado en esta fecha. Seleccione una menor duración o elija una fecha con ambos turnos disponibles.</span>`;
+      if(dur >= 360){
+        stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
+      } else {
+        stBox.innerHTML = `<span>⚠️ <b>Conflicto de Turnos Cruzados:</b> Esta atención (${fmtHoursClean(dur)}) finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia y el Turno Tarde, pero el Turno Tarde ya se encuentra ocupado en esta fecha. Seleccione una menor duración o elija una fecha con ambos turnos disponibles.</span>`;
+      }
       tensSelect.innerHTML = `<option value="">Conflicto de horario con Turno Tarde</option>`;
       tensSelect.disabled = true;
-      subBtn.disabled = true;
+      if(subBtn) subBtn.disabled = false;
+      if(submitAlert){
+        submitAlert.style.display = 'block';
+        if(dur >= 360){
+          submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
+        } else {
+          submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> Existen observaciones en su selección de horario en el Paso 2 (la hora elegida no se encuentra disponible o excede la ventana del turno seleccionado en el calendario). Por favor revise la Sección 2 antes de confirmar.</span>`;
+        }
+      }
       return;
     }
 
@@ -3303,16 +3324,29 @@ function updateSlots(keepCurrentTime = false){
     stBox.innerHTML = `<span>✅ <b>Cupo verificado y disponible</b> para el <b>${formatHumanDate(dateStr)}</b> a las <b>${curTime} hrs</b> (${availUnits.length} de ${capacidadSimultanea} unidad disponible).</span>`;
     tensSelect.innerHTML = availUnits.map((t,idx)=>`<option value="${t.id}">${idx===0?'Asignación titular: ':''}${e(t.nom)} (${e(t.veh||'Unidad TENS')})</option>`).join('');
     tensSelect.disabled = false;
-    subBtn.disabled = false;
+    if(subBtn) subBtn.disabled = false;
+    if(submitAlert) submitAlert.style.display = 'none';
   } else {
     estWindow.textContent = '';
     nightNotice.style.display = 'none';
     stBox.className = 'status-box err';
     const errReason = !ev.inRange ? ev.outReason : activeBlockObj.reason;
-    stBox.innerHTML = `<span>⚠️ <b>No disponible en la selección actual:</b> ${e(errReason)}. Por favor elija otro bloque o seleccione una fecha disponible en el calendario.</span>`;
+    if(dur >= 360 && (selectedBlock === 'manana' || !activeBlockObj.available)){
+      stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
+    } else {
+      stBox.innerHTML = `<span>⚠️ <b>No disponible en la selección actual:</b> ${e(errReason)}. Por favor elija otro bloque o seleccione una fecha disponible en el calendario.</span>`;
+    }
     tensSelect.innerHTML = `<option value="">Sin unidad disponible en este bloque</option>`;
     tensSelect.disabled = true;
-    subBtn.disabled = true;
+    if(subBtn) subBtn.disabled = false;
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      if(dur >= 360 && selectedBlock === 'manana'){
+        submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
+      } else {
+        submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> Existen observaciones en su selección de horario en el Paso 2 (la hora elegida no se encuentra disponible o excede la ventana del turno seleccionado en el calendario). Por favor revise la Sección 2 antes de confirmar.</span>`;
+      }
+    }
   }
 }
 
@@ -3501,7 +3535,12 @@ async function submitBooking(ev){
 
   const termsChk = $('#b_terms');
   if(termsChk && !termsChk.checked){
-    alert('Debe leer y aceptar los Términos y Condiciones del Servicio para confirmar su hora.');
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      submitAlert.innerHTML = `<span>⚠️ <b>Términos y Condiciones requeridos:</b> Debe leer y aceptar los Términos y Condiciones del Servicio para confirmar su hora.</span>`;
+    }
+    termsChk.scrollIntoView({ behavior: 'smooth', block: 'center' });
     termsChk.focus();
     return;
   }
@@ -3522,8 +3561,27 @@ async function submitBooking(ev){
   if(showMap && !ptTo && $('#b_to').value.trim()){
     await searchAddr('to', true);
   }
+  if(!$('#b_from').value.trim()){
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      submitAlert.innerHTML = `<span>⚠️ <b>Dirección de recogida requerida:</b> Por favor ingrese su dirección de inicio en el Paso 2 antes de confirmar.</span>`;
+    }
+    $('#b_from').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#b_from').focus();
+    return;
+  }
   if(showMap && (!ptFrom || !ptTo)){
-    alert('Por favor ingrese y verifique las direcciones de Inicio (A) y Destino (B) para continuar.');
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      submitAlert.innerHTML = `<span>⚠️ <b>Direcciones requeridas:</b> Por favor ingrese y verifique las direcciones de Inicio (A) y Destino (B) en el mapa superior para continuar.</span>`;
+    }
+    const targetInp = (!ptFrom ? $('#b_from') : $('#b_to')) || $('#routeLayoutBox');
+    if(targetInp){
+      targetInp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetInp.focus();
+    }
     return;
   }
 
@@ -3531,29 +3589,71 @@ async function submitBooking(ev){
 
   const date = $('#b_date').value;
   const timeStr = $('#b_time').value;
-  if(!date || !timeStr){
-    alert('Por favor seleccione una fecha disponible en el calendario y una hora de recogida dentro del bloque.');
-    return;
-  }
-
+  const dur = getSelectedTotalMinutes();
   const capEval = evaluateDateCapacity(date);
   const targetBlockObj = isInter ? capEval.interregional : (selectedBlock === 'manana' ? capEval.manana : (selectedBlock === 'noche' ? capEval.noche : capEval.tarde));
-  if(!capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr)){
-    alert('Este bloque horario ya no se encuentra disponible o no cumple con las 24 horas de anticipación. Por favor seleccione otro bloque o fecha.');
+  const start = timeStr ? tm(timeStr) : 0;
+  const endMin = start + dur;
+  const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 12 * 60 && endMin > 12 * 60);
+
+  if(!date || !timeStr || !capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr) || (isCrossShift && !capEval.tarde.available)){
     updateSlots();
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      if(dur >= 360 && (selectedBlock === 'manana' || isCrossShift)){
+        submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
+      } else {
+        submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> Existen observaciones en su selección de horario en el Paso 2 (la hora elegida no se encuentra disponible o excede la ventana del turno seleccionado en el calendario). Por favor revise la Sección 2 antes de confirmar.</span>`;
+      }
+    }
+    const targetErr = $('#availStatus') || $('#b_time') || $('#selStayDestino') || $('#timeSectionTitle');
+    if(targetErr){
+      targetErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetErr.style.transition = 'box-shadow 0.3s, transform 0.2s';
+      targetErr.style.boxShadow = '0 0 0 4px rgba(220, 38, 38, 0.4)';
+      setTimeout(() => { targetErr.style.boxShadow = ''; }, 2200);
+    }
     return;
   }
 
-  const start = tm(timeStr);
-  const dur = getSelectedTotalMinutes();
-  const endMin = start + dur;
+  // Validaciones de datos en Sección 3
+  const pat = $('#b_pat').value.trim();
+  if(!pat){
+    $('#b_pat').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#b_pat').focus();
+    return;
+  }
+  const age = +$('#b_age').value;
+  if(!$('#b_age').value || age < 0){
+    $('#b_age').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#b_age').focus();
+    return;
+  }
+  const dxInput = $('#b_dx').value.trim();
+  if(!dxInput){
+    $('#b_dx').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#b_dx').focus();
+    return;
+  }
+  const coord = $('#b_coord').value.trim();
+  if(!coord){
+    $('#b_coord').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#b_coord').focus();
+    return;
+  }
+  const phVal = $('#b_ph').value.trim();
+  if(!phVal || phVal.length < 8){
+    $('#b_ph').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#b_ph').focus();
+    return;
+  }
+  const ph = '+569' + phVal;
+
   const isNightShift = (selectedBlock === 'noche');
   const endsAfter22 = isNightShift || (endMin > 22 * 60);
   const tid = $('#b_tens').value || (targetBlockObj.availUnits[0] && targetBlockObj.availUnits[0].id) || 't1';
 
-  const pat = $('#b_pat').value.trim();
-  const age = +$('#b_age').value;
-  const dxInput = $('#b_dx').value.trim();
   const fullDx = mode === '5'
     ? `${svcName} (${selectedInterRegion}) · ${dxInput}`
     : (mode === '4'
@@ -3565,8 +3665,6 @@ async function submitBooking(ev){
   const to = showDest ? $('#b_to').value.trim() : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
   const compVal = $('#b_comp').value;
   const comp = compVal.startsWith('Sí');
-  const coord = $('#b_coord').value.trim();
-  const ph = '+569' + $('#b_ph').value.trim();
   const reqs = [...document.querySelectorAll('.rq-cb:checked')].map(x=>x.value);
   if(reqs.length === 0){
     reqs.push(mode === '2' ? 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)' : (mode === '3' ? 'Ficha de Valoración y Control de Signos Vitales (Marcada por defecto - Gratuita)' : (mode === '5' ? 'Ficha de Valoración y Signos Vitales al inicio del viaje (Marcada por defecto - Gratuita)' : 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)')));
@@ -3582,17 +3680,16 @@ async function submitBooking(ev){
   const taxDir = isInvoice ? (($('#b_tax_dir') && $('#b_tax_dir').value.trim()) || '') : '';
 
   if(isInvoice && (!taxRS || !taxRUT || !taxGiro || !taxDir)){
-    alert('Por favor complete todos los campos obligatorios para Factura Electrónica Exenta (Razón Social, RUT, Giro y Dirección Tributaria).');
-    if(!taxRS && $('#b_tax_rs')) $('#b_tax_rs').focus();
-    else if(!taxRUT && $('#b_tax_rut')) $('#b_tax_rut').focus();
-    else if(!taxGiro && $('#b_tax_giro')) $('#b_tax_giro').focus();
-    else if(!taxDir && $('#b_tax_dir')) $('#b_tax_dir').focus();
-    return;
-  }
-
-  const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 12 * 60 && endMin > 12 * 60);
-  if(isCrossShift && !capEval.tarde.available){
-    alert(`La duración de este servicio finaliza a las ${fm(endMin % 1440)} hrs invadiendo el Turno Tarde, el cual ya se encuentra reservado en esta fecha. Por favor reduzca la duración o seleccione otra fecha con ambos turnos libres.`);
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      submitAlert.innerHTML = `<span>⚠️ <b>Datos de Facturación incompletos:</b> Por favor complete los datos requeridos para la emisión de la Factura Electrónica Exenta (Razón Social, RUT, Giro y Dirección Tributaria).</span>`;
+    }
+    const firstEmpty = (!taxRS ? $('#b_tax_rs') : (!taxRUT ? $('#b_tax_rut') : (!taxGiro ? $('#b_tax_giro') : $('#b_tax_dir'))));
+    if(firstEmpty){
+      firstEmpty.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstEmpty.focus();
+    }
     return;
   }
 
