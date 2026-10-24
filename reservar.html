@@ -974,7 +974,7 @@ function setInterProgram(hours){
 // ===== REGLAS POR MODALIDAD DE SERVICIO =====
 function isMapEnabledForCurrentState(){
   const mode = $('#b_svc_type').value;
-  return mode === '1' || mode === '2';
+  return mode === '1' || mode === '2' || mode === '5';
 }
 
 function refreshDuration34Options(resetSelection = false){
@@ -1036,7 +1036,7 @@ function onServiceTypeChange(){
 
 function applyModalityVisibility(){
   const mode = $('#b_svc_type').value;
-  const showMap = isMapEnabledForCurrentState(); // true solo en '1' y '2'
+  const showMap = isMapEnabledForCurrentState(); // true en '1', '2' y '5'
   const showDestAddress = (mode === '1' || mode === '2' || mode === '5');
 
   const layoutBox = $('#routeLayoutBox');
@@ -1052,6 +1052,10 @@ function applyModalityVisibility(){
   // Mostrar tarjetas de Jornada (1-4) vs tarjetas de Programa Interregional (5)
   $('#jornadaSelectorWrap').style.display = (mode === '5') ? 'none' : 'block';
   $('#interProgSelectorWrap').style.display = (mode === '5') ? 'block' : 'none';
+
+  if(mode === '5'){
+    setTripMode(2); // Por defecto Ida y Vuelta en Programa Interregional
+  }
 
   // En Modalidades 1 y 2 (Traslados Clínicos): solo permitir Hábil, Sábados y Domingos/Festivos (08:00 a 20:00). No hay traslados nocturnos.
   const noctPill = $('#pillJornada_nocturno');
@@ -1384,11 +1388,11 @@ function recalcAll(){
   }
   $('#lblTimeSummaryVal').textContent = $c(timeCost);
 
-  const showMap = isMapEnabledForCurrentState();
-  const kmCost = showMap ? lastKmCost : 0;
+  const isKmService = (mode === '1' || mode === '2');
+  const kmCost = isKmService ? lastKmCost : 0;
 
-  if(showMap){
-    // Modalidad 1 o 2
+  if(isKmService){
+    // Modalidad 1 o 2 (cobro de KM + Tiempo)
     const titleLabel = mode === '1'
       ? '💰 Suma Total del Servicio (KM + Tiempo de Asistencia)'
       : '💰 Suma Total del Servicio (KM + Tiempo de Espera)';
@@ -1791,6 +1795,9 @@ async function computeRoute(){
       lastTotalKm = Math.round(rawTotal * 10) / 10;
       lastVueltaKm = isRoundTrip ? Math.max(0, Math.round((lastTotalKm - lastIdaKm) * 10) / 10) : 0;
       const totalDurationMin = Math.round(route.duration / 60);
+      const idaDurationMin = (legs[0] && legs[0].duration)
+        ? Math.max(1, Math.round(legs[0].duration / 60))
+        : (isRoundTrip ? Math.max(1, Math.round(totalDurationMin / 2)) : totalDurationMin);
 
       if(routeLine) map.removeLayer(routeLine);
       routeLine = L.geoJSON(route.geometry, {
@@ -1798,7 +1805,7 @@ async function computeRoute(){
       }).addTo(map);
       map.fitBounds(routeLine.getBounds(), {padding:[40,40]});
 
-      renderPricing(lastIdaKm, lastVueltaKm, lastTotalKm, totalDurationMin);
+      renderPricing(lastIdaKm, lastVueltaKm, lastTotalKm, totalDurationMin, idaDurationMin);
       setRouteStatus(isRoundTrip
         ? '✅ Ruta de Ida y Vuelta calculada y sumada al total.'
         : '✅ Ruta de Solo Ida calculada y sumada al total.');
@@ -1808,10 +1815,11 @@ async function computeRoute(){
   }catch(e){
     const dKm = Math.round(haversineKm(ptFrom.lat, ptFrom.lon, ptTo.lat, ptTo.lon) * 1.3 * 10) / 10;
     const totalKm = isRoundTrip ? Math.round(dKm * 2 * 10) / 10 : dKm;
+    const estIdaMin = Math.max(15, Math.round(dKm * 1.3));
     lastIdaKm = dKm;
     lastVueltaKm = isRoundTrip ? dKm : 0;
     lastTotalKm = totalKm;
-    renderPricing(dKm, lastVueltaKm, totalKm, Math.round(totalKm * 2));
+    renderPricing(dKm, lastVueltaKm, totalKm, isRoundTrip ? estIdaMin * 2 : estIdaMin, estIdaMin);
     setRouteStatus('✅ Distancia calculada.');
   }
 }
@@ -1822,7 +1830,8 @@ function haversineKm(lat1, lon1, lat2, lon2){
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function renderPricing(idaKm, vueltaKm, totalKm, totalMin){
+function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin){
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
   const isRoundTrip = tripMultiplier === 2;
   const rIda = Math.round(idaKm * 10) / 10;
   const rVuelta = Math.round(vueltaKm * 10) / 10;
@@ -1831,24 +1840,34 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin){
   lastVueltaKm = rVuelta;
   lastTotalKm = rTotal;
   lastRouteTotalMin = totalMin || 0;
-  lastRouteIdaMin = isRoundTrip ? Math.max(1, Math.round(lastRouteTotalMin / 2)) : lastRouteTotalMin;
+  lastRouteIdaMin = (idaMin && idaMin > 0) ? idaMin : (isRoundTrip ? Math.max(1, Math.round(lastRouteTotalMin / 2)) : lastRouteTotalMin);
   const fmtIda = rIda.toFixed(1).replace('.', ',');
   const fmtVuelta = rVuelta.toFixed(1).replace('.', ',');
   const fmtTotal = rTotal.toFixed(1).replace('.', ',');
-  lastKmCost = Math.round((rTotal * PRICE_PER_KM) / 100) * 100;
   const modeLabel = isRoundTrip ? 'Ida y Vuelta (A → B → A)' : 'Solo Ida (A → B)';
 
   $('#resultPanel').style.display = 'block';
   $('#lblResultTitle').textContent = isRoundTrip ? 'Distancia total Ida y Vuelta:' : 'Distancia total Solo Ida:';
   $('#outKm').textContent = `${fmtTotal} km`;
-  $('#outTime').textContent = totalMin > 0 ? `(aprox. ${totalMin} min de conducción)` : '';
-  $('#outPrice').textContent = $c(lastKmCost);
+  $('#outTime').textContent = totalMin > 0 ? `(aprox. ${totalMin} min de conducción total · ${lastRouteIdaMin} min de ida)` : '';
 
-  $('#bdOneWay').textContent = `${fmtIda} km`;
-  $('#rowReturn').style.display = isRoundTrip ? 'flex' : 'none';
-  $('#bdReturn').textContent = `${fmtVuelta} km`;
-  $('#bdMode').textContent = modeLabel;
-  $('#bdTotalPrice').textContent = $c(lastKmCost);
+  if(mode === '5'){
+    lastKmCost = 0;
+    $('#outPrice').textContent = 'Incluido';
+    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min de viaje)`;
+    $('#rowReturn').style.display = isRoundTrip ? 'flex' : 'none';
+    $('#bdReturn').textContent = `${fmtVuelta} km`;
+    $('#bdMode').textContent = `${modeLabel} · Dedicación Exclusiva`;
+    $('#bdTotalPrice').textContent = 'Incluido en Programa';
+  } else {
+    lastKmCost = Math.round((rTotal * PRICE_PER_KM) / 100) * 100;
+    $('#outPrice').textContent = $c(lastKmCost);
+    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min de viaje)`;
+    $('#rowReturn').style.display = isRoundTrip ? 'flex' : 'none';
+    $('#bdReturn').textContent = `${fmtVuelta} km`;
+    $('#bdMode').textContent = modeLabel;
+    $('#bdTotalPrice').textContent = $c(lastKmCost);
+  }
 
   recalcAll();
 
@@ -2610,25 +2629,30 @@ let currentSuggestedHour = '08:30';
 let currentSuggestedBlock = 'manana';
 
 function calcSuggestedPickup(){
-  const appTimeStr = $('#appTimeInput').value || '10:00';
-  const appTimeMin = tm(appTimeStr);
+  const callout = $('#suggestedPickupCallout');
+  const msg = $('#suggestedPickupMsg');
+  const btn = $('#btnApplySuggestedPickup');
 
-  // Tiempo de ruta estimado en Sección 2
-  let routeMin = 0;
-  if(lastRouteIdaMin > 0){
-    routeMin = lastRouteIdaMin;
-  } else if(lastIdaKm > 0){
-    routeMin = Math.max(15, Math.round(lastIdaKm * 2.2));
-  } else {
-    // Estimación urbana estándar si aún no traza direcciones en Sección 2
-    routeMin = 30;
+  // 1. Validar que la ruta esté calculada en el mapa
+  if(!lastRouteIdaMin || lastRouteIdaMin <= 0){
+    msg.innerHTML = `⚠️ <b>Calcule la ruta primero:</b> Por favor ingrese y busque las direcciones de <b>Inicio (A)</b> y <b>Destino (B)</b> en el mapa superior para obtener los minutos reales de conducción antes de calcular su hora de salida.`;
+    if(btn) btn.style.display = 'none';
+    callout.style.display = 'block';
+    return;
   }
 
-  const margenAdmision = 20; // 20 min margen de admisión/recepción clínica
-  const margenAbordaje = 15; // 15 min abordaje vehicular y valoración TENS
-  const totalAnticipacion = routeMin + margenAdmision + margenAbordaje;
+  const appTimeStr = $('#appTimeInput').value || '10:00';
+  const appTimeMin = tm(appTimeStr);
+  const routeMin = lastRouteIdaMin;
 
-  const rawPickupMin = appTimeMin - totalAnticipacion;
+  const margenAbordaje = 15; // 15 min abordaje vehicular y valoración inicial TENS
+  const margenAdmision = 20; // 20 min margen previo para recepción y admisión clínica
+  const anticipacionFija = margenAbordaje + margenAdmision; // 35 min
+  const totalAnticipacionExacta = routeMin + anticipacionFija;
+
+  // Hora exacta matemática de salida = HoraCita - (tiempoRutaMinutos + 35 min)
+  const rawPickupMin = appTimeMin - totalAnticipacionExacta;
+  const horaExactaSalidaStr = fm(rawPickupMin < 0 ? (rawPickupMin + 1440) : rawPickupMin);
 
   let targetBlock = 'manana';
   let targetSlotMin = 510; // 08:30
@@ -2638,7 +2662,8 @@ function calcSuggestedPickup(){
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
     if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00
     if(targetSlotMin > 600) targetSlotMin = 600; // Máximo 10:00
-  } else if(rawPickupMin < 870){ // Entre 10:00 y 14:30 (Buffer mediodía)
+  } else if(rawPickupMin < 870){ // Entre 10:00 y 14:30 (Buffer mediodía 12:00 a 14:30)
+    // Para citas de mediodía, el último turno de recogida de mañana es 10:00 AM
     targetBlock = 'manana';
     targetSlotMin = 600; // 10:00 AM
   } else { // 14:30 o después -> Turno Tarde (14:30 a 17:00)
@@ -2652,18 +2677,46 @@ function calcSuggestedPickup(){
   currentSuggestedHour = targetSlotStr;
   currentSuggestedBlock = targetBlock;
 
-  const routeNote = (lastRouteIdaMin > 0 || lastIdaKm > 0)
-    ? `${routeMin} min de traslado calculado en mapa (Sección 2)`
-    : `${routeMin} min de traslado estimado`;
+  // Holgura entre la hora exacta matemática y el bloque de agenda redondeado
+  const holguraMin = rawPickupMin - targetSlotMin;
+  const totalAnticipacionEfectiva = appTimeMin - targetSlotMin;
 
-  const callout = $('#suggestedPickupCallout');
-  const msg = $('#suggestedPickupMsg');
-  const btn = $('#btnApplySuggestedPickup');
+  let ajusteAgendaTexto = '';
+  if(holguraMin > 0){
+    ajusteAgendaTexto = `→ <b>Ajuste preventivo a bloque de agenda (cada 30 min):</b> Redondeado al bloque anterior de las <b>${targetSlotStr} hrs</b> (+${holguraMin} min de holgura preventiva ante imprevistos de tráfico).<br>
+    <b>Anticipación total con holgura:</b> ${totalAnticipacionEfectiva} minutos (${fmtHoursClean(totalAnticipacionEfectiva)}).`;
+  } else if(holguraMin === 0){
+    ajusteAgendaTexto = `→ <b>Alineación con agenda:</b> Coincide exactamente con el bloque agendable de las <b>${targetSlotStr} hrs</b> (${totalAnticipacionExacta} min de anticipación previa).`;
+  } else {
+    // Cuando se topa con el límite del turno (ej: mínimo 06:00 o máximo 10:00)
+    ajusteAgendaTexto = `→ <b>Ajuste por ventana operativa:</b> Fijado en <b>${targetSlotStr} hrs</b> (${targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde'}, límite de ventana disponible).`;
+  }
 
-  msg.innerHTML = `Para llegar con tranquilidad a tu cita de las <b>${appTimeStr} hrs</b>, te sugerimos fijar tu recogida a las <b>${targetSlotStr} hrs</b>.<br><small style="color:var(--mute)">Desglose: ${routeNote} + 15 min abordaje/signos TENS + 20 min admisión clínica (${totalAnticipacion} min de anticipación previa).</small>`;
-  btn.textContent = `✅ Aplicar esta hora`;
+  const blockHuman = targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde';
+
+  msg.innerHTML = `
+    Para llegar con tranquilidad a tu cita médica de las <b>${appTimeStr} hrs</b>, te sugerimos fijar tu recogida a las <b>${targetSlotStr} hrs</b> (${blockHuman}).<br>
+    <div style="margin-top:8px;padding:8px 12px;background:var(--card);border-radius:8px;border:1px solid var(--line);font-size:.84rem;line-height:1.55">
+      <b>Desglose matemático del cálculo:</b><br>
+      • <b>${routeMin} min</b> de traslado calculado en mapa vehicular.<br>
+      • <b>+ 15 min</b> de abordaje y control inicial de signos vitales por TENS.<br>
+      • <b>+ 20 min</b> de margen previo para recepción y admisión clínica.<br>
+      → <b>Cálculo exacto de salida:</b> ${appTimeStr} hrs − ${totalAnticipacionExacta} min = <b>${horaExactaSalidaStr} hrs</b>.<br>
+      ${ajusteAgendaTexto}
+    </div>
+  `;
+
+  if(btn){
+    btn.style.display = 'inline-block';
+    btn.textContent = `✅ Aplicar esta hora (${targetSlotStr} hrs en ${blockHuman})`;
+  }
   callout.style.display = 'block';
 }
+
+function calculateSuggestedTime(){
+  return calcSuggestedPickup();
+}
+window.calculateSuggestedTime = calcSuggestedPickup;
 
 function applySuggestedPickup(){
   if(selectedBlock !== currentSuggestedBlock){
