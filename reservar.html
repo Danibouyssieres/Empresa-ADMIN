@@ -868,11 +868,13 @@ const REQ_BY_MODE = {
     { text: 'Solicitud de silla de ruedas o andador de la empresa para uso del familiar dentro del recinto (Sin costo)', def: false }
   ],
   '3': [
-    { text: 'Ficha de Valoración y Control de Signos Vitales al inicio (Marcada por defecto - Gratuita)', def: true },
-    { text: 'Aseo y confort, higiene personal y cambios de posición', def: false },
-    { text: 'Supervisión de medicación oral (según indicación médica aportada por la familia)', def: false },
-    { text: 'Alimentación asistida y asistencia en hidratación', def: false },
-    { text: 'Estimulación cognitiva, conversación activa y paseos peatonales cercanos', def: false }
+    { text: 'Ficha de Valoración y Control de Signos Vitales (Marcada por defecto - Gratuita)', def: true },
+    { text: 'Asistencia en aseo diario, confort e higiene / Cambio de pañal', def: false },
+    { text: 'Apoyo en transferencias seguras, cambios posturales o pequeñas caminatas en el hogar', def: false },
+    { text: 'Asistencia y paciencia en la alimentación y toma de líquidos', def: false },
+    { text: 'Supervisión y recordatorio de medicación oral habitual (según prescripción médica de la familia)', def: false },
+    { text: 'Acompañamiento, conversación activa y estimulación', def: false },
+    { text: 'Acompañamiento peatonal cercano (trámites breves, compras o farmacia a pie)', def: false }
   ],
   '4': [
     { text: 'Control preventivo de signos vitales previo al evento (Marcado por defecto - Gratuito)', def: true },
@@ -910,10 +912,10 @@ const RATES = {
     tarde:    { hour: 10000, half: 5000 },
     nocturno: { hour: 12000, half: 6000 }
   },
-  '3': { // c) Cuidados a domicilio (Sin Traslado Vehicular): 2h, 3h, Plan Tope 4h + frac. 30m
-    habil:    { hour: 12000, half: 6000, pkg: {2: 24000, 3: 36000, 4: 40000}, savings: {4: 8000} },
-    tarde:    { hour: 15000, half: 7500, pkg: {2: 30000, 3: 45000, 4: 50000}, savings: {4: 10000} },
-    nocturno: { hour: 18000, half: 9000, pkg: {2: 36000, 3: 54000, 4: 60000}, savings: {4: 12000} }
+  '3': { // c) Cuidados a domicilio (Sin Traslado Vehicular): 2h a 6h (tope de $96.000 en nocturno/festivo) + frac. 30m
+    habil:    { hour: 12000, half: 6000 },
+    tarde:    { hour: 15000, half: 7500 },
+    nocturno: { hour: 18000, half: 9000, pkg: { 6: 96000 }, savings: { 6: 12000 } }
   },
   '4': { // d) Asistencia en eventos (Matrimonios / Fiestas / Salidas Sociales): 4h, 5h, Plan Tope 6h + frac. 30m
     habil:    { hour: 12000, half: 6000, pkg: {4: 48000, 5: 60000, 6: 64000}, savings: {6: 8000} },
@@ -1312,11 +1314,19 @@ function applyModalityVisibility(){
     }
   }
 
+  // Banner de advertencia de Programas Interregionales (solo visible en Modalidad 5)
+  const warnInter = $('#interregionalBlockWarn');
+  if(warnInter && mode !== '5'){
+    warnInter.style.display = 'none';
+  }
+
   // Actualizar recuadro informativo bajo el cronograma de horas según modalidad
   const noticeBox = $('#maxDurationNotice');
   if(noticeBox){
     if(mode === '2'){
       noticeBox.innerHTML = `🛡️ <b>Garantía de Espera Vehicular Exclusiva:</b> El vehículo y su conductora permanecen a su total disposición en el recinto durante todo el tiempo contratado. Si la atención demora más de lo presupuestado, el excedente se liquida al regreso en bloques de 30 minutos según la tarifa horaria de espera.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
+    } else if(mode === '3'){
+      noticeBox.innerHTML = `🛡️ <b>Garantía de Cuidado Clínico en el Hogar:</b> Atención personalizada realizada por una Técnico en Enfermería de Nivel Superior (TENS), enfocada en el confort, higiene, seguridad y bienestar del paciente dentro de su domicilio. Si por requerimiento familiar la atención debe extenderse más allá de las horas reservadas, el tiempo adicional se regularizará al término del servicio en bloques de 30 minutos (sujeto a disponibilidad y tope máximo de 6 hrs continuas).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
     } else {
       noticeBox.innerHTML = `🛡️ <b>Garantía de acompañamiento y espera:</b> Sabemos que las consultas de salud, filas en notarías o gestiones pueden extenderse de forma imprevista. Tu profesional TENS y el móvil te esperarán todo el tiempo necesario. Cualquier sobretiempo que exceda la reserva se regularizará al volver al hogar en bloques de 30 minutos según la tarifa horaria correspondiente.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
     }
@@ -1580,7 +1590,10 @@ function recalcAll(){
       m = 0;
     }
     const extraHalfCost = (h < 6 && m === 30) ? r.half : 0;
-    const basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
+    let basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
+    if(currentJornada === 'nocturno' && h === 6){
+      basePkgCost = 96000;
+    }
     timeCost = basePkgCost + extraHalfCost;
     durationText = `${h} h${extraHalfCost ? ' y 30 min' : ''} (${$c(basePkgCost)}${extraHalfCost ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
   } else if(mode === '4'){
@@ -2923,7 +2936,9 @@ function updateSlots(keepCurrentTime = false){
   const reasonN = $('#reasonBlock_noche');
 
   // Restricción cruzada en combobox de modalidades (Sección 2):
-  // Si el usuario tiene seleccionado Turno Tarde o Noche, la opción 5 queda disabled y se muestra advertencia.
+  // Si el usuario tiene seleccionado Turno Tarde o Noche, la opción 5 queda disabled.
+  // La advertencia SOLO se muestra si el usuario tiene seleccionada la modalidad 5.
+  const curSvc = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
   const optInter = $('#b_svc_type') ? $('#b_svc_type').querySelector('option[value="5"]') : null;
   const warnInter = $('#interregionalBlockWarn');
 
@@ -2932,7 +2947,7 @@ function updateSlots(keepCurrentTime = false){
       optInter.disabled = true;
     }
     if(warnInter){
-      warnInter.style.display = 'block';
+      warnInter.style.display = (curSvc === '5') ? 'block' : 'none';
       warnInter.innerHTML = `⚠️ Los Programas Interregionales (Valparaíso / O'Higgins) contemplan entre 4 y 6 horas de permanencia más traslados de larga distancia, por lo que únicamente pueden iniciarse en el Turno Mañana.`;
     }
   } else {
@@ -3375,7 +3390,7 @@ async function submitBooking(ev){
   const ph = '+569' + $('#b_ph').value.trim();
   const reqs = [...document.querySelectorAll('.rq-cb:checked')].map(x=>x.value);
   if(reqs.length === 0){
-    reqs.push(mode === '2' ? 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)' : 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)');
+    reqs.push(mode === '2' ? 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)' : (mode === '3' ? 'Ficha de Valoración y Control de Signos Vitales (Marcada por defecto - Gratuita)' : 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)'));
   }
 
   const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 12 * 60 && endMin > 12 * 60);
