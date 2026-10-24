@@ -325,6 +325,25 @@ footer a{color:#fff}
             </div>
           </div>
 
+          <!-- BLOQUE 3: NOCHE -->
+          <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche')">
+            <div class="block-btn-top">
+              <span class="block-btn-title">🌙 Turno Noche (22:00 a 04:00 hrs)</span>
+              <span id="badgeBlock_noche" class="block-badge ok">Disponible</span>
+            </div>
+            <div class="block-btn-sub" id="subBlock_noche">Atención nocturna exclusiva (inicios entre 22:00 y 23:30 hrs)</div>
+            <div class="block-btn-reason" id="reasonBlock_noche" style="display:none"></div>
+          </button>
+
+          <!-- VENTANA DE RESGUARDO 3 (DESCANSO BIOLÓGICO POST-NOCTURNO) -->
+          <div class="buffer-strip" style="margin-top:4px">
+            <span style="font-size:1.2rem">🛡️</span>
+            <div>
+              <b>Descanso Biológico Post-Nocturno (04:00 a 14:30 hrs):</b>
+              Garantiza reposo y recuperación del personal. Toda reserva en Turno Noche bloquea automáticamente el Turno Mañana del día siguiente (disponible solo a partir de las 14:30 hrs).
+            </div>
+          </div>
+
           <div class="callout-box" style="margin-top:10px;font-size:.85rem;line-height:1.45">
             💡 <b>Nota de agenda:</b> En este paso solo se reserva el bloque general. La hora exacta de recogida y el cálculo de viaje se definirán a continuación en la <b>Sección 2</b> tras trazar su ruta en el mapa.
           </div>
@@ -1272,7 +1291,7 @@ function onEventStart1Change(){
   const val = $('#selEventStart1').value;
   if(val){
     const mins = tm(val);
-    selectedBlock = mins < 12 * 60 ? 'manana' : 'tarde';
+    selectedBlock = (mins >= 22 * 60 || mins < 4 * 60) ? 'noche' : (mins < 12 * 60 ? 'manana' : 'tarde');
     const bTime = $('#b_time');
     if(bTime){
       updateSlots(false);
@@ -2029,13 +2048,14 @@ function getChileHolidayName(dateStr){
 
 const BLOCK_HOURS = {
   manana: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00'],
-  tarde:  ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00']
+  tarde:  ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00'],
+  noche:  ['22:00', '22:30', '23:00', '23:30']
 };
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DAY_NAMES_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-let selectedBlock = 'manana'; // 'manana' | 'tarde'
+let selectedBlock = 'manana'; // 'manana' | 'tarde' | 'noche'
 let calViewYear = new Date().getFullYear();
 let calViewMonth = new Date().getMonth(); // 0..11
 
@@ -2081,6 +2101,7 @@ function isSlotAtLeast24hAhead(dateStr, timeStr){
 
 function getBlockHoursList(blockId){
   if(blockId === 'manana') return BLOCK_HOURS.manana;
+  if(blockId === 'noche') return BLOCK_HOURS.noche;
   return BLOCK_HOURS.tarde;
 }
 
@@ -2089,13 +2110,14 @@ function seed(){
   const baseDate = toYMD(now);
   const dMananaOcupada = addDaysYMD(baseDate, 3);    // Ejemplo: Bloque Mañana ocupado -> "Último cupo"
   const dInterregional = addDaysYMD(baseDate, 5);    // Ejemplo: Interregional día completo -> "Agotado"
-  const dEventoNocturno = addDaysYMD(baseDate, 8);   // Ejemplo: Evento nocturno (>22:00) -> Bloquea Mañana de día +9
+  const dEventoNocturno = addDaysYMD(baseDate, 8);   // Ejemplo: Turno Noche (22:00) -> Bloquea Mañana de día +9 por descanso post-nocturno
+  const dDosTurnos = addDaysYMD(baseDate, 12);       // Ejemplo: 2 turnos agendados (Mañana y Tarde) -> Bloquea Turno Noche por tope diario (máx. 2 turnos)
   const sv=(id,tid,date,start,dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,extra={})=>({
     id,tid,date,start:tm(start),dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,...extra
   });
   return{
-    seedVersion: 2,
-    nid: 14,
+    seedVersion: 3,
+    nid: 16,
     techs:[
       {id:'t1',nom:'Daniela González Bouyssieres',rut:'Registro SIS Nº 442762',tel:'+56929990095',veh:'Unidad 1 · Vehículo Acondicionado Clase A2',col:'#0f766e',act:true},
       {id:'t2',nom:'Unidad TENS 2 (Respaldo)',rut:'15.987.654-3',tel:'+56933334444',veh:'Unidad 2',col:'#c2410c',act:false}
@@ -2103,7 +2125,9 @@ function seed(){
     svcs:[
       sv(1,'t1',dMananaOcupada,'08:30',120,'Rosa Medina',82,'1. Servicio Integral · Control cardiológico','Andrea Medina','+56977778888','Maipú, Av. Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
       sv(2,'t1',dInterregional,'08:00',360,'Jorge Salas',76,'5. Programas Interregionales (Región de Valparaíso) · Control Oncológico','Luis Salas','+56966665555','Viña del Mar, Av. Libertad 450','Instituto Nacional del Cáncer, Santiago','Camina con asistencia/bastón',['Acompañamiento en box médico','Control de signos vitales'],true,300000,150000,'Confirmado',{block:'full',fullDay:true,svcType:'5'}),
-      sv(3,'t1',dEventoNocturno,'16:30',360,'María Opazo',84,'4. Acompañamiento a Eventos Sociales · Matrimonio familiar','Pía Opazo','+56944443333','Maipú, Camino a Rinconada 800','Centro de Eventos, Calera de Tango','Silla de ruedas plegable',['Control de signos vitales','Asistencia de higiene/confort'],true,80000,40000,'Confirmado',{block:'tarde',svcType:'4',blocksNextMorning:true})
+      sv(3,'t1',dEventoNocturno,'22:00',360,'María Opazo',84,'4. Acompañamiento a Eventos Sociales · Matrimonio familiar','Pía Opazo','+56944443333','Maipú, Camino a Rinconada 800','Centro de Eventos, Calera de Tango','Silla de ruedas plegable',['Control de signos vitales','Asistencia de higiene/confort'],true,80000,40000,'Confirmado',{block:'noche',svcType:'4',blocksNextMorning:true}),
+      sv(4,'t1',dDosTurnos,'08:30',120,'Héctor Muñoz',79,'1. Servicio Integral · Control traumatología','Carmen Muñoz','+56955556666','Maipú, Pajaritos 2200','Hospital del Trabajador, Providencia','Camina con bastón',['Acompañamiento en box médico'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
+      sv(5,'t1',dDosTurnos,'15:00',180,'Elena Valdés',81,'2. Traslado con Espera · Sesión Kinesiología','Carlos Valdés','+56933332222','Maipú, Segunda Transversal 500','Centro Médico, Las Condes','Silla de ruedas plegable',['Acompañamiento en box médico'],true,36000,18000,'Confirmado',{block:'tarde',svcType:'2'})
     ],
     blocks:[]
   };
@@ -2112,7 +2136,7 @@ function seed(){
 function load(){
   try{
     const parsed = JSON.parse(localStorage.getItem(K));
-    if(parsed && parsed.seedVersion === 2){
+    if(parsed && parsed.seedVersion === 3){
       if(!Array.isArray(parsed.blocks)) parsed.blocks = [];
       return parsed;
     }
@@ -2140,18 +2164,24 @@ function getActiveUnitsForCapacity(){
 function inferServiceBlock(s){
   if(s.fullDay || s.block === 'full' || s.svcType === '5' || /interregional/i.test(s.dx || '')) return 'full';
   if(s.crossShift) return 'full';
+  if(s.block === 'noche') return 'noche';
+  if(s.block === 'manana' || s.block === 'tarde') return s.block;
   const startMin = Number(s.start);
   const durMin = Number(s.dur);
-  // Si una reserva por su duración invade dos turnos o el buffer intermedio (12:00 a 14:00 hrs):
+  if(startMin >= 22 * 60 || startMin < 4 * 60) return 'noche';
+  // Si una reserva por su duración invade dos turnos o el buffer intermedio (12:00 a 14:30 hrs):
   if(startMin < 12 * 60 && (startMin + durMin) > 12 * 60) return 'full';
-  if(s.block === 'manana' || s.block === 'tarde') return s.block;
   return (startMin < 12 * 60) ? 'manana' : 'tarde';
 }
 
-// Determinar si un servicio termina después de las 22:00 hrs (1320 min)
+// Determinar si un servicio termina después de las 22:00 hrs (1320 min) o pertenece al Turno Noche
 function doesServiceEndAfter22(s){
   if(s.blocksNextMorning) return true;
-  return (Number(s.start) + Number(s.dur)) > (22 * 60);
+  if(s.block === 'noche') return true;
+  const startMin = Number(s.start);
+  const durMin = Number(s.dur);
+  if(startMin >= 22 * 60) return true;
+  return (startMin + durMin) > (22 * 60);
 }
 
 // Evaluar el estado detallado de capacidad y bloqueos para una fecha YYYY-MM-DD
@@ -2163,6 +2193,7 @@ function evaluateDateCapacity(dateStr){
       outReason: dateStr < todayStr ? 'Fecha pasada' : 'Supera el límite máximo de 30 días',
       manana: { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Fuera de rango permitido' },
       tarde:  { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Fuera de rango permitido' },
+      noche:  { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Fuera de rango permitido' },
       interregional: { availUnits: [], free: 0, available: false, reason: 'Fuera de rango permitido' },
       status: 'off'
     };
@@ -2177,30 +2208,36 @@ function evaluateDateCapacity(dateStr){
 
   // Revisar qué horas dentro de cada bloque cumplen las 24 horas de anticipación
   const validHoursManana = BLOCK_HOURS.manana.filter(h => isSlotAtLeast24hAhead(dateStr, h));
-  const validHoursTarde  = getBlockHoursList('tarde').filter(h => isSlotAtLeast24hAhead(dateStr, h));
+  const validHoursTarde  = BLOCK_HOURS.tarde.filter(h => isSlotAtLeast24hAhead(dateStr, h));
+  const validHoursNoche  = BLOCK_HOURS.noche.filter(h => isSlotAtLeast24hAhead(dateStr, h));
 
   const mananaTimeOk = validHoursManana.length > 0;
   const tardeTimeOk  = validHoursTarde.length > 0;
+  const nocheTimeOk  = validHoursNoche.length > 0;
 
-  if(!mananaTimeOk && !tardeTimeOk){
+  if(!mananaTimeOk && !tardeTimeOk && !nocheTimeOk){
     return {
       inRange: false,
       outReason: 'Requiere mínimo 24 horas de anticipación',
       manana: { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Bloqueado (menos de 24 hrs de anticipación)' },
       tarde:  { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Bloqueado (menos de 24 hrs de anticipación)' },
+      noche:  { availUnits: [], used: capacidadSimultanea, free: 0, available: false, reason: 'Bloqueado (menos de 24 hrs de anticipación)' },
       interregional: { availUnits: [], free: 0, available: false, reason: 'Bloqueado (menos de 24 hrs de anticipación)' },
       status: 'off'
     };
   }
 
   let availUnitsManana = [];
-  let availUnitsTarde = [];
+  let availUnitsTarde  = [];
+  let availUnitsNoche  = [];
   let availUnitsFullDay = [];
 
   let reasonMananaList = [];
-  let reasonTardeList = [];
+  let reasonTardeList  = [];
+  let reasonNocheList  = [];
   let manualBlockedM = false;
   let manualBlockedT = false;
+  let manualBlockedN = false;
 
   units.forEach((u, idx) => {
     const unitSvcs = daySvcs.filter(s => s.tid === u.id || (idx === 0 && !units.some(x => x.id === s.tid)));
@@ -2210,15 +2247,40 @@ function evaluateDateCapacity(dateStr){
     const hasManualFull   = unitManual.some(b => b.type === 'full');
     const hasManualManana = unitManual.some(b => b.type === 'manana' || b.type === 'full');
     const hasManualTarde  = unitManual.some(b => b.type === 'tarde' || b.type === 'full');
+    const hasManualNoche  = unitManual.some(b => b.type === 'noche' || b.type === 'full');
 
-    const hasFullDay = unitSvcs.some(s => inferServiceBlock(s) === 'full');
-    const hasManana  = unitSvcs.some(s => inferServiceBlock(s) === 'manana');
-    const hasTarde   = unitSvcs.some(s => inferServiceBlock(s) === 'tarde');
+    const bookedShifts = new Set();
+    let hasFullDay = false;
+    unitSvcs.forEach(s => {
+      const blk = inferServiceBlock(s);
+      if(blk === 'full'){
+        hasFullDay = true;
+        bookedShifts.add('manana');
+        bookedShifts.add('tarde');
+      } else if(blk === 'manana'){
+        bookedShifts.add('manana');
+      } else if(blk === 'tarde'){
+        bookedShifts.add('tarde');
+      } else if(blk === 'noche'){
+        bookedShifts.add('noche');
+      }
+    });
+
+    const hasManana = bookedShifts.has('manana');
+    const hasTarde  = bookedShifts.has('tarde');
+    const hasNoche  = bookedShifts.has('noche');
+
+    // Regla 3: Descanso biológico post-nocturno si el día anterior hubo servicio en Turno Noche o finalizado > 22:00 hrs
     const prevNightRestBlock = prevUnitSvcs.some(s => doesServiceEndAfter22(s));
+
+    // Regla 2: Máximo 2 turnos por fecha. Si ya existen 2 turnos reservados, cualquier 3er turno queda bloqueado.
+    const isDailyCapReached = bookedShifts.size >= 2 || hasFullDay;
 
     let mFree = true;
     let tFree = true;
+    let nFree = true;
 
+    // --- EVALUACIÓN TURNO MAÑANA ---
     if(!mananaTimeOk){
       mFree = false;
       reasonMananaList.push('Requiere mínimo 24 hrs de anticipación');
@@ -2231,12 +2293,16 @@ function evaluateDateCapacity(dateStr){
       reasonMananaList.push('Día bloqueado por servicio extenso o Programa Interregional');
     } else if(prevNightRestBlock){
       mFree = false;
-      reasonMananaList.push('Bloqueado por descanso reglamentario (atención nocturna el día anterior > 22:00 hrs)');
+      reasonMananaList.push('Bloqueado por descanso biológico post-nocturno (atención nocturna el día anterior)');
     } else if(hasManana){
       mFree = false;
       reasonMananaList.push('Turno Mañana ya reservado en esta fecha');
+    } else if(isDailyCapReached){
+      mFree = false;
+      reasonMananaList.push('Capacidad diaria completa (máx. 2 turnos por fecha: Tarde y Noche ya reservados)');
     }
 
+    // --- EVALUACIÓN TURNO TARDE ---
     if(!tardeTimeOk){
       tFree = false;
       reasonTardeList.push('Requiere mínimo 24 hrs de anticipación');
@@ -2250,21 +2316,46 @@ function evaluateDateCapacity(dateStr){
     } else if(hasTarde){
       tFree = false;
       reasonTardeList.push('Turno Tarde ya reservado en esta fecha');
+    } else if(isDailyCapReached){
+      tFree = false;
+      reasonTardeList.push('Capacidad diaria completa (máx. 2 turnos por fecha: Mañana y Noche ya reservados)');
+    }
+
+    // --- EVALUACIÓN TURNO NOCHE ---
+    if(!nocheTimeOk){
+      nFree = false;
+      reasonNocheList.push('Requiere mínimo 24 hrs de anticipación');
+    } else if(hasManualNoche){
+      nFree = false;
+      manualBlockedN = true;
+      reasonNocheList.push('No disponible en agenda');
+    } else if(hasFullDay){
+      nFree = false;
+      reasonNocheList.push('Día bloqueado por servicio extenso o Programa Interregional');
+    } else if(hasNoche){
+      nFree = false;
+      reasonNocheList.push('Turno Noche ya reservado en esta fecha');
+    } else if(isDailyCapReached){
+      nFree = false;
+      reasonNocheList.push('Capacidad diaria completa (máx. 2 turnos por fecha: Mañana y Tarde ya reservados)');
     }
 
     if(mFree) availUnitsManana.push(u);
     if(tFree) availUnitsTarde.push(u);
+    if(nFree) availUnitsNoche.push(u);
     if(mFree && tFree) availUnitsFullDay.push(u);
   });
 
   const freeM = availUnitsManana.length;
   const freeT = availUnitsTarde.length;
+  const freeN = availUnitsNoche.length;
   const freeFull = availUnitsFullDay.length;
 
+  const totalFree = freeM + freeT + freeN;
   let dayStatus = 'disp'; // 'disp' | 'last' | 'full' | 'closed'
-  if(freeM === 0 && freeT === 0){
-    dayStatus = (manualBlockedM && manualBlockedT) ? 'closed' : 'full';
-  } else if(freeM === 0 || freeT === 0 || (freeM + freeT === 1)){
+  if(freeM === 0 && freeT === 0 && freeN === 0){
+    dayStatus = (manualBlockedM && manualBlockedT && manualBlockedN) ? 'closed' : 'full';
+  } else if(totalFree === 1){
     dayStatus = 'last';
   } else {
     dayStatus = 'disp';
@@ -2296,6 +2387,15 @@ function evaluateDateCapacity(dateStr){
       validHours: validHoursTarde,
       reason: freeT > 0 ? '' : (reasonTardeList[0] || 'No disponible')
     },
+    noche: {
+      availUnits: availUnitsNoche,
+      used: capacidadSimultanea - freeN,
+      free: freeN,
+      available: freeN > 0,
+      manualBlocked: manualBlockedN,
+      validHours: validHoursNoche,
+      reason: freeN > 0 ? '' : (reasonNocheList[0] || 'No disponible')
+    },
     interregional: {
       availUnits: availUnitsFullDay,
       free: freeFull,
@@ -2310,12 +2410,15 @@ function evaluateDateCapacity(dateStr){
 function findFirstAvailableDate(){
   const { todayStr } = getBookingWindowBounds();
   const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const allowsNight = (mode === '3' || mode === '4');
+
   for(let i = 1; i <= 30; i++){
     const dStr = addDaysYMD(todayStr, i);
     const ev = evaluateDateCapacity(dStr);
     if(!ev.inRange) continue;
     if(isInter && ev.interregional.available) return dStr;
-    if(!isInter && (ev.manana.available || ev.tarde.available)) return dStr;
+    if(!isInter && (ev.manana.available || ev.tarde.available || (allowsNight && ev.noche.available))) return dStr;
   }
   return addDaysYMD(todayStr, 1);
 }
@@ -2335,12 +2438,21 @@ function selectCalendarDate(dateStr){
   calViewYear = dt.getFullYear();
   calViewMonth = dt.getMonth();
 
-  // Si el bloque actualmente seleccionado está ocupado en la nueva fecha, cambiar automáticamente al bloque disponible
   const mode = $('#b_svc_type').value;
   if(mode === '5'){
     selectedBlock = 'manana';
+  } else if(mode === '3' || mode === '4'){
+    if(selectedBlock === 'manana' && !ev.manana.available){
+      selectedBlock = ev.tarde.available ? 'tarde' : (ev.noche.available ? 'noche' : 'manana');
+    } else if(selectedBlock === 'tarde' && !ev.tarde.available){
+      selectedBlock = ev.manana.available ? 'manana' : (ev.noche.available ? 'noche' : 'tarde');
+    } else if(selectedBlock === 'noche' && !ev.noche.available){
+      selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : 'noche');
+    }
   } else {
-    if(selectedBlock === 'manana' && !ev.manana.available && ev.tarde.available){
+    if(selectedBlock === 'noche'){
+      selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : 'manana');
+    } else if(selectedBlock === 'manana' && !ev.manana.available && ev.tarde.available){
       selectedBlock = 'tarde';
     } else if(selectedBlock === 'tarde' && !ev.tarde.available && ev.manana.available){
       selectedBlock = 'manana';
@@ -2354,8 +2466,19 @@ function selectShiftBlock(blockId){
   const dateStr = $('#b_date').value;
   const ev = evaluateDateCapacity(dateStr);
   const mode = $('#b_svc_type').value;
+
   if(mode === '5'){
     selectedBlock = 'manana';
+  } else if(blockId === 'noche'){
+    if(mode !== '3' && mode !== '4'){
+      alert('El Turno Noche (22:00 a 04:00 hrs) está habilitado exclusivamente para las modalidades "3. Cuidados a Domicilio" y "4. Acompañamiento en Eventos Sociales".\n\nLos traslados vehiculares (Servicio Integral y Traslado con Espera) operan exclusivamente en jornada diurna (06:00 a 20:00 hrs).');
+      return;
+    }
+    if(!ev.noche.available){
+      alert(`El Turno Noche no se encuentra disponible para el ${formatHumanDate(dateStr)}: ${ev.noche.reason || 'Sin cupos disponibles'}.`);
+      return;
+    }
+    selectedBlock = 'noche';
   } else {
     if(blockId === 'manana' && !ev.manana.available) return;
     if(blockId === 'tarde' && !ev.tarde.available) return;
@@ -2398,18 +2521,17 @@ function syncJornadaFromSchedule(){
     if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00)';
     if(subNoct) subNoct.textContent = `Feriado oficial: ${holidayName || 'Festivo de calendario'} (+50%)`;
     setJornada('nocturno');
+  } else if((mode === '3' || mode === '4') && (selectedBlock === 'noche' || mins >= 20*60 || mins < 6*60)){
+    // Horario Nocturno (cualquier día, hábil o fin de semana) -> Tarifa Especial (+50%)
+    if(titleNoct) titleNoct.textContent = 'Horario Nocturno (20:00 a 06:00)';
+    if(subNoct) subNoct.textContent = 'Atención nocturna exclusiva (+50%)';
+    setJornada('nocturno');
   } else if(day === 0 || day === 6){
-    // Sábados o Domingos (no feriado) -> Tarifa $15.000/h (+25%)
+    // Sábados o Domingos (no feriado, diurno) -> Tarifa $15.000/h (+25%)
     setJornada('tarde');
   } else {
-    // Lunes a Viernes (no feriado) -> Tarifa Hábil $12.000/h
-    if((mode === '3' || mode === '4') && (mins >= 20*60 || mins < 6*60)){
-      if(titleNoct) titleNoct.textContent = 'Horario Nocturno (20:00 a 06:00)';
-      if(subNoct) subNoct.textContent = 'Atención nocturna exclusiva (+50%)';
-      setJornada('nocturno');
-    } else {
-      setJornada('habil');
-    }
+    // Lunes a Viernes (no feriado, diurno) -> Tarifa Hábil $12.000/h
+    setJornada('habil');
   }
 }
 
@@ -2481,12 +2603,16 @@ function renderCalendar(){
         stClass = 'st-disp';
         tagText = 'Disponible';
         clickable = true;
-        titleTip = 'Mañana y Tarde disponibles';
+        titleTip = 'Turnos disponibles en agenda';
       } else if(ev.status === 'last'){
         stClass = 'st-last';
         tagText = 'Último cupo';
         clickable = true;
-        titleTip = ev.manana.available ? 'Último cupo: solo Bloque Mañana disponible' : 'Último cupo: solo Bloque Tarde disponible';
+        const availList = [];
+        if(ev.manana.available) availList.push('Mañana');
+        if(ev.tarde.available) availList.push('Tarde');
+        if(ev.noche.available) availList.push('Noche');
+        titleTip = `Último cupo: solo Turno ${availList.join(' / ')} disponible`;
       } else if(ev.status === 'closed'){
         stClass = 'st-full';
         tagText = 'No disponible';
@@ -2496,8 +2622,12 @@ function renderCalendar(){
         stClass = 'st-full';
         tagText = 'Agotado';
         clickable = false;
-        titleTip = 'Sin cupos disponibles en esta fecha';
+        titleTip = 'Capacidad completa (máximo de turnos alcanzado en esta fecha)';
       }
+    }
+
+    if(ev.manana && !ev.manana.available && ev.manana.reason && ev.manana.reason.includes('descanso biológico')){
+      titleTip += ' (Mañana bloqueada por descanso biológico post-nocturno)';
     }
 
     if(isHoliday){
@@ -2541,6 +2671,7 @@ function updateSlots(keepCurrentTime = false){
   D = load() || D;
   const mode = $('#b_svc_type').value;
   const isInter = mode === '5';
+  const allowsNight = (mode === '3' || mode === '4');
 
   $('#lblCapBadge').textContent = `Capacidad activa: ${capacidadSimultanea} ${capacidadSimultanea === 1 ? 'unidad' : 'unidades'}`;
 
@@ -2559,25 +2690,33 @@ function updateSlots(keepCurrentTime = false){
   // Si la modalidad cambió o el bloque elegido quedó sin cupo en esta fecha, auto-ajustar bloque
   if(isInter){
     selectedBlock = 'manana';
+  } else if(!allowsNight && selectedBlock === 'noche'){
+    selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : 'manana');
   } else if(ev.inRange){
-    if(selectedBlock === 'manana' && !ev.manana.available && ev.tarde.available){
-      selectedBlock = 'tarde';
-    } else if(selectedBlock === 'tarde' && !ev.tarde.available && ev.manana.available){
-      selectedBlock = 'manana';
+    if(selectedBlock === 'manana' && !ev.manana.available){
+      selectedBlock = ev.tarde.available ? 'tarde' : (allowsNight && ev.noche.available ? 'noche' : 'manana');
+    } else if(selectedBlock === 'tarde' && !ev.tarde.available){
+      selectedBlock = ev.manana.available ? 'manana' : (allowsNight && ev.noche.available ? 'noche' : 'tarde');
+    } else if(selectedBlock === 'noche' && !ev.noche.available){
+      selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : 'noche');
     }
   }
 
   renderCalendar();
 
-  // Actualizar botones de Bloque Mañana y Bloque Tarde
+  // Actualizar botones de Turnos (Mañana, Tarde, Noche)
   const btnM = $('#btnBlock_manana');
   const btnT = $('#btnBlock_tarde');
+  const btnN = $('#btnBlock_noche');
   const badgeM = $('#badgeBlock_manana');
   const badgeT = $('#badgeBlock_tarde');
+  const badgeN = $('#badgeBlock_noche');
   const subM = $('#subBlock_manana');
   const subT = $('#subBlock_tarde');
+  const subN = $('#subBlock_noche');
   const reasonM = $('#reasonBlock_manana');
   const reasonT = $('#reasonBlock_tarde');
+  const reasonN = $('#reasonBlock_noche');
 
   if(isInter){
     const okInter = ev.inRange && ev.interregional.available;
@@ -2597,8 +2736,18 @@ function updateSlots(keepCurrentTime = false){
     subT.textContent = 'Regla Interregional: bloquea automáticamente Mañana y Tarde para su traslado';
     reasonT.style.display = okInter ? 'none' : 'block';
     reasonT.textContent = okInter ? '' : `🔒 ${ev.interregional.reason}`;
-  } else {
-    // Modalidades 1 a 4
+
+    if(btnN){
+      btnN.disabled = true;
+      btnN.classList.remove('active');
+      badgeN.className = 'block-badge occ';
+      badgeN.textContent = 'Inhabilitado';
+      subN.textContent = 'Exclusivo para Cuidados a Domicilio y Eventos';
+      reasonN.style.display = 'block';
+      reasonN.textContent = '🔒 Programa Interregional opera exclusivamente en jornada diurna completa (06:00 a 20:00).';
+    }
+  } else if(!allowsNight){
+    // Modalidades 1 y 2 (Traslados vehiculares): Turno Noche completamente inhabilitado
     const okM = ev.inRange && ev.manana.available;
     const okT = ev.inRange && ev.tarde.available;
 
@@ -2618,22 +2767,65 @@ function updateSlots(keepCurrentTime = false){
     subT.textContent = 'Horas de recogida seleccionables entre 14:30 y 17:00 hrs' + (isHoliday ? ' (Día Festivo)' : '');
     reasonT.style.display = okT ? 'none' : 'block';
     reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
+
+    if(btnN){
+      btnN.disabled = true;
+      btnN.classList.remove('active');
+      badgeN.className = 'block-badge occ';
+      badgeN.textContent = 'Inhabilitado';
+      subN.textContent = 'Exclusivo para Cuidados a Domicilio y Eventos';
+      reasonN.style.display = 'block';
+      reasonN.textContent = '🔒 Traslados vehiculares operan exclusivamente en jornada diurna (06:00 a 20:00). Turno Noche habilitado solo para Cuidados a Domicilio y Eventos Sociales.';
+    }
+  } else {
+    // Modalidades 3 y 4 (Cuidados a Domicilio y Eventos Sociales): Todos los turnos disponibles según capacidad
+    const okM = ev.inRange && ev.manana.available;
+    const okT = ev.inRange && ev.tarde.available;
+    const okN = ev.inRange && ev.noche.available;
+
+    btnM.disabled = !okM;
+    btnM.classList.toggle('active', okM && selectedBlock === 'manana');
+    badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
+    badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : (ev.manana.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
+    subM.textContent = 'Horas de atención seleccionables entre 06:00 y 10:00 hrs';
+    reasonM.style.display = okM ? 'none' : 'block';
+    reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
+
+    const isHoliday = isChileHoliday(dateStr);
+    btnT.disabled = !okT;
+    btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
+    badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
+    badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : (ev.tarde.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
+    subT.textContent = 'Horas de atención seleccionables entre 14:30 y 17:00 hrs' + (isHoliday ? ' (Día Festivo)' : '');
+    reasonT.style.display = okT ? 'none' : 'block';
+    reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
+
+    if(btnN){
+      btnN.disabled = !okN;
+      btnN.classList.toggle('active', okN && selectedBlock === 'noche');
+      badgeN.className = 'block-badge ' + (okN ? 'ok' : 'occ');
+      badgeN.textContent = okN ? `Disponible (${ev.noche.free} ${ev.noche.free===1?'cupo':'cupos'})` : (ev.noche.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
+      subN.textContent = 'Horas de inicio seleccionables entre 22:00 y 23:30 hrs';
+      reasonN.style.display = okN ? 'none' : 'block';
+      reasonN.textContent = okN ? '' : `🔒 ${ev.noche.reason}`;
+    }
   }
 
   // Poblar desplegable #b_time según el bloque activo
   const timeSelect = $('#b_time');
   const prevTime = timeSelect.value;
   const hoursList = isInter ? BLOCK_HOURS.manana : getBlockHoursList(selectedBlock);
-  const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : ev.tarde);
+  const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : (selectedBlock === 'noche' ? ev.noche : ev.tarde));
 
   if(!ev.inRange || !activeBlockObj.available){
     timeSelect.innerHTML = `<option value="">Sin horarios disponibles en este bloque</option>`;
     timeSelect.disabled = true;
   } else {
     timeSelect.disabled = false;
+    const timeLabelSuffix = (selectedBlock === 'noche') ? 'Hora de inicio de atención nocturna' : 'Hora exacta de recogida';
     timeSelect.innerHTML = hoursList.map(h => {
       const ok24 = isSlotAtLeast24hAhead(dateStr, h);
-      return `<option value="${h}" ${!ok24 ? 'disabled' : ''}>${h} hrs — Hora exacta de recogida${!ok24 ? ' (Menos de 24h)' : ''}</option>`;
+      return `<option value="${h}" ${!ok24 ? 'disabled' : ''}>${h} hrs — ${timeLabelSuffix}${!ok24 ? ' (Menos de 24h)' : ''}</option>`;
     }).join('');
 
     const validChoices = hoursList.filter(h => isSlotAtLeast24hAhead(dateStr, h));
@@ -2674,19 +2866,19 @@ function updateSlots(keepCurrentTime = false){
       ? 'Jornada Completa Interregional (Bloquea Mañana + Tarde)'
       : (isInvadingCrossShift
           ? 'Jornada Extendida (Bloquea Mañana y Tarde por invasión de buffer)'
-          : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : 'Turno Tarde (14:00 a 20:00 hrs)'));
+          : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:30 a 20:00 hrs)')));
 
-    estWindow.innerHTML = `🕒 <b>Recogida:</b> ${curTime} hrs → <b>Término estimado:</b> ${fm(endMin % 1440)} hrs (${dur} min estimados · ${blockLabel}).`;
+    estWindow.innerHTML = `🕒 <b>${selectedBlock === 'noche' ? 'Inicio' : 'Recogida'}:</b> ${curTime} hrs → <b>Término estimado:</b> ${fm(endMin % 1440)} hrs (${dur} min estimados · ${blockLabel}).`;
 
-    if(endsAfter22){
+    if(selectedBlock === 'noche' || endsAfter22){
       nightNotice.style.display = 'block';
-      nightNotice.innerHTML = `🌙 <b>Descanso Reglamentario post-22:00 hrs:</b> Como este servicio finaliza a las <b>${fm(endMin % 1440)} hrs</b>, el sistema bloqueará automáticamente el <b>Turno Mañana del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> por descanso obligatorio de conducción.`;
+      nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar en <b>Turno Noche</b> (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (06:00 a 12:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:30 hrs).`;
     } else if(isInter){
       nightNotice.style.display = 'block';
       nightNotice.innerHTML = `🗺️ <b>Regla de Programa Interregional:</b> Esta reserva bloquea automáticamente <b>el día completo (Bloque Mañana y Bloque Tarde)</b> para dedicación exclusiva a su traslado interregional.`;
     } else if(isInvadingCrossShift){
       nightNotice.style.display = 'block';
-      nightNotice.innerHTML = `⚠️ <b>Bloqueo de Turnos Cruzados:</b> Por su duración (${fmtHoursClean(dur)}), esta atención finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia (12:00-14:00) y el Turno Tarde. El sistema bloqueará automáticamente <b>ambos turnos (Mañana y Tarde)</b> de este día en la agenda.`;
+      nightNotice.innerHTML = `⚠️ <b>Bloqueo de Turnos Cruzados:</b> Por su duración (${fmtHoursClean(dur)}), esta atención finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia (12:00-14:30) y el Turno Tarde. El sistema bloqueará automáticamente <b>ambos turnos (Mañana y Tarde)</b> de este día en la agenda.`;
     } else {
       nightNotice.style.display = 'none';
     }
@@ -2920,7 +3112,7 @@ async function submitBooking(ev){
   }
 
   const capEval = evaluateDateCapacity(date);
-  const targetBlockObj = isInter ? capEval.interregional : (selectedBlock === 'manana' ? capEval.manana : capEval.tarde);
+  const targetBlockObj = isInter ? capEval.interregional : (selectedBlock === 'manana' ? capEval.manana : (selectedBlock === 'noche' ? capEval.noche : capEval.tarde));
   if(!capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr)){
     alert('Este bloque horario ya no se encuentra disponible o no cumple con las 24 horas de anticipación. Por favor seleccione otro bloque o fecha.');
     updateSlots();
@@ -2930,7 +3122,8 @@ async function submitBooking(ev){
   const start = tm(timeStr);
   const dur = getSelectedTotalMinutes();
   const endMin = start + dur;
-  const endsAfter22 = endMin > 22 * 60;
+  const isNightShift = (selectedBlock === 'noche');
+  const endsAfter22 = isNightShift || (endMin > 22 * 60);
   const tid = $('#b_tens').value || (targetBlockObj.availUnits[0] && targetBlockObj.availUnits[0].id) || 't1';
 
   const pat = $('#b_pat').value.trim();
@@ -2963,7 +3156,7 @@ async function submitBooking(ev){
     ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
     : (isCrossShift
         ? 'Jornada Extendida (Bloquea Mañana y Tarde)'
-        : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : 'Turno Tarde (14:00 a 20:00 hrs)'));
+        : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:30 a 20:00 hrs)')));
 
   const newId = D.nid++;
   const newSvc = {
