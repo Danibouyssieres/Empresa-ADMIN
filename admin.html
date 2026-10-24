@@ -86,7 +86,14 @@ function applyTheme(t){document.documentElement.setAttribute('data-theme',t);try
 function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme')||getTheme();applyTheme(cur==='dark'?'light':'dark');render()}
 const ST=['Pendiente','Confirmado','En Ruta','En Atención','Finalizado','Cancelado'];
 const COL={'Pendiente':'#b45309','Confirmado':'#2563eb','En Ruta':'#7c3aed','En Atención':'#0d9488','Finalizado':'#15803d','Cancelado':'#6b7280'};
-const MOB=['Camina por sus propios medios','Camina con asistencia/bastón','Silla de ruedas plegable','Postrado/Dependiente severo'];
+const MOB=[
+  'Autovalente (camina por sus propios medios sin asistencia)',
+  'Marcha asistida / Apoyo físico de un brazo o bastón',
+  'Usa andador (burrito) propio plegable',
+  'Requiere andador (burrito) de la empresa (Uso gratuito)',
+  'Usa silla de ruedas manual plegable propia',
+  'Requiere silla de ruedas plegable de la empresa (Uso gratuito)'
+];
 const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
 const NEXT={'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
 const $=s=>document.querySelector(s);

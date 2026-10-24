@@ -771,14 +771,19 @@ footer a{color:#fff}
         </div>
         <div>
           <label for="b_mob">Condición de movilidad *</label>
-          <select id="b_mob"></select>
+          <select id="b_mob" onchange="onMobilityOrCompanionChange()"></select>
+          <small style="color:var(--mute);font-size:.82rem;display:block;margin-top:4px">⚠️ Por capacidad vehicular, no se admiten sillas neurológicas rígidas ni motorizadas.</small>
         </div>
         <div>
-          <label for="b_comp">¿Viaja o estará con un acompañante familiar?</label>
-          <select id="b_comp">
-            <option value="No">No, solo con el profesional TENS</option>
-            <option value="Sí">Sí, con acompañante familiar</option>
+          <label for="b_comp">¿Viaja o estará con un acompañante familiar? *</label>
+          <select id="b_comp" onchange="onMobilityOrCompanionChange()">
+            <option value="No, solo con la profesional">No, paciente viaja/estará solo con la profesional (Solo adultos orientados)</option>
+            <option value="Sí, 1 acompañante">Sí, 1 acompañante familiar (Sin costo adicional)</option>
+            <option value="Sí, 2 acompañantes">Sí, 2 acompañantes familiares (Máximo permitido en cabina)</option>
           </select>
+          <div id="compValidationNotice" style="display:none;margin-top:6px;font-size:.84rem;color:#b45309;background:#fffbeb;border:1px solid #fef3c7;border-radius:6px;padding:8px 10px;line-height:1.4">
+            ⚠️ <b>Recomendación para Modalidad 2 (Traslado con Espera):</b> Al requerir asistencia de marcha o no ser autovalente, y considerando que este servicio no incluye acompañamiento TENS dentro del recinto o box médico, sugerimos fuertemente que viaje un familiar acompañante para apoyarlo durante su atención o trámite.
+          </div>
         </div>
       </div>
 
@@ -838,8 +843,51 @@ footer a{color:#fff}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 const K='msa-v1',TODAY='2026-10-17',BUF=180,TM_K='msa-theme',WA_NUM='56929990095',PRICE_PER_KM=1000;
-const MOB=['Camina por sus propios medios','Camina con asistencia/bastón','Silla de ruedas plegable','Postrado/Dependiente severo'];
-const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
+const MOB = [
+  'Autovalente (camina por sus propios medios sin asistencia)',
+  'Marcha asistida / Apoyo físico de un brazo o bastón',
+  'Usa andador (burrito) propio plegable',
+  'Requiere andador (burrito) de la empresa (Uso gratuito)',
+  'Usa silla de ruedas manual plegable propia',
+  'Requiere silla de ruedas plegable de la empresa (Uso gratuito)'
+];
+
+const REQ_BY_MODE = {
+  '1': [
+    { text: 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)', def: true },
+    { text: 'Apoyo en marcha y traslados internos (Silla de ruedas o andador)', def: false },
+    { text: 'Acompañamiento dentro del box médico y toma de notas/recetas', def: false },
+    { text: 'Gestión de turnos, admisión en mesón o tótems', def: false },
+    { text: 'Asistencia de higiene, confort o acompañamiento a baño en recinto', def: false },
+    { text: 'Supervisión de medicación oral (según receta médica vigente aportada por la familia)', def: false }
+  ],
+  '2': [
+    { text: 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)', def: true },
+    { text: 'Apoyo físico para subir y bajar del vehículo (Embarque y desembarque seguro)', def: false },
+    { text: 'Estiba y traslado de andador o silla manual plegable propia en maletero', def: false },
+    { text: 'Solicitud de silla de ruedas o andador de la empresa para uso del familiar dentro del recinto (Sin costo)', def: false }
+  ],
+  '3': [
+    { text: 'Ficha de Valoración y Control de Signos Vitales al inicio (Marcada por defecto - Gratuita)', def: true },
+    { text: 'Aseo y confort, higiene personal y cambios de posición', def: false },
+    { text: 'Supervisión de medicación oral (según indicación médica aportada por la familia)', def: false },
+    { text: 'Alimentación asistida y asistencia en hidratación', def: false },
+    { text: 'Estimulación cognitiva, conversación activa y paseos peatonales cercanos', def: false }
+  ],
+  '4': [
+    { text: 'Control preventivo de signos vitales previo al evento (Marcado por defecto - Gratuito)', def: true },
+    { text: 'Asistencia continua en desplazamiento con silla o andador en recinto', def: false },
+    { text: 'Asistencia en mesa, higiene/confort y acompañamiento a baños', def: false },
+    { text: 'Supervisión de fármacos orales (según indicación de la familia)', def: false }
+  ],
+  '5': [
+    { text: 'Ficha de Valoración y Signos Vitales al inicio del viaje (Marcada por defecto - Gratuita)', def: true },
+    { text: 'Monitoreo clínico y confort durante el trayecto interregional', def: true },
+    { text: 'Apoyo en marcha y traslados internos en Santiago (Silla o andador)', def: false },
+    { text: 'Acompañamiento dentro del box médico y toma de notas/recetas', def: false },
+    { text: 'Gestión de turnos, admisión en mesón o tótems en centro médico', def: false }
+  ]
+};
 const PRESET_HOURS=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
 
 const SVC_NAMES = {
@@ -1264,7 +1312,53 @@ function applyModalityVisibility(){
     }
   }
 
+  // Actualizar recuadro informativo bajo el cronograma de horas según modalidad
+  const noticeBox = $('#maxDurationNotice');
+  if(noticeBox){
+    if(mode === '2'){
+      noticeBox.innerHTML = `🛡️ <b>Garantía de Espera Vehicular Exclusiva:</b> El vehículo y su conductora permanecen a su total disposición en el recinto durante todo el tiempo contratado. Si la atención demora más de lo presupuestado, el excedente se liquida al regreso en bloques de 30 minutos según la tarifa horaria de espera.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
+    } else {
+      noticeBox.innerHTML = `🛡️ <b>Garantía de acompañamiento y espera:</b> Sabemos que las consultas de salud, filas en notarías o gestiones pueden extenderse de forma imprevista. Tu profesional TENS y el móvil te esperarán todo el tiempo necesario. Cualquier sobretiempo que exceda la reserva se regularizará al volver al hogar en bloques de 30 minutos según la tarifa horaria correspondiente.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
+    }
+  }
+
+  renderRequirements(mode);
+  checkCompanionRecommendation();
+
   updateRingDisplay();
+}
+
+function renderRequirements(mode){
+  const container = $('#reqContainer');
+  if(!container) return;
+  const list = REQ_BY_MODE[mode] || REQ_BY_MODE['1'];
+  container.innerHTML = list.map(item => `
+    <label class="rq-item">
+      <input type="checkbox" class="rq-cb" value="${e(item.text)}" ${item.def ? 'checked' : ''}>
+      <span>${e(item.text)}</span>
+    </label>
+  `).join('');
+}
+
+function onMobilityOrCompanionChange(){
+  checkCompanionRecommendation();
+}
+
+function checkCompanionRecommendation(){
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const mobVal = ($('#b_mob') && $('#b_mob').value) || '';
+  const compVal = ($('#b_comp') && $('#b_comp').value) || '';
+  const notice = $('#compValidationNotice');
+  if(!notice) return;
+
+  const isNotAutovalente = mobVal && !mobVal.startsWith('Autovalente');
+  const isSolo = compVal && compVal.startsWith('No');
+
+  if(mode === '2' && isNotAutovalente && isSolo){
+    notice.style.display = 'block';
+  } else {
+    notice.style.display = 'none';
+  }
 }
 
 function applyMaxDurationRule(){
@@ -3179,12 +3273,8 @@ async function initForm(){
   }
 
   $('#b_mob').innerHTML = MOB.map(m=>`<option value="${e(m)}">${e(m)}</option>`).join('');
-  $('#reqContainer').innerHTML = REQ.map((r,i)=>`
-    <label class="rq-item">
-      <input type="checkbox" class="rq-cb" value="${e(r)}" ${i===1?'checked':''}>
-      <span>${e(r)}</span>
-    </label>
-  `).join('');
+  renderRequirements($('#b_svc_type').value || '1');
+  checkCompanionRecommendation();
 
   onServiceTypeChange();
 
@@ -3279,11 +3369,14 @@ async function submitBooking(ev){
   const mob = $('#b_mob').value;
   const from = $('#b_from').value.trim();
   const to = showDest ? $('#b_to').value.trim() : 'Atención en domicilio / lugar del evento';
-  const comp = $('#b_comp').value === 'Sí';
+  const compVal = $('#b_comp').value;
+  const comp = compVal.startsWith('Sí');
   const coord = $('#b_coord').value.trim();
   const ph = '+569' + $('#b_ph').value.trim();
   const reqs = [...document.querySelectorAll('.rq-cb:checked')].map(x=>x.value);
-  if(reqs.length === 0) reqs.push('Control de signos vitales');
+  if(reqs.length === 0){
+    reqs.push(mode === '2' ? 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)' : 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)');
+  }
 
   const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 12 * 60 && endMin > 12 * 60);
   if(isCrossShift && !capEval.tarde.available){
@@ -3319,6 +3412,7 @@ async function submitBooking(ev){
     mob,
     req: reqs,
     comp,
+    compDesc: compVal,
     fare: lastFinalTotal,
     paid: 0,
     st: 'Confirmado',
@@ -3348,6 +3442,9 @@ async function submitBooking(ev){
     `• Abono 50% para Reservar: ${$c(lastAbono50)}\n` +
     `• Saldo 50% al finalizar: ${$c(saldo50)}\n` +
     `• Paciente: ${pat} (${age} años) · ${dxInput}\n` +
+    `• Condición de Movilidad: ${mob}\n` +
+    `• Acompañante Familiar: ${compVal}\n` +
+    `• Requerimientos asistenciales: ${reqs.join(', ')}\n` +
     `• Contacto: ${coord} (${ph})\n` +
     `Adjunto comprobante del abono del 50% (${$c(lastAbono50)}) transferido a Scotiabank Cta Cte 994989122.`;
   const waUrl = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waText)}`;
@@ -3384,6 +3481,9 @@ async function submitBooking(ev){
         <li><span>🏁 <b>Saldo 50% al terminar la atención:</b></span> <span><b>${$c(saldo50)}</b></span></li>
         <li><span>🩺 <b>Profesional TENS:</b></span> <span>${e(techObj.nom)}</span></li>
         <li><span>👤 <b>Paciente:</b></span> <span>${e(pat)} (${age} años) · ${e(dxInput)}</span></li>
+        <li><span>♿ <b>Condición de Movilidad:</b></span> <span>${e(mob)}</span></li>
+        <li><span>👥 <b>Acompañante Familiar:</b></span> <span>${e(compVal)}</span></li>
+        <li><span>📋 <b>Requerimientos Asistenciales:</b></span> <span>${reqs.map(r=>e(r)).join('; ')}</span></li>
         <li><span>📞 <b>Coordinador:</b></span> <span>${e(coord)} (${e(ph)})</span></li>
       </ul>
 
