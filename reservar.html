@@ -905,10 +905,11 @@ const REQ_BY_MODE = {
   ],
   '5': [
     { text: 'Ficha de Valoración y Signos Vitales al inicio del viaje (Marcada por defecto - Gratuita)', def: true },
-    { text: 'Monitoreo clínico y confort durante el trayecto interregional', def: true },
-    { text: 'Apoyo en marcha y traslados internos en Santiago (Silla o andador)', def: false },
-    { text: 'Acompañamiento dentro del box médico y toma de notas/recetas', def: false },
-    { text: 'Gestión de turnos, admisión en mesón o tótems en centro médico', def: false }
+    { text: 'Monitoreo clínico, signos vitales y confort durante el trayecto en carretera', def: false },
+    { text: 'Asistencia en hidratación y supervisión de medicación oral en ruta', def: false },
+    { text: 'Apoyo en marcha y traslados internos en Santiago (Silla de ruedas o andador)', def: false },
+    { text: 'Acompañamiento continuo dentro del box médico y recepción de indicaciones/recetas', def: false },
+    { text: 'Gestión de turnos, admisión y orientación en el recinto asistencial', def: false }
   ]
 };
 const PRESET_HOURS=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
@@ -1077,12 +1078,26 @@ const iconB = L.divIcon({
 });
 
 function selectInterRegion(regName){
-  selectedInterRegion = regName;
-  const isValpo = regName.includes('Valparaíso');
-  $('#regBtn_valparaiso').classList.toggle('active', isValpo);
-  $('#regChk_valparaiso').textContent = isValpo ? '✓' : '';
-  $('#regBtn_ohiggins').classList.toggle('active', !isValpo);
-  $('#regChk_ohiggins').textContent = !isValpo ? '✓' : '';
+  if(typeof regName === 'string' && (regName.includes("O'Higgins") || regName.includes("O\'Higgins") || regName.toLowerCase().includes('higgins'))){
+    selectedInterRegion = "Región de O'Higgins";
+  } else {
+    selectedInterRegion = "Región de Valparaíso";
+  }
+  const isValpo = (selectedInterRegion === "Región de Valparaíso");
+  const btnValpo = $('#regBtn_valparaiso');
+  const btnOhig = $('#regBtn_ohiggins');
+  const chkValpo = $('#regChk_valparaiso');
+  const chkOhig = $('#regChk_ohiggins');
+  if(btnValpo) btnValpo.classList.toggle('active', isValpo);
+  if(btnOhig) btnOhig.classList.toggle('active', !isValpo);
+  if(chkValpo) chkValpo.textContent = isValpo ? '✓' : '';
+  if(chkOhig) chkOhig.textContent = !isValpo ? '✓' : '';
+
+  const dirVal = $('#dirRegionVal');
+  if(dirVal) dirVal.textContent = selectedInterRegion;
+  const dirRow = $('#dirRegionRow');
+  if(dirRow && ($('#b_svc_type') && $('#b_svc_type').value === '5')) dirRow.style.display = 'flex';
+
   recalcAll();
 }
 
@@ -1209,6 +1224,7 @@ function onServiceTypeChange(){
   if(mode === '5'){
     // Al seleccionar Programas Interregionales, fijar automáticamente Turno Mañana
     selectedBlock = 'manana';
+    selectInterRegion(selectedInterRegion);
   }
   setRouteStatus('');
   refreshDuration34Options(true);
@@ -1399,6 +1415,8 @@ function applyModalityVisibility(){
       noticeBox.innerHTML = `🛡️ <b>Garantía de Cuidado Clínico en el Hogar:</b> Atención personalizada realizada por una Técnico en Enfermería de Nivel Superior (TENS), enfocada en el confort, higiene, seguridad y bienestar del paciente dentro de su domicilio. Si por requerimiento familiar la atención debe extenderse más allá de las horas reservadas, el tiempo adicional se regularizará al término del servicio en bloques de 30 minutos (sujeto a disponibilidad y tope máximo de 6 hrs continuas).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
     } else if(mode === '4'){
       noticeBox.innerHTML = `🛡️ <b>Garantía de Cobertura y Bienestar en Eventos:</b> Acompañamiento exclusivo y dedicado por una profesional TENS durante toda la celebración, asegurando el confort, movilidad asistida en salón, supervisión de medicamentos y tranquilidad integral para la familia. Si la celebración amerita extender el servicio más allá del tiempo contratado, cada bloque adicional de 30 minutos se regularizará al término del evento (sujeto a disponibilidad técnica).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
+    } else if(mode === '5'){
+      noticeBox.innerHTML = `🛡️ <b>Garantía de Cobertura y Traslado Interregional:</b> Servicio integral puerta a puerta de larga distancia. La tarifa plana cerrada incluye vehículo exclusivo climatizado, acompañamiento de profesional TENS, combustible, TAG urbano y la totalidad de peajes interurbanos de ida y regreso (Ruta 68 / Autopista del Aconcagua / Ruta 5 Sur). Si el procedimiento clínico en Santiago demora más de las horas contratadas en el plan, el tiempo adicional se regularizará al regreso ($15.000 por cada bloque de 30 minutos / $25.000 por hora).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
     } else {
       noticeBox.innerHTML = `🛡️ <b>Garantía de acompañamiento y espera:</b> Sabemos que las consultas de salud, filas en notarías o gestiones pueden extenderse de forma imprevista. Tu profesional TENS y el móvil te esperarán todo el tiempo necesario. Cualquier sobretiempo que exceda la reserva se regularizará al volver al hogar en bloques de 30 minutos según la tarifa horaria correspondiente.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
     }
@@ -3372,6 +3390,11 @@ async function initForm(){
       }, 120);
     }
 
+    const regParam = params.get('region');
+    if(regParam && (regParam.includes('ohiggins') || regParam.includes('higgins'))){
+      selectInterRegion("Región de O'Higgins");
+    }
+
     if(params.get('mode') === 'solo_ida') setTripMode(1);
     else setTripMode(2);
 
@@ -3462,7 +3485,7 @@ async function submitBooking(ev){
   const ph = '+569' + $('#b_ph').value.trim();
   const reqs = [...document.querySelectorAll('.rq-cb:checked')].map(x=>x.value);
   if(reqs.length === 0){
-    reqs.push(mode === '2' ? 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)' : (mode === '3' ? 'Ficha de Valoración y Control de Signos Vitales (Marcada por defecto - Gratuita)' : 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)'));
+    reqs.push(mode === '2' ? 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)' : (mode === '3' ? 'Ficha de Valoración y Control de Signos Vitales (Marcada por defecto - Gratuita)' : (mode === '5' ? 'Ficha de Valoración y Signos Vitales al inicio del viaje (Marcada por defecto - Gratuita)' : 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)')));
   }
 
   const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 12 * 60 && endMin > 12 * 60);
