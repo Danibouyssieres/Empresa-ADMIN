@@ -378,13 +378,13 @@ footer a{color:#fff}
               <div class="rp-val" id="lblRateHabil">$12.000/h ($1.000/km)</div>
             </div>
             <div id="pillJornada_tarde" class="rate-pill" onclick="setJornada('tarde')">
-              <strong>Sábados (08:00 a 20:00)</strong>
-              <small>Jornada diurna de día sábado</small>
+              <strong>Fin de Semana: Sábados y Domingos (06:00 a 20:00)</strong>
+              <small>Jornada diurna de fin de semana (+25%)</small>
               <div class="rp-val" id="lblRateTarde">$15.000/h ($1.000/km)</div>
             </div>
             <div id="pillJornada_nocturno" class="rate-pill" onclick="setJornada('nocturno')">
-              <strong id="titleJornadaNocturno">Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)</strong>
-              <small id="subJornadaNocturno">Domingos, festivos y eventos/cuidados nocturnos</small>
+              <strong id="titleJornadaNocturno">Festivos y Horario Especial Nocturno (20:00 a 06:00)</strong>
+              <small id="subJornadaNocturno">Días festivos y atención nocturna (+50%)</small>
               <div class="rp-val" id="lblRateNocturno">$18.000/h ($1.000/km)</div>
             </div>
           </div>
@@ -798,13 +798,13 @@ const RATES = {
 
 const JORNADA_LABELS = {
   habil: 'Hábil (Lun a Vie 06:00 a 20:00)',
-  tarde: 'Sábados (08:00 a 20:00)',
-  nocturno: 'Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)'
+  tarde: 'Fin de Semana: Sábados y Domingos (06:00 a 20:00)',
+  nocturno: 'Festivos y Horario Especial Nocturno (20:00 a 06:00)'
 };
 
 function getJornadaLabel(jornada, mode){
   if((mode === '1' || mode === '2') && jornada === 'nocturno'){
-    return 'Domingos y Festivos (08:00 a 20:00)';
+    return 'Días Festivos (06:00 a 20:00)';
   }
   return JORNADA_LABELS[jornada] || jornada;
 }
@@ -1029,12 +1029,12 @@ function applyModalityVisibility(){
 
   const noctTextDefinitive = '🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos.';
   if(mode === '1' || mode === '2'){
-    if(titleNoct) titleNoct.textContent = 'Domingos y Festivos (08:00 a 20:00)';
-    if(subNoct) subNoct.textContent = 'Jornada diurna de domingos y días festivos';
+    if(titleNoct) titleNoct.textContent = 'Días Festivos (06:00 a 20:00)';
+    if(subNoct) subNoct.textContent = 'Feriados de calendario en jornada diurna (+50%)';
     if(footNote) footNote.innerHTML = noctTextDefinitive;
   } else {
-    if(titleNoct) titleNoct.textContent = 'Domingos, Festivos y Horario Especial Nocturno* (20:00 a 06:00)';
-    if(subNoct) subNoct.textContent = 'Domingos, festivos y eventos/cuidados nocturnos (20:00 a 06:00)';
+    if(titleNoct) titleNoct.textContent = 'Festivos y Horario Especial Nocturno (20:00 a 06:00)';
+    if(subNoct) subNoct.textContent = 'Días festivos y atención nocturna (+50%)';
     if(footNote) footNote.innerHTML = noctTextDefinitive;
   }
 
@@ -1242,7 +1242,7 @@ function recalcAll(){
   if(mode === '1' || mode === '2'){
     $('#lblRateHabil').textContent = `${$c(RATES[mode].habil.hour)}/h ($1.000/km)`;
     $('#lblRateTarde').textContent = `${$c(RATES[mode].tarde.hour)}/h ($1.000/km)`;
-    $('#lblRateNocturno').textContent = `No habilitado en traslados`;
+    $('#lblRateNocturno').textContent = `${$c(RATES[mode].nocturno.hour)}/h ($1.000/km)`;
   } else if(mode === '3' || mode === '4'){
     $('#lblRateHabil').textContent = `$12.000/h ($1.000/km)`;
     $('#lblRateTarde').textContent = `$15.000/h ($1.000/km)`;
@@ -1333,7 +1333,7 @@ function recalcAll(){
   if(mode === '5'){
     $('#lblTimeSummaryDesc').textContent = lastInterBreakdown;
   } else {
-    const jShort = currentJornada === 'habil' ? 'Hábil (Lun-Vie 06:00-20:00)' : currentJornada === 'tarde' ? 'Sábados (08:00-20:00)' : 'Dom/Fest/Nocturno (20:00-06:00)';
+    const jShort = currentJornada === 'habil' ? 'Hábil (Lun-Vie 06:00-20:00)' : currentJornada === 'tarde' ? 'Fin de Semana (Sáb-Dom 06:00-20:00)' : 'Festivos/Nocturno (+50%)';
     $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · ${jShort}):`;
   }
   $('#lblTimeSummaryVal').textContent = $c(timeCost);
@@ -2191,6 +2191,16 @@ function onPickupTimeChange(){
   }
 }
 
+const CHILE_FERIADOS = [
+  '2026-01-01','2026-04-03','2026-04-04','2026-05-01','2026-05-21','2026-06-29',
+  '2026-07-16','2026-08-15','2026-09-18','2026-09-19','2026-09-20','2026-10-12',
+  '2026-10-31','2026-11-01','2026-12-08','2026-12-25','2027-01-01'
+];
+
+function isChileHoliday(dateStr){
+  return CHILE_FERIADOS.includes(dateStr);
+}
+
 function syncJornadaFromSchedule(){
   const dateStr = $('#b_date').value;
   const timeStr = $('#b_time').value || '08:00';
@@ -2199,24 +2209,25 @@ function syncJornadaFromSchedule(){
   const dt = parseYMD(dateStr);
   const day = dt.getDay();
   const mins = tm(timeStr);
+  const isHoliday = isChileHoliday(dateStr);
 
   if(mode === '1' || mode === '2'){
-    // Traslados clínicos operan de 06:00 a 20:00 (horario nocturno deshabilitado)
-    if(day === 0){
-      setJornada('nocturno'); // Domingos y festivos
-    } else if(day === 6){
-      setJornada('tarde'); // Sábados
+    // Traslados clínicos operan de 06:00 a 20:00 (no hay servicio nocturno)
+    if(isHoliday){
+      setJornada('nocturno'); // Días Festivos diurnos (+50%)
+    } else if(day === 0 || day === 6){
+      setJornada('tarde'); // Fin de Semana: Sábados y Domingos (06:00 a 20:00) (+25%)
     } else {
-      setJornada('habil'); // Hábil Lun a Vie
+      setJornada('habil'); // Hábil Lun a Vie (06:00 a 20:00)
     }
   } else {
     // Eventos sociales y Cuidados a domicilio
-    if(day === 0 || mins >= 20*60 || mins < 6*60){
-      setJornada('nocturno');
-    } else if(day === 6){
-      setJornada('tarde');
+    if(isHoliday || mins >= 20*60 || mins < 6*60){
+      setJornada('nocturno'); // Festivos y Horario Especial Nocturno (+50%)
+    } else if(day === 0 || day === 6){
+      setJornada('tarde'); // Fin de Semana: Sábados y Domingos diurnos (+25%)
     } else {
-      setJornada('habil');
+      setJornada('habil'); // Hábil Lun a Vie diurno
     }
   }
 }
