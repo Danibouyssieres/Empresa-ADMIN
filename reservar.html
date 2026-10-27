@@ -529,7 +529,7 @@ footer a{color:#fff}
           </div>
         </div>
 
-        <!-- SELECTOR DE HORA EXACTA DE RECOGIDA Y TENS ASIGNADO -->
+        <!-- SELECTOR DE HORA EXACTA DE RECOGIDA Y RESPALDO CLÍNICO TENS -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start">
           <div>
             <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700">
@@ -544,15 +544,13 @@ footer a{color:#fff}
           </div>
 
           <div>
-            <label for="b_tens" style="color:var(--teal);font-size:.94rem;font-weight:700">
-              Profesional / Unidad TENS asignada *
-            </label>
-            <select id="b_tens" required disabled>
-              <option value="">Primero seleccione un turno arriba</option>
-            </select>
-            <p style="font-size:.82rem;color:var(--mute);margin-top:6px;line-height:1.4">
-              Cada unidad móvil incluye TENS acreditado con equipamiento clínico completo (oximetría, glicemia, presión arterial y silla de ruedas plegable).
-            </p>
+            <input type="hidden" id="b_tens" value="t1">
+            <div style="padding:14px 16px;border-radius:12px;background:rgba(15,118,110,.06);border:1px solid rgba(15,118,110,.2);display:flex;align-items:flex-start;gap:12px;margin-top:24px">
+              <span style="font-size:1.25rem;line-height:1;color:var(--teal);flex-shrink:0">🩺</span>
+              <p style="margin:0;font-size:.87rem;color:var(--ink);line-height:1.45;font-weight:500">
+                ✓ Atención ejecutada por TENS acreditado con equipamiento clínico completo (oximetría, glicemia, presión arterial y ayudas técnicas).
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -3211,9 +3209,11 @@ function updateSlots(keepCurrentTime = false){
       timeSelect.disabled = true;
     }
     if(tensSelect){
-      tensSelect.innerHTML = `<option value="">Primero seleccione un turno arriba</option>`;
+      if(tensSelect.tagName === 'SELECT'){
+        tensSelect.innerHTML = `<option value="">Primero seleccione un turno arriba</option>`;
+        tensSelect.disabled = true;
+      }
       tensSelect.value = '';
-      tensSelect.disabled = true;
     }
     if(estWindow) estWindow.textContent = '';
     if(nightNotice) nightNotice.style.display = 'none';
@@ -3288,8 +3288,10 @@ function updateSlots(keepCurrentTime = false){
       } else {
         stBox.innerHTML = `<span>⚠️ <b>Conflicto de Turnos Cruzados:</b> Esta atención (${fmtHoursClean(dur)}) finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia y el Turno Tarde, pero el Turno Tarde ya se encuentra ocupado en esta fecha. Seleccione una menor duración o elija una fecha con ambos turnos disponibles.</span>`;
       }
-      tensSelect.innerHTML = `<option value="">Conflicto de horario con Turno Tarde</option>`;
-      tensSelect.disabled = true;
+      if(tensSelect && tensSelect.tagName === 'SELECT'){
+        tensSelect.innerHTML = `<option value="">Conflicto de horario con Turno Tarde</option>`;
+        tensSelect.disabled = true;
+      }
       if(subBtn) subBtn.disabled = false;
       if(submitAlert){
         submitAlert.style.display = 'block';
@@ -3327,8 +3329,14 @@ function updateSlots(keepCurrentTime = false){
     const availUnits = activeBlockObj.availUnits;
     stBox.className = 'status-box ok';
     stBox.innerHTML = `<span>✅ <b>Cupo verificado y disponible</b> para el <b>${formatHumanDate(dateStr)}</b> a las <b>${curTime} hrs</b> (${availUnits.length} de ${capacidadSimultanea} unidad disponible).</span>`;
-    tensSelect.innerHTML = availUnits.map((t,idx)=>`<option value="${t.id}">${idx===0?'Asignación titular: ':''}${e(t.nom)} (${e(t.veh||'Unidad TENS')})</option>`).join('');
-    tensSelect.disabled = false;
+    if(tensSelect){
+      if(tensSelect.tagName === 'SELECT'){
+        tensSelect.innerHTML = availUnits.map((t,idx)=>`<option value="${t.id}">${idx===0?'Asignación titular: ':''}${e(t.nom)} (${e(t.veh||'Unidad TENS')})</option>`).join('');
+        tensSelect.disabled = false;
+      } else {
+        tensSelect.value = (availUnits[0] && availUnits[0].id) || 't1';
+      }
+    }
     if(subBtn) subBtn.disabled = false;
     if(submitAlert) submitAlert.style.display = 'none';
   } else if(ev.inRange && activeBlockObj.available && !curTime){
@@ -3338,9 +3346,14 @@ function updateSlots(keepCurrentTime = false){
     stBox.className = 'status-box';
     const blockNames = { manana: 'Turno Mañana (08:00 a 13:00 hrs)', tarde: 'Turno Tarde (14:30 a 20:00 hrs)', noche: 'Turno Noche (22:00 a 06:00 hrs)' };
     const bName = isInter ? 'Programa Interregional' : (blockNames[selectedBlock] || 'Turno seleccionado');
-    stBox.innerHTML = `<span>🕒 <b>${bName} activo:</b> Seleccione la hora exacta en el selector para verificar cupo y asignar unidad TENS.</span>`;
-    tensSelect.innerHTML = `<option value="">Seleccione hora exacta primero</option>`;
-    tensSelect.disabled = true;
+    stBox.innerHTML = `<span>🕒 <b>${bName} activo:</b> Seleccione la hora exacta en el selector para verificar cupo y avanzar.</span>`;
+    if(tensSelect){
+      if(tensSelect.tagName === 'SELECT'){
+        tensSelect.innerHTML = `<option value="">Seleccione hora exacta primero</option>`;
+        tensSelect.disabled = true;
+      }
+      tensSelect.value = '';
+    }
     if(submitAlert) submitAlert.style.display = 'none';
   } else {
     estWindow.textContent = '';
@@ -3352,8 +3365,13 @@ function updateSlots(keepCurrentTime = false){
     } else {
       stBox.innerHTML = `<span>⚠️ <b>No disponible en la selección actual:</b> ${e(errReason)}. Por favor elija otro bloque o seleccione una fecha disponible en el calendario.</span>`;
     }
-    tensSelect.innerHTML = `<option value="">Sin unidad disponible en este bloque</option>`;
-    tensSelect.disabled = true;
+    if(tensSelect){
+      if(tensSelect.tagName === 'SELECT'){
+        tensSelect.innerHTML = `<option value="">Sin unidad disponible en este bloque</option>`;
+        tensSelect.disabled = true;
+      }
+      tensSelect.value = '';
+    }
     if(subBtn) subBtn.disabled = false;
     if(submitAlert) submitAlert.style.display = 'none';
   }
@@ -3717,7 +3735,7 @@ async function submitBooking(ev){
 
   const isNightShift = (selectedBlock === 'noche');
   const endsAfter22 = isNightShift || (endMin > 22 * 60);
-  const tid = $('#b_tens').value || (targetBlockObj.availUnits[0] && targetBlockObj.availUnits[0].id) || 't1';
+  const tid = ($('#b_tens') && $('#b_tens').value) || (targetBlockObj.availUnits && targetBlockObj.availUnits[0] && targetBlockObj.availUnits[0].id) || 't1';
 
   const fullDx = mode === '5'
     ? `${svcName} (${selectedInterRegion}) · ${dxInput}`
