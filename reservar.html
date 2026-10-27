@@ -288,12 +288,12 @@ footer a{color:#fff}
           </div>
 
           <!-- BLOQUE 1: MAÑANA -->
-          <button type="button" id="btnBlock_manana" class="block-btn active" onclick="selectShiftBlock('manana')">
+          <button type="button" id="btnBlock_manana" class="block-btn" onclick="selectShiftBlock('manana')">
             <div class="block-btn-top">
-              <span class="block-btn-title">🌅 Turno Mañana (06:00 a 12:00 hrs)</span>
+              <span class="block-btn-title">🌅 Turno Mañana (08:00 a 13:00 hrs)</span>
               <span id="badgeBlock_manana" class="block-badge ok">Disponible</span>
             </div>
-            <div class="block-btn-sub" id="subBlock_manana">Recogidas entre 06:00 y 10:00 AM</div>
+            <div class="block-btn-sub" id="subBlock_manana">Recogidas entre 08:00 y 13:00 hrs</div>
             <div class="block-btn-reason" id="reasonBlock_manana" style="display:none"></div>
           </button>
 
@@ -303,17 +303,17 @@ footer a{color:#fff}
               <span class="block-btn-title">🌇 Turno Tarde (14:30 a 20:00 hrs)</span>
               <span id="badgeBlock_tarde" class="block-badge ok">Disponible</span>
             </div>
-            <div class="block-btn-sub" id="subBlock_tarde">Recogidas entre 14:30 y 17:00 hrs</div>
+            <div class="block-btn-sub" id="subBlock_tarde">Recogidas entre 14:30 y 20:00 hrs</div>
             <div class="block-btn-reason" id="reasonBlock_tarde" style="display:none"></div>
           </button>
 
           <!-- BLOQUE 3: NOCHE -->
           <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche')">
             <div class="block-btn-top">
-              <span class="block-btn-title">🌙 Turno Noche (22:00 a 04:00 hrs)</span>
+              <span class="block-btn-title">🌙 Turno Noche (22:00 a 06:00 hrs)</span>
               <span id="badgeBlock_noche" class="block-badge ok">Disponible</span>
             </div>
-            <div class="block-btn-sub" id="subBlock_noche">Atención nocturna exclusiva (inicios entre 22:00 y 23:30 hrs)</div>
+            <div class="block-btn-sub" id="subBlock_noche">Atención nocturna exclusiva (22:00 a 06:00 hrs)</div>
             <div class="block-btn-reason" id="reasonBlock_noche" style="display:none"></div>
           </button>
         </div>
@@ -535,7 +535,9 @@ footer a{color:#fff}
             <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700">
               Hora exacta de recogida requerida (dentro del turno de Paso 1) *
             </label>
-            <select id="b_time" required onchange="onPickupTimeChange()"></select>
+            <select id="b_time" required onchange="onPickupTimeChange()" disabled>
+              <option value="">Primero seleccione un turno arriba</option>
+            </select>
             <div id="lblEstimatedWindow" style="font-size:.83rem;color:var(--mute);margin-top:6px"></div>
             <div id="nightRuleNotice" class="rule-alert"></div>
             <div id="availStatus" class="status-box ok" style="margin-top:10px"></div>
@@ -545,7 +547,9 @@ footer a{color:#fff}
             <label for="b_tens" style="color:var(--teal);font-size:.94rem;font-weight:700">
               Profesional / Unidad TENS asignada *
             </label>
-            <select id="b_tens" required></select>
+            <select id="b_tens" required disabled>
+              <option value="">Primero seleccione un turno arriba</option>
+            </select>
             <p style="font-size:.82rem;color:var(--mute);margin-top:6px;line-height:1.4">
               Cada unidad móvil incluye TENS acreditado con equipamiento clínico completo (oximetría, glicemia, presión arterial y silla de ruedas plegable).
             </p>
@@ -1565,7 +1569,7 @@ function onEventStart1Change(){
   const val = $('#selEventStart1').value;
   if(val){
     const mins = tm(val);
-    selectedBlock = (mins >= 22 * 60 || mins < 4 * 60) ? 'noche' : (mins < 12 * 60 ? 'manana' : 'tarde');
+    selectedBlock = (mins >= 22 * 60 || mins < 6 * 60) ? 'noche' : (mins <= 13 * 60 ? 'manana' : 'tarde');
     const bTime = $('#b_time');
     if(bTime){
       updateSlots(false);
@@ -2358,9 +2362,9 @@ function getChileHolidayName(dateStr){
 }
 
 const BLOCK_HOURS = {
-  manana: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00'],
-  tarde:  ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00'],
-  noche:  ['22:00', '22:30', '23:00', '23:30']
+  manana: ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00'],
+  tarde:  ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'],
+  noche:  ['22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00', '03:30', '04:00', '04:30', '05:00', '05:30', '06:00']
 };
 
 const INTERREGIONAL_HOURS = [
@@ -2374,7 +2378,7 @@ const INTERREGIONAL_HOURS = [
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DAY_NAMES_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-let selectedBlock = 'manana'; // 'manana' | 'tarde' | 'noche'
+let selectedBlock = null; // 'manana' | 'tarde' | 'noche' | null (Paso 1 pendiente de selección)
 let calViewYear = new Date().getFullYear();
 let calViewMonth = new Date().getMonth(); // 0..11
 
@@ -2409,19 +2413,20 @@ function getBookingWindowBounds(){
   return { now, minMs, todayStr: toYMD(todayMidnight), maxDateStr: toYMD(maxDateObj), maxMs: maxDateObj.getTime() };
 }
 
-function isSlotAtLeast24hAhead(dateStr, timeStr){
+function isSlotAtLeast24hAhead(dateStr, timeStr, isNochePostMidnight = false){
   const { minMs, maxDateStr } = getBookingWindowBounds();
   if(dateStr > maxDateStr) return false;
   const [y,m,d] = dateStr.split('-').map(Number);
   const [hh,mm] = timeStr.split(':').map(Number);
-  const slotDt = new Date(y, m-1, d, hh, mm, 0, 0);
+  const slotDt = new Date(y, m-1, d + (isNochePostMidnight ? 1 : 0), hh, mm, 0, 0);
   return slotDt.getTime() >= minMs;
 }
 
 function getBlockHoursList(blockId){
   if(blockId === 'manana') return BLOCK_HOURS.manana;
+  if(blockId === 'tarde') return BLOCK_HOURS.tarde;
   if(blockId === 'noche') return BLOCK_HOURS.noche;
-  return BLOCK_HOURS.tarde;
+  return [];
 }
 
 function seed(){
@@ -2488,9 +2493,9 @@ function inferServiceBlock(s){
   const startMin = Number(s.start);
   const durMin = Number(s.dur);
   if(startMin >= 22 * 60 || startMin < 4 * 60) return 'noche';
-  // Si una reserva por su duración invade dos turnos o el buffer intermedio (12:00 a 14:30 hrs):
-  if(startMin < 12 * 60 && (startMin + durMin) > 12 * 60) return 'full';
-  return (startMin < 12 * 60) ? 'manana' : 'tarde';
+  // Si una reserva por su duración invade dos turnos o la ventana intermedia (13:00 a 14:30 hrs):
+  if(startMin < 13 * 60 && (startMin + durMin) > 13 * 60) return 'full';
+  return (startMin < 13 * 60) ? 'manana' : 'tarde';
 }
 
 // Determinar si un servicio termina después de las 22:00 hrs (1320 min) o pertenece al Turno Noche
@@ -2530,7 +2535,7 @@ function evaluateDateCapacity(dateStr){
   // Revisar qué horas dentro de cada bloque cumplen las 24 horas de anticipación
   const validHoursManana = BLOCK_HOURS.manana.filter(h => isSlotAtLeast24hAhead(dateStr, h));
   const validHoursTarde  = BLOCK_HOURS.tarde.filter(h => isSlotAtLeast24hAhead(dateStr, h));
-  const validHoursNoche  = BLOCK_HOURS.noche.filter(h => isSlotAtLeast24hAhead(dateStr, h));
+  const validHoursNoche  = BLOCK_HOURS.noche.filter(h => isSlotAtLeast24hAhead(dateStr, h, h < '12:00'));
   const validHoursInter  = INTERREGIONAL_HOURS.filter(h => isSlotAtLeast24hAhead(dateStr, h));
 
   const mananaTimeOk = validHoursManana.length > 0;
@@ -2778,24 +2783,26 @@ function selectCalendarDate(dateStr){
   const mode = $('#b_svc_type').value;
   if(mode === '5'){
     selectedBlock = 'manana';
-  } else if(mode === '3' || mode === '4'){
-    if(selectedBlock === 'manana' && !ev.manana.available){
-      selectedBlock = ev.tarde.available ? 'tarde' : (ev.noche.available ? 'noche' : 'manana');
-    } else if(selectedBlock === 'tarde' && !ev.tarde.available){
-      selectedBlock = ev.manana.available ? 'manana' : (ev.noche.available ? 'noche' : 'tarde');
-    } else if(selectedBlock === 'noche' && !ev.noche.available){
-      selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : 'noche');
-    }
-  } else {
-    if(selectedBlock === 'noche'){
-      selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : 'manana');
-    } else if(selectedBlock === 'manana' && !ev.manana.available && ev.tarde.available){
-      selectedBlock = 'tarde';
-    } else if(selectedBlock === 'tarde' && !ev.tarde.available && ev.manana.available){
-      selectedBlock = 'manana';
+  } else if(selectedBlock){
+    if(mode === '3' || mode === '4'){
+      if(selectedBlock === 'manana' && !ev.manana.available){
+        selectedBlock = ev.tarde.available ? 'tarde' : (ev.noche.available ? 'noche' : null);
+      } else if(selectedBlock === 'tarde' && !ev.tarde.available){
+        selectedBlock = ev.manana.available ? 'manana' : (ev.noche.available ? 'noche' : null);
+      } else if(selectedBlock === 'noche' && !ev.noche.available){
+        selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
+      }
+    } else {
+      if(selectedBlock === 'noche'){
+        selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
+      } else if(selectedBlock === 'manana' && !ev.manana.available){
+        selectedBlock = ev.tarde.available ? 'tarde' : null;
+      } else if(selectedBlock === 'tarde' && !ev.tarde.available){
+        selectedBlock = ev.manana.available ? 'manana' : null;
+      }
     }
   }
-  updateSlots();
+  updateSlots(true);
   syncJornadaFromSchedule();
 }
 
@@ -2812,7 +2819,7 @@ function selectShiftBlock(blockId){
     selectedBlock = 'manana';
   } else if(blockId === 'noche'){
     if(mode !== '3' && mode !== '4'){
-      alert('El Turno Noche (22:00 a 04:00 hrs) está habilitado exclusivamente para las modalidades "3. Cuidados a Domicilio" y "4. Acompañamiento en Eventos Sociales".\n\nLos traslados vehiculares (Servicio Integral y Traslado con Espera) operan exclusivamente en jornada diurna (06:00 a 20:00 hrs).');
+      alert('El Turno Noche (22:00 a 06:00 hrs) está habilitado exclusivamente para las modalidades "3. Cuidados a Domicilio" y "4. Acompañamiento en Eventos Sociales".\n\nLos traslados vehiculares (Servicio Integral y Traslado con Espera) operan exclusivamente en jornada diurna (06:00 a 20:00 hrs).');
       return;
     }
     if(!ev.noche.available){
@@ -2825,8 +2832,14 @@ function selectShiftBlock(blockId){
     if(blockId === 'tarde' && !ev.tarde.available) return;
     selectedBlock = blockId;
   }
-  updateSlots();
+
+  // Limpiar la hora previamente seleccionada para evitar inconsistencias
+  const timeSelect = $('#b_time');
+  if(timeSelect) timeSelect.value = '';
+
+  updateSlots(false);
   syncJornadaFromSchedule();
+  recalcAll();
 }
 
 function onPickupTimeChange(){
@@ -3032,14 +3045,14 @@ function updateSlots(keepCurrentTime = false){
   if(isInter){
     selectedBlock = 'manana';
   } else if(!allowsNight && selectedBlock === 'noche'){
-    selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : 'manana');
-  } else if(ev.inRange){
+    selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
+  } else if(selectedBlock && ev.inRange){
     if(selectedBlock === 'manana' && !ev.manana.available){
-      selectedBlock = ev.tarde.available ? 'tarde' : (allowsNight && ev.noche.available ? 'noche' : 'manana');
+      selectedBlock = ev.tarde.available ? 'tarde' : (allowsNight && ev.noche.available ? 'noche' : null);
     } else if(selectedBlock === 'tarde' && !ev.tarde.available){
-      selectedBlock = ev.manana.available ? 'manana' : (allowsNight && ev.noche.available ? 'noche' : 'tarde');
+      selectedBlock = ev.manana.available ? 'manana' : (allowsNight && ev.noche.available ? 'noche' : null);
     } else if(selectedBlock === 'noche' && !ev.noche.available){
-      selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : 'noche');
+      selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
     }
   }
 
@@ -3066,7 +3079,7 @@ function updateSlots(keepCurrentTime = false){
   const optInter = $('#b_svc_type') ? $('#b_svc_type').querySelector('option[value="5"]') : null;
   const warnInter = $('#interregionalBlockWarn');
 
-  if(selectedBlock !== 'manana'){
+  if(selectedBlock && selectedBlock !== 'manana'){
     if(optInter){
       optInter.disabled = true;
     }
@@ -3123,7 +3136,7 @@ function updateSlots(keepCurrentTime = false){
     btnM.classList.toggle('active', okM && selectedBlock === 'manana');
     badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
     badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : (ev.manana.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-    subM.textContent = 'Horas de recogida seleccionables entre 06:00 y 10:00 hrs';
+    subM.textContent = 'Recogidas entre 08:00 y 13:00 hrs';
     reasonM.style.display = okM ? 'none' : 'block';
     reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
 
@@ -3132,7 +3145,7 @@ function updateSlots(keepCurrentTime = false){
     btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
     badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
     badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : (ev.tarde.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-    subT.textContent = 'Horas de recogida seleccionables entre 14:30 y 17:00 hrs' + (isHoliday ? ' (Día Festivo)' : '');
+    subT.textContent = 'Recogidas entre 14:30 y 20:00 hrs' + (isHoliday ? ' (Día Festivo)' : '');
     reasonT.style.display = okT ? 'none' : 'block';
     reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
 
@@ -3143,7 +3156,7 @@ function updateSlots(keepCurrentTime = false){
       badgeN.textContent = 'Inhabilitado';
       subN.textContent = 'Exclusivo para Cuidados a Domicilio y Eventos';
       reasonN.style.display = 'block';
-      reasonN.textContent = '🔒 Traslados vehiculares operan exclusivamente en jornada diurna (06:00 a 20:00). Turno Noche habilitado solo para Cuidados a Domicilio y Eventos Sociales.';
+      reasonN.textContent = '🔒 Traslados vehiculares operan exclusivamente en jornada diurna (08:00 a 20:00). Turno Noche habilitado solo para Cuidados a Domicilio y Eventos Sociales.';
     }
   } else {
     // Modalidades 3 y 4 (Cuidados a Domicilio y Eventos Sociales): Todos los turnos disponibles según capacidad
@@ -3155,7 +3168,7 @@ function updateSlots(keepCurrentTime = false){
     btnM.classList.toggle('active', okM && selectedBlock === 'manana');
     badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
     badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : (ev.manana.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-    subM.textContent = 'Horas de atención seleccionables entre 06:00 y 10:00 hrs';
+    subM.textContent = 'Horas de atención entre 08:00 y 13:00 hrs';
     reasonM.style.display = okM ? 'none' : 'block';
     reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
 
@@ -3164,7 +3177,7 @@ function updateSlots(keepCurrentTime = false){
     btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
     badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
     badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : (ev.tarde.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-    subT.textContent = 'Horas de atención seleccionables entre 14:30 y 17:00 hrs' + (isHoliday ? ' (Día Festivo)' : '');
+    subT.textContent = 'Horas de atención entre 14:30 y 20:00 hrs' + (isHoliday ? ' (Día Festivo)' : '');
     reasonT.style.display = okT ? 'none' : 'block';
     reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
 
@@ -3173,7 +3186,7 @@ function updateSlots(keepCurrentTime = false){
       btnN.classList.toggle('active', okN && selectedBlock === 'noche');
       badgeN.className = 'block-badge ' + (okN ? 'ok' : 'occ');
       badgeN.textContent = okN ? `Disponible (${ev.noche.free} ${ev.noche.free===1?'cupo':'cupos'})` : (ev.noche.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-      subN.textContent = 'Horas de inicio seleccionables entre 22:00 y 23:30 hrs';
+      subN.textContent = 'Atención nocturna exclusiva (22:00 a 06:00 hrs)';
       reasonN.style.display = okN ? 'none' : 'block';
       reasonN.textContent = okN ? '' : `🔒 ${ev.noche.reason}`;
     }
@@ -3181,35 +3194,7 @@ function updateSlots(keepCurrentTime = false){
 
   // Poblar desplegable #b_time según el bloque activo
   const timeSelect = $('#b_time');
-  const prevTime = timeSelect.value;
-  const hoursList = isInter ? INTERREGIONAL_HOURS : getBlockHoursList(selectedBlock);
-  const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : (selectedBlock === 'noche' ? ev.noche : ev.tarde));
-
-  if(!ev.inRange || !activeBlockObj.available){
-    const timeOptText = (dur >= 360 && (selectedBlock === 'manana' || !activeBlockObj.available))
-      ? 'Plan de 6 hrs excede el turno seleccionado en Paso 1'
-      : 'Sin horarios disponibles en este bloque';
-    timeSelect.innerHTML = `<option value="">${timeOptText}</option>`;
-    timeSelect.disabled = true;
-  } else {
-    timeSelect.disabled = false;
-    const timeLabelSuffix = isInter
-      ? 'Salida temprana interregional (hacia Santiago)'
-      : ((selectedBlock === 'noche') ? 'Hora de inicio de atención nocturna' : 'Hora exacta de recogida');
-    timeSelect.innerHTML = hoursList.map(h => {
-      const ok24 = isSlotAtLeast24hAhead(dateStr, h);
-      return `<option value="${h}" ${!ok24 ? 'disabled' : ''}>${h} hrs — ${timeLabelSuffix}${!ok24 ? ' (Menos de 24h)' : ''}</option>`;
-    }).join('');
-
-    const validChoices = hoursList.filter(h => isSlotAtLeast24hAhead(dateStr, h));
-    if(keepCurrentTime && validChoices.includes(prevTime)){
-      timeSelect.value = prevTime;
-    } else if(validChoices.length > 0){
-      timeSelect.value = validChoices[0];
-    }
-  }
-
-  const curTime = timeSelect.value;
+  const prevTime = timeSelect ? timeSelect.value : '';
   const dur = getSelectedTotalMinutes();
   const stBox = $('#availStatus');
   const tensSelect = $('#b_tens');
@@ -3218,11 +3203,80 @@ function updateSlots(keepCurrentTime = false){
   const estWindow = $('#lblEstimatedWindow');
   const submitAlert = $('#submitBlockAlert');
 
+  // Si aún no se selecciona ningún turno en el Paso 1:
+  if(!selectedBlock && !isInter){
+    if(timeSelect){
+      timeSelect.innerHTML = `<option value="">Primero seleccione un turno arriba</option>`;
+      timeSelect.value = '';
+      timeSelect.disabled = true;
+    }
+    if(tensSelect){
+      tensSelect.innerHTML = `<option value="">Primero seleccione un turno arriba</option>`;
+      tensSelect.value = '';
+      tensSelect.disabled = true;
+    }
+    if(estWindow) estWindow.textContent = '';
+    if(nightNotice) nightNotice.style.display = 'none';
+    if(stBox){
+      stBox.className = 'status-box';
+      stBox.innerHTML = `<span>👉 <b>Paso 1:</b> Por favor seleccione un turno (Mañana, Tarde o Noche) en la Sección 1 para ver los horarios disponibles.</span>`;
+    }
+    if(submitAlert) submitAlert.style.display = 'none';
+    return;
+  }
+
+  const hoursList = isInter ? INTERREGIONAL_HOURS : getBlockHoursList(selectedBlock);
+  const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : (selectedBlock === 'noche' ? ev.noche : ev.tarde));
+
+  if(!ev.inRange || !activeBlockObj.available){
+    const timeOptText = (dur >= 360 && (selectedBlock === 'manana' || !activeBlockObj.available))
+      ? 'Plan de 6 hrs excede el turno seleccionado en Paso 1'
+      : 'Sin horarios disponibles en este bloque';
+    if(timeSelect){
+      timeSelect.innerHTML = `<option value="">${timeOptText}</option>`;
+      timeSelect.value = '';
+      timeSelect.disabled = true;
+    }
+  } else {
+    if(timeSelect){
+      timeSelect.disabled = false;
+      const timeLabelSuffix = isInter
+        ? 'Salida temprana interregional (hacia Santiago)'
+        : ((selectedBlock === 'noche') ? 'Hora de inicio de atención nocturna' : 'Hora exacta de recogida');
+
+      const placeholderText = isInter
+        ? 'Seleccione hora de salida temprana...'
+        : ((selectedBlock === 'noche') ? 'Seleccione hora de inicio nocturno...' : 'Seleccione hora exacta de recogida...');
+
+      timeSelect.innerHTML = [
+        `<option value="">${placeholderText}</option>`,
+        ...hoursList.map(h => {
+          const isPostMid = (selectedBlock === 'noche' && h < '12:00');
+          const ok24 = isSlotAtLeast24hAhead(dateStr, h, isPostMid);
+          return `<option value="${h}" ${!ok24 ? 'disabled' : ''}>${h} hrs — ${timeLabelSuffix}${!ok24 ? ' (Menos de 24h)' : ''}</option>`;
+        })
+      ].join('');
+
+      const validChoices = hoursList.filter(h => {
+        const isPostMid = (selectedBlock === 'noche' && h < '12:00');
+        return isSlotAtLeast24hAhead(dateStr, h, isPostMid);
+      });
+
+      if(keepCurrentTime && prevTime && validChoices.includes(prevTime)){
+        timeSelect.value = prevTime;
+      } else {
+        timeSelect.value = '';
+      }
+    }
+  }
+
+  const curTime = timeSelect ? timeSelect.value : '';
+
   if(ev.inRange && activeBlockObj.available && curTime){
     const stMin = tm(curTime);
     const endMin = stMin + dur;
     const endsAfter22 = endMin > 22 * 60;
-    const isInvadingCrossShift = (!isInter && selectedBlock === 'manana' && stMin < 12 * 60 && endMin > 12 * 60);
+    const isInvadingCrossShift = (!isInter && selectedBlock === 'manana' && stMin < 13 * 60 && endMin > 13 * 60);
 
     // Validación preventiva de turnos cruzados si el turno tarde ya está ocupado
     if(isInvadingCrossShift && !ev.tarde.available){
@@ -3252,20 +3306,20 @@ function updateSlots(keepCurrentTime = false){
       ? 'Jornada Completa Interregional (Bloquea Mañana + Tarde)'
       : (isInvadingCrossShift
           ? 'Jornada Extendida (Bloquea Mañana y Tarde por invasión de buffer)'
-          : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:30 a 20:00 hrs)')));
+          : (selectedBlock === 'manana' ? 'Turno Mañana (08:00 a 13:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 06:00 hrs)' : 'Turno Tarde (14:30 a 20:00 hrs)')));
 
     estWindow.innerHTML = `🕒 <b>${selectedBlock === 'noche' ? 'Inicio' : 'Recogida'}:</b> ${curTime} hrs → <b>Término estimado:</b> ${fm(endMin % 1440)} hrs (${dur} min estimados · ${blockLabel}).`;
 
     if(selectedBlock === 'noche' || endsAfter22){
       nightNotice.style.display = 'block';
       const reasonText = selectedBlock === 'noche' ? 'en <b>Turno Noche</b>' : 'un servicio con <b>término posterior a las 22:00 hrs</b>';
-      nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar ${reasonText} (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (06:00 a 12:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:30 hrs).`;
+      nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar ${reasonText} (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (08:00 a 13:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:30 hrs).`;
     } else if(isInter){
       nightNotice.style.display = 'block';
       nightNotice.innerHTML = `🗺️ <b>Regla de Programa Interregional:</b> Esta reserva bloquea automáticamente <b>el día completo (Bloque Mañana y Bloque Tarde)</b> y el <b>Turno Noche de la víspera (día anterior)</b> para dedicación exclusiva, descanso preventivo y seguridad vial en carretera.`;
     } else if(isInvadingCrossShift){
       nightNotice.style.display = 'block';
-      nightNotice.innerHTML = `⚠️ <b>Bloqueo de Turnos Cruzados:</b> Por su duración (${fmtHoursClean(dur)}), esta atención finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia (12:00-14:30) y el Turno Tarde. El sistema bloqueará automáticamente <b>ambos turnos (Mañana y Tarde)</b> de este día en la agenda.`;
+      nightNotice.innerHTML = `⚠️ <b>Bloqueo de Turnos Cruzados:</b> Por su duración (${fmtHoursClean(dur)}), esta atención finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia (13:00-14:30) y el Turno Tarde. El sistema bloqueará automáticamente <b>ambos turnos (Mañana y Tarde)</b> de este día en la agenda.`;
     } else {
       nightNotice.style.display = 'none';
     }
@@ -3276,6 +3330,17 @@ function updateSlots(keepCurrentTime = false){
     tensSelect.innerHTML = availUnits.map((t,idx)=>`<option value="${t.id}">${idx===0?'Asignación titular: ':''}${e(t.nom)} (${e(t.veh||'Unidad TENS')})</option>`).join('');
     tensSelect.disabled = false;
     if(subBtn) subBtn.disabled = false;
+    if(submitAlert) submitAlert.style.display = 'none';
+  } else if(ev.inRange && activeBlockObj.available && !curTime){
+    // Turno activo y disponible, pero aún no selecciona la hora exacta
+    estWindow.textContent = '';
+    nightNotice.style.display = 'none';
+    stBox.className = 'status-box';
+    const blockNames = { manana: 'Turno Mañana (08:00 a 13:00 hrs)', tarde: 'Turno Tarde (14:30 a 20:00 hrs)', noche: 'Turno Noche (22:00 a 06:00 hrs)' };
+    const bName = isInter ? 'Programa Interregional' : (blockNames[selectedBlock] || 'Turno seleccionado');
+    stBox.innerHTML = `<span>🕒 <b>${bName} activo:</b> Seleccione la hora exacta en el selector para verificar cupo y asignar unidad TENS.</span>`;
+    tensSelect.innerHTML = `<option value="">Seleccione hora exacta primero</option>`;
+    tensSelect.disabled = true;
     if(submitAlert) submitAlert.style.display = 'none';
   } else {
     estWindow.textContent = '';
@@ -3290,14 +3355,7 @@ function updateSlots(keepCurrentTime = false){
     tensSelect.innerHTML = `<option value="">Sin unidad disponible en este bloque</option>`;
     tensSelect.disabled = true;
     if(subBtn) subBtn.disabled = false;
-    if(submitAlert){
-      submitAlert.style.display = 'block';
-      if(dur >= 360 && selectedBlock === 'manana'){
-        submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
-      } else {
-        submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> Existen observaciones en su selección de horario en el Paso 2 (la hora elegida no se encuentra disponible o excede la ventana del turno seleccionado en el calendario). Por favor revise la Sección 2 antes de confirmar.</span>`;
-      }
-    }
+    if(submitAlert) submitAlert.style.display = 'none';
   }
 }
 
@@ -3340,20 +3398,24 @@ function calcSuggestedPickup(){
     targetSlotMin = Math.floor(rawPickupMin / 15) * 15;
     if(targetSlotMin < 300) targetSlotMin = 300; // Mínimo 05:00 AM (300 min)
     if(targetSlotMin > 540) targetSlotMin = 540; // Máximo 09:00 AM (540 min)
-  } else if(rawPickupMin <= 600){ // 10:00 AM o antes -> Turno Mañana (06:00 a 10:00)
+  } else if(rawPickupMin <= 780){ // 13:00 hrs o antes -> Turno Mañana (08:00 a 13:00)
     targetBlock = 'manana';
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
-    if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00
-    if(targetSlotMin > 600) targetSlotMin = 600; // Máximo 10:00
-  } else if(rawPickupMin < 870){ // Entre 10:00 y 14:30 (Buffer mediodía 12:00 a 14:30)
-    // Para compromisos de mediodía, el último turno de recogida de mañana es 10:00 AM
-    targetBlock = 'manana';
-    targetSlotMin = 600; // 10:00 AM
-  } else { // 14:30 o después -> Turno Tarde (14:30 a 17:00)
+    if(targetSlotMin < 480) targetSlotMin = 480; // Mínimo 08:00 AM (480 min)
+    if(targetSlotMin > 780) targetSlotMin = 780; // Máximo 13:00 hrs (780 min)
+  } else if(rawPickupMin < 870){ // Entre 13:00 y 14:30 hrs (Buffer intermedio)
+    if(selectedBlock === 'tarde' || rawPickupMin > 825){
+      targetBlock = 'tarde';
+      targetSlotMin = 870; // 14:30 hrs
+    } else {
+      targetBlock = 'manana';
+      targetSlotMin = 780; // 13:00 hrs
+    }
+  } else { // 14:30 o después -> Turno Tarde (14:30 a 20:00)
     targetBlock = 'tarde';
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
-    if(targetSlotMin < 870) targetSlotMin = 870; // Mínimo 14:30
-    if(targetSlotMin > 1020) targetSlotMin = 1020; // Máximo 17:00
+    if(targetSlotMin < 870) targetSlotMin = 870; // Mínimo 14:30 (870 min)
+    if(targetSlotMin > 1200) targetSlotMin = 1200; // Máximo 20:00 (1200 min)
   }
 
   const targetSlotStr = fm(targetSlotMin);
@@ -3366,16 +3428,33 @@ function calcSuggestedPickup(){
 
   let ajusteAgendaTexto = '';
   if(holguraMin > 0){
-    ajusteAgendaTexto = `→ <b>Ajuste preventivo a bloque de agenda (${isInter ? 'cada 15 min' : 'cada 30 min'}):</b> Redondeado al bloque anterior de las <b>${targetSlotStr} hrs</b> (+${holguraMin} min de holgura preventiva ante imprevistos de tráfico).<br>
+    ajusteAgendaTexto = `→ <b>Ajuste preventivo a bloque de agenda (${isInter ? 'cada 15 min' : 'cada 30 min'}):</b> Redondeado al bloque de las <b>${targetSlotStr} hrs</b> (+${holguraMin} min de holgura preventiva ante imprevistos de tráfico).<br>
     <b>Anticipación total con holgura:</b> ${totalAnticipacionEfectiva} minutos (${fmtHoursClean(totalAnticipacionEfectiva)}).`;
   } else if(holguraMin === 0){
     ajusteAgendaTexto = `→ <b>Alineación con agenda:</b> Coincide exactamente con el bloque agendable de las <b>${targetSlotStr} hrs</b> (${totalAnticipacionExacta} min de anticipación previa).`;
   } else {
-    // Cuando se topa con el límite del turno (ej: mínimo 05:00 o máximo 09:00/10:00)
+    // Cuando se topa con el límite del turno
     ajusteAgendaTexto = `→ <b>Ajuste por ventana operativa:</b> Fijado en <b>${targetSlotStr} hrs</b> (${isInter ? 'Salida temprana interregional' : (targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde')}, límite de ventana disponible).`;
   }
 
-  const blockHuman = isInter ? 'Turno Mañana (Salida Temprana Interregional)' : (targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde');
+  const blockNames = {
+    manana: isInter ? 'Turno Mañana (Salida Temprana Interregional)' : 'Turno Mañana (08:00 a 13:00 hrs)',
+    tarde: 'Turno Tarde (14:30 a 20:00 hrs)',
+    noche: 'Turno Noche (22:00 a 06:00 hrs)'
+  };
+  const blockHuman = blockNames[targetBlock] || targetBlock;
+
+  let mismatchWarning = '';
+  if(selectedBlock && selectedBlock !== targetBlock && !isInter){
+    const activeBlockHuman = blockNames[selectedBlock] || selectedBlock;
+    mismatchWarning = `<div style="margin-top:8px;padding:8px 12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;color:#92400e;font-size:.85rem;line-height:1.5">
+      ⚠️ <b>Aviso de compatibilidad:</b> La hora sugerida corresponde al <b>${blockHuman}</b>, pero actualmente tienes seleccionado el <b>${activeBlockHuman}</b> en el Paso 1. Si deseas aplicar este horario, deberás cambiar primero tu turno arriba.
+    </div>`;
+  } else if(!selectedBlock && !isInter){
+    mismatchWarning = `<div style="margin-top:8px;padding:8px 12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;color:#92400e;font-size:.85rem;line-height:1.5">
+      ℹ️ <b>Paso 1 pendiente:</b> Recuerda seleccionar el <b>${blockHuman}</b> en el Paso 1 para poder aplicar esta hora calculada.
+    </div>`;
+  }
 
   msg.innerHTML = `
     Para llegar con tiempo suficiente a tu compromiso de las <b>${appTimeStr} hrs</b>, te sugerimos fijar tu recogida a las <b>${targetSlotStr} hrs</b> (${blockHuman}).<br>
@@ -3387,6 +3466,7 @@ function calcSuggestedPickup(){
       → <b>Cálculo exacto de salida:</b> ${appTimeStr} hrs − ${totalAnticipacionExacta} min = <b>${horaExactaSalidaStr} hrs</b>.<br>
       ${ajusteAgendaTexto}
     </div>
+    ${mismatchWarning}
   `;
 
   if(btn){
@@ -3402,18 +3482,49 @@ function calculateSuggestedTime(){
 window.calculateSuggestedTime = calcSuggestedPickup;
 
 function applySuggestedPickup(){
-  if(selectedBlock !== currentSuggestedBlock){
-    selectShiftBlock(currentSuggestedBlock);
+  const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
+
+  // 1. Validar que haya un turno seleccionado en el Paso 1
+  if(!selectedBlock && !isInter){
+    alert("⚠️ Por favor seleccione primero un turno en el Paso 1 (Turno Mañana, Tarde o Noche) antes de aplicar la hora calculada.");
+    const targetBlockBtn = $('#btnBlock_' + currentSuggestedBlock) || $('#secAgenda');
+    if(targetBlockBtn){
+      targetBlockBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetBlockBtn.focus();
+    }
+    return;
   }
+
+  // 2. Validar que la hora calculada esté estrictamente dentro de los límites del turno activo en el Paso 1
+  const validHoursForBlock = isInter ? INTERREGIONAL_HOURS : getBlockHoursList(selectedBlock);
+  if(!validHoursForBlock.includes(currentSuggestedHour)){
+    const blockNames = {
+      manana: 'Turno Mañana (08:00 a 13:00 hrs)',
+      tarde: 'Turno Tarde (14:30 a 20:00 hrs)',
+      noche: 'Turno Noche (22:00 a 06:00 hrs)'
+    };
+    const activeName = blockNames[selectedBlock] || selectedBlock;
+    const calcName = blockNames[currentSuggestedBlock] || currentSuggestedBlock;
+    alert(`⚠️ Incompatibilidad de Turno:\n\nLa hora de salida calculada (${currentSuggestedHour} hrs) pertenece al ${calcName}, pero en el Paso 1 actualmente tienes seleccionado el ${activeName}.\n\nPara aplicar esta hora, primero debes seleccionar el ${calcName} en el Paso 1 de la Sección 1.`);
+    const targetBlockBtn = $('#btnBlock_' + currentSuggestedBlock) || $('#secAgenda');
+    if(targetBlockBtn){
+      targetBlockBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetBlockBtn.focus();
+    }
+    return;
+  }
+
+  // 3. Validar regla de 24 horas de anticipación
+  const dateStr = $('#b_date') ? $('#b_date').value : '';
+  const isPostMid = (selectedBlock === 'noche' && currentSuggestedHour < '12:00');
+  if(dateStr && !isSlotAtLeast24hAhead(dateStr, currentSuggestedHour, isPostMid)){
+    alert(`⚠️ La hora calculada (${currentSuggestedHour} hrs) requiere al menos 24 horas de anticipación para la fecha seleccionada (${formatHumanDate(dateStr)}).\n\nPor favor seleccione un horario posterior o elija una fecha más lejana en el calendario.`);
+    return;
+  }
+
   const timeSel = $('#b_time');
   if(timeSel){
-    const exists = [...timeSel.options].some(o => o.value === currentSuggestedHour);
-    if(exists){
-      timeSel.value = currentSuggestedHour;
-    } else {
-      const firstValid = [...timeSel.options].find(o => !o.disabled && o.value);
-      if(firstValid) timeSel.value = firstValid.value;
-    }
+    timeSel.value = currentSuggestedHour;
     onPickupTimeChange();
     timeSel.focus();
     timeSel.style.transition = 'outline 0.2s';
@@ -3541,17 +3652,21 @@ async function submitBooking(ev){
   const timeStr = $('#b_time').value;
   const dur = getSelectedTotalMinutes();
   const capEval = evaluateDateCapacity(date);
-  const targetBlockObj = isInter ? capEval.interregional : (selectedBlock === 'manana' ? capEval.manana : (selectedBlock === 'noche' ? capEval.noche : capEval.tarde));
+  const targetBlockObj = isInter ? capEval.interregional : (selectedBlock ? (selectedBlock === 'manana' ? capEval.manana : (selectedBlock === 'noche' ? capEval.noche : capEval.tarde)) : { available: false });
   const start = timeStr ? tm(timeStr) : 0;
   const endMin = start + dur;
-  const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 12 * 60 && endMin > 12 * 60);
+  const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 13 * 60 && endMin > 13 * 60);
 
-  if(!date || !timeStr || !capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr) || (isCrossShift && !capEval.tarde.available)){
+  if(!date || (!selectedBlock && !isInter) || !timeStr || !capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr, selectedBlock === 'noche' && timeStr < '12:00') || (isCrossShift && !capEval.tarde.available)){
     updateSlots();
     const submitAlert = $('#submitBlockAlert');
     if(submitAlert){
       submitAlert.style.display = 'block';
-      if(dur >= 360 && (selectedBlock === 'manana' || isCrossShift)){
+      if(!selectedBlock && !isInter){
+        submitAlert.innerHTML = `<span>⚠️ <b>Turno requerido en Paso 1:</b> Por favor seleccione un turno (Mañana, Tarde o Noche) en la agenda antes de continuar.</span>`;
+      } else if(!timeStr){
+        submitAlert.innerHTML = `<span>⚠️ <b>Hora requerida en Paso 2:</b> Por favor seleccione la hora exacta de recogida requerida antes de continuar.</span>`;
+      } else if(dur >= 360 && (selectedBlock === 'manana' || isCrossShift)){
         submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
       } else {
         submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> Existen observaciones en su selección de horario en el Paso 2 (la hora elegida no se encuentra disponible o excede la ventana del turno seleccionado en el calendario). Por favor revise la Sección 2 antes de confirmar.</span>`;
@@ -3652,7 +3767,7 @@ async function submitBooking(ev){
     ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
     : (isCrossShift
         ? 'Jornada Extendida (Bloquea Mañana y Tarde)'
-        : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:30 a 20:00 hrs)')));
+        : (selectedBlock === 'manana' ? 'Turno Mañana (08:00 a 13:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 06:00 hrs)' : 'Turno Tarde (14:30 a 20:00 hrs)')));
 
   const newId = D.nid++;
   const newSvc = {
