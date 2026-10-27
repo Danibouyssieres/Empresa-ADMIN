@@ -251,7 +251,7 @@ footer a{color:#fff}
       <span class="step-tag">Sección 1 de 4 · Fecha y Bloque de Turno</span>
       <h2>1. Seleccione la fecha y turno general en agenda</h2>
       <p style="font-size:.9rem;color:var(--mute);margin-bottom:12px">
-        Para garantizar puntualidad clínica, sin retrasos acumulados ni sobrecarga, operamos con un tope de <b>2 bloques diarios por unidad</b> separados por una ventana de resguardo y sanitización. Reservas con <b>mínimo 24 horas de anticipación</b> y hasta <b>30 días corridos</b> hacia adelante.
+        Para garantizar puntualidad clínica, sin retrasos acumulados ni sobrecarga, operamos con un tope de <b>2 bloques diarios por unidad</b>. Reservas con <b>mínimo 24 horas de anticipación</b> y hasta <b>30 días corridos</b> hacia adelante.
       </p>
 
       <input id="b_date" type="hidden" required>
@@ -280,7 +280,7 @@ footer a{color:#fff}
           </div>
         </div>
 
-        <!-- COLUMNA DERECHA: SELECCIÓN DE TURNO GENERAL (MAÑANA / BUFFER / TARDE) -->
+        <!-- COLUMNA DERECHA: SELECCIÓN DE TURNO GENERAL (MAÑANA / TARDE / NOCHE) -->
         <div class="blocks-panel">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
             <label style="margin:0;color:var(--teal);font-size:.95rem">Fecha seleccionada: <strong id="lblSelectedDateHuman">—</strong></label>
@@ -297,15 +297,6 @@ footer a{color:#fff}
             <div class="block-btn-reason" id="reasonBlock_manana" style="display:none"></div>
           </button>
 
-          <!-- VENTANA DE RESGUARDO 1 (BUFFER MEDIODÍA NO AGENDABLE) -->
-          <div class="buffer-strip">
-            <span style="font-size:1.2rem">🛡️</span>
-            <div>
-              <b>Buffer Mediodía no agendable (12:00 a 14:30 hrs):</b>
-              Reservado para absorber demoras médicas, retorno a base Maipú y sanitización clínica del vehículo.
-            </div>
-          </div>
-
           <!-- BLOQUE 2: TARDE -->
           <button type="button" id="btnBlock_tarde" class="block-btn" onclick="selectShiftBlock('tarde')">
             <div class="block-btn-top">
@@ -316,15 +307,6 @@ footer a{color:#fff}
             <div class="block-btn-reason" id="reasonBlock_tarde" style="display:none"></div>
           </button>
 
-          <!-- VENTANA DE RESGUARDO 2 (BUFFER TARDE NO AGENDABLE) -->
-          <div class="buffer-strip" style="margin-top:4px">
-            <span style="font-size:1.2rem">🛡️</span>
-            <div>
-              <b>Buffer Tarde no agendable (20:00 a 22:00 hrs):</b>
-              Ventana de resguardo operacional, sanitización profunda de la unidad y cierre de jornada diurna.
-            </div>
-          </div>
-
           <!-- BLOQUE 3: NOCHE -->
           <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche')">
             <div class="block-btn-top">
@@ -334,15 +316,6 @@ footer a{color:#fff}
             <div class="block-btn-sub" id="subBlock_noche">Atención nocturna exclusiva (inicios entre 22:00 y 23:30 hrs)</div>
             <div class="block-btn-reason" id="reasonBlock_noche" style="display:none"></div>
           </button>
-
-          <!-- VENTANA DE RESGUARDO 3 (DESCANSO BIOLÓGICO POST-NOCTURNO) -->
-          <div class="buffer-strip" style="margin-top:4px">
-            <span style="font-size:1.2rem">🛡️</span>
-            <div>
-              <b>Descanso Biológico Post-Nocturno (04:00 a 14:30 hrs):</b>
-              Garantiza reposo y recuperación del personal. Toda reserva en Turno Noche bloquea automáticamente el Turno Mañana del día siguiente (disponible solo a partir de las 14:30 hrs).
-            </div>
-          </div>
 
           <div class="callout-box" style="margin-top:10px;font-size:.85rem;line-height:1.45">
             💡 <b>Nota de agenda:</b> En este paso solo se reserva el bloque general. La hora exacta de recogida y el cálculo de viaje se definirán a continuación en la <b>Sección 2</b> tras trazar su ruta en el mapa.
