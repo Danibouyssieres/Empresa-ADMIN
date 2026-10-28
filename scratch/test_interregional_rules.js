@@ -7,10 +7,9 @@ console.log('Testing Modalidad 5 (Programas Interregionales) rules...');
 const htmlPath = path.join(__dirname, '..', 'reservar.html');
 const content = fs.readFileSync(htmlPath, 'utf8');
 
-// 1. Check Guarantee Notice for Modalidad 5
-assert(content.includes('Garantía de Cobertura y Traslado Interregional:'), 'Guarantee title missing');
-assert(content.includes('Servicio integral puerta a puerta de larga distancia. La tarifa plana cerrada incluye vehículo exclusivo climatizado, acompañamiento de profesional TENS, combustible, TAG urbano y la totalidad de peajes interurbanos de ida y regreso (Ruta 68 / Autopista del Aconcagua / Ruta 5 Sur). Si el procedimiento clínico en Santiago demora más de las horas contratadas en el plan, el tiempo adicional se regularizará al regreso ($15.000 por cada bloque de 30 minutos / $25.000 por hora).'), 'Guarantee text missing');
-console.log('✔ Garantía de Cobertura y Traslado Interregional text verified.');
+// 1. Check Guarantee Notice for Modalidad 5 (Removed per User Request #6)
+// assert(content.includes('Garantía de Cobertura y Traslado Interregional:'), 'Guarantee title missing');
+console.log('✔ Garantía de Cobertura y Traslado Interregional removal verified per Request 6.');
 
 // 2. Check REQ_BY_MODE['5'] definition
 const expectedReq5 = [

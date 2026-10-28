@@ -520,7 +520,7 @@ footer a{color:#fff}
                     Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.
                   </p>
                   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <select id="appTimeInput" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
+                    <select id="appTimeInput" onchange="if(lastRouteIdaMin > 0) calcSuggestedPickup()" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
                     <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
                       🧭 Calcular Hora de Salida Sugerida
                     </button>
@@ -1170,6 +1170,9 @@ function setInterProgram(hours){
   applyMaxDurationRule();
   recalcAll();
   updateSlots();
+  if(lastRouteIdaMin > 0){
+    calcSuggestedPickup();
+  }
 }
 
 // ===== REGLAS POR MODALIDAD DE SERVICIO =====
@@ -1751,6 +1754,10 @@ function onStayDestinoChange(){
   applyMaxDurationRule();
   recalcAll();
   updateSlots(true);
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  if((mode === '1' || mode === '2') && lastRouteIdaMin > 0){
+    calcSuggestedPickup();
+  }
 }
 
 function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTotalMin, billedMin){
@@ -2997,6 +3004,9 @@ function selectCalendarDate(dateStr){
   }
   updateSlots(true);
   syncJornadaFromSchedule();
+  if(lastRouteIdaMin > 0){
+    calcSuggestedPickup();
+  }
 }
 
 function selectShiftBlock(blockId){
@@ -3591,14 +3601,27 @@ function calcSuggestedPickup(){
   const msg = $('#suggestedPickupMsg');
   const subBtn = $('#submitBtn');
 
+  // 0. Reset de estado obligatorio al recalcular
+  if(callout) callout.style.display = 'none';
+  if(msg) msg.innerHTML = '';
+  const blkAlert = $('#submitBlockAlert');
+  if(blkAlert) blkAlert.style.display = 'none';
+  const avail = $('#availStatus');
+  if(avail && avail.classList.contains('err')){
+    avail.style.display = 'none';
+    avail.innerHTML = '';
+  }
+
   // 1. Validar que la ruta esté calculada en el mapa
   if(!lastRouteIdaMin || lastRouteIdaMin <= 0){
-    msg.innerHTML = `
-      <div style="padding:12px 14px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;color:#92400e;font-size:.87rem;line-height:1.45">
-        ⚠️ <b>Calcule la ruta primero:</b> Por favor ingrese y busque las direcciones de <b>Inicio (A)</b> y <b>Destino (B)</b> en el mapa superior para obtener los minutos reales de conducción antes de calcular su hora de salida.
-      </div>
-    `;
-    callout.style.display = 'block';
+    if(msg){
+      msg.innerHTML = `
+        <div style="padding:12px 14px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;color:#92400e;font-size:.87rem;line-height:1.45">
+          ⚠️ <b>Calcule la ruta primero:</b> Por favor ingrese y busque las direcciones de <b>Inicio (A)</b> y <b>Destino (B)</b> en el mapa superior para obtener los minutos reales de conducción antes de calcular su hora de salida.
+        </div>
+      `;
+    }
+    if(callout) callout.style.display = 'block';
     return;
   }
 
