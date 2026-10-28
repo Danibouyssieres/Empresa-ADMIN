@@ -274,7 +274,7 @@ assert.strictEqual(mod2Title, '⏱️ Tiempo de Espera Requerido en Destino', 'T
 assert(mod2TimeLabel1h.includes('Valor por Tiempo de Espera en Destino'), 'Item 2 debe renombrarse a Valor por Tiempo de Espera en Destino');
 assert(mod2TimeLabel1h.includes('1 hr a $8.000/h'), 'Item 2 debe indicar 1 hr a $8.000/h');
 assert(!mod2Formula1h.includes('abordaje TENS'), 'Formula de Mod 2 NO debe mencionar abordaje TENS');
-assert(mod2Formula1h.includes('Tiempo operativo total: 10 min viaje ida + 60 min espera en destino + 10 min viaje retorno = <b>80 min</b> | Espera efectiva a liquidar: <b>1 hr</b>.'), 'Formula debe coincidir exactamente');
+assert(mod2Formula1h.includes('Tiempo operativo total: 10 min abordaje (asistencia inicial) + 10 min viaje ida + 60 min espera en destino + 10 min viaje retorno = <b>90 min</b> | Espera en destino a liquidar: <b>1 hr</b>.'), 'Formula debe coincidir exactamente');
 console.log('   ✅ PASS: Modalidad 2 con 1 hora cobra exactamente $8.000 con textos correctos.\n');
 
 // =========================================================================
@@ -294,7 +294,7 @@ console.log('   - formula:', mod2Formula90);
 
 assert.strictEqual(mod2TimeVal90, '$12.000', 'Modalidad 2 con 90m debe cobrar $12.000 ($8.000 + $4.000)');
 assert(mod2TimeLabel90.includes('1 h 30 min a $8.000/h'), 'Label debe indicar 1 h 30 min a $8.000/h');
-assert(mod2Formula90.includes('Tiempo operativo total: 10 min viaje ida + 90 min espera en destino + 10 min viaje retorno = <b>110 min</b> | Espera efectiva a liquidar: <b>1 h 30 min</b>.'), 'Formula debe reflejar 1 h 30 min');
+assert(mod2Formula90.includes('Tiempo operativo total: 10 min abordaje (asistencia inicial) + 10 min viaje ida + 90 min espera en destino + 10 min viaje retorno = <b>120 min</b> | Espera en destino a liquidar: <b>1 h 30 min</b>.'), 'Formula debe reflejar 1 h 30 min');
 console.log('   ✅ PASS: Modalidad 2 con 1 h 30 min cobra exactamente $12.000.\n');
 
 // =========================================================================
@@ -314,7 +314,7 @@ console.log('   - formula:', mod2Formula120);
 
 assert.strictEqual(mod2TimeVal120, '$16.000', 'Modalidad 2 con 2h debe cobrar $16.000 (2 x $8.000)');
 assert(mod2TimeLabel120.includes('2 hrs a $8.000/h'), 'Label debe indicar 2 hrs a $8.000/h');
-assert(mod2Formula120.includes('Tiempo operativo total: 10 min viaje ida + 120 min espera en destino + 10 min viaje retorno = <b>140 min</b> | Espera efectiva a liquidar: <b>2 hrs</b>.'), 'Formula debe reflejar 2 hrs');
+assert(mod2Formula120.includes('Tiempo operativo total: 10 min abordaje (asistencia inicial) + 10 min viaje ida + 120 min espera en destino + 10 min viaje retorno = <b>150 min</b> | Espera en destino a liquidar: <b>2 hrs</b>.'), 'Formula debe reflejar 2 hrs');
 console.log('   ✅ PASS: Modalidad 2 con 2 horas cobra exactamente $16.000.\n');
 
 console.log('🎉 ¡TODAS LAS PRUEBAS DE MODALIDAD 2 PASARON AL 100%! 🚀');

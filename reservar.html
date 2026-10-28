@@ -1654,7 +1654,7 @@ function applyMaxDurationRule(){
   if(selStay && (mode === '1' || mode === '2')){
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
-    const abordajeMin = (mode === '2') ? 0 : 10;
+    const abordajeMin = 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
     const travelMin = idaMin + abordajeMin + retornoMin;
     const maxStayAllowed = Math.max(60, 360 - travelMin);
@@ -1779,8 +1779,7 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   const curTime = (timeSelect && timeSelect.value) || currentSuggestedHour || '08:30';
   const startMin = tm(curTime);
 
-  const realAbordaje = (mode === '2') ? 0 : abordajeMin;
-  const llegadaDestinoMin = startMin + realAbordaje + idaMin;
+  const llegadaDestinoMin = startMin + abordajeMin + idaMin;
   const salidaDestinoMin = llegadaDestinoMin + stayMin;
   const retornoHogarMin = salidaDestinoMin + retornoMin;
   const isRoundTrip = tripMultiplier === 2;
@@ -1799,7 +1798,7 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   const waitHoursText = extraHalf ? `${h > 0 ? `${h} h 30 min` : '30 min'}` : (h === 1 ? '1 hr' : `${h} hrs`);
 
   if($('#tlHorasEfectivasLabel')){
-    $('#tlHorasEfectivasLabel').textContent = (mode === '2') ? 'Espera efectiva a liquidar:' : 'Total horas efectivas a liquidar:';
+    $('#tlHorasEfectivasLabel').textContent = (mode === '2') ? 'Espera en destino a liquidar:' : 'Total horas efectivas a liquidar:';
   }
   if($('#tlHorasEfectivas')){
     $('#tlHorasEfectivas').textContent = (mode === '2')
@@ -1810,8 +1809,8 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   let formulaDesc = '';
   if(mode === '2'){
     formulaDesc = isRoundTrip
-      ? `Tiempo operativo total: ${idaMin} min viaje ida + ${stayMin} min espera en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> | Espera efectiva a liquidar: <b>${waitHoursText}</b>.`
-      : `Tiempo operativo total (Solo ida): ${idaMin} min viaje ida + ${stayMin} min espera en destino = <b>${rawTotalMin} min</b> | Espera efectiva a liquidar: <b>${waitHoursText}</b>.`;
+      ? `Tiempo operativo total: 10 min abordaje (asistencia inicial) + ${idaMin} min viaje ida + ${stayMin} min espera en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> | Espera en destino a liquidar: <b>${waitHoursText}</b>.`
+      : `Tiempo operativo total (Solo ida): 10 min abordaje (asistencia inicial) + ${idaMin} min viaje ida + ${stayMin} min espera en destino = <b>${rawTotalMin} min</b> | Espera en destino a liquidar: <b>${waitHoursText}</b>.`;
   } else {
     formulaDesc = isRoundTrip
       ? `Fórmula del servicio: ${abordajeMin} min abordaje TENS + ${idaMin} min viaje ida + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`
@@ -1828,7 +1827,7 @@ function getSelectedTotalMinutes(){
     const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
-    const abordajeMin = (mode === '2') ? 0 : 10;
+    const abordajeMin = 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
     const rawTotalMin = abordajeMin + idaMin + stayMin + retornoMin;
     const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
@@ -1888,8 +1887,9 @@ function recalcAll(){
     const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
+    const abordajeMin = 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
-    const rawTotalMin = idaMin + stayMin + retornoMin;
+    const rawTotalMin = abordajeMin + idaMin + stayMin + retornoMin;
     const billedMin = stayMin;
     const h = Math.floor(billedMin / 60);
     const extraHalfBlocks = (billedMin % 60 === 30) ? 1 : 0;
@@ -1897,7 +1897,7 @@ function recalcAll(){
     const waitHoursText = extraHalfBlocks ? `${h > 0 ? `${h} h 30 min` : '30 min'}` : (h === 1 ? '1 hr' : `${h} hrs`);
     durationText = `${waitHoursText} a ${$c(r.hour)}/h`;
 
-    updateServiceTimeline(idaMin, 0, stayMin, retornoMin, rawTotalMin, billedMin);
+    updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTotalMin, billedMin);
   } else if(mode === '3'){
     let h = +$('#selHours34').value || 2;
     let m = +$('#selMins34').value || 0;
