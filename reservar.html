@@ -371,9 +371,6 @@ footer a{color:#fff}
             <div class="rp-val" id="lblRateNocturno">$18.000/h ($1.000/km)</div>
           </div>
         </div>
-        <div id="jornadaFootNote" class="callout-box">
-          🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Los Días Festivos operan en jornada diurna de 06:00 a 20:00 hrs.
-        </div>
       </div>
 
       <!-- SELECTOR DE MODALIDAD DE EXTREMO A EXTREMO -->
@@ -515,64 +512,79 @@ footer a{color:#fff}
       </div>
 
       <!-- =========================================================================
-           ASISTENTE DE HORA DE RECOGIDA SUGERIDA Y SELECTOR DE HORA EXACTA
+           HORARIO DE ATENCIÓN / RECOGIDA Y RESPALDO CLÍNICO TENS
            ========================================================================= -->
       <div id="pickupScheduleSection" class="pickup-time-box" style="margin-top:22px">
-        <!-- ASISTENTE DE HORA DE RECOGIDA SUGERIDA (CÁLCULO DE SALIDA CLÍNICO) -->
-        <div class="asistente-box" id="asistenteBox" style="padding:14px 16px;border-radius:12px;background:var(--mist);border:1px solid var(--line);margin-bottom:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-            <span style="font-weight:700;color:var(--teal);font-size:.95rem;display:flex;align-items:center;gap:6px">
-              ⏱️ Asistente de Hora de Recogida Sugerida
-            </span>
-            <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo de salida clínico</span>
-          </div>
-          <p style="font-size:.84rem;color:var(--mute);margin:0 0 10px;line-height:1.45">
-            ¿Tienes una cita médica, trámite en notaría, gestión bancaria o compromiso programado? Ingresa la hora fijada en destino y calculamos automáticamente tu hora recomendada de salida considerando el tiempo de traslado en mapa vehicular, 15 min de abordaje y valoración inicial por TENS y 20 min de margen previo para estacionar, mesón o filas.
-          </p>
-          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-            <div style="flex:1;min-width:200px">
-              <label for="appTimeInput" style="font-size:.84rem;font-weight:700;color:var(--ink);margin-bottom:4px">
-                ¿A qué hora está programada tu cita médica, trámite o compromiso en destino?
-              </label>
-              <select id="appTimeInput" style="padding:9px 12px;font-size:.92rem;background:var(--card)"></select>
-            </div>
-            <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 18px;font-size:.88rem;white-space:nowrap">
-              🧭 Calcular Hora de Salida Sugerida
-            </button>
-          </div>
-          <div id="suggestedPickupCallout" class="callout-box" style="display:none;margin-top:12px;margin-bottom:0;background:rgba(22,143,74,.08);border-left:4px solid var(--wa)">
-            <div id="suggestedPickupMsg" style="font-size:.9rem;color:var(--ink);line-height:1.5"></div>
-            <div style="margin-top:10px">
-              <button type="button" class="btn sm" id="btnApplySuggestedPickup" onclick="applySuggestedPickup()" style="font-size:.85rem;padding:7px 18px">
-                ✅ Aplicar esta hora
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- SELECTOR DE HORA EXACTA DE RECOGIDA Y RESPALDO CLÍNICO TENS -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:start">
+          
+          <!-- COLUMNA IZQUIERDA: ASISTENTE CLÍNICO DE RECOGIDA O SELECTOR DOMICILIARIO -->
           <div>
-            <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700">
-              Hora exacta de recogida requerida (dentro del turno de Paso 1) *
-            </label>
-            <select id="b_time" required onchange="onPickupTimeChange()" disabled>
-              <option value="">Primero seleccione un turno arriba</option>
-            </select>
+            <!-- MECANISMO DEFINITIVO PARA TRASLADOS (MODALIDADES 1, 2 Y 5): ASISTENTE DE HORA DE RECOGIDA -->
+            <div class="asistente-box" id="asistenteBox" style="padding:16px;border-radius:12px;background:var(--mist);border:1px solid var(--line)">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+                <span style="font-weight:700;color:var(--teal);font-size:.95rem;display:flex;align-items:center;gap:6px">
+                  ⏱️ Asistente de Hora de Recogida Sugerida
+                </span>
+                <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo de salida clínico</span>
+              </div>
+              <p style="font-size:.84rem;color:var(--mute);margin:0 0 12px;line-height:1.45">
+                ¿Tienes una cita médica, trámite en notaría, banco o compromiso programado? Ingresa la hora fijada en destino y calculamos automáticamente tu hora oficial de recogida considerando el tiempo de ruta vehicular, 15 min de abordaje y valoración inicial por TENS y 20 min de margen previo para estacionar o admisión.
+              </p>
+              
+              <div style="margin-bottom:12px">
+                <label for="appTimeInput" style="font-size:.84rem;font-weight:700;color:var(--ink);margin-bottom:6px;display:block">
+                  ¿A qué hora está programada tu cita médica o compromiso en destino?
+                </label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <select id="appTimeInput" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--card)"></select>
+                  <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
+                    🧭 Calcular Hora de Salida Sugerida
+                  </button>
+                </div>
+              </div>
+
+              <!-- CONFIRMACIÓN DE HORA OFICIAL FIJADA (SIN MENÚ MANUAL ADICIONAL) -->
+              <div id="suggestedPickupCallout" class="callout-box" style="display:none;margin-top:12px;margin-bottom:0;background:rgba(22,143,74,.08);border-left:4px solid var(--wa)">
+                <div id="suggestedPickupMsg" style="font-size:.88rem;color:var(--ink);line-height:1.5"></div>
+                <div style="margin-top:8px;display:none">
+                  <button type="button" class="btn sm" id="btnApplySuggestedPickup" onclick="applySuggestedPickup()" style="font-size:.85rem;padding:7px 18px">
+                    ✅ Aplicar esta hora
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MECANISMO PARA CUIDADOS A DOMICILIO (MODALIDAD 3 Y EVENTOS 4 SIN TRASLADO): SELECTOR SIMPLE -->
+            <div id="homeTimeWrap" style="display:none;padding:16px;border-radius:12px;background:var(--mist);border:1px solid var(--line)">
+              <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700;display:block;margin-bottom:6px">
+                Hora de inicio de la atención en el domicilio *
+              </label>
+              <select id="b_time" onchange="onPickupTimeChange()" disabled style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--card);border:1.5px solid var(--line);border-radius:10px">
+                <option value="">Primero seleccione un turno arriba</option>
+              </select>
+            </div>
+
             <div id="lblEstimatedWindow" style="font-size:.83rem;color:var(--mute);margin-top:6px"></div>
             <div id="nightRuleNotice" class="rule-alert"></div>
             <div id="availStatus" class="status-box ok" style="margin-top:10px"></div>
           </div>
 
+          <!-- COLUMNA DERECHA: INSIGNIA DE CALIDAD FIJA -->
           <div>
             <input type="hidden" id="b_tens" value="t1">
-            <div style="padding:14px 16px;border-radius:12px;background:rgba(15,118,110,.06);border:1px solid rgba(15,118,110,.2);display:flex;align-items:flex-start;gap:12px;margin-top:24px">
-              <span style="font-size:1.25rem;line-height:1;color:var(--teal);flex-shrink:0">🩺</span>
-              <p style="margin:0;font-size:.87rem;color:var(--ink);line-height:1.45;font-weight:500">
-                ✓ Atención ejecutada por TENS acreditado con equipamiento clínico completo (oximetría, glicemia, presión arterial y ayudas técnicas).
-              </p>
+            <div style="padding:16px 18px;border-radius:12px;background:rgba(15,118,110,.06);border:1px solid rgba(15,118,110,.2);display:flex;align-items:flex-start;gap:12px">
+              <span style="font-size:1.35rem;line-height:1;color:var(--teal);flex-shrink:0">🩺</span>
+              <div>
+                <p style="margin:0;font-size:.88rem;color:var(--ink);line-height:1.45;font-weight:600">
+                  ✓ Atención ejecutada por TENS acreditado con equipamiento clínico completo (oximetría, glicemia, presión arterial y ayudas técnicas).
+                </p>
+                <p style="margin:6px 0 0;font-size:.8rem;color:var(--mute);line-height:1.4">
+                  Garantía de respaldo asistencial, monitoreo preventivo de signos y resguardo constante de bienestar y seguridad del paciente.
+                </p>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -1351,22 +1363,18 @@ function applyModalityVisibility(){
     setTripMode(2); // Por defecto Ida y Vuelta
   }
 
-  // En Modalidades 1 y 2 (Traslados Clínicos): solo permitir Hábil, Sábados y Domingos/Festivos (08:00 a 20:00). No hay traslados nocturnos.
+  // En Modalidades 1 y 2 (Traslados Clínicos): solo permitir Hábil, Sábados y Domingos/Festivos (06:00 a 20:00). No hay traslados nocturnos.
   const noctPill = $('#pillJornada_nocturno');
   const titleNoct = $('#titleJornadaNocturno');
   const subNoct = $('#subJornadaNocturno');
-  const footNote = $('#jornadaFootNote');
-  noctPill.classList.remove('disabled');
+  if(noctPill) noctPill.classList.remove('disabled');
 
-  const noctTextDefinitive = '🌙 <b>Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Los Días Festivos operan en jornada diurna de 06:00 a 20:00 hrs.';
   if(mode === '1' || mode === '2'){
     if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00)';
     if(subNoct) subNoct.textContent = 'Feriado oficial en jornada diurna (+50%)';
-    if(footNote) footNote.innerHTML = noctTextDefinitive;
   } else {
     if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
     if(subNoct) subNoct.textContent = 'Días festivos diurnos y atención nocturna (+50%)';
-    if(footNote) footNote.innerHTML = noctTextDefinitive;
   }
 
   if(mode === '5'){
@@ -1470,21 +1478,26 @@ function applyModalityVisibility(){
     $('#directTimeOnlySection').style.display = 'block';
   }
 
-  // Visibilidad del Asistente de Salida (solo en traslados y programas interregionales)
+  // Visibilidad del Asistente de Salida (solo en traslados y programas interregionales) vs Selector Domiciliario
   const asisBox = $('#asistenteBox');
+  const homeTimeWrap = $('#homeTimeWrap');
+  const isTransfer = (mode === '1' || mode === '2' || mode === '5');
   if(asisBox){
-    asisBox.style.display = (mode === '1' || mode === '2' || mode === '5') ? 'block' : 'none';
+    asisBox.style.display = isTransfer ? 'block' : 'none';
+  }
+  if(homeTimeWrap){
+    homeTimeWrap.style.display = isTransfer ? 'none' : 'block';
   }
   const lblPick = $('#lblPickupSelect');
   if(lblPick){
     if(mode === '3'){
-      lblPick.textContent = 'Hora exacta de inicio de la atención domiciliaria *';
+      lblPick.textContent = 'Hora de inicio de la atención en el domicilio *';
     } else if(mode === '4'){
       lblPick.textContent = (selectedEventSubMode === 'con_traslado')
         ? 'Hora exacta de recogida en domicilio para iniciar viaje al evento *'
         : 'Hora exacta de llegada de la TENS al centro de eventos / salón *';
     } else {
-      lblPick.textContent = 'Hora exacta de recogida requerida (dentro del turno de Paso 1) *';
+      lblPick.textContent = 'Hora de inicio de la atención *';
     }
   }
 
@@ -3258,7 +3271,7 @@ function updateSlots(keepCurrentTime = false){
   // Si el usuario tiene seleccionado Turno Tarde o Noche, la opción 5 queda disabled.
   // La advertencia SOLO se muestra si el usuario tiene seleccionada la modalidad 5.
   const curSvc = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  const optInter = $('#b_svc_type') ? $('#b_svc_type').querySelector('option[value="5"]') : null;
+  const optInter = ($('#b_svc_type') && typeof $('#b_svc_type').querySelector === 'function') ? $('#b_svc_type').querySelector('option[value="5"]') : null;
   const warnInter = $('#interregionalBlockWarn');
 
   if(selectedBlock && selectedBlock !== 'manana'){
@@ -3689,31 +3702,85 @@ function calcSuggestedPickup(){
   if(selectedBlock && selectedBlock !== targetBlock && !isInter){
     const activeBlockHuman = blockNames[selectedBlock] || selectedBlock;
     mismatchWarning = `<div style="margin-top:8px;padding:8px 12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;color:#92400e;font-size:.85rem;line-height:1.5">
-      ⚠️ <b>Aviso de compatibilidad:</b> La hora sugerida corresponde al <b>${blockHuman}</b>, pero actualmente tienes seleccionado el <b>${activeBlockHuman}</b> en el Paso 1. Si deseas aplicar este horario, deberás cambiar primero tu turno arriba.
+      ⚠️ <b>Aviso de compatibilidad:</b> La hora sugerida (${targetSlotStr} hrs) corresponde al <b>${blockHuman}</b>, pero actualmente tienes seleccionado el <b>${activeBlockHuman}</b> en el Paso 1. Para fijar esta hora de recogida, deberás cambiar primero tu turno arriba.
     </div>`;
+    const timeSel = $('#b_time');
+    if(timeSel) timeSel.value = '';
+    msg.innerHTML = `
+      Para llegar con tiempo suficiente a tu compromiso de las <b>${appTimeStr} hrs</b>, la hora oficial de salida calculada es a las <b>${targetSlotStr} hrs</b> (${blockHuman}).<br>
+      <div style="margin-top:8px;padding:8px 12px;background:var(--card);border-radius:8px;border:1px solid var(--line);font-size:.84rem;line-height:1.55">
+        <b>Desglose matemático del cálculo preventivo:</b><br>
+        • <b>${routeMin} min</b> de traslado calculado en mapa vehicular.<br>
+        • <b>+ 15 min</b> de abordaje y valoración inicial por TENS.<br>
+        • <b>+ 20 min</b> de margen previo para estacionar, mesón o filas.<br>
+        → <b>Cálculo exacto de salida:</b> ${appTimeStr} hrs − ${totalAnticipacionExacta} min = <b>${horaExactaSalidaStr} hrs</b>.<br>
+        ${ajusteAgendaTexto}
+      </div>
+      ${mismatchWarning}
+    `;
+    if(btn) btn.style.display = 'none';
+    callout.style.display = 'block';
+    return;
   } else if(!selectedBlock && !isInter){
     mismatchWarning = `<div style="margin-top:8px;padding:8px 12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;color:#92400e;font-size:.85rem;line-height:1.5">
-      ℹ️ <b>Paso 1 pendiente:</b> Recuerda seleccionar el <b>${blockHuman}</b> en el Paso 1 para poder aplicar esta hora calculada.
+      ℹ️ <b>Paso 1 pendiente:</b> Recuerda seleccionar el <b>${blockHuman}</b> en el Paso 1 para poder fijar automáticamente esta hora calculada.
     </div>`;
+    const timeSel = $('#b_time');
+    if(timeSel) timeSel.value = '';
+    msg.innerHTML = `
+      Para llegar con tiempo suficiente a tu compromiso de las <b>${appTimeStr} hrs</b>, la hora oficial de salida calculada es a las <b>${targetSlotStr} hrs</b> (${blockHuman}).<br>
+      <div style="margin-top:8px;padding:8px 12px;background:var(--card);border-radius:8px;border:1px solid var(--line);font-size:.84rem;line-height:1.55">
+        <b>Desglose matemático del cálculo preventivo:</b><br>
+        • <b>${routeMin} min</b> de traslado calculado en mapa vehicular.<br>
+        • <b>+ 15 min</b> de abordaje y valoración inicial por TENS.<br>
+        • <b>+ 20 min</b> de margen previo para estacionar, mesón o filas.<br>
+        → <b>Cálculo exacto de salida:</b> ${appTimeStr} hrs − ${totalAnticipacionExacta} min = <b>${horaExactaSalidaStr} hrs</b>.<br>
+        ${ajusteAgendaTexto}
+      </div>
+      ${mismatchWarning}
+    `;
+    if(btn) btn.style.display = 'none';
+    callout.style.display = 'block';
+    return;
+  }
+
+  // Si el turno coincide o es interregional: fijar automáticamente la hora oficial de recogida
+  const timeSel = $('#b_time');
+  if(timeSel){
+    if(timeSel.options && typeof timeSel.options[Symbol.iterator] === 'function'){
+      if(![...timeSel.options].some(o => o.value === targetSlotStr)){
+        const opt = document.createElement('option');
+        opt.value = targetSlotStr;
+        opt.text = `${targetSlotStr} hrs`;
+        timeSel.appendChild(opt);
+      }
+    }
+    timeSel.value = targetSlotStr;
+    onPickupTimeChange();
   }
 
   msg.innerHTML = `
-    Para llegar con tiempo suficiente a tu compromiso de las <b>${appTimeStr} hrs</b>, te sugerimos fijar tu recogida a las <b>${targetSlotStr} hrs</b> (${blockHuman}).<br>
-    <div style="margin-top:8px;padding:8px 12px;background:var(--card);border-radius:8px;border:1px solid var(--line);font-size:.84rem;line-height:1.55">
-      <b>Desglose matemático del cálculo:</b><br>
-      • <b>${routeMin} min</b> de traslado calculado en mapa vehicular.<br>
+    <div style="display:flex;align-items:center;gap:8px;font-size:1.02rem;font-weight:800;color:#12783E;margin-bottom:6px">
+      <span style="font-size:1.25rem">✅</span> Hora Oficial de Recogida Fijada: <span style="font-size:1.2rem;text-decoration:underline">${targetSlotStr} hrs</span>
+      <span style="font-size:.74rem;background:#168F4A;color:#fff;padding:2px 8px;border-radius:999px;font-weight:700">Fijada</span>
+    </div>
+    <div style="font-size:.85rem;color:var(--ink);line-height:1.45">
+      Para asegurar su llegada puntual a su cita o compromiso de las <b>${appTimeStr} hrs</b> en destino, su hora oficial de recogida queda fijada a las <b>${targetSlotStr} hrs</b> (${blockHuman}).<br>
+      <span style="color:var(--mute);font-size:.8rem;display:block;margin-top:4px">
+        🔒 <i>Horario fijado por protocolo clínico preventivo (${routeMin} min ruta vehicular + 15 min abordaje TENS + 20 min margen previo para admisión o estacionamiento). No modificable manualmente para proteger su puntualidad médica.</i>
+      </span>
+    </div>
+    <div style="margin-top:8px;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--line);font-size:.81rem;line-height:1.45">
+      <b>Desglose del cálculo preventivo:</b><br>
+      • <b>${routeMin} min</b> de traslado en ruta vehicular.<br>
       • <b>+ 15 min</b> de abordaje y valoración inicial por TENS.<br>
-      • <b>+ 20 min</b> de margen previo para estacionar, mesón o filas.<br>
+      • <b>+ 20 min</b> de margen previo para estacionar o admisión.<br>
       → <b>Cálculo exacto de salida:</b> ${appTimeStr} hrs − ${totalAnticipacionExacta} min = <b>${horaExactaSalidaStr} hrs</b>.<br>
       ${ajusteAgendaTexto}
     </div>
-    ${mismatchWarning}
   `;
 
-  if(btn){
-    btn.style.display = 'inline-block';
-    btn.textContent = `✅ Aplicar esta hora (${targetSlotStr} hrs en ${blockHuman})`;
-  }
+  if(btn) btn.style.display = 'none';
   callout.style.display = 'block';
 }
 
@@ -3907,7 +3974,12 @@ async function submitBooking(ev){
       if(!selectedBlock && !isInter){
         submitAlert.innerHTML = `<span>⚠️ <b>Turno requerido en Paso 1:</b> Por favor seleccione un turno (Mañana, Tarde o Noche) en la agenda antes de continuar.</span>`;
       } else if(!timeStr){
-        submitAlert.innerHTML = `<span>⚠️ <b>Hora requerida en Paso 2:</b> Por favor seleccione la hora exacta de recogida requerida antes de continuar.</span>`;
+        const isTransfer = (mode === '1' || mode === '2' || mode === '5');
+        if(isTransfer){
+          submitAlert.innerHTML = `<span>⚠️ <b>Hora oficial de recogida requerida en Paso 2:</b> Por favor ingrese la hora de su cita médica en destino y presione <b>"Calcular Hora de Salida Sugerida"</b> para fijar automáticamente la hora de recogida de su reserva.</span>`;
+        } else {
+          submitAlert.innerHTML = `<span>⚠️ <b>Hora requerida en Paso 2:</b> Por favor seleccione la hora de inicio de la atención en el domicilio antes de continuar.</span>`;
+        }
       } else if(exceedsShift){
         const shiftName = selectedBlock === 'manana' ? 'Turno Mañana (cierre 12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (cierre 20:00 hrs)' : 'Turno Noche (cierre 04:00 hrs)');
         submitAlert.innerHTML = `<span>⚠️ <b>Tope horario de turno excedido:</b> El servicio finaliza a las <b>${fm(endMin % 1440)} hrs</b>, superando la hora de cierre del ${shiftName}. Por favor seleccione una hora de recogida más temprana o reduzca la duración.</span>`;
