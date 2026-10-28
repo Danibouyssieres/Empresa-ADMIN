@@ -16,7 +16,12 @@ assert(!htmlContent.includes('Desglose del cálculo preventivo:'), 'Debe haber e
 assert(!htmlContent.includes('Ajuste preventivo a bloque de agenda'), 'Debe haber eliminado las explicaciones repetidas de redondeo de agenda');
 assert(!htmlContent.includes('id="maxDurationNotice"'), 'maxDurationNotice debe estar completamente eliminado');
 assert(!htmlContent.includes('Garantía de acompañamiento y espera'), 'Texto de garantía de espera debe estar eliminado');
-console.log('   ✅ PASS: Redundancias y tarjeta de garantía de espera eliminadas del Asistente.');
+assert(!htmlContent.includes('Cálculo del Servicio Completo:'), 'Nota de bombilla eliminada de columna derecha');
+assert(!htmlContent.includes('id="lblTimeSummaryDesc"'), 'lblTimeSummaryDesc eliminado de HTML');
+assert(!htmlContent.includes('id="lblTimeSummaryVal"'), 'lblTimeSummaryVal eliminado de HTML');
+assert(!htmlContent.includes('id="lblEstimatedWindow"'), 'lblEstimatedWindow eliminado de HTML');
+assert(!htmlContent.includes('Término estimado:</b>'), 'Línea secundaria de reloj con término estimado eliminada');
+console.log('   ✅ PASS: Redundancias, tarjeta de garantía, nota de bombilla y línea de reloj eliminadas.');
 
 // Preparar ambiente mock para VM
 const scriptMatches = htmlContent.match(/<script>([\s\S]*?)<\/script>/gi);

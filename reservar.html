@@ -497,15 +497,15 @@ footer a{color:#fff}
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:stretch">
           
           <!-- COLUMNA IZQUIERDA: ASISTENTE DE HORA DE RECOGIDA SUGERIDA (O SELECTOR DOMICILIARIO) -->
-          <div style="display:flex;flex-direction:column;justify-content:space-between">
+          <div style="padding:18px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
             <div>
               <!-- MECANISMO DEFINITIVO PARA TRASLADOS (MODALIDADES 1, 2 Y 5): ASISTENTE DE HORA DE RECOGIDA -->
-              <div class="asistente-box" id="asistenteBox" style="padding:18px;border-radius:12px;background:var(--mist);border:1px solid var(--line);box-sizing:border-box">
+              <div class="asistente-box" id="asistenteBox">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
                   <span style="font-weight:700;color:var(--teal);font-size:.95rem;display:flex;align-items:center;gap:6px">
                     ⏱️ Asistente de Hora de Recogida Sugerida
                   </span>
-                  <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo clínico</span>
+                  <span style="font-size:.76rem;background:var(--mist);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo clínico</span>
                 </div>
                 
                 <div style="margin-bottom:10px">
@@ -516,33 +516,32 @@ footer a{color:#fff}
                     Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.
                   </p>
                   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <select id="appTimeInput" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--card)"></select>
+                    <select id="appTimeInput" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
                     <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
                       🧭 Calcular Hora de Salida Sugerida
                     </button>
                   </div>
                 </div>
 
-                <!-- TARJETA COMPACTA DE RESULTADO FIJADO (SIN MENÚ MANUAL DUPLICADO) -->
+                <!-- TARJETA COMPACTA DE RESULTADO FIJADO -->
                 <div id="suggestedPickupCallout" style="display:none;margin-top:12px">
                   <div id="suggestedPickupMsg"></div>
                 </div>
               </div>
 
               <!-- MECANISMO PARA CUIDADOS A DOMICILIO (MODALIDAD 3 Y EVENTOS 4 SIN TRASLADO): SELECTOR SIMPLE -->
-              <div id="homeTimeWrap" style="display:none;padding:18px;border-radius:12px;background:var(--mist);border:1px solid var(--line);box-sizing:border-box">
+              <div id="homeTimeWrap" style="display:none">
                 <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700;display:block;margin-bottom:6px">
                   Hora de inicio de la atención en el domicilio *
                 </label>
-                <select id="b_time" onchange="onPickupTimeChange()" disabled style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--card);border:1.5px solid var(--line);border-radius:10px">
+                <select id="b_time" onchange="onPickupTimeChange()" disabled style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px">
                   <option value="">Primero seleccione un turno arriba</option>
                 </select>
               </div>
             </div>
 
-            <div id="lblEstimatedWindow" style="font-size:.83rem;color:var(--mute);margin-top:6px"></div>
-            <div id="nightRuleNotice" class="rule-alert"></div>
-            <div id="availStatus" class="status-box ok" style="margin-top:10px"></div>
+            <div id="nightRuleNotice" class="rule-alert" style="display:none"></div>
+            <div id="availStatus" class="status-box ok" style="display:none;margin-top:10px"></div>
           </div>
 
           <!-- COLUMNA DERECHA: PERMANENCIA EN DESTINO Y DURACIÓN DEL SERVICIO -->
@@ -590,9 +589,6 @@ footer a{color:#fff}
                   <option value="210">3 horas 30 min (Atención médica de alta complejidad / Trámites múltiples)</option>
                   <option value="240">4 horas (Procedimiento clínico quirúrgico ambulatorio extenso)</option>
                 </select>
-                <p style="font-size:.8rem;color:var(--mute);margin:8px 0 0;line-height:1.4">
-                  💡 <b>Cálculo del Servicio Completo:</b> El sistema suma este tiempo en destino con los minutos de traslado de ida (+ 10 min de abordaje inicial TENS) y el viaje de retorno al hogar.
-                </p>
               </div>
 
               <!-- COMBOBOX DE HORAS Y MINUTOS HABILITADO PARA MODALIDAD 3, 4 Y 5 -->
@@ -631,12 +627,6 @@ footer a{color:#fff}
                   </select>
                 </div>
               </div>
-            </div>
-
-            <!-- RESUMEN DEL VALOR DEL TIEMPO SELECCIONADO -->
-            <div style="margin-top:14px;padding:10px 14px;background:var(--mist);border:1px solid var(--line);border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
-              <span id="lblTimeSummaryDesc" style="font-size:.88rem">Valor según selección (1 h · Jornada Hábil):</span>
-              <strong id="lblTimeSummaryVal" style="font-size:1.1rem;color:var(--teal)">$12.000</strong>
             </div>
           </div>
 
@@ -1907,15 +1897,17 @@ function recalcAll(){
   }
 
   lastTimeCost = timeCost;
-  if(mode === '5'){
-    $('#lblTimeSummaryDesc').textContent = lastInterBreakdown;
-  } else if(mode === '4'){
-    $('#lblTimeSummaryDesc').textContent = `Valor cerrado (${durationText} · Tarifa Plana RM):`;
-  } else {
-    const jShort = currentJornada === 'habil' ? 'Hábil (Lun a Vie · 06:00 a 20:00)' : currentJornada === 'tarde' ? 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)' : 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
-    $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · ${jShort}):`;
+  if($('#lblTimeSummaryDesc')){
+    if(mode === '5'){
+      $('#lblTimeSummaryDesc').textContent = lastInterBreakdown;
+    } else if(mode === '4'){
+      $('#lblTimeSummaryDesc').textContent = `Valor cerrado (${durationText} · Tarifa Plana RM):`;
+    } else {
+      const jShort = currentJornada === 'habil' ? 'Hábil (Lun a Vie · 06:00 a 20:00)' : currentJornada === 'tarde' ? 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)' : 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
+      $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · ${jShort}):`;
+    }
   }
-  $('#lblTimeSummaryVal').textContent = $c(timeCost);
+  if($('#lblTimeSummaryVal')) $('#lblTimeSummaryVal').textContent = $c(timeCost);
 
   const isKmService = (mode === '1' || mode === '2');
   const kmCost = isKmService ? lastKmCost : 0;
@@ -3522,7 +3514,7 @@ function updateSlots(keepCurrentTime = false){
       ? 'Jornada Completa Interregional (Bloquea Mañana + Tarde)'
       : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:00 a 20:00 hrs)'));
 
-    estWindow.innerHTML = `🕒 <b>${selectedBlock === 'noche' ? 'Inicio' : 'Recogida'}:</b> ${curTime} hrs → <b>Término estimado:</b> ${fm(endMin % 1440)} hrs (${dur} min estimados · ${blockLabel}).`;
+    if(estWindow) estWindow.textContent = '';
 
     if(selectedBlock === 'noche' || endsAfter22){
       nightNotice.style.display = 'block';
