@@ -1776,12 +1776,11 @@ function onStayDestinoChange(){
     selStay.style.boxShadow = '';
   }
   applyMaxDurationRule();
+  recalcAll();
+  updateSlots(true);
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
   if((mode === '1' || mode === '2') && lastRouteIdaMin > 0){
     calcSuggestedPickup();
-  } else {
-    recalcAll();
-    updateSlots(true);
   }
 }
 
@@ -1991,8 +1990,6 @@ function recalcAll(){
 
   if(isKmService){
     // Modalidad 1 o 2 (cobro de KM + Tiempo)
-    if($('#sumKmTimeSection')) $('#sumKmTimeSection').style.display = 'block';
-    if($('#directTimeOnlySection')) $('#directTimeOnlySection').style.display = 'none';
     const titleLabel = mode === '1'
       ? '💰 Suma Total del Servicio (KM + Tiempo de Asistencia)'
       : '💰 Suma Total del Servicio (KM + Tiempo de Espera)';
@@ -2030,8 +2027,6 @@ function recalcAll(){
     $('#sumSaldoFinal').textContent = $c(saldo50);
   } else {
     // Modalidad 3 (Cuidados a Domicilio), Modalidad 4 (Eventos Sociales) o Modalidad 5 (Programas Interregionales)
-    if($('#sumKmTimeSection')) $('#sumKmTimeSection').style.display = 'none';
-    if($('#directTimeOnlySection')) $('#directTimeOnlySection').style.display = 'block';
     $('#dirSvcName').textContent = SVC_NAMES[mode];
     if(mode === '5'){
       $('#dirSvcName').textContent = SVC_NAMES[mode];
@@ -3739,113 +3734,95 @@ function calcSuggestedPickup(){
   if(targetSlotMin < 0) targetSlotMin += 1440;
 
   const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
-  const isRoundTrip = tripMultiplier === 2;
-  const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
-  const retornoMin = isRoundTrip ? routeMin : 0;
+  const durMins = getSelectedTotalMinutes();
 
-  // 1. Cálculo de la Hora Estimada de Término del circuito completo:
-  // Hora Término = Hora Recogida + Tiempo Traslado Ida + Permanencia en Destino + Tiempo Traslado Retorno
-  const endServiceMin = targetSlotMin + routeMin + stayMin + retornoMin;
+  let targetBlock = 'manana';
 
-  function renderScheduleErrorCard(detailText, waText, reasonTitle){
+  // 1. REGLA ESPECIAL MEDIODÍA (12:00 a 14:00 hrs) Y REGLAS DE CIERRE DE TURNO
+  if(!isInter && targetSlotMin >= 720 && targetSlotMin < 840){
+    // Salida calculada cae exactamente dentro de la ventana de mediodía (12:00 a 14:00 hrs)
     const timeSel = $('#b_time');
     if(timeSel) timeSel.value = '';
     if(subBtn) subBtn.disabled = true;
 
-    // b) OCULTA completamente el bloque de "Cronograma Estimado del Servicio Completo"
-    const tlBox = $('#serviceTimelineBox');
-    if(tlBox) tlBox.style.display = 'none';
-
-    // c) OCULTA la tarjeta de "Suma Total del Servicio" (no mostrar valores ni abonos)
-    const sumKmBox = $('#sumKmTimeSection');
-    if(sumKmBox) sumKmBox.style.display = 'none';
-    const dirBox = $('#directTimeOnlySection');
-    if(dirBox) dirBox.style.display = 'none';
-
-    // a) Muestra la tarjeta de alerta con ESTILO ROJO (background: #FEF2F2, border: 1.5px solid #EF4444)
     msg.innerHTML = `
-      <div style="padding:16px 18px;background:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:#991b1b;line-height:1.5">
-        <div style="font-weight:800;color:#DC2626;font-size:1.02rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
-          <span>⚠️</span> ${reasonTitle || 'Horario no disponible en agenda estándar'}
+      <div style="padding:14px 16px;background-color:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:var(--ink);line-height:1.5">
+        <div style="font-weight:800;color:#B91C1C;font-size:1rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+          <span>⏰</span> Horario Especial de Mediodía Requerido
         </div>
-        <div style="font-size:.88rem;margin-bottom:8px">
-          ${detailText}
+        <div style="font-size:.87rem;margin-bottom:8px">
+          La hora de salida calculada para su cita de las <b>${appTimeStr} hrs</b> es a las <b>${fm(targetSlotMin)} hrs</b>, la cual se encuentra en la ventana de mediodía (12:00 a 14:00 hrs) fuera de los bloques estándar de la agenda.
         </div>
-        <div style="font-size:.83rem;color:#7f1d1d;margin-bottom:12px">
-          Por favor seleccione otro horario, reduzca la permanencia en destino o consulte directamente por WhatsApp para coordinar una factibilidad excepcional fuera de los bloques estándar.
+        <div style="font-size:.83rem;color:var(--mute);margin-bottom:12px">
+          Contáctenos directamente por WhatsApp para evaluar factibilidad operativa y coordinar una atención personalizada fuera de los bloques estándar.
         </div>
-        <a href="https://wa.me/56929990095?text=${encodeURIComponent(waText || 'Hola, necesito consultar por factibilidad excepcional para mi servicio.')}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:10px 18px;border-radius:8px;font-size:.85rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25)">
-          💬 Consultar Factibilidad Excepcional por WhatsApp
+        <a href="https://wa.me/56929990095?text=Hola%2C%20necesito%20consultar%20por%20factibilidad%20de%20un%20traslado%20en%20horario%20de%20mediod%C3%ADa%20(salida%20${encodeURIComponent(fm(targetSlotMin))}%20hrs)." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 18px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25)">
+          💬 Coordinar por WhatsApp (+56 9 2999 0095)
         </a>
       </div>
     `;
     callout.style.display = 'block';
+    return;
   }
-
-  let targetBlock = 'manana';
 
   if(isInter){
     targetBlock = 'manana';
     if(targetSlotMin < 300) targetSlotMin = 300; // Mínimo 05:00 AM (300 min)
     if(targetSlotMin > 540) targetSlotMin = 540; // Máximo 09:00 AM (540 min)
-  } else {
-    // 2. REGLAS DE VALIDACIÓN DE TURNOS Y ZONAS PROHIBIDAS (BUFFERS)
+  } else if(targetSlotMin < 720){ // Mañana (06:00 a 12:00 hrs)
+    targetBlock = 'manana';
+    if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00 AM (360 min)
 
-    // A) Recogida antes de las 06:00 hrs
-    if(targetSlotMin < 360){
-      renderScheduleErrorCard(
-        `Con la cita médica programada a las <b>${appTimeStr} hrs</b>, la hora de recogida requerida es a las <b>${fm(targetSlotMin)} hrs</b>, antes del inicio oficial del Turno Mañana (06:00 hrs).`,
-        `Hola, necesito consultar por factibilidad excepcional para una recogida anticipada a las ${fm(targetSlotMin)} hrs.`
-      );
+    // Validación dura de tope de turno mañana: [Hora de recogida] + [Duración] <= 12:00 (720 min)
+    const endServiceMin = targetSlotMin + durMins;
+    if(endServiceMin > 720){
+      const timeSel = $('#b_time');
+      if(timeSel) timeSel.value = '';
+      if(subBtn) subBtn.disabled = true;
+
+      msg.innerHTML = `
+        <div style="padding:14px 16px;background-color:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:var(--ink);line-height:1.5">
+          <div style="font-weight:800;color:#B91C1C;font-size:1rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+            <span>⏰</span> Horario Especial de Mediodía Requerido
+          </div>
+          <div style="font-size:.87rem;margin-bottom:8px">
+            Con la hora de salida requerida (<b>${fm(targetSlotMin)} hrs</b>) y la duración de servicio seleccionada (<b>${fmtHoursClean(durMins)}</b>), la atención terminaría a las <b>${fm(endServiceMin)} hrs</b>, invadiendo la ventana de mediodía (12:00 a 14:00 hrs) fuera del Turno Mañana.
+          </div>
+          <div style="font-size:.83rem;color:var(--mute);margin-bottom:12px">
+            Por favor contáctenos directamente por WhatsApp para evaluar factibilidad operativa y coordinar una atención personalizada fuera de los bloques estándar.
+          </div>
+          <a href="https://wa.me/56929990095?text=Hola%2C%20necesito%20coordinar%20un%20traslado%20que%20abarca%20horario%20de%20mediod%C3%ADa%20(terminando%20a%20las%20${encodeURIComponent(fm(endServiceMin))}%20hrs)." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 18px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25)">
+            💬 Coordinar por WhatsApp (+56 9 2999 0095)
+          </a>
+        </div>
+      `;
+      callout.style.display = 'block';
       return;
     }
+  } else { // Tarde (14:00 a 20:00 hrs)
+    targetBlock = 'tarde';
+    if(targetSlotMin < 840) targetSlotMin = 840; // Mínimo 14:00 (840 min)
 
-    // B) Recogida cae en zona de mediodía / buffer (12:00 a 13:59 hrs)
-    if(targetSlotMin >= 720 && targetSlotMin < 840){
-      renderScheduleErrorCard(
-        `La hora de recogida calculada para su cita de las <b>${appTimeStr} hrs</b> es a las <b>${fm(targetSlotMin)} hrs</b>, la cual cae en la ventana de cambio de turno/descanso de mediodía (12:00 a 13:59 hrs) fuera de los bloques de agenda estándar. (Horario Especial de Mediodía Requerido)`,
-        `Hola, necesito consultar por factibilidad de un traslado en horario de mediodía (salida ${fm(targetSlotMin)} hrs).`
-      );
+    // Validación dura de tope de turno tarde: [Hora de recogida] + [Duración] <= 20:00 (1200 min)
+    const endServiceMin = targetSlotMin + durMins;
+    if(endServiceMin > 1200){
+      const timeSel = $('#b_time');
+      if(timeSel) timeSel.value = '';
+      if(subBtn) subBtn.disabled = true;
+
+      msg.innerHTML = `
+        <div style="padding:14px 16px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:10px;color:#991b1b;line-height:1.5">
+          <div style="font-weight:800;font-size:1rem;margin-bottom:4px">⛔ Límite del Turno Tarde Excedido</div>
+          <div style="font-size:.87rem">
+            Con la hora calculada de salida (<b>${fm(targetSlotMin)} hrs</b>) y la duración de servicio seleccionada (<b>${fmtHoursClean(durMins)}</b>), la atención finalizaría a las <b>${fm(endServiceMin)} hrs</b>, sobrepasando el cierre operativo del Turno Tarde (20:00 hrs).
+          </div>
+          <div style="font-size:.82rem;margin-top:6px;color:#7f1d1d">
+            Por favor seleccione una duración menor, adelante la hora de su compromiso médico o consulte por WhatsApp para una evaluación especial.
+          </div>
+        </div>
+      `;
+      callout.style.display = 'block';
       return;
-    }
-
-    // C) TURNO MAÑANA (06:00 a 12:00 hrs): Recogida entre 06:00 y 11:59 hrs
-    if(targetSlotMin < 720){
-      targetBlock = 'manana';
-
-      // Hora Término no puede superar las 12:00 hrs (720 min)
-      // Buffer bloqueado: Si la Hora de Término cae entre 12:01 y 13:59 hrs (721 a 839 min), es INVÁLIDO
-      if(endServiceMin > 720){
-        renderScheduleErrorCard(
-          `Con la hora de recogida calculada (<b>${fm(targetSlotMin)} hrs</b>) y la duración del circuito, la atención finalizaría a las <b>${fm(endServiceMin)} hrs</b>, invadiendo la ventana de cambio de turno/descanso de mediodía (12:01 a 13:59 hrs) fuera del Turno Mañana. (Horario Especial de Mediodía Requerido)`,
-          `Hola, necesito coordinar un traslado que finalizaría a las ${fm(endServiceMin)} hrs invadiendo horario de mediodía.`
-        );
-        return;
-      }
-    }
-
-    // D) TURNO TARDE (14:00 a 20:00 hrs): Recogida desde las 14:00 hrs
-    else {
-      targetBlock = 'tarde';
-
-      // Recogida a las 20:00 hrs o posterior
-      if(targetSlotMin >= 1200){
-        renderScheduleErrorCard(
-          `La hora de recogida calculada es a las <b>${fm(targetSlotMin)} hrs</b>, fuera del horario operativo del Turno Tarde (14:00 a 20:00 hrs).`,
-          `Hola, necesito consultar por factibilidad excepcional para una recogida a las ${fm(targetSlotMin)} hrs.`
-        );
-        return;
-      }
-
-      // Hora Término no puede superar las 20:00 hrs (1200 min)
-      // Buffer bloqueado: Si la Hora de Término cae entre 20:01 y 21:59 hrs (1201 a 1319 min), es INVÁLIDO
-      if(endServiceMin > 1200){
-        renderScheduleErrorCard(
-          `Con la hora de recogida calculada (<b>${fm(targetSlotMin)} hrs</b>) y la duración del circuito, la atención finalizaría a las <b>${fm(endServiceMin)} hrs</b>, invadiendo la ventana de cambio de turno/descanso nocturno (20:01 a 21:59 hrs) sobrepasando el cierre operativo del Turno Tarde (20:00 hrs).`,
-          `Hola, necesito coordinar un traslado que finalizaría a las ${fm(endServiceMin)} hrs excediendo el Turno Tarde.`
-        );
-        return;
-      }
     }
   }
 
@@ -3853,7 +3830,7 @@ function calcSuggestedPickup(){
   currentSuggestedHour = targetSlotStr;
   currentSuggestedBlock = targetBlock;
 
-  // 3. VERIFICACIÓN DE DISPONIBILIDAD Y CUPOS DEL TURNO PARA LA FECHA SELECCIONADA
+  // 2. VERIFICACIÓN DE DISPONIBILIDAD Y CUPOS DEL TURNO PARA LA FECHA SELECCIONADA
   const dateStr = $('#b_date') ? $('#b_date').value : '';
   const ev = evaluateDateCapacity(dateStr);
   const targetCap = isInter ? ev.interregional : (targetBlock === 'manana' ? ev.manana : ev.tarde);
@@ -3861,11 +3838,24 @@ function calcSuggestedPickup(){
   if(!targetCap.available){
     selectedBlock = targetBlock;
     updateSlots(true);
-    renderScheduleErrorCard(
-      `El cupo para el turno <b>${targetBlock === 'manana' ? 'Mañana' : 'Tarde'}</b> de este día ya se encuentra reservado. Por favor seleccione otra fecha o consulte por WhatsApp.`,
-      `Hola, el cupo para el turno ${targetBlock === 'manana' ? 'Mañana' : 'Tarde'} del día ${formatHumanDate(dateStr)} ya se encuentra reservado, deseo consultar por disponibilidad excepcional.`,
-      '⛔ Turno No Disponible'
-    );
+    const timeSel = $('#b_time');
+    if(timeSel) timeSel.value = '';
+    if(subBtn) subBtn.disabled = true;
+
+    msg.innerHTML = `
+      <div style="padding:14px 16px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:10px;color:#991b1b;line-height:1.5">
+        <div style="font-weight:800;font-size:1rem;margin-bottom:4px">⛔ Turno No Disponible</div>
+        <div style="font-size:.88rem">
+          El cupo para el turno <b>${targetBlock === 'manana' ? 'Mañana' : 'Tarde'}</b> de este día ya se encuentra reservado. Por favor seleccione otra fecha o consulte por WhatsApp.
+        </div>
+        <div style="margin-top:10px">
+          <a href="https://wa.me/56929990095?text=Hola%2C%20el%20cupo%20para%20el%20turno%20${targetBlock === 'manana' ? 'Ma%C3%B1ana' : 'Tarde'}%20del%20d%C3%ADa%20${encodeURIComponent(formatHumanDate(dateStr))}%20ya%20se%20encuentra%20reservado%2C%20deseo%20consultar%20por%20disponibilidad." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:8px 16px;border-radius:8px;font-size:.82rem;font-weight:700;text-decoration:none">
+            💬 Consultar por WhatsApp (+56 9 2999 0095)
+          </a>
+        </div>
+      </div>
+    `;
+    callout.style.display = 'block';
     return;
   }
 
