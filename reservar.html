@@ -501,20 +501,20 @@ footer a{color:#fff}
             <div>
               <!-- MECANISMO DEFINITIVO PARA TRASLADOS (MODALIDADES 1, 2 Y 5): ASISTENTE DE HORA DE RECOGIDA -->
               <div class="asistente-box" id="asistenteBox" style="padding:18px;border-radius:12px;background:var(--mist);border:1px solid var(--line);box-sizing:border-box">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
                   <span style="font-weight:700;color:var(--teal);font-size:.95rem;display:flex;align-items:center;gap:6px">
                     ⏱️ Asistente de Hora de Recogida Sugerida
                   </span>
-                  <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo de salida clínico</span>
+                  <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo clínico</span>
                 </div>
-                <p style="font-size:.84rem;color:var(--mute);margin:0 0 12px;line-height:1.45">
-                  ¿Tienes una cita médica o compromiso programado? Ingresa la hora fijada en destino y calculamos automáticamente tu hora oficial de recogida considerando el tiempo de ruta vehicular, 10 min de abordaje y valoración inicial por TENS y 20 min de margen previo para estacionar o admisión.
-                </p>
                 
-                <div style="margin-bottom:12px">
-                  <label for="appTimeInput" style="font-size:.84rem;font-weight:700;color:var(--ink);margin-bottom:6px;display:block">
-                    ¿A qué hora está programada tu cita médica o compromiso en destino?
+                <div style="margin-bottom:10px">
+                  <label for="appTimeInput" style="font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:3px;display:block">
+                    ¿A qué hora está programada su cita médica o compromiso? *
                   </label>
+                  <p style="font-size:.81rem;color:var(--mute);margin:0 0 10px;line-height:1.4">
+                    Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.
+                  </p>
                   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                     <select id="appTimeInput" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--card)"></select>
                     <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
@@ -523,14 +523,9 @@ footer a{color:#fff}
                   </div>
                 </div>
 
-                <!-- CONFIRMACIÓN DE HORA OFICIAL FIJADA (SIN MENÚ MANUAL ADICIONAL) -->
-                <div id="suggestedPickupCallout" class="callout-box" style="display:none;margin-top:12px;margin-bottom:0;background:rgba(22,143,74,.08);border-left:4px solid var(--wa)">
-                  <div id="suggestedPickupMsg" style="font-size:.88rem;color:var(--ink);line-height:1.5"></div>
-                  <div style="margin-top:8px;display:none">
-                    <button type="button" class="btn sm" id="btnApplySuggestedPickup" onclick="applySuggestedPickup()" style="font-size:.85rem;padding:7px 18px">
-                      ✅ Aplicar esta hora
-                    </button>
-                  </div>
+                <!-- TARJETA COMPACTA DE RESULTADO FIJADO (SIN MENÚ MANUAL DUPLICADO) -->
+                <div id="suggestedPickupCallout" style="display:none;margin-top:12px">
+                  <div id="suggestedPickupMsg"></div>
                 </div>
               </div>
 
@@ -657,21 +652,25 @@ footer a{color:#fff}
           <span>⏱️ Cronograma Estimado del Servicio Completo</span>
           <span style="font-size:.78rem;background:rgba(22,143,74,.12);color:#12783E;padding:3px 10px;border-radius:999px;font-weight:700">Ida + Espera en Destino + Retorno</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:12px;font-size:.88rem">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px;font-size:.88rem">
           <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
             <small style="color:var(--mute);display:block;margin-bottom:2px">Hora de recogida programada:</small>
             <b id="tlHoraRecogida" style="color:var(--teal);font-size:1.1rem">08:30 hrs</b>
+          </div>
+          <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
+            <small style="color:var(--mute);display:block;margin-bottom:2px">Llegada estimada al recinto:</small>
+            <b id="tlHoraLlegadaDestino" style="color:var(--teal);font-size:1.1rem">09:10 hrs</b>
           </div>
           <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
             <small style="color:var(--mute);display:block;margin-bottom:2px">Permanencia estimada en destino:</small>
             <b id="tlTiempoDestino" style="color:var(--ink);font-size:1.1rem">1 hora</b>
           </div>
           <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-            <small style="color:var(--mute);display:block;margin-bottom:2px">Hora estimada de retorno al hogar:</small>
+            <small id="tlHoraRetornoLabel" style="color:var(--mute);display:block;margin-bottom:2px">Hora estimada de retorno al hogar:</small>
             <b id="tlHoraRetorno" style="color:#168F4A;font-size:1.1rem">10:40 hrs</b>
           </div>
           <div style="padding:10px 12px;background:rgba(22,143,74,.08);border-radius:8px;border:1px solid var(--wa)">
-            <small style="color:var(--mute);display:block;margin-bottom:2px">Total horas efectivas a liquidar y reservar:</small>
+            <small style="color:var(--mute);display:block;margin-bottom:2px">Total horas efectivas a liquidar:</small>
             <b id="tlHorasEfectivas" style="color:#168F4A;font-size:1.1rem">2 h y 30 min (150 min)</b>
           </div>
         </div>
@@ -1800,11 +1799,15 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   const isRoundTrip = tripMultiplier === 2;
 
   if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
+  if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fm(llegadaDestinoMin % 1440)} hrs`;
   if($('#tlTiempoDestino')) $('#tlTiempoDestino').textContent = fmtHoursClean(stayMin);
+  if($('#tlHoraRetornoLabel')) $('#tlHoraRetornoLabel').textContent = isRoundTrip ? 'Hora estimada de retorno al hogar:' : 'Hora estimada de término en destino:';
   if($('#tlHoraRetorno')) $('#tlHoraRetorno').textContent = `${fm(retornoHogarMin % 1440)} hrs`;
   if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(billedMin)} (${billedMin} min)`;
 
-  const formulaDesc = `Fórmula del servicio: ${idaMin} min viaje ida + ${abordajeMin} min abordaje TENS + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`;
+  const formulaDesc = isRoundTrip
+    ? `Fórmula del servicio: ${idaMin} min viaje ida + ${abordajeMin} min abordaje TENS + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`
+    : `Fórmula del servicio (Solo ida): ${idaMin} min viaje ida + ${abordajeMin} min abordaje TENS + ${stayMin} min en destino = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`;
 
   if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
 }
@@ -2535,9 +2538,33 @@ function getChileHolidayName(dateStr){
 }
 
 const BLOCK_HOURS = {
-  manana: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00'],
-  tarde:  ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'],
-  noche:  ['22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00', '03:30', '04:00']
+  manana: [
+    '06:00', '06:15', '06:30', '06:45',
+    '07:00', '07:15', '07:30', '07:45',
+    '08:00', '08:15', '08:30', '08:45',
+    '09:00', '09:15', '09:30', '09:45',
+    '10:00', '10:15', '10:30', '10:45',
+    '11:00', '11:15', '11:30', '11:45',
+    '12:00'
+  ],
+  tarde: [
+    '14:00', '14:15', '14:30', '14:45',
+    '15:00', '15:15', '15:30', '15:45',
+    '16:00', '16:15', '16:30', '16:45',
+    '17:00', '17:15', '17:30', '17:45',
+    '18:00', '18:15', '18:30', '18:45',
+    '19:00', '19:15', '19:30', '19:45',
+    '20:00'
+  ],
+  noche: [
+    '22:00', '22:15', '22:30', '22:45',
+    '23:00', '23:15', '23:30', '23:45',
+    '00:00', '00:15', '00:30', '00:45',
+    '01:00', '01:15', '01:30', '01:45',
+    '02:00', '02:15', '02:30', '02:45',
+    '03:00', '03:15', '03:30', '03:45',
+    '04:00'
+  ]
 };
 
 function getShiftEndTime(blockId){
@@ -3586,13 +3613,15 @@ let currentSuggestedBlock = 'manana';
 function calcSuggestedPickup(){
   const callout = $('#suggestedPickupCallout');
   const msg = $('#suggestedPickupMsg');
-  const btn = $('#btnApplySuggestedPickup');
   const subBtn = $('#submitBtn');
 
   // 1. Validar que la ruta esté calculada en el mapa
   if(!lastRouteIdaMin || lastRouteIdaMin <= 0){
-    msg.innerHTML = `⚠️ <b>Calcule la ruta primero:</b> Por favor ingrese y busque las direcciones de <b>Inicio (A)</b> y <b>Destino (B)</b> en el mapa superior para obtener los minutos reales de conducción antes de calcular su hora de salida.`;
-    if(btn) btn.style.display = 'none';
+    msg.innerHTML = `
+      <div style="padding:12px 14px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;color:#92400e;font-size:.87rem;line-height:1.45">
+        ⚠️ <b>Calcule la ruta primero:</b> Por favor ingrese y busque las direcciones de <b>Inicio (A)</b> y <b>Destino (B)</b> en el mapa superior para obtener los minutos reales de conducción antes de calcular su hora de salida.
+      </div>
+    `;
     callout.style.display = 'block';
     return;
   }
@@ -3603,22 +3632,24 @@ function calcSuggestedPickup(){
   const routeMin = lastRouteIdaMin;
 
   const margenAbordaje = 10; // 10 min abordaje vehicular y valoración inicial TENS
-  const margenAdmision = 20; // 20 min margen para estacionar, mesón o filas
+  const margenAdmision = 20; // 20 min margen previo para admisión o estacionamiento
   const anticipacionFija = margenAbordaje + margenAdmision; // 30 min
   const totalAnticipacionExacta = routeMin + anticipacionFija;
 
-  // Hora exacta matemática de salida = Hora Compromiso - (tiempoRutaMinutos + 20 min + 10 min)
+  // Fórmula directa: [Hora de Cita] − [Tiempo de Viaje en Mapa + 10 min abordaje + 20 min margen]
   const rawPickupMin = appTimeMin - totalAnticipacionExacta;
-  const horaExactaSalidaStr = fm(rawPickupMin < 0 ? (rawPickupMin + 1440) : rawPickupMin);
+
+  // Ajuste de la salida a intervalos naturales de 15 minutos (hacia atrás para asegurar puntualidad)
+  let targetSlotMin = Math.floor(rawPickupMin / 15) * 15;
+  if(targetSlotMin < 0) targetSlotMin += 1440;
 
   const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
   const durMins = getSelectedTotalMinutes();
 
   let targetBlock = 'manana';
-  let targetSlotMin = 510;
 
   // 1. REGLA ESPECIAL MEDIODÍA (12:00 a 14:00 hrs) Y REGLAS DE CIERRE DE TURNO
-  if(!isInter && rawPickupMin >= 720 && rawPickupMin < 840){
+  if(!isInter && targetSlotMin >= 720 && targetSlotMin < 840){
     // Salida calculada cae exactamente dentro de la ventana de mediodía (12:00 a 14:00 hrs)
     const timeSel = $('#b_time');
     if(timeSel) timeSel.value = '';
@@ -3630,29 +3661,26 @@ function calcSuggestedPickup(){
           <span>⏰</span> Horario Especial de Mediodía Requerido
         </div>
         <div style="font-size:.87rem;margin-bottom:8px">
-          La hora de salida calculada para su cita de las <b>${appTimeStr} hrs</b> es a las <b>${horaExactaSalidaStr} hrs</b>, la cual se encuentra en la ventana de mediodía (12:00 a 14:00 hrs) fuera de los bloques estándar de la agenda.
+          La hora de salida calculada para su cita de las <b>${appTimeStr} hrs</b> es a las <b>${fm(targetSlotMin)} hrs</b>, la cual se encuentra en la ventana de mediodía (12:00 a 14:00 hrs) fuera de los bloques estándar de la agenda.
         </div>
         <div style="font-size:.83rem;color:var(--mute);margin-bottom:12px">
           Contáctenos directamente por WhatsApp para evaluar factibilidad operativa y coordinar una atención personalizada fuera de los bloques estándar.
         </div>
-        <a href="https://wa.me/56929990095?text=Hola%2C%20necesito%20consultar%20por%20factibilidad%20de%20un%20traslado%20en%20horario%20de%20mediod%C3%ADa%20(salida%20${encodeURIComponent(horaExactaSalidaStr)}%20hrs)." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 18px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25)">
+        <a href="https://wa.me/56929990095?text=Hola%2C%20necesito%20consultar%20por%20factibilidad%20de%20un%20traslado%20en%20horario%20de%20mediod%C3%ADa%20(salida%20${encodeURIComponent(fm(targetSlotMin))}%20hrs)." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 18px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25)">
           💬 Coordinar por WhatsApp (+56 9 2999 0095)
         </a>
       </div>
     `;
-    if(btn) btn.style.display = 'none';
     callout.style.display = 'block';
     return;
   }
 
   if(isInter){
     targetBlock = 'manana';
-    targetSlotMin = Math.floor(rawPickupMin / 15) * 15;
     if(targetSlotMin < 300) targetSlotMin = 300; // Mínimo 05:00 AM (300 min)
     if(targetSlotMin > 540) targetSlotMin = 540; // Máximo 09:00 AM (540 min)
-  } else if(rawPickupMin < 720){ // Mañana (06:00 a 12:00 hrs)
+  } else if(targetSlotMin < 720){ // Mañana (06:00 a 12:00 hrs)
     targetBlock = 'manana';
-    targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
     if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00 AM (360 min)
 
     // Validación dura de tope de turno mañana: [Hora de recogida] + [Duración] <= 12:00 (720 min)
@@ -3678,13 +3706,11 @@ function calcSuggestedPickup(){
           </a>
         </div>
       `;
-      if(btn) btn.style.display = 'none';
       callout.style.display = 'block';
       return;
     }
   } else { // Tarde (14:00 a 20:00 hrs)
     targetBlock = 'tarde';
-    targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
     if(targetSlotMin < 840) targetSlotMin = 840; // Mínimo 14:00 (840 min)
 
     // Validación dura de tope de turno tarde: [Hora de recogida] + [Duración] <= 20:00 (1200 min)
@@ -3705,7 +3731,6 @@ function calcSuggestedPickup(){
           </div>
         </div>
       `;
-      if(btn) btn.style.display = 'none';
       callout.style.display = 'block';
       return;
     }
@@ -3740,7 +3765,6 @@ function calcSuggestedPickup(){
         </div>
       </div>
     `;
-    if(btn) btn.style.display = 'none';
     callout.style.display = 'block';
     return;
   }
@@ -3768,20 +3792,8 @@ function calcSuggestedPickup(){
   // Habilitar botón de confirmación
   if(subBtn) subBtn.disabled = false;
 
-  // Holgura entre la hora exacta matemática y el bloque de agenda redondeado
-  const holguraMin = rawPickupMin - targetSlotMin;
-  const totalAnticipacionEfectiva = appTimeMin - targetSlotMin;
-
-  let ajusteAgendaTexto = '';
-  if(holguraMin > 0){
-    ajusteAgendaTexto = `→ <b>Ajuste preventivo a bloque de agenda (${isInter ? 'cada 15 min' : 'cada 30 min'}):</b> Redondeado al bloque de las <b>${targetSlotStr} hrs</b> (+${holguraMin} min de holgura preventiva ante imprevistos de tráfico).<br>
-    <b>Anticipación total con holgura:</b> ${totalAnticipacionEfectiva} minutos (${fmtHoursClean(totalAnticipacionEfectiva)}).`;
-  } else if(holguraMin === 0){
-    ajusteAgendaTexto = `→ <b>Alineación con agenda:</b> Coincide exactamente con el bloque agendable de las <b>${targetSlotStr} hrs</b> (${totalAnticipacionExacta} min de anticipación previa).`;
-  } else {
-    // Cuando se topa con el límite del turno
-    ajusteAgendaTexto = `→ <b>Ajuste por ventana operativa:</b> Fijado en <b>${targetSlotStr} hrs</b> (${isInter ? 'Salida temprana interregional' : (targetBlock === 'manana' ? 'Turno Mañana' : 'Turno Tarde')}, límite de ventana disponible).`;
-  }
+  const llegadaRecintoMin = targetSlotMin + margenAbordaje + routeMin;
+  const minutosAntesDelBox = appTimeMin - llegadaRecintoMin;
 
   const blockNames = {
     manana: isInter ? 'Turno Mañana (Salida Temprana Interregional)' : 'Turno Mañana (06:00 a 12:00 hrs)',
@@ -3790,28 +3802,21 @@ function calcSuggestedPickup(){
   };
   const blockHuman = blockNames[targetBlock] || targetBlock;
 
+  // Formato visual simple, limpio y sin redundancias según especificación
   msg.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;font-size:1.02rem;font-weight:800;color:#12783E;margin-bottom:6px">
-      <span style="font-size:1.25rem">✅</span> Hora Oficial de Recogida Fijada: <span style="font-size:1.2rem;text-decoration:underline">${targetSlotStr} hrs</span>
-      <span style="font-size:.74rem;background:#168F4A;color:#fff;padding:2px 8px;border-radius:999px;font-weight:700">Fijada</span>
-    </div>
-    <div style="font-size:.85rem;color:var(--ink);line-height:1.45">
-      Para asegurar su llegada puntual a su cita o compromiso de las <b>${appTimeStr} hrs</b> en destino, su hora oficial de recogida queda fijada a las <b>${targetSlotStr} hrs</b> y se ha vinculado automáticamente al <b>${blockHuman}</b>.<br>
-      <span style="color:var(--mute);font-size:.8rem;display:block;margin-top:4px">
-        🔒 <i>Horario fijado por protocolo clínico preventivo (${routeMin} min ruta vehicular + 10 min abordaje TENS + 20 min margen previo para admisión o estacionamiento). No modificable manualmente para proteger su puntualidad médica.</i>
-      </span>
-    </div>
-    <div style="margin-top:8px;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--line);font-size:.81rem;line-height:1.45">
-      <b>Desglose del cálculo preventivo:</b><br>
-      • <b>${routeMin} min</b> de traslado en ruta vehicular.<br>
-      • <b>+ 10 min</b> de abordaje y valoración inicial por TENS.<br>
-      • <b>+ 20 min</b> de margen previo para estacionar o admisión.<br>
-      → <b>Cálculo exacto de salida:</b> ${appTimeStr} hrs − ${totalAnticipacionExacta} min = <b>${horaExactaSalidaStr} hrs</b>.<br>
-      ${ajusteAgendaTexto}
+    <div style="background:#ffffff;border:1.5px solid var(--wa);border-left:5px solid #168F4A;border-radius:10px;padding:12px 16px;box-shadow:0 2px 6px rgba(22,143,74,.08);line-height:1.6">
+      <div style="font-weight:700;color:#12783E;font-size:.96rem;display:flex;align-items:center;gap:6px">
+        <span>✓</span> Hora de recogida programada: <span style="font-size:1.06rem;font-weight:800;color:var(--ink)">${targetSlotStr} hrs</span>
+      </div>
+      <div style="font-size:.86rem;color:var(--ink);margin-top:3px">
+        Llegada estimada al recinto: <b>${fm(llegadaRecintoMin)} hrs</b> (${minutosAntesDelBox} min antes del box)
+      </div>
+      <div style="font-size:.84rem;color:var(--mute);margin-top:3px">
+        Bloque asignado: <b>${blockHuman}</b>
+      </div>
     </div>
   `;
 
-  if(btn) btn.style.display = 'none';
   callout.style.display = 'block';
 }
 

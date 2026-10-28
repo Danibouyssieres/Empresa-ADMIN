@@ -273,13 +273,13 @@ if (nocheValid && bTime.value === '') {
 console.log('\n5. Validando Asignación 100% Automática del Turno según horario de servicio:');
 elements['b_svc_type'].value = '1';
 setVar('lastRouteIdaMin', 35); // Ruta calculada
-elements['appTimeInput'].value = '10:00'; // Cita a las 10:00 AM (Recogida calculada 08:30 hrs -> Turno Mañana)
+elements['appTimeInput'].value = '10:00'; // Cita a las 10:00 AM (10:00 - 65 min = 08:55 -> redondeo a 15m: 08:45 hrs -> Turno Mañana)
 ctx.calcSuggestedPickup();
 console.log('   - Hora sugerida calculada:', getVar('currentSuggestedHour'), 'en bloque asignado:', getVar('selectedBlock'));
 console.log('   - b_time.value tras cálculo automático:', bTime.value);
 
-if (getVar('selectedBlock') === 'manana' && bTime.value === '08:30') {
-  console.log('   ✅ PASS: Turno Mañana asignado 100% automáticamente y hora oficial fijada en 08:30 hrs.');
+if (getVar('selectedBlock') === 'manana' && bTime.value === '08:45') {
+  console.log('   ✅ PASS: Turno Mañana asignado 100% automáticamente y hora oficial fijada en 08:45 hrs (intervalo natural de 15 min).');
 } else {
   console.error('   ❌ FAIL: No se asignó automáticamente el Turno Mañana.');
   process.exit(1);
@@ -287,13 +287,13 @@ if (getVar('selectedBlock') === 'manana' && bTime.value === '08:30') {
 
 // 6. Asignación automática a Turno Tarde
 console.log('\n6. Validando Asignación Automática a Turno Tarde:');
-elements['appTimeInput'].value = '16:30'; // Cita a las 16:30 hrs (Recogida calculada 15:00 hrs -> Turno Tarde)
+elements['appTimeInput'].value = '16:30'; // Cita a las 16:30 hrs (16:30 - 65 min = 15:25 -> redondeo a 15m: 15:15 hrs -> Turno Tarde)
 ctx.calcSuggestedPickup();
 console.log('   - Hora sugerida calculada:', getVar('currentSuggestedHour'), 'en bloque asignado:', getVar('selectedBlock'));
 console.log('   - b_time.value tras cálculo de tarde:', bTime.value);
 
-if (getVar('selectedBlock') === 'tarde' && bTime.value === '15:00') {
-  console.log('   ✅ PASS: Turno Tarde asignado 100% automáticamente y hora oficial fijada en 15:00 hrs.');
+if (getVar('selectedBlock') === 'tarde' && bTime.value === '15:15') {
+  console.log('   ✅ PASS: Turno Tarde asignado 100% automáticamente y hora oficial fijada en 15:15 hrs (intervalo natural de 15 min).');
 } else {
   console.error('   ❌ FAIL: No se asignó automáticamente el Turno Tarde.');
   process.exit(1);

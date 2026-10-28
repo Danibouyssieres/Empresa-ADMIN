@@ -19,7 +19,7 @@ console.log('✔ 2. Manual duplicate pickup dropdown removed from transfer view.
 assert(html.includes('⏱️ Asistente de Hora de Recogida Sugerida'), 'Assistant header present');
 assert(html.includes('id="appTimeInput"'), 'appTimeInput present');
 assert(html.includes('calcSuggestedPickup()'), 'calcSuggestedPickup call present');
-assert(html.includes('Hora Oficial de Recogida Fijada:'), 'Confirmed official pickup badge present in JS template');
+assert(html.includes('Hora de recogida programada:'), 'Confirmed official pickup header present in JS template');
 console.log('✔ 3. Unified Assistant is the definitive mechanism for transfer modalities.');
 
 // 4. Verify home care single selector (Modalidad 3)
@@ -31,7 +31,7 @@ console.log('✔ 4. Modalidad 3 has single clean selector "Hora de inicio de la 
 assert(!html.includes('✓ Atención ejecutada por TENS acreditado con equipamiento clínico completo'), 'Old filler quality card must be completely removed');
 assert(html.includes('⏱️ Permanencia en Destino y Duración del Servicio'), 'Right column must contain Permanencia en Destino');
 assert(html.includes('¿Cuánto estimas que durará tu atención, trámite o actividad en el lugar? *'), 'Stay duration question present');
-assert(html.includes('10 min de abordaje y valoración inicial por TENS'), 'Clinical timing updated to 10 min TENS boarding');
+assert(html.includes('10 min de abordaje TENS'), 'Clinical timing updated to 10 min TENS boarding');
 assert(html.includes('💬 Solicitar Pre-Reserva vía WhatsApp'), 'Submit button updated to Solicitar Pre-Reserva vía WhatsApp');
 console.log('✔ 5. Parallel 2-column layout, 10 min clinical timing and WhatsApp pre-reservation button verified.');
 

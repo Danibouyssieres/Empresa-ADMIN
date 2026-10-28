@@ -132,7 +132,7 @@ mockWindow.calcSuggestedPickup();
 const sugHour1 = mockWindow.getCurrentSuggestedHour();
 assert(sugHour1 === '05:30', `Suggested hour rounded down to 05:30 (got: ${sugHour1})`);
 assert(domElements.suggestedPickupMsg.innerHTML.includes('05:30 hrs'), 'Message mentions 05:30 hrs');
-assert(domElements.suggestedPickupMsg.innerHTML.includes('cada 15 min'), 'Message explains 15 min slot adjustment');
+assert(domElements.suggestedPickupMsg.innerHTML.includes('Hora de recogida programada:'), 'Message shows compact result card');
 
 // Test edge case: early appointment at 07:00 (420 min). 420 - 145 = 275 min (04:35). Floor 05:00 (300 min).
 domElements.appTimeInput.value = '07:00';
