@@ -306,12 +306,12 @@ footer a{color:#fff}
           </button>
 
           <!-- BLOQUE 3: NOCHE -->
-          <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche')">
+          <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche')" disabled style="pointer-events:none">
             <div class="block-btn-top">
               <span class="block-btn-title">🌙 Turno Noche (22:00 a 04:00 hrs)</span>
-              <span id="badgeBlock_noche" class="block-badge ok">Disponible (1 cupo)</span>
+              <span id="badgeBlock_noche" class="block-badge occ">No disponible</span>
             </div>
-            <div class="block-btn-reason" id="reasonBlock_noche" style="display:none"></div>
+            <div class="block-btn-reason" id="reasonBlock_noche">🔒 No disponible para traslados vehiculares (habilitado solo para Cuidados a Domicilio y Eventos).</div>
           </button>
         </div>
       </div>
@@ -1295,10 +1295,17 @@ function refreshDuration34Options(resetSelection = false){
 
 function onServiceTypeChange(){
   const mode = $('#b_svc_type').value;
+  let nightReset = false;
   if(mode === '5'){
     // Al seleccionar Programas Interregionales, fijar automáticamente Turno Mañana
     selectedBlock = 'manana';
     selectInterRegion(selectedInterRegion);
+  } else if((mode === '1' || mode === '2') && selectedBlock === 'noche'){
+    // Restablecimiento automático de selección al cambiar a Modalidad 1 o 2
+    selectedBlock = null;
+    nightReset = true;
+    const timeSelect = $('#b_time');
+    if(timeSelect) timeSelect.value = '';
   }
   setRouteStatus('');
   refreshDuration34Options(true);
@@ -1307,6 +1314,20 @@ function onServiceTypeChange(){
   recalcAll();
   updateSlots();
   syncJornadaFromSchedule();
+
+  if(nightReset){
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      submitAlert.innerHTML = `<span>⚠️ <b>Turno Noche no disponible para traslados:</b> Por favor seleccione Turno Mañana (06:00 a 12:00) o Turno Tarde (14:00 a 20:00) en el Paso 1 para continuar.</span>`;
+    }
+    const stBox = $('#availStatus');
+    if(stBox){
+      stBox.className = 'status-box';
+      stBox.style.display = 'block';
+      stBox.innerHTML = `<span>⚠️ <b>Turno Noche no disponible para traslados:</b> Por favor seleccione Turno Mañana o Turno Tarde en el Paso 1.</span>`;
+    }
+  }
 }
 
 function applyModalityVisibility(){
@@ -2920,14 +2941,16 @@ function evaluateDateCapacity(dateStr){
 
 function findFirstAvailableDate(){
   const { todayStr } = getBookingWindowBounds();
-  const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const isInter = mode === '5';
+  const allowsNight = (mode === '3' || mode === '4');
 
   for(let i = 1; i <= 30; i++){
     const dStr = addDaysYMD(todayStr, i);
     const ev = evaluateDateCapacity(dStr);
     if(!ev.inRange) continue;
     if(isInter && ev.interregional.available) return dStr;
-    if(!isInter && (ev.manana.available || ev.tarde.available || ev.noche.available)) return dStr;
+    if(!isInter && (ev.manana.available || ev.tarde.available || (allowsNight && ev.noche.available))) return dStr;
   }
   return addDaysYMD(todayStr, 1);
 }
@@ -2985,6 +3008,10 @@ function selectShiftBlock(blockId){
     }
     selectedBlock = 'manana';
   } else if(blockId === 'noche'){
+    if(mode === '1' || mode === '2'){
+      alert("⚠️ El Turno Noche no está disponible para traslados vehiculares (habilitado solo para Cuidados a Domicilio y Eventos). Por favor seleccione Turno Mañana o Turno Tarde.");
+      return;
+    }
     if(!ev.noche.available){
       alert(`El Turno Noche no se encuentra disponible para el ${formatHumanDate(dateStr)}: ${ev.noche.reason || 'Sin cupos disponibles'}.`);
       return;
@@ -3116,19 +3143,23 @@ function renderCalendar(){
         titleTip = ev.interregional.reason;
       }
     } else {
-      if(ev.status === 'disp'){
-        stClass = 'st-disp';
-        tagText = 'Disponible';
-        clickable = true;
-        titleTip = 'Turnos disponibles en agenda';
-      } else if(ev.status === 'last'){
+      const curMode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+      const curAllowsNight = (curMode === '3' || curMode === '4');
+      const freeSlotsCount = (ev.manana.available ? 1 : 0) + (ev.tarde.available ? 1 : 0) + (curAllowsNight && ev.noche.available ? 1 : 0);
+
+      if(freeSlotsCount === 0){
+        stClass = 'st-full';
+        tagText = 'Agotado';
+        clickable = false;
+        titleTip = 'Sin cupos disponibles para esta modalidad en esta fecha';
+      } else if(freeSlotsCount === 1){
         stClass = 'st-last';
         tagText = 'Último cupo';
         clickable = true;
         const availList = [];
         if(ev.manana.available) availList.push('Mañana');
         if(ev.tarde.available) availList.push('Tarde');
-        if(ev.noche.available) availList.push('Noche');
+        if(curAllowsNight && ev.noche.available) availList.push('Noche');
         titleTip = `Último cupo: solo Turno ${availList.join(' / ')} disponible`;
       } else if(ev.status === 'closed'){
         stClass = 'st-full';
@@ -3136,10 +3167,10 @@ function renderCalendar(){
         clickable = false;
         titleTip = 'Fecha no disponible en agenda';
       } else {
-        stClass = 'st-full';
-        tagText = 'Agotado';
-        clickable = false;
-        titleTip = 'Capacidad completa (máximo de turnos alcanzado en esta fecha)';
+        stClass = 'st-disp';
+        tagText = 'Disponible';
+        clickable = true;
+        titleTip = 'Turnos disponibles en agenda';
       }
     }
 
@@ -3204,13 +3235,16 @@ function updateSlots(keepCurrentTime = false){
   $('#lblSelectedDateHuman').textContent = formatHumanDate(dateStr);
 
   // Si la modalidad cambió o el bloque elegido quedó sin cupo en esta fecha, auto-ajustar bloque
+  const allowsNight = (mode === '3' || mode === '4');
   if(isInter){
     selectedBlock = 'manana';
   } else if(selectedBlock && ev.inRange){
-    if(selectedBlock === 'manana' && !ev.manana.available){
-      selectedBlock = ev.tarde.available ? 'tarde' : (ev.noche.available ? 'noche' : null);
+    if(!allowsNight && selectedBlock === 'noche'){
+      selectedBlock = null;
+    } else if(selectedBlock === 'manana' && !ev.manana.available){
+      selectedBlock = ev.tarde.available ? 'tarde' : (allowsNight && ev.noche.available ? 'noche' : null);
     } else if(selectedBlock === 'tarde' && !ev.tarde.available){
-      selectedBlock = ev.manana.available ? 'manana' : (ev.noche.available ? 'noche' : null);
+      selectedBlock = ev.manana.available ? 'manana' : (allowsNight && ev.noche.available ? 'noche' : null);
     } else if(selectedBlock === 'noche' && !ev.noche.available){
       selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
     }
@@ -3302,12 +3336,25 @@ function updateSlots(keepCurrentTime = false){
     reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
 
     if(btnN){
-      btnN.disabled = !okN;
-      btnN.classList.toggle('active', okN && selectedBlock === 'noche');
-      badgeN.className = 'block-badge ' + (okN ? 'ok' : 'occ');
-      badgeN.textContent = okN ? `Disponible (${ev.noche.free} ${ev.noche.free===1?'cupo':'cupos'})` : 'Agotado';
-      reasonN.style.display = okN ? 'none' : 'block';
-      reasonN.textContent = okN ? '' : `🔒 ${ev.noche.reason}`;
+      if(!allowsNight){
+        // Modalidades 1 y 2: Bloquear Turno Noche para servicios con traslado vehicular
+        btnN.disabled = true;
+        btnN.style.pointerEvents = 'none';
+        btnN.classList.remove('active');
+        badgeN.className = 'block-badge occ';
+        badgeN.textContent = 'No disponible';
+        reasonN.style.display = 'block';
+        reasonN.textContent = '🔒 No disponible para traslados vehiculares (habilitado solo para Cuidados a Domicilio y Eventos).';
+      } else {
+        // Modalidades 3 y 4 (Cuidados a Domicilio y Eventos Sociales): Habilitar Turno Noche según capacidad
+        btnN.disabled = !okN;
+        btnN.style.pointerEvents = okN ? 'auto' : 'none';
+        btnN.classList.toggle('active', okN && selectedBlock === 'noche');
+        badgeN.className = 'block-badge ' + (okN ? 'ok' : 'occ');
+        badgeN.textContent = okN ? `Disponible (${ev.noche.free} ${ev.noche.free===1?'cupo':'cupos'})` : 'Agotado';
+        reasonN.style.display = okN ? 'none' : 'block';
+        reasonN.textContent = okN ? '' : `🔒 ${ev.noche.reason}`;
+      }
     }
   }
 
