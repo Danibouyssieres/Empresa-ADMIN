@@ -109,7 +109,11 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .result-price{font-family:Georgia,serif;font-size:clamp(1.8rem,4.5vw,2.3rem);font-weight:700;color:var(--teal);line-height:1.15;margin:4px 0}
 .result-sub{font-size:.85rem;color:var(--mute)}
 .breakdown{list-style:none;padding:0;margin:12px 0 0;text-align:left;font-size:.9rem;border-top:1px solid var(--line);padding-top:10px}
-.breakdown li{display:flex;justify-content:space-between;padding:4px 0;gap:10px;flex-wrap:wrap}
+.breakdown li{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:6px 0}
+.breakdown li > span{flex:1;min-width:0;line-height:1.45}
+.breakdown li > b,
+.breakdown li > strong,
+.breakdown li .tr-val{white-space:nowrap;text-align:right;font-weight:bold;flex-shrink:0}
 
 /* SECCIÓN DE TIEMPO DE ASISTENCIA / ESPERA Y SUMA TOTAL */
 .time-calc-section{margin-top:22px;padding:20px;border-radius:var(--r);background:var(--bg);border:1px solid var(--line)}
