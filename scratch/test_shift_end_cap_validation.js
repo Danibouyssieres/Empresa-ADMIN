@@ -6,16 +6,14 @@ console.log('Testing shift hours and duration end-time cap validation in reserva
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
 
-// 1. Verify official hours in Step 1
+// 1. Verify official hours in Step 1 and compact styling (no subtext lines)
 assert(html.includes('🌅 Turno Mañana (06:00 a 12:00 hrs)'), 'Turno Mañana title must be (06:00 a 12:00 hrs)');
-assert(html.includes('Recogidas entre 06:00 y 12:00 hrs según duración'), 'Turno Mañana sub text must match');
-
 assert(html.includes('🌇 Turno Tarde (14:00 a 20:00 hrs)'), 'Turno Tarde title must be (14:00 a 20:00 hrs)');
-assert(html.includes('Recogidas entre 14:00 y 20:00 hrs según duración'), 'Turno Tarde sub text must match');
-
 assert(html.includes('🌙 Turno Noche (22:00 a 04:00 hrs)'), 'Turno Noche title must be (22:00 a 04:00 hrs)');
-assert(html.includes('Exclusivo Cuidados y Eventos, sin traslados clínicos'), 'Turno Noche sub text must match');
-console.log('✔ 1. Official shift hours restored in Step 1.');
+// Verify subtitle lines are removed for compact design
+assert(!html.includes('Recogidas entre 06:00 y 12:00 hrs según duración'), 'Subtext must be removed for compact cards');
+assert(!html.includes('Recogidas entre 14:00 y 20:00 hrs según duración'), 'Subtext must be removed for compact cards');
+console.log('✔ 1. Official shift hours verified and compact cards (without subtext) confirmed in Step 1.');
 
 // 2. Verify Midday special schedule text and WhatsApp link
 assert(html.includes('¿Requiere un horario especial de inicio entre las 12:00 y las 13:30 hrs (mediodía)?'), 'Special midday question present');
