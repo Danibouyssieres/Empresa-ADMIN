@@ -290,32 +290,42 @@ footer a{color:#fff}
           <!-- BLOQUE 1: MAÑANA -->
           <button type="button" id="btnBlock_manana" class="block-btn" onclick="selectShiftBlock('manana')">
             <div class="block-btn-top">
-              <span class="block-btn-title">🌅 Turno Mañana (08:00 a 13:00 hrs)</span>
+              <span class="block-btn-title">🌅 Turno Mañana (06:00 a 12:00 hrs)</span>
               <span id="badgeBlock_manana" class="block-badge ok">Disponible</span>
             </div>
-            <div class="block-btn-sub" id="subBlock_manana">Recogidas entre 08:00 y 13:00 hrs</div>
+            <div class="block-btn-sub" id="subBlock_manana">Recogidas entre 06:00 y 12:00 hrs según duración</div>
             <div class="block-btn-reason" id="reasonBlock_manana" style="display:none"></div>
           </button>
 
           <!-- BLOQUE 2: TARDE -->
           <button type="button" id="btnBlock_tarde" class="block-btn" onclick="selectShiftBlock('tarde')">
             <div class="block-btn-top">
-              <span class="block-btn-title">🌇 Turno Tarde (14:30 a 20:00 hrs)</span>
+              <span class="block-btn-title">🌇 Turno Tarde (14:00 a 20:00 hrs)</span>
               <span id="badgeBlock_tarde" class="block-badge ok">Disponible</span>
             </div>
-            <div class="block-btn-sub" id="subBlock_tarde">Recogidas entre 14:30 y 20:00 hrs</div>
+            <div class="block-btn-sub" id="subBlock_tarde">Recogidas entre 14:00 y 20:00 hrs según duración</div>
             <div class="block-btn-reason" id="reasonBlock_tarde" style="display:none"></div>
           </button>
 
           <!-- BLOQUE 3: NOCHE -->
           <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche')">
             <div class="block-btn-top">
-              <span class="block-btn-title">🌙 Turno Noche (22:00 a 06:00 hrs)</span>
+              <span class="block-btn-title">🌙 Turno Noche (22:00 a 04:00 hrs)</span>
               <span id="badgeBlock_noche" class="block-badge ok">Disponible</span>
             </div>
-            <div class="block-btn-sub" id="subBlock_noche">Atención nocturna exclusiva (22:00 a 06:00 hrs)</div>
+            <div class="block-btn-sub" id="subBlock_noche">Exclusivo Cuidados y Eventos, sin traslados clínicos</div>
             <div class="block-btn-reason" id="reasonBlock_noche" style="display:none"></div>
           </button>
+
+          <!-- MENSAJE PARA HORARIOS ESPECIALES (MEDIODÍA) -->
+          <div style="margin-top:14px;padding:12px 14px;background:var(--mist);border:1px solid var(--line);border-radius:10px;font-size:.84rem;color:var(--ink);line-height:1.45">
+            💬 <b>¿Requiere un horario especial de inicio entre las 12:00 y las 13:30 hrs?</b> Contáctenos directamente por WhatsApp para evaluar factibilidad operativa y asignación exclusiva.
+            <div style="margin-top:6px">
+              <a href="https://wa.me/56999498912?text=Hola,%20quisiera%20consultar%20por%20un%20horario%20especial%20de%20inicio%20al%20mediod%C3%ADa%20(12:00%20a%2013:30%20hrs)." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:var(--teal);font-weight:700;text-decoration:none">
+                <span>📲 Consultar horario especial por WhatsApp</span> →
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -634,9 +644,9 @@ footer a{color:#fff}
           <div id="eventStartCol" style="display:none">
             <label for="selEventStart1">Hora de inicio del evento (cruza 20:00 = proporcional)</label>
             <select id="selEventStart1" onchange="onEventStart1Change()">
-              <option value="09:00">09:00 hrs (Turno Mañana)</option>
-              <option value="10:00">10:00 hrs (Turno Mañana)</option>
-              <option value="11:00">11:00 hrs (Turno Mañana)</option>
+              <option value="06:00">06:00 hrs (Turno Mañana)</option>
+              <option value="07:00">07:00 hrs (Turno Mañana)</option>
+              <option value="08:00">08:00 hrs (Turno Mañana)</option>
               <option value="14:00">14:00 hrs (Turno Tarde)</option>
               <option value="15:00">15:00 hrs (Turno Tarde)</option>
               <option value="16:00" selected>16:00 hrs (Turno Tarde)</option>
@@ -644,6 +654,7 @@ footer a{color:#fff}
               <option value="17:00">17:00 hrs (Cruza 20:00 hrs → Proporcional)</option>
               <option value="17:30">17:30 hrs (Cruza 20:00 hrs → Proporcional)</option>
               <option value="20:00">20:00 hrs (Horario Especial Nocturno)</option>
+              <option value="22:00">22:00 hrs (Turno Noche)</option>
             </select>
           </div>
           <div id="hours34Col">
@@ -2505,10 +2516,27 @@ function getChileHolidayName(dateStr){
 }
 
 const BLOCK_HOURS = {
-  manana: ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00'],
-  tarde:  ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'],
-  noche:  ['22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00', '03:30', '04:00', '04:30', '05:00', '05:30', '06:00']
+  manana: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00'],
+  tarde:  ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'],
+  noche:  ['22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00', '03:30', '04:00']
 };
+
+function getShiftEndTime(blockId){
+  if(blockId === 'manana') return 12 * 60; // 12:00 hrs (720 min)
+  if(blockId === 'tarde')  return 20 * 60; // 20:00 hrs (1200 min)
+  if(blockId === 'noche')  return 28 * 60; // 04:00 hrs (1680 min = 24:00 + 04:00)
+  return 24 * 60;
+}
+
+function getSlotStartMin(h, blockId){
+  if(!h) return 0;
+  const [hh, mm] = h.split(':').map(Number);
+  let mins = hh * 60 + (mm || 0);
+  if(blockId === 'noche' && hh < 12){
+    mins += 24 * 60;
+  }
+  return mins;
+}
 
 const INTERREGIONAL_HOURS = [
   '05:00', '05:15', '05:30', '05:45',
@@ -2636,9 +2664,9 @@ function inferServiceBlock(s){
   const startMin = Number(s.start);
   const durMin = Number(s.dur);
   if(startMin >= 22 * 60 || startMin < 4 * 60) return 'noche';
-  // Si una reserva por su duración invade dos turnos o la ventana intermedia (13:00 a 14:30 hrs):
-  if(startMin < 13 * 60 && (startMin + durMin) > 13 * 60) return 'full';
-  return (startMin < 13 * 60) ? 'manana' : 'tarde';
+  // Si una reserva por su duración invade dos turnos o la ventana intermedia (12:00 a 14:00 hrs):
+  if(startMin < 12 * 60 && (startMin + durMin) > 12 * 60) return 'full';
+  return (startMin < 12 * 60) ? 'manana' : 'tarde';
 }
 
 // Determinar si un servicio termina después de las 22:00 hrs (1320 min) o pertenece al Turno Noche
@@ -2962,7 +2990,7 @@ function selectShiftBlock(blockId){
     selectedBlock = 'manana';
   } else if(blockId === 'noche'){
     if(mode !== '3' && mode !== '4'){
-      alert('El Turno Noche (22:00 a 06:00 hrs) está habilitado exclusivamente para las modalidades "3. Cuidados a Domicilio" y "4. Acompañamiento en Eventos Sociales".\n\nLos traslados vehiculares (Servicio Integral y Traslado con Espera) operan exclusivamente en jornada diurna (06:00 a 20:00 hrs).');
+      alert('El Turno Noche (22:00 a 04:00 hrs) está habilitado exclusivamente para las modalidades "3. Cuidados a Domicilio" y "4. Acompañamiento en Eventos Sociales".\n\nLos traslados vehiculares (Servicio Integral y Traslado con Espera) operan exclusivamente en jornada diurna (06:00 a 20:00 hrs).');
       return;
     }
     if(!ev.noche.available){
@@ -3329,7 +3357,7 @@ function updateSlots(keepCurrentTime = false){
       btnN.classList.toggle('active', okN && selectedBlock === 'noche');
       badgeN.className = 'block-badge ' + (okN ? 'ok' : 'occ');
       badgeN.textContent = okN ? `Disponible (${ev.noche.free} ${ev.noche.free===1?'cupo':'cupos'})` : (ev.noche.manualBlocked ? 'No disponible' : 'Ocupado / Bloqueado');
-      subN.textContent = 'Atención nocturna exclusiva (22:00 a 06:00 hrs)';
+      subN.textContent = 'Atención nocturna exclusiva (22:00 a 04:00 hrs)';
       reasonN.style.display = okN ? 'none' : 'block';
       reasonN.textContent = okN ? '' : `🔒 ${ev.noche.reason}`;
     }
@@ -3370,17 +3398,37 @@ function updateSlots(keepCurrentTime = false){
     return;
   }
 
-  const hoursList = isInter ? INTERREGIONAL_HOURS : getBlockHoursList(selectedBlock);
+  const rawHoursList = isInter ? INTERREGIONAL_HOURS : getBlockHoursList(selectedBlock);
   const activeBlockObj = isInter ? ev.interregional : (selectedBlock === 'manana' ? ev.manana : (selectedBlock === 'noche' ? ev.noche : ev.tarde));
+  const shiftEnd = getShiftEndTime(selectedBlock);
 
-  if(!ev.inRange || !activeBlockObj.available){
-    const timeOptText = (dur >= 360 && (selectedBlock === 'manana' || !activeBlockObj.available))
-      ? 'Plan de 6 hrs excede el turno seleccionado en Paso 1'
-      : 'Sin horarios disponibles en este bloque';
+  // Regla matemática de validación de tope horario en Paso 2:
+  // [Hora de Recogida] + [Duración] debe ser menor o igual a la hora final del turno seleccionado:
+  // - Turno Mañana: <= 12:00 hrs (720 min)
+  // - Turno Tarde: <= 20:00 hrs (1200 min)
+  // - Turno Noche: <= 04:00 hrs (1680 min)
+  const hoursList = isInter
+    ? rawHoursList
+    : rawHoursList.filter(h => {
+        const slotStart = getSlotStartMin(h, selectedBlock);
+        return (slotStart + dur) <= shiftEnd;
+      });
+
+  if(!ev.inRange || !activeBlockObj.available || hoursList.length === 0){
+    let timeOptText = 'Sin horarios disponibles en este bloque';
+    if(hoursList.length === 0 && !isInter && ev.inRange && activeBlockObj.available){
+      const shiftName = selectedBlock === 'manana' ? 'Turno Mañana (cierre 12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (cierre 20:00 hrs)' : 'Turno Noche (cierre 04:00 hrs)');
+      timeOptText = `La duración (${fmtHoursClean(dur)}) excede el límite del ${shiftName}`;
+    }
     if(timeSelect){
       timeSelect.innerHTML = `<option value="">${timeOptText}</option>`;
       timeSelect.value = '';
       timeSelect.disabled = true;
+    }
+    if(hoursList.length === 0 && !isInter && stBox){
+      const blockName = selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (14:00 a 20:00 hrs)' : 'Turno Noche (22:00 a 04:00 hrs)');
+      stBox.className = 'status-box err';
+      stBox.innerHTML = `<span>⚠️ <b>Tope horario de turno excedido:</b> La duración seleccionada (${fmtHoursClean(dur)}) no alcanza a completarse antes del término del ${blockName}. Por favor seleccione una duración menor o elija otro turno.</span>`;
     }
   } else {
     if(timeSelect){
@@ -3407,66 +3455,80 @@ function updateSlots(keepCurrentTime = false){
         return isSlotAtLeast24hAhead(dateStr, h, isPostMid);
       });
 
-      if(keepCurrentTime && prevTime && validChoices.includes(prevTime)){
-        timeSelect.value = prevTime;
+      let prevTimeExceededShift = false;
+      if(keepCurrentTime && prevTime){
+        if(validChoices.includes(prevTime)){
+          timeSelect.value = prevTime;
+        } else {
+          timeSelect.value = '';
+          prevTimeExceededShift = true;
+        }
       } else {
         timeSelect.value = '';
+      }
+
+      if(prevTimeExceededShift){
+        estWindow.textContent = '';
+        nightNotice.style.display = 'none';
+        stBox.className = 'status-box err';
+        if(dur >= 360 && (selectedBlock === 'manana' || !isInter)){
+          stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
+          if(submitAlert){
+            submitAlert.style.display = 'block';
+            submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
+          }
+        } else {
+          const shiftName = selectedBlock === 'manana' ? 'Turno Mañana (cierre 12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (cierre 20:00 hrs)' : 'Turno Noche (cierre 04:00 hrs)');
+          stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> Con una duración de ${fmtHoursClean(dur)}, la hora previa elegida (${prevTime} hrs) excede el ${shiftName}. Por favor seleccione una hora de inicio disponible en el menú desplegable.</span>`;
+          if(submitAlert){
+            submitAlert.style.display = 'block';
+            submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La hora de recogida seleccionada previamente excede el cierre del turno para esta duración. Por favor elija un horario válido.</span>`;
+          }
+        }
+        if(tensSelect && tensSelect.tagName === 'SELECT'){
+          tensSelect.innerHTML = `<option value="">Conflicto de horario con el turno</option>`;
+          tensSelect.disabled = true;
+        }
+        if(subBtn) subBtn.disabled = false;
+        return;
       }
     }
   }
 
   const curTime = timeSelect ? timeSelect.value : '';
 
-  if(ev.inRange && activeBlockObj.available && curTime){
-    const stMin = tm(curTime);
+  if(ev.inRange && activeBlockObj.available && curTime && hoursList.length > 0){
+    const stMin = getSlotStartMin(curTime, selectedBlock);
     const endMin = stMin + dur;
     const endsAfter22 = endMin > 22 * 60;
-    const isInvadingCrossShift = (!isInter && selectedBlock === 'manana' && stMin < 13 * 60 && endMin > 13 * 60);
 
-    // Validación preventiva de turnos cruzados si el turno tarde ya está ocupado
-    if(isInvadingCrossShift && !ev.tarde.available){
+    if(!isInter && endMin > shiftEnd){
       estWindow.textContent = '';
       nightNotice.style.display = 'none';
       stBox.className = 'status-box err';
-      if(dur >= 360){
-        stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
-      } else {
-        stBox.innerHTML = `<span>⚠️ <b>Conflicto de Turnos Cruzados:</b> Esta atención (${fmtHoursClean(dur)}) finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia y el Turno Tarde, pero el Turno Tarde ya se encuentra ocupado en esta fecha. Seleccione una menor duración o elija una fecha con ambos turnos disponibles.</span>`;
-      }
-      if(tensSelect && tensSelect.tagName === 'SELECT'){
-        tensSelect.innerHTML = `<option value="">Conflicto de horario con Turno Tarde</option>`;
-        tensSelect.disabled = true;
-      }
+      const shiftName = selectedBlock === 'manana' ? 'Turno Mañana (12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (20:00 hrs)' : 'Turno Noche (04:00 hrs)');
+      stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> Esta atención (${fmtHoursClean(dur)}) finaliza a las <b>${fm(endMin % 1440)} hrs</b>, superando la hora de cierre del ${shiftName}. Por favor seleccione una hora de recogida más temprana o reduzca la duración.</span>`;
       if(subBtn) subBtn.disabled = false;
       if(submitAlert){
         submitAlert.style.display = 'block';
-        if(dur >= 360){
-          submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
-        } else {
-          submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> Existen observaciones en su selección de horario en el Paso 2 (la hora elegida no se encuentra disponible o excede la ventana del turno seleccionado en el calendario). Por favor revise la Sección 2 antes de confirmar.</span>`;
-        }
+        submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> El servicio excede la hora de cierre del turno seleccionado. Por favor ajuste la hora de recogida o la duración en el Paso 2.</span>`;
       }
       return;
     }
 
     const blockLabel = isInter
       ? 'Jornada Completa Interregional (Bloquea Mañana + Tarde)'
-      : (isInvadingCrossShift
-          ? 'Jornada Extendida (Bloquea Mañana y Tarde por invasión de buffer)'
-          : (selectedBlock === 'manana' ? 'Turno Mañana (08:00 a 13:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 06:00 hrs)' : 'Turno Tarde (14:30 a 20:00 hrs)')));
+      : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:00 a 20:00 hrs)'));
 
     estWindow.innerHTML = `🕒 <b>${selectedBlock === 'noche' ? 'Inicio' : 'Recogida'}:</b> ${curTime} hrs → <b>Término estimado:</b> ${fm(endMin % 1440)} hrs (${dur} min estimados · ${blockLabel}).`;
 
     if(selectedBlock === 'noche' || endsAfter22){
       nightNotice.style.display = 'block';
       const reasonText = selectedBlock === 'noche' ? 'en <b>Turno Noche</b>' : 'un servicio con <b>término posterior a las 22:00 hrs</b>';
-      nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar ${reasonText} (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (08:00 a 13:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:30 hrs).`;
+      nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar ${reasonText} (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (06:00 a 12:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:00 hrs).`;
     } else if(isInter){
       nightNotice.style.display = 'block';
       nightNotice.innerHTML = `🗺️ <b>Regla de Programa Interregional:</b> Esta reserva bloquea automáticamente <b>el día completo (Bloque Mañana y Bloque Tarde)</b> y el <b>Turno Noche de la víspera (día anterior)</b> para dedicación exclusiva, descanso preventivo y seguridad vial en carretera.`;
-    } else if(isInvadingCrossShift){
-      nightNotice.style.display = 'block';
-      nightNotice.innerHTML = `⚠️ <b>Bloqueo de Turnos Cruzados:</b> Por su duración (${fmtHoursClean(dur)}), esta atención finaliza a las <b>${fm(endMin % 1440)} hrs</b> invadiendo la ventana intermedia (13:00-14:30) y el Turno Tarde. El sistema bloqueará automáticamente <b>ambos turnos (Mañana y Tarde)</b> de este día en la agenda.`;
     } else {
       nightNotice.style.display = 'none';
     }
@@ -3489,7 +3551,7 @@ function updateSlots(keepCurrentTime = false){
     estWindow.textContent = '';
     nightNotice.style.display = 'none';
     stBox.className = 'status-box';
-    const blockNames = { manana: 'Turno Mañana (08:00 a 13:00 hrs)', tarde: 'Turno Tarde (14:30 a 20:00 hrs)', noche: 'Turno Noche (22:00 a 06:00 hrs)' };
+    const blockNames = { manana: 'Turno Mañana (06:00 a 12:00 hrs)', tarde: 'Turno Tarde (14:00 a 20:00 hrs)', noche: 'Turno Noche (22:00 a 04:00 hrs)' };
     const bName = isInter ? 'Programa Interregional' : (blockNames[selectedBlock] || 'Turno seleccionado');
     stBox.innerHTML = `<span>🕒 <b>${bName} activo:</b> Seleccione la hora exacta en el selector para verificar cupo y avanzar.</span>`;
     if(tensSelect){
@@ -3561,24 +3623,29 @@ function calcSuggestedPickup(){
     targetSlotMin = Math.floor(rawPickupMin / 15) * 15;
     if(targetSlotMin < 300) targetSlotMin = 300; // Mínimo 05:00 AM (300 min)
     if(targetSlotMin > 540) targetSlotMin = 540; // Máximo 09:00 AM (540 min)
-  } else if(rawPickupMin <= 780){ // 13:00 hrs o antes -> Turno Mañana (08:00 a 13:00)
+  } else if(rawPickupMin <= 720){ // 12:00 hrs o antes -> Turno Mañana (06:00 a 12:00)
     targetBlock = 'manana';
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
-    if(targetSlotMin < 480) targetSlotMin = 480; // Mínimo 08:00 AM (480 min)
-    if(targetSlotMin > 780) targetSlotMin = 780; // Máximo 13:00 hrs (780 min)
-  } else if(rawPickupMin < 870){ // Entre 13:00 y 14:30 hrs (Buffer intermedio)
-    if(selectedBlock === 'tarde' || rawPickupMin > 825){
+    const durMins = getSelectedTotalMinutes();
+    const maxPickupMañana = Math.max(360, 720 - durMins);
+    if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00 AM (360 min)
+    if(targetSlotMin > maxPickupMañana) targetSlotMin = maxPickupMañana; // Tope para no exceder 12:00
+  } else if(rawPickupMin < 840){ // Entre 12:00 y 14:00 hrs (Ventana especial mediodía)
+    if(selectedBlock === 'tarde' || rawPickupMin >= 780){
       targetBlock = 'tarde';
-      targetSlotMin = 870; // 14:30 hrs
+      targetSlotMin = 840; // 14:00 hrs
     } else {
       targetBlock = 'manana';
-      targetSlotMin = 780; // 13:00 hrs
+      const durMins = getSelectedTotalMinutes();
+      targetSlotMin = Math.max(360, Math.min(720, 720 - durMins));
     }
-  } else { // 14:30 o después -> Turno Tarde (14:30 a 20:00)
+  } else { // 14:00 o después -> Turno Tarde (14:00 a 20:00)
     targetBlock = 'tarde';
     targetSlotMin = Math.floor(rawPickupMin / 30) * 30;
-    if(targetSlotMin < 870) targetSlotMin = 870; // Mínimo 14:30 (870 min)
-    if(targetSlotMin > 1200) targetSlotMin = 1200; // Máximo 20:00 (1200 min)
+    const durMins = getSelectedTotalMinutes();
+    const maxPickupTarde = Math.max(840, 1200 - durMins);
+    if(targetSlotMin < 840) targetSlotMin = 840; // Mínimo 14:00 (840 min)
+    if(targetSlotMin > maxPickupTarde) targetSlotMin = maxPickupTarde; // Tope para no exceder 20:00
   }
 
   const targetSlotStr = fm(targetSlotMin);
@@ -3601,9 +3668,9 @@ function calcSuggestedPickup(){
   }
 
   const blockNames = {
-    manana: isInter ? 'Turno Mañana (Salida Temprana Interregional)' : 'Turno Mañana (08:00 a 13:00 hrs)',
-    tarde: 'Turno Tarde (14:30 a 20:00 hrs)',
-    noche: 'Turno Noche (22:00 a 06:00 hrs)'
+    manana: isInter ? 'Turno Mañana (Salida Temprana Interregional)' : 'Turno Mañana (06:00 a 12:00 hrs)',
+    tarde: 'Turno Tarde (14:00 a 20:00 hrs)',
+    noche: 'Turno Noche (22:00 a 04:00 hrs)'
   };
   const blockHuman = blockNames[targetBlock] || targetBlock;
 
@@ -3662,9 +3729,9 @@ function applySuggestedPickup(){
   const validHoursForBlock = isInter ? INTERREGIONAL_HOURS : getBlockHoursList(selectedBlock);
   if(!validHoursForBlock.includes(currentSuggestedHour)){
     const blockNames = {
-      manana: 'Turno Mañana (08:00 a 13:00 hrs)',
-      tarde: 'Turno Tarde (14:30 a 20:00 hrs)',
-      noche: 'Turno Noche (22:00 a 06:00 hrs)'
+      manana: 'Turno Mañana (06:00 a 12:00 hrs)',
+      tarde: 'Turno Tarde (14:00 a 20:00 hrs)',
+      noche: 'Turno Noche (22:00 a 04:00 hrs)'
     };
     const activeName = blockNames[selectedBlock] || selectedBlock;
     const calcName = blockNames[currentSuggestedBlock] || currentSuggestedBlock;
@@ -3816,11 +3883,12 @@ async function submitBooking(ev){
   const dur = getSelectedTotalMinutes();
   const capEval = evaluateDateCapacity(date);
   const targetBlockObj = isInter ? capEval.interregional : (selectedBlock ? (selectedBlock === 'manana' ? capEval.manana : (selectedBlock === 'noche' ? capEval.noche : capEval.tarde)) : { available: false });
-  const start = timeStr ? tm(timeStr) : 0;
+  const start = timeStr ? getSlotStartMin(timeStr, selectedBlock) : 0;
   const endMin = start + dur;
-  const isCrossShift = (!isInter && selectedBlock === 'manana' && start < 13 * 60 && endMin > 13 * 60);
+  const shiftEnd = getShiftEndTime(selectedBlock);
+  const exceedsShift = (!isInter && selectedBlock && endMin > shiftEnd);
 
-  if(!date || (!selectedBlock && !isInter) || !timeStr || !capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr, selectedBlock === 'noche' && timeStr < '12:00') || (isCrossShift && !capEval.tarde.available)){
+  if(!date || (!selectedBlock && !isInter) || !timeStr || !capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr, selectedBlock === 'noche' && timeStr < '12:00') || exceedsShift){
     updateSlots();
     const submitAlert = $('#submitBlockAlert');
     if(submitAlert){
@@ -3829,8 +3897,9 @@ async function submitBooking(ev){
         submitAlert.innerHTML = `<span>⚠️ <b>Turno requerido en Paso 1:</b> Por favor seleccione un turno (Mañana, Tarde o Noche) en la agenda antes de continuar.</span>`;
       } else if(!timeStr){
         submitAlert.innerHTML = `<span>⚠️ <b>Hora requerida en Paso 2:</b> Por favor seleccione la hora exacta de recogida requerida antes de continuar.</span>`;
-      } else if(dur >= 360 && (selectedBlock === 'manana' || isCrossShift)){
-        submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
+      } else if(exceedsShift){
+        const shiftName = selectedBlock === 'manana' ? 'Turno Mañana (cierre 12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (cierre 20:00 hrs)' : 'Turno Noche (cierre 04:00 hrs)');
+        submitAlert.innerHTML = `<span>⚠️ <b>Tope horario de turno excedido:</b> El servicio finaliza a las <b>${fm(endMin % 1440)} hrs</b>, superando la hora de cierre del ${shiftName}. Por favor seleccione una hora de recogida más temprana o reduzca la duración.</span>`;
       } else {
         submitAlert.innerHTML = `<span>⚠️ <b>No es posible continuar con la reserva:</b> Existen observaciones en su selección de horario en el Paso 2 (la hora elegida no se encuentra disponible o excede la ventana del turno seleccionado en el calendario). Por favor revise la Sección 2 antes de confirmar.</span>`;
       }
@@ -3969,9 +4038,7 @@ async function submitBooking(ev){
   const saldo50 = lastFinalTotal - lastAbono50;
   const blockHuman = isInter
     ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
-    : (isCrossShift
-        ? 'Jornada Extendida (Bloquea Mañana y Tarde)'
-        : (selectedBlock === 'manana' ? 'Turno Mañana (08:00 a 13:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 06:00 hrs)' : 'Turno Tarde (14:30 a 20:00 hrs)')));
+    : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:00 a 20:00 hrs)'));
 
   const newId = D.nid++;
   const newSvc = {
@@ -4010,9 +4077,9 @@ async function submitBooking(ev){
     paid: 0,
     st: 'Confirmado',
     svcType: mode,
-    block: (isInter || isCrossShift) ? 'full' : selectedBlock,
-    fullDay: (isInter || isCrossShift),
-    crossShift: isCrossShift,
+    block: isInter ? 'full' : selectedBlock,
+    fullDay: isInter,
+    crossShift: false,
     blocksNextMorning: endsAfter22,
     blocksPrevNight: (mode === '5')
   };
