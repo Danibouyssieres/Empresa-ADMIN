@@ -15,13 +15,15 @@ assert(!html.includes('Recogidas entre 06:00 y 12:00 hrs según duración'), 'Su
 assert(!html.includes('Recogidas entre 14:00 y 20:00 hrs según duración'), 'Subtext must be removed for compact cards');
 console.log('✔ 1. Official shift hours verified and compact cards (without subtext) confirmed in Step 1.');
 
-// 2. Verify Midday special schedule text and WhatsApp link
-assert(html.includes('¿Requiere un horario especial de inicio entre las 12:00 y las 13:30 hrs (mediodía)?'), 'Special midday question present');
-assert(html.includes('Contáctenos directamente por WhatsApp para evaluar factibilidad operativa y coordinar una atención personalizada fuera de los bloques estándar.'), 'Special midday WhatsApp action present');
-assert(html.includes('56929990095'), 'WhatsApp number 56929990095 present');
-assert(html.includes('Hola%2C%20necesito%20consultar%20por%20factibilidad%20de%20un%20traslado%20en%20horario%20de%20mediod%C3%ADa.'), 'WhatsApp preconfigured message present');
-assert(html.includes('Consultar por WhatsApp'), 'Button label Consultar por WhatsApp present');
-console.log('✔ 2. Special midday schedule message and WhatsApp button verified.');
+// 2. Verify removal of Midday special schedule box and removal of percentage surcharges in calendar legend
+assert(!html.includes('¿Requiere un horario especial de inicio entre las 12:00 y las 13:30 hrs (mediodía)?'), 'Special midday box in Step 1 must be removed');
+assert(html.includes('<span><i class="lg-dot" style="background:#f59e0b"></i> Feriado</span>'), 'Legend must show "Feriado" without percentage');
+assert(html.includes('<span><i class="lg-dot" style="background:var(--teal)"></i> Fin de semana</span>'), 'Legend must show "Fin de semana" without percentage');
+const calLegendMatch = html.match(/<div class="cal-legend">([\s\S]*?)<\/div>/);
+const calLegendHtml = calLegendMatch ? calLegendMatch[1] : '';
+assert(!calLegendHtml.includes('(+50%)'), 'Percentage (+50%) must not be in calendar legend');
+assert(!calLegendHtml.includes('(+25%)'), 'Percentage (+25%) must not be in calendar legend');
+console.log('✔ 2. Midday box removed from Step 1 and calendar legend cleaned of surcharge percentages.');
 
 // 3. Mathematical validation of duration cap in Step 2
 // Extract BLOCK_HOURS and helper functions
