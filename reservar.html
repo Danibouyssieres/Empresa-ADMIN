@@ -309,7 +309,7 @@ footer a{color:#fff}
           <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche')">
             <div class="block-btn-top">
               <span class="block-btn-title">🌙 Turno Noche (22:00 a 04:00 hrs)</span>
-              <span id="badgeBlock_noche" class="block-badge ok">Exclusivo Cuidados y Eventos</span>
+              <span id="badgeBlock_noche" class="block-badge ok">Disponible (1 cupo)</span>
             </div>
             <div class="block-btn-reason" id="reasonBlock_noche" style="display:none"></div>
           </button>
@@ -511,54 +511,59 @@ footer a{color:#fff}
       <!-- =========================================================================
            HORARIO DE ATENCIÓN / RECOGIDA Y RESPALDO CLÍNICO TENS
            ========================================================================= -->
+      <!-- =========================================================================
+           SECCIÓN 2: HORARIO DE RECOGIDA Y DURACIÓN EN DOS COLUMNAS PARALELAS
+           ========================================================================= -->
       <div id="pickupScheduleSection" class="pickup-time-box" style="margin-top:22px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:start">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:stretch">
           
-          <!-- COLUMNA IZQUIERDA: ASISTENTE CLÍNICO DE RECOGIDA O SELECTOR DOMICILIARIO -->
-          <div>
-            <!-- MECANISMO DEFINITIVO PARA TRASLADOS (MODALIDADES 1, 2 Y 5): ASISTENTE DE HORA DE RECOGIDA -->
-            <div class="asistente-box" id="asistenteBox" style="padding:16px;border-radius:12px;background:var(--mist);border:1px solid var(--line)">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
-                <span style="font-weight:700;color:var(--teal);font-size:.95rem;display:flex;align-items:center;gap:6px">
-                  ⏱️ Asistente de Hora de Recogida Sugerida
-                </span>
-                <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo de salida clínico</span>
+          <!-- COLUMNA IZQUIERDA: ASISTENTE DE HORA DE RECOGIDA SUGERIDA (O SELECTOR DOMICILIARIO) -->
+          <div style="display:flex;flex-direction:column;justify-content:space-between">
+            <div>
+              <!-- MECANISMO DEFINITIVO PARA TRASLADOS (MODALIDADES 1, 2 Y 5): ASISTENTE DE HORA DE RECOGIDA -->
+              <div class="asistente-box" id="asistenteBox" style="padding:18px;border-radius:12px;background:var(--mist);border:1px solid var(--line);box-sizing:border-box">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+                  <span style="font-weight:700;color:var(--teal);font-size:.95rem;display:flex;align-items:center;gap:6px">
+                    ⏱️ Asistente de Hora de Recogida Sugerida
+                  </span>
+                  <span style="font-size:.76rem;background:var(--card);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Cálculo de salida clínico</span>
+                </div>
+                <p style="font-size:.84rem;color:var(--mute);margin:0 0 12px;line-height:1.45">
+                  ¿Tienes una cita médica o compromiso programado? Ingresa la hora fijada en destino y calculamos automáticamente tu hora oficial de recogida considerando el tiempo de ruta vehicular, 10 min de abordaje y valoración inicial por TENS y 20 min de margen previo para estacionar o admisión.
+                </p>
+                
+                <div style="margin-bottom:12px">
+                  <label for="appTimeInput" style="font-size:.84rem;font-weight:700;color:var(--ink);margin-bottom:6px;display:block">
+                    ¿A qué hora está programada tu cita médica o compromiso en destino?
+                  </label>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <select id="appTimeInput" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--card)"></select>
+                    <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
+                      🧭 Calcular Hora de Salida Sugerida
+                    </button>
+                  </div>
+                </div>
+
+                <!-- CONFIRMACIÓN DE HORA OFICIAL FIJADA (SIN MENÚ MANUAL ADICIONAL) -->
+                <div id="suggestedPickupCallout" class="callout-box" style="display:none;margin-top:12px;margin-bottom:0;background:rgba(22,143,74,.08);border-left:4px solid var(--wa)">
+                  <div id="suggestedPickupMsg" style="font-size:.88rem;color:var(--ink);line-height:1.5"></div>
+                  <div style="margin-top:8px;display:none">
+                    <button type="button" class="btn sm" id="btnApplySuggestedPickup" onclick="applySuggestedPickup()" style="font-size:.85rem;padding:7px 18px">
+                      ✅ Aplicar esta hora
+                    </button>
+                  </div>
+                </div>
               </div>
-              <p style="font-size:.84rem;color:var(--mute);margin:0 0 12px;line-height:1.45">
-                ¿Tienes una cita médica, trámite en notaría, banco o compromiso programado? Ingresa la hora fijada en destino y calculamos automáticamente tu hora oficial de recogida considerando el tiempo de ruta vehicular, 15 min de abordaje y valoración inicial por TENS y 20 min de margen previo para estacionar o admisión.
-              </p>
-              
-              <div style="margin-bottom:12px">
-                <label for="appTimeInput" style="font-size:.84rem;font-weight:700;color:var(--ink);margin-bottom:6px;display:block">
-                  ¿A qué hora está programada tu cita médica o compromiso en destino?
+
+              <!-- MECANISMO PARA CUIDADOS A DOMICILIO (MODALIDAD 3 Y EVENTOS 4 SIN TRASLADO): SELECTOR SIMPLE -->
+              <div id="homeTimeWrap" style="display:none;padding:18px;border-radius:12px;background:var(--mist);border:1px solid var(--line);box-sizing:border-box">
+                <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700;display:block;margin-bottom:6px">
+                  Hora de inicio de la atención en el domicilio *
                 </label>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                  <select id="appTimeInput" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--card)"></select>
-                  <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
-                    🧭 Calcular Hora de Salida Sugerida
-                  </button>
-                </div>
+                <select id="b_time" onchange="onPickupTimeChange()" disabled style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--card);border:1.5px solid var(--line);border-radius:10px">
+                  <option value="">Primero seleccione un turno arriba</option>
+                </select>
               </div>
-
-              <!-- CONFIRMACIÓN DE HORA OFICIAL FIJADA (SIN MENÚ MANUAL ADICIONAL) -->
-              <div id="suggestedPickupCallout" class="callout-box" style="display:none;margin-top:12px;margin-bottom:0;background:rgba(22,143,74,.08);border-left:4px solid var(--wa)">
-                <div id="suggestedPickupMsg" style="font-size:.88rem;color:var(--ink);line-height:1.5"></div>
-                <div style="margin-top:8px;display:none">
-                  <button type="button" class="btn sm" id="btnApplySuggestedPickup" onclick="applySuggestedPickup()" style="font-size:.85rem;padding:7px 18px">
-                    ✅ Aplicar esta hora
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- MECANISMO PARA CUIDADOS A DOMICILIO (MODALIDAD 3 Y EVENTOS 4 SIN TRASLADO): SELECTOR SIMPLE -->
-            <div id="homeTimeWrap" style="display:none;padding:16px;border-radius:12px;background:var(--mist);border:1px solid var(--line)">
-              <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700;display:block;margin-bottom:6px">
-                Hora de inicio de la atención en el domicilio *
-              </label>
-              <select id="b_time" onchange="onPickupTimeChange()" disabled style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--card);border:1.5px solid var(--line);border-radius:10px">
-                <option value="">Primero seleccione un turno arriba</option>
-              </select>
             </div>
 
             <div id="lblEstimatedWindow" style="font-size:.83rem;color:var(--mute);margin-top:6px"></div>
@@ -566,19 +571,98 @@ footer a{color:#fff}
             <div id="availStatus" class="status-box ok" style="margin-top:10px"></div>
           </div>
 
-          <!-- COLUMNA DERECHA: INSIGNIA DE CALIDAD FIJA -->
-          <div>
+          <!-- COLUMNA DERECHA: PERMANENCIA EN DESTINO Y DURACIÓN DEL SERVICIO -->
+          <div style="padding:18px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);display:flex;flex-direction:column;justify-content:space-between">
             <input type="hidden" id="b_tens" value="t1">
-            <div style="padding:16px 18px;border-radius:12px;background:rgba(15,118,110,.06);border:1px solid rgba(15,118,110,.2);display:flex;align-items:flex-start;gap:12px">
-              <span style="font-size:1.35rem;line-height:1;color:var(--teal);flex-shrink:0">🩺</span>
-              <div>
-                <p style="margin:0;font-size:.88rem;color:var(--ink);line-height:1.45;font-weight:600">
-                  ✓ Atención ejecutada por TENS acreditado con equipamiento clínico completo (oximetría, glicemia, presión arterial y ayudas técnicas).
-                </p>
-                <p style="margin:6px 0 0;font-size:.8rem;color:var(--mute);line-height:1.4">
-                  Garantía de respaldo asistencial, monitoreo preventivo de signos y resguardo constante de bienestar y seguridad del paciente.
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+                <span id="timeSectionTitle" style="font-weight:700;color:var(--teal);font-size:.95rem;display:flex;align-items:center;gap:6px">
+                  ⏱️ Permanencia en Destino y Duración del Servicio
+                </span>
+                <span style="font-size:.76rem;background:var(--mist);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Mínimo 1 hora · Bloques de 30 min</span>
+              </div>
+              <p id="timeSectionSub" style="font-size:.84rem;color:var(--mute);margin:0 0 12px;line-height:1.45">
+                Indique cuánto tiempo estima permanecer en el lugar de atención o trámite. El sistema calculará automáticamente la duración total del viaje continuo sumando los traslados y el abordaje clínico.
+              </p>
+
+              <!-- SELECTOR DE PROGRAMA INTERREGIONAL (EXCLUSIVO MODALIDAD 5: 2 TARJETAS) -->
+              <div id="interProgSelectorWrap" style="display:none;margin-bottom:12px">
+                <label style="font-size:.84rem;font-weight:700;color:var(--ink);margin-bottom:6px;display:block">1. Selección de Programa:</label>
+                <div class="rate-pill-bar" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+                  <div id="pillProg_4" class="rate-pill active" onclick="setInterProgram(4)">
+                    <strong>Programa Interregional Estándar</strong>
+                    <small>Hasta 4 horas de permanencia/asistencia en destino</small>
+                    <div class="rp-val">$250.000</div>
+                  </div>
+                  <div id="pillProg_6" class="rate-pill" onclick="setInterProgram(6)">
+                    <strong>Programa Crónico / Oncológico</strong>
+                    <small>Hasta 6 horas de cobertura continua (ideal quimioterapias, diálisis o cirugías)</small>
+                    <div class="rp-val">$300.000</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SELECTOR DE PERMANENCIA EN DESTINO (MODALIDAD 1 Y 2) -->
+              <div id="durationBox12">
+                <label for="selStayDestino" id="lblStayDestino" style="font-weight:700;color:var(--ink);font-size:.88rem;margin-bottom:6px;display:block">
+                  ¿Cuánto estimas que durará tu atención, trámite o actividad en el lugar? *
+                </label>
+                <select id="selStayDestino" onchange="onStayDestinoChange()" style="padding:10px 14px;font-size:.92rem;background:var(--mist);border-radius:10px;border:1.5px solid var(--line);width:100%">
+                  <option value="60" selected>1 hora (Consulta estándar / Trámite breve / Compras - Base mínima)</option>
+                  <option value="90">1 hora 30 min (Notaría / Trámites bancarios / Consulta con exámenes)</option>
+                  <option value="120">2 horas (Procedimiento ambulatorio / Diligencias públicas extensas)</option>
+                  <option value="150">2 horas 30 min (Gestiones combinadas)</option>
+                  <option value="180">3 horas o más (Tratamientos médicos prolongados / Jornadas extensas)</option>
+                  <option value="210">3 horas 30 min (Atención médica de alta complejidad / Trámites múltiples)</option>
+                  <option value="240">4 horas (Procedimiento clínico quirúrgico ambulatorio extenso)</option>
+                </select>
+                <p style="font-size:.8rem;color:var(--mute);margin:8px 0 0;line-height:1.4">
+                  💡 <b>Cálculo del Servicio Completo:</b> El sistema suma este tiempo en destino con los minutos de traslado de ida (+ 10 min de abordaje inicial TENS) y el viaje de retorno al hogar.
                 </p>
               </div>
+
+              <!-- COMBOBOX DE HORAS Y MINUTOS HABILITADO PARA MODALIDAD 3, 4 Y 5 -->
+              <div id="durationBox34" class="grid" style="display:none;margin-top:8px">
+                <div id="eventStartCol" style="display:none">
+                  <label for="selEventStart1" style="font-size:.84rem;font-weight:700">Hora de inicio del evento (cruza 20:00 = proporcional)</label>
+                  <select id="selEventStart1" onchange="onEventStart1Change()">
+                    <option value="06:00">06:00 hrs (Turno Mañana)</option>
+                    <option value="07:00">07:00 hrs (Turno Mañana)</option>
+                    <option value="08:00">08:00 hrs (Turno Mañana)</option>
+                    <option value="14:00">14:00 hrs (Turno Tarde)</option>
+                    <option value="15:00">15:00 hrs (Turno Tarde)</option>
+                    <option value="16:00" selected>16:00 hrs (Turno Tarde)</option>
+                    <option value="16:30">16:30 hrs (Cruza 20:00 hrs → Proporcional)</option>
+                    <option value="17:00">17:00 hrs (Cruza 20:00 hrs → Proporcional)</option>
+                    <option value="17:30">17:30 hrs (Cruza 20:00 hrs → Proporcional)</option>
+                    <option value="20:00">20:00 hrs (Horario Especial Nocturno)</option>
+                    <option value="22:00">22:00 hrs (Turno Noche)</option>
+                  </select>
+                </div>
+                <div id="hours34Col">
+                  <label for="selHours34" id="lblHours34" style="font-size:.84rem;font-weight:700">Cantidad de horas de asistencia (mínimo 2 horas)</label>
+                  <select id="selHours34" onchange="onHours34Change()">
+                    <option value="2" selected>2 horas (Plan Base)</option>
+                    <option value="3">3 horas</option>
+                    <option value="4">4 horas</option>
+                    <option value="5">5 horas</option>
+                    <option value="6">6 horas (Tope)</option>
+                  </select>
+                </div>
+                <div id="mins34Col">
+                  <label for="selMins34" id="lblMins34" style="font-size:.84rem;font-weight:700">Bloque adicional de 30 minutos (50% valor hora)</label>
+                  <select id="selMins34" onchange="onHours34Change()">
+                    <option value="0" selected>+ 0 minutos (sin bloque adicional)</option>
+                    <option value="30">+ 30 minutos extra (1/2 hora)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- RESUMEN DEL VALOR DEL TIEMPO SELECCIONADO -->
+            <div style="margin-top:14px;padding:10px 14px;background:var(--mist);border:1px solid var(--line);border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+              <span id="lblTimeSummaryDesc" style="font-size:.88rem">Valor según selección (1 h · Jornada Hábil):</span>
+              <strong id="lblTimeSummaryVal" style="font-size:1.1rem;color:var(--teal)">$12.000</strong>
             </div>
           </div>
 
@@ -586,127 +670,41 @@ footer a{color:#fff}
       </div>
 
       <!-- =========================================================================
-           SUB-SECCIÓN DE HORARIO / DURACIÓN Y TIEMPO DE ASISTENCIA
+           BLOQUE INFERIOR A ANCHO COMPLETO (DEBAJO DE AMBAS COLUMNAS)
            ========================================================================= -->
-      <div class="time-calc-section">
-        <h3 id="timeSectionTitle">⏱️ Duración y Tiempo de Asistencia (Mínimo 1 hora · Bloques extra de 30 min)</h3>
-        <p id="timeSectionSub" style="font-size:.88rem;color:var(--mute);margin-bottom:12px">
-          Seleccione la cantidad de horas y minutos requeridos para su atención. Cada bloque adicional de 30 minutos se calcula a la mitad del valor hora de su jornada.
-        </p>
-
-        <!-- SELECTOR DE PROGRAMA INTERREGIONAL (EXCLUSIVO MODALIDAD 5: 2 TARJETAS) -->
-        <div id="interProgSelectorWrap" style="display:none">
-          <label>1. Selección de Programa:</label>
-          <div class="rate-pill-bar" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
-            <div id="pillProg_4" class="rate-pill active" onclick="setInterProgram(4)">
-              <strong>Programa Interregional Estándar</strong>
-              <small>Hasta 4 horas de permanencia/asistencia en destino</small>
-              <div class="rp-val">$250.000</div>
-            </div>
-            <div id="pillProg_6" class="rate-pill" onclick="setInterProgram(6)">
-              <strong>Programa Crónico / Oncológico</strong>
-              <small>Hasta 6 horas de cobertura continua (ideal quimioterapias, diálisis o cirugías)</small>
-              <div class="rp-val">$300.000</div>
-            </div>
+      <!-- CRONOGRAMA ESTIMADO DEL SERVICIO COMPLETO (MODALIDAD 1 Y 2) -->
+      <div id="serviceTimelineBox" style="margin-top:18px;padding:16px 18px;background:var(--card);border:1.5px solid var(--sage);border-radius:12px">
+        <div style="font-weight:700;color:var(--teal);font-size:.95rem;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+          <span>⏱️ Cronograma Estimado del Servicio Completo</span>
+          <span style="font-size:.78rem;background:rgba(22,143,74,.12);color:#12783E;padding:3px 10px;border-radius:999px;font-weight:700">Ida + Espera en Destino + Retorno</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:12px;font-size:.88rem">
+          <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
+            <small style="color:var(--mute);display:block;margin-bottom:2px">Hora de recogida programada:</small>
+            <b id="tlHoraRecogida" style="color:var(--teal);font-size:1.1rem">08:30 hrs</b>
+          </div>
+          <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
+            <small style="color:var(--mute);display:block;margin-bottom:2px">Permanencia estimada en destino:</small>
+            <b id="tlTiempoDestino" style="color:var(--ink);font-size:1.1rem">1 hora</b>
+          </div>
+          <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
+            <small style="color:var(--mute);display:block;margin-bottom:2px">Hora estimada de retorno al hogar:</small>
+            <b id="tlHoraRetorno" style="color:#168F4A;font-size:1.1rem">10:40 hrs</b>
+          </div>
+          <div style="padding:10px 12px;background:rgba(22,143,74,.08);border-radius:8px;border:1px solid var(--wa)">
+            <small style="color:var(--mute);display:block;margin-bottom:2px">Total horas efectivas a liquidar y reservar:</small>
+            <b id="tlHorasEfectivas" style="color:#168F4A;font-size:1.1rem">2 h y 30 min (150 min)</b>
           </div>
         </div>
-
-        <!-- SELECTOR DE PERMANENCIA EN DESTINO (MODALIDAD 1 Y 2) -->
-        <div id="durationBox12">
-          <label for="selStayDestino" id="lblStayDestino" style="font-weight:700;color:var(--teal);font-size:.95rem;margin-bottom:6px;display:block">
-            ¿Cuánto estimas que durará tu atención, trámite o actividad en el lugar? *
-          </label>
-          <select id="selStayDestino" onchange="onStayDestinoChange()" style="padding:10px 14px;font-size:.95rem;background:var(--card);border-radius:10px;border:1.5px solid var(--line);width:100%">
-            <option value="60" selected>1 hora (Consulta estándar / Trámite breve / Compras - Base mínima)</option>
-            <option value="90">1 hora 30 min (Notaría / Trámites bancarios / Consulta con exámenes)</option>
-            <option value="120">2 horas (Procedimiento ambulatorio / Diligencias públicas extensas)</option>
-            <option value="150">2 horas 30 min (Gestiones combinadas)</option>
-            <option value="180">3 horas o más (Tratamientos médicos prolongados / Jornadas extensas)</option>
-            <option value="210">3 horas 30 min (Atención médica de alta complejidad / Trámites múltiples)</option>
-            <option value="240">4 horas (Procedimiento clínico quirúrgico ambulatorio extenso)</option>
-          </select>
-          <p style="font-size:.83rem;color:var(--mute);margin:8px 0 0;line-height:1.45">
-            💡 <b>Cálculo del Servicio Completo:</b> El sistema suma este tiempo en destino con los minutos de traslado de ida (+ 15 min de abordaje inicial TENS) y el viaje de retorno al hogar.
-          </p>
+        <div id="tlDesgloseDetalle" style="font-size:.83rem;color:var(--mute);line-height:1.5;border-top:1px dashed var(--line);padding-top:10px">
+          Fórmula del servicio: 30 min viaje ida + 10 min abordaje TENS + 60 min en destino + 30 min viaje retorno = 130 min continuos estimados → 2 h y 30 min efectivos a liquidar y reservar (bloques de 30 min).
         </div>
+      </div>
 
-        <!-- CRONOGRAMA Y RESUMEN DEL SERVICIO COMPLETO (MODALIDAD 1 Y 2) -->
-        <div id="serviceTimelineBox" style="margin-top:16px;padding:16px 18px;background:var(--card);border:1.5px solid var(--sage);border-radius:12px">
-          <div style="font-weight:700;color:var(--teal);font-size:.95rem;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
-            <span>⏱️ Cronograma Estimado del Servicio Completo</span>
-            <span style="font-size:.78rem;background:rgba(22,143,74,.12);color:#12783E;padding:3px 10px;border-radius:999px;font-weight:700">Ida + Espera en Destino + Retorno</span>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:12px;font-size:.88rem">
-            <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-              <small style="color:var(--mute);display:block;margin-bottom:2px">Hora de recogida programada:</small>
-              <b id="tlHoraRecogida" style="color:var(--teal);font-size:1.1rem">08:30 hrs</b>
-            </div>
-            <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-              <small style="color:var(--mute);display:block;margin-bottom:2px">Permanencia estimada en destino:</small>
-              <b id="tlTiempoDestino" style="color:var(--ink);font-size:1.1rem">1 hora</b>
-            </div>
-            <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-              <small style="color:var(--mute);display:block;margin-bottom:2px">Hora estimada de retorno al hogar:</small>
-              <b id="tlHoraRetorno" style="color:#168F4A;font-size:1.1rem">10:45 hrs</b>
-            </div>
-            <div style="padding:10px 12px;background:rgba(22,143,74,.08);border-radius:8px;border:1px solid var(--wa)">
-              <small style="color:var(--mute);display:block;margin-bottom:2px">Total horas efectivas a liquidar y reservar:</small>
-              <b id="tlHorasEfectivas" style="color:#168F4A;font-size:1.1rem">2 h y 30 min (150 min)</b>
-            </div>
-          </div>
-          <div id="tlDesgloseDetalle" style="font-size:.83rem;color:var(--mute);line-height:1.5;border-top:1px dashed var(--line);padding-top:10px">
-            Fórmula del servicio: 30 min viaje ida + 15 min abordaje TENS + 60 min en destino + 30 min viaje retorno = 135 min continuos estimados → 2 h y 30 min efectivos a liquidar y reservar (bloques de 30 min).
-          </div>
-        </div>
-
-        <!-- COMBOBOX DE HORAS Y MINUTOS HABILITADO PARA MODALIDAD 3, 4 Y 5 -->
-        <div id="durationBox34" class="grid" style="display:none">
-          <div id="eventStartCol" style="display:none">
-            <label for="selEventStart1">Hora de inicio del evento (cruza 20:00 = proporcional)</label>
-            <select id="selEventStart1" onchange="onEventStart1Change()">
-              <option value="06:00">06:00 hrs (Turno Mañana)</option>
-              <option value="07:00">07:00 hrs (Turno Mañana)</option>
-              <option value="08:00">08:00 hrs (Turno Mañana)</option>
-              <option value="14:00">14:00 hrs (Turno Tarde)</option>
-              <option value="15:00">15:00 hrs (Turno Tarde)</option>
-              <option value="16:00" selected>16:00 hrs (Turno Tarde)</option>
-              <option value="16:30">16:30 hrs (Cruza 20:00 hrs → Proporcional)</option>
-              <option value="17:00">17:00 hrs (Cruza 20:00 hrs → Proporcional)</option>
-              <option value="17:30">17:30 hrs (Cruza 20:00 hrs → Proporcional)</option>
-              <option value="20:00">20:00 hrs (Horario Especial Nocturno)</option>
-              <option value="22:00">22:00 hrs (Turno Noche)</option>
-            </select>
-          </div>
-          <div id="hours34Col">
-            <label for="selHours34" id="lblHours34">Cantidad de horas de asistencia (mínimo 2 horas)</label>
-            <select id="selHours34" onchange="onHours34Change()">
-              <option value="2" selected>2 horas (Plan Base)</option>
-              <option value="3">3 horas</option>
-              <option value="4">4 horas</option>
-              <option value="5">5 horas</option>
-              <option value="6">6 horas (Tope)</option>
-            </select>
-          </div>
-          <div id="mins34Col">
-            <label for="selMins34" id="lblMins34">Bloque adicional de 30 minutos (50% valor hora)</label>
-            <select id="selMins34" onchange="onHours34Change()">
-              <option value="0" selected>+ 0 minutos (sin bloque adicional)</option>
-              <option value="30">+ 30 minutos extra (1/2 hora)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- NOTA DE RESPALDO ANTE DEMORAS -->
-        <div id="maxDurationNotice" class="callout-box" style="margin-top:14px;margin-bottom:14px;border-left:4px solid var(--wa);background:rgba(22,143,74,.06)">
-          🛡️ <b>Garantía de acompañamiento y espera:</b> Sabemos que las consultas de salud, filas en notarías o gestiones pueden extenderse de forma imprevista. Tu profesional TENS y el móvil te esperarán todo el tiempo necesario. Cualquier sobretiempo que exceda la reserva se regularizará al volver al hogar en bloques de 30 minutos según la tarifa horaria correspondiente.<br>
-          <small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>
-        </div>
-
-        <!-- RESUMEN DEL VALOR DEL TIEMPO SELECCIONADO -->
-        <div style="margin-top:14px;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-          <span id="lblTimeSummaryDesc" style="font-size:.94rem">Valor según selección (1 h · Jornada Hábil):</span>
-          <strong id="lblTimeSummaryVal" style="font-size:1.15rem;color:var(--teal)">$12.000</strong>
-        </div>
+      <!-- NOTA DE RESPALDO ANTE DEMORAS -->
+      <div id="maxDurationNotice" class="callout-box" style="margin-top:14px;margin-bottom:14px;border-left:4px solid var(--wa);background:rgba(22,143,74,.06)">
+        🛡️ <b>Garantía de acompañamiento y espera:</b> Sabemos que las consultas de salud, filas en notarías o gestiones pueden extenderse de forma imprevista. Tu profesional TENS y el móvil te esperarán todo el tiempo necesario. Cualquier sobretiempo que exceda la reserva se regularizará al volver al hogar en bloques de 30 minutos según la tarifa horaria correspondiente.<br>
+        <small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>
       </div>
 
       <!-- =========================================================================
@@ -947,7 +945,7 @@ footer a{color:#fff}
 
       <div style="margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
         <a class="btn ghost" href="index.html">Cancelar</a>
-        <button type="submit" id="submitBtn" class="btn" style="font-size:1.05rem;padding:14px 30px">📅 Confirmar y Abonar</button>
+        <button type="submit" id="submitBtn" class="btn" style="font-size:1.05rem;padding:14px 30px">💬 Solicitar Pre-Reserva vía WhatsApp</button>
       </div>
     </section>
   </form>
@@ -1675,7 +1673,7 @@ function applyMaxDurationRule(){
   if(selStay && (mode === '1' || mode === '2')){
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
-    const abordajeMin = 15;
+    const abordajeMin = 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
     const travelMin = idaMin + abordajeMin + retornoMin;
     const maxStayAllowed = Math.max(60, 360 - travelMin);
@@ -1806,7 +1804,7 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   if($('#tlHoraRetorno')) $('#tlHoraRetorno').textContent = `${fm(retornoHogarMin % 1440)} hrs`;
   if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(billedMin)} (${billedMin} min)`;
 
-  const formulaDesc = `Fórmula del servicio: ${idaMin} min viaje ida + 15 min abordaje TENS + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`;
+  const formulaDesc = `Fórmula del servicio: ${idaMin} min viaje ida + ${abordajeMin} min abordaje TENS + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`;
 
   if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
 }
@@ -1818,7 +1816,7 @@ function getSelectedTotalMinutes(){
     const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
-    const abordajeMin = 15;
+    const abordajeMin = 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
     const rawTotalMin = (idaMin + abordajeMin) + stayMin + retornoMin;
     const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
@@ -1864,7 +1862,7 @@ function recalcAll(){
     const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
-    const abordajeMin = 15;
+    const abordajeMin = 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
     const rawTotalMin = (idaMin + abordajeMin) + stayMin + retornoMin;
     const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
@@ -2944,15 +2942,13 @@ function evaluateDateCapacity(dateStr){
 function findFirstAvailableDate(){
   const { todayStr } = getBookingWindowBounds();
   const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
-  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  const allowsNight = (mode === '3' || mode === '4');
 
   for(let i = 1; i <= 30; i++){
     const dStr = addDaysYMD(todayStr, i);
     const ev = evaluateDateCapacity(dStr);
     if(!ev.inRange) continue;
     if(isInter && ev.interregional.available) return dStr;
-    if(!isInter && (ev.manana.available || ev.tarde.available || (allowsNight && ev.noche.available))) return dStr;
+    if(!isInter && (ev.manana.available || ev.tarde.available || ev.noche.available)) return dStr;
   }
   return addDaysYMD(todayStr, 1);
 }
@@ -3010,10 +3006,6 @@ function selectShiftBlock(blockId){
     }
     selectedBlock = 'manana';
   } else if(blockId === 'noche'){
-    if(mode !== '3' && mode !== '4'){
-      alert('El Turno Noche (22:00 a 04:00 hrs) está habilitado exclusivamente para las modalidades "3. Cuidados a Domicilio" y "4. Acompañamiento en Eventos Sociales".\n\nLos traslados vehiculares (Servicio Integral y Traslado con Espera) operan exclusivamente en jornada diurna (06:00 a 20:00 hrs).');
-      return;
-    }
     if(!ev.noche.available){
       alert(`El Turno Noche no se encuentra disponible para el ${formatHumanDate(dateStr)}: ${ev.noche.reason || 'Sin cupos disponibles'}.`);
       return;
@@ -3217,7 +3209,6 @@ function updateSlots(keepCurrentTime = false){
   D = load() || D;
   const mode = $('#b_svc_type').value;
   const isInter = mode === '5';
-  const allowsNight = (mode === '3' || mode === '4');
 
   $('#lblCapBadge').textContent = `Capacidad activa: ${capacidadSimultanea} ${capacidadSimultanea === 1 ? 'unidad' : 'unidades'}`;
 
@@ -3236,13 +3227,11 @@ function updateSlots(keepCurrentTime = false){
   // Si la modalidad cambió o el bloque elegido quedó sin cupo en esta fecha, auto-ajustar bloque
   if(isInter){
     selectedBlock = 'manana';
-  } else if(!allowsNight && selectedBlock === 'noche'){
-    selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
   } else if(selectedBlock && ev.inRange){
     if(selectedBlock === 'manana' && !ev.manana.available){
-      selectedBlock = ev.tarde.available ? 'tarde' : (allowsNight && ev.noche.available ? 'noche' : null);
+      selectedBlock = ev.tarde.available ? 'tarde' : (ev.noche.available ? 'noche' : null);
     } else if(selectedBlock === 'tarde' && !ev.tarde.available){
-      selectedBlock = ev.manana.available ? 'manana' : (allowsNight && ev.noche.available ? 'noche' : null);
+      selectedBlock = ev.manana.available ? 'manana' : (ev.noche.available ? 'noche' : null);
     } else if(selectedBlock === 'noche' && !ev.noche.available){
       selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
     }
@@ -3313,35 +3302,8 @@ function updateSlots(keepCurrentTime = false){
       reasonN.style.display = 'block';
       reasonN.textContent = '🔒 Programa Interregional opera exclusivamente en jornada diurna completa (05:00 a 20:00).';
     }
-  } else if(!allowsNight){
-    // Modalidades 1 y 2 (Traslados vehiculares): Turno Noche exclusivo para cuidados y eventos
-    const okM = ev.inRange && ev.manana.available;
-    const okT = ev.inRange && ev.tarde.available;
-
-    btnM.disabled = !okM;
-    btnM.classList.toggle('active', okM && selectedBlock === 'manana');
-    badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
-    badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : 'Agotado';
-    reasonM.style.display = okM ? 'none' : 'block';
-    reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
-
-    btnT.disabled = !okT;
-    btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
-    badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
-    badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : 'Agotado';
-    reasonT.style.display = okT ? 'none' : 'block';
-    reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
-
-    if(btnN){
-      btnN.disabled = true;
-      btnN.classList.remove('active');
-      badgeN.className = 'block-badge occ';
-      badgeN.textContent = 'Exclusivo Cuidados y Eventos';
-      reasonN.style.display = 'block';
-      reasonN.textContent = '🔒 Traslados vehiculares operan exclusivamente en jornada diurna (06:00 a 20:00). Turno Noche habilitado solo para Cuidados a Domicilio y Eventos Sociales.';
-    }
   } else {
-    // Modalidades 3 y 4 (Cuidados a Domicilio y Eventos Sociales): Todos los turnos disponibles según capacidad
+    // Todos los turnos disponibles según capacidad de la fecha
     const okM = ev.inRange && ev.manana.available;
     const okT = ev.inRange && ev.tarde.available;
     const okN = ev.inRange && ev.noche.available;
@@ -3398,8 +3360,8 @@ function updateSlots(keepCurrentTime = false){
     if(estWindow) estWindow.textContent = '';
     if(nightNotice) nightNotice.style.display = 'none';
     if(stBox){
-      stBox.className = 'status-box';
-      stBox.innerHTML = `<span>👉 <b>Paso 1:</b> Por favor seleccione un turno (Mañana, Tarde o Noche) en la Sección 1 para ver los horarios disponibles.</span>`;
+      stBox.style.display = 'none';
+      stBox.innerHTML = '';
     }
     if(submitAlert) submitAlert.style.display = 'none';
     return;
@@ -3614,12 +3576,12 @@ function calcSuggestedPickup(){
   const appTimeMin = tm(appTimeStr);
   const routeMin = lastRouteIdaMin;
 
-  const margenAbordaje = 15; // 15 min abordaje vehicular y valoración inicial TENS
+  const margenAbordaje = 10; // 10 min abordaje vehicular y valoración inicial TENS
   const margenAdmision = 20; // 20 min margen para estacionar, mesón o filas
-  const anticipacionFija = margenAbordaje + margenAdmision; // 35 min
+  const anticipacionFija = margenAbordaje + margenAdmision; // 30 min
   const totalAnticipacionExacta = routeMin + anticipacionFija;
 
-  // Hora exacta matemática de salida = Hora Compromiso - (tiempoRutaMinutos + 20 min + 15 min)
+  // Hora exacta matemática de salida = Hora Compromiso - (tiempoRutaMinutos + 20 min + 10 min)
   const rawPickupMin = appTimeMin - totalAnticipacionExacta;
   const horaExactaSalidaStr = fm(rawPickupMin < 0 ? (rawPickupMin + 1440) : rawPickupMin);
 
@@ -3810,13 +3772,13 @@ function calcSuggestedPickup(){
     <div style="font-size:.85rem;color:var(--ink);line-height:1.45">
       Para asegurar su llegada puntual a su cita o compromiso de las <b>${appTimeStr} hrs</b> en destino, su hora oficial de recogida queda fijada a las <b>${targetSlotStr} hrs</b> y se ha vinculado automáticamente al <b>${blockHuman}</b>.<br>
       <span style="color:var(--mute);font-size:.8rem;display:block;margin-top:4px">
-        🔒 <i>Horario fijado por protocolo clínico preventivo (${routeMin} min ruta vehicular + 15 min abordaje TENS + 20 min margen previo para admisión o estacionamiento). No modificable manualmente para proteger su puntualidad médica.</i>
+        🔒 <i>Horario fijado por protocolo clínico preventivo (${routeMin} min ruta vehicular + 10 min abordaje TENS + 20 min margen previo para admisión o estacionamiento). No modificable manualmente para proteger su puntualidad médica.</i>
       </span>
     </div>
     <div style="margin-top:8px;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--line);font-size:.81rem;line-height:1.45">
       <b>Desglose del cálculo preventivo:</b><br>
       • <b>${routeMin} min</b> de traslado en ruta vehicular.<br>
-      • <b>+ 15 min</b> de abordaje y valoración inicial por TENS.<br>
+      • <b>+ 10 min</b> de abordaje y valoración inicial por TENS.<br>
       • <b>+ 20 min</b> de margen previo para estacionar o admisión.<br>
       → <b>Cálculo exacto de salida:</b> ${appTimeStr} hrs − ${totalAnticipacionExacta} min = <b>${horaExactaSalidaStr} hrs</b>.<br>
       ${ajusteAgendaTexto}
@@ -4181,7 +4143,7 @@ async function submitBooking(ev){
     : `• Documento Tributario: Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)\n`;
 
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};
-  const waText = `Hola, acabo de agendar una hora en la web (Reserva #MSA-${newId}).\n` +
+  const waText = `Hola, deseo solicitar una Pre-Reserva vía WhatsApp (Folio #MSA-${newId}):\n` +
     `• Modalidad: ${svcName}\n` +
     (mode === '4'
       ? `• Formato y Plan: ${durationText}\n• Tarifa: Plana paquetizada cerrada para toda la RM\n`
@@ -4210,6 +4172,9 @@ async function submitBooking(ev){
     taxDocWa +
     `Adjunto comprobante del abono del 50% (${$c(lastAbono50)}) transferido a Scotiabank Cta Cte 994989122.`;
   const waUrl = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waText)}`;
+  try {
+    window.open(waUrl, '_blank');
+  } catch(e) {}
 
   $('#mainContent').innerHTML = `
     <section class="card" style="text-align:center;padding:36px 24px">

@@ -196,6 +196,8 @@ const { ctx, elements, getAlerts, clearAlerts } = env;
 const getVar = (name) => vm.runInContext(name, ctx);
 const setVar = (name, val) => vm.runInContext(`${name} = ${JSON.stringify(val)}`, ctx);
 
+elements['b_date'].value = '2026-11-15';
+
 // 1. Verificar estado inicial: sin turno seleccionado
 console.log('1. Verificando estado inicial (sin turno seleccionado):');
 ctx.updateSlots();

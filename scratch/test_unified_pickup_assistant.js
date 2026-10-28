@@ -27,8 +27,12 @@ assert(html.includes('id="homeTimeWrap"'), 'homeTimeWrap element present');
 assert(html.includes('Hora de inicio de la atención en el domicilio *'), 'Single home care selector label present');
 console.log('✔ 4. Modalidad 3 has single clean selector "Hora de inicio de la atención en el domicilio *".');
 
-// 5. Verify fixed quality badge
-assert(html.includes('✓ Atención ejecutada por TENS acreditado con equipamiento clínico completo'), 'Fixed clinical quality badge present');
-console.log('✔ 5. Fixed quality badge present on the right column.');
+// 5. Verify removal of filler card and presence of parallel 2-column layout
+assert(!html.includes('✓ Atención ejecutada por TENS acreditado con equipamiento clínico completo'), 'Old filler quality card must be completely removed');
+assert(html.includes('⏱️ Permanencia en Destino y Duración del Servicio'), 'Right column must contain Permanencia en Destino');
+assert(html.includes('¿Cuánto estimas que durará tu atención, trámite o actividad en el lugar? *'), 'Stay duration question present');
+assert(html.includes('10 min de abordaje y valoración inicial por TENS'), 'Clinical timing updated to 10 min TENS boarding');
+assert(html.includes('💬 Solicitar Pre-Reserva vía WhatsApp'), 'Submit button updated to Solicitar Pre-Reserva vía WhatsApp');
+console.log('✔ 5. Parallel 2-column layout, 10 min clinical timing and WhatsApp pre-reservation button verified.');
 
 console.log('\nAll unified pickup assistant tests passed successfully! 🚀');
