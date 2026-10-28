@@ -249,11 +249,27 @@ footer a{color:#fff}
   <form id="bookingForm" onsubmit="submitBooking(event)">
 
     <!-- =========================================================================
-         SECCIÓN 1: FECHA Y BLOQUE DE TURNO (AGENDA)
+         SECCIÓN 1: MODALIDAD DE SERVICIO, FECHA Y BLOQUE DE TURNO (AGENDA)
          ========================================================================= -->
     <section class="card" id="secAgenda">
-      <span class="step-tag">Sección 1 de 4 · Fecha y Bloque de Turno</span>
-      <h2>1. Seleccione la fecha y turno general en agenda</h2>
+      <span class="step-tag">Sección 1 de 4 · Modalidad, Fecha y Bloque de Turno</span>
+      <h2>1. Seleccione la modalidad de servicio, fecha y turno general en agenda</h2>
+
+      <!-- SELECTOR DE MODALIDAD DE SERVICIO PRINCIPAL -->
+      <div class="full-modality-bar" style="margin-bottom:18px">
+        <label for="b_svc_type">Modalidad de Servicio Principal *</label>
+        <select id="b_svc_type" required onchange="onServiceTypeChange()">
+          <option value="1">1. Servicio Integral (Asistencia + Traslado)</option>
+          <option value="2">2. Traslado Exclusivo con Espera</option>
+          <option value="3">3. Cuidados a Domicilio</option>
+          <option value="4">4. Acompañamiento en Eventos Sociales</option>
+          <option value="5">5. Programas Interregionales</option>
+        </select>
+        <div id="interregionalBlockWarn" class="rule-alert" style="display:none;margin-top:8px">
+          ⚠️ Los Programas Interregionales (Valparaíso / O'Higgins) contemplan entre 4 y 6 horas de permanencia más traslados de larga distancia, por lo que únicamente pueden iniciarse en el Turno Mañana.
+        </div>
+      </div>
+
       <p style="font-size:.9rem;color:var(--mute);margin-bottom:12px">
         Para garantizar puntualidad clínica, sin retrasos acumulados ni sobrecarga, operamos con un tope de <b>2 bloques diarios por unidad</b>. Reservas con <b>mínimo 24 horas de anticipación</b> y hasta <b>30 días corridos</b> hacia adelante.
       </p>
@@ -322,11 +338,11 @@ footer a{color:#fff}
     </section>
 
     <!-- =========================================================================
-         SECCIÓN 2: MODALIDAD (DE EXTREMO A EXTREMO), DIRECCIÓN/MAPA, TIEMPO Y TOTAL
+         SECCIÓN 2: TARIFA, RUTA EN MAPA, DURACIÓN Y HORA DE RECOGIDA
          ========================================================================= -->
     <section class="card" id="secModalidad">
-      <span class="step-tag">Sección 2 de 4 · Modalidad, Ruta, Duración y Hora Exacta de Recogida</span>
-      <h2>2. Modalidad del servicio, ruta en mapa, hora de recogida y duración</h2>
+      <span class="step-tag">Sección 2 de 4 · Ruta, Duración y Hora de Atención</span>
+      <h2>2. Tarifa, ruta del servicio, hora y duración de la atención</h2>
 
       <!-- SELECTOR DE JORNADA HORARIA (MODALIDADES 1 A 4) -->
       <div id="jornadaSelectorWrap">
@@ -350,21 +366,6 @@ footer a{color:#fff}
             <small id="subJornadaNocturno">Feriado oficial de calendario (+50%)</small>
             <div class="rp-val" id="lblRateNocturno">$18.000/h ($1.000/km)</div>
           </div>
-        </div>
-      </div>
-
-      <!-- SELECTOR DE MODALIDAD DE EXTREMO A EXTREMO -->
-      <div class="full-modality-bar">
-        <label for="b_svc_type">Modalidad de Servicio Principal *</label>
-        <select id="b_svc_type" required onchange="onServiceTypeChange()">
-          <option value="1">1. Servicio Integral (Asistencia + Traslado)</option>
-          <option value="2">2. Traslado Exclusivo con Espera</option>
-          <option value="3">3. Cuidados a Domicilio</option>
-          <option value="4">4. Acompañamiento a Eventos Sociales</option>
-          <option value="5">5. Programas Interregionales</option>
-        </select>
-        <div id="interregionalBlockWarn" class="rule-alert" style="display:none;margin-top:8px">
-          ⚠️ Los Programas Interregionales (Valparaíso / O'Higgins) contemplan entre 4 y 6 horas de permanencia más traslados de larga distancia, por lo que únicamente pueden iniciarse en el Turno Mañana.
         </div>
       </div>
 
@@ -614,7 +615,7 @@ footer a{color:#fff}
                   </select>
                 </div>
                 <div id="hours34Col">
-                  <label for="selHours34" id="lblHours34" style="font-size:.84rem;font-weight:700">Cantidad de horas de asistencia (mínimo 2 horas)</label>
+                  <label for="selHours34" id="lblHours34" style="font-size:.84rem;font-weight:700">Horas de cuidado continuo requeridas *</label>
                   <select id="selHours34" onchange="onHours34Change()">
                     <option value="2" selected>2 horas (Plan Base)</option>
                     <option value="3">3 horas</option>
@@ -1215,7 +1216,7 @@ function refreshDuration34Options(resetSelection = false){
     else if(detectedRing && detectedRing.id === 3) minH = 4;
 
     const ringLabel = detectedRing ? detectedRing.name : 'Anillo 1';
-    $('#lblHours34').textContent = `Cantidad de horas de asistencia (mínimo ${minH} horas según comuna, máximo 6 horas)`;
+    $('#lblHours34').textContent = 'Horas de cuidado continuo requeridas *';
 
     let opts = '';
     for(let h = minH; h <= 6; h++){
@@ -1409,6 +1410,9 @@ function applyModalityVisibility(){
     $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección exacta donde debemos ir a buscarlo (Valparaíso u O'Higgins) *`;
     $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección exacta a donde necesita ir (Clínica, Hospital o Centro en Santiago) *`;
     bFrom.placeholder = 'Ej: Av. Libertad 450, Viña del Mar o Av. Libertador Bernardo O\'Higgins 520, Rancagua';
+  } else if(mode === '3'){
+    $('#lblFromAddr').innerHTML = `Dirección del Domicilio / Lugar de Atención *`;
+    bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
   } else {
     $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección del Domicilio / Lugar de Atención (Calle, número exacto y comuna) *`;
     bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
@@ -1440,6 +1444,7 @@ function applyModalityVisibility(){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'block';
       $('#mins34Col').style.display = 'block';
+      if($('#lblHours34')) $('#lblHours34').textContent = 'Horas de cuidado continuo requeridas *';
       $('#durationBox34').style.gridTemplateColumns = '';
       let minH = 2;
       if(detectedRing && detectedRing.id === 2) minH = 3;
@@ -1450,6 +1455,7 @@ function applyModalityVisibility(){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'block';
       $('#mins34Col').style.display = 'none';
+      if($('#lblHours34')) $('#lblHours34').textContent = 'Cantidad de horas de asistencia (4 o 6 horas) *';
       $('#durationBox34').style.gridTemplateColumns = '1fr';
       const isCon = selectedEventSubMode === 'con_traslado';
       $('#timeSectionTitle').textContent = isCon
@@ -1486,7 +1492,7 @@ function applyModalityVisibility(){
   const lblPick = $('#lblPickupSelect');
   if(lblPick){
     if(mode === '3'){
-      lblPick.textContent = 'Hora de inicio de la atención en el domicilio *';
+      lblPick.textContent = 'Hora de inicio de la atención *';
     } else if(mode === '4'){
       lblPick.textContent = (selectedEventSubMode === 'con_traslado')
         ? 'Hora exacta de recogida en domicilio para iniciar viaje al evento *'
@@ -1873,10 +1879,14 @@ function recalcAll(){
     $('#lblRateHabil').textContent = `${$c(RATES[mode].habil.hour)}/h ($1.000/km)`;
     $('#lblRateTarde').textContent = `${$c(RATES[mode].tarde.hour)}/h ($1.000/km)`;
     $('#lblRateNocturno').textContent = `${$c(RATES[mode].nocturno.hour)}/h ($1.000/km)`;
-  } else if(mode === '3' || mode === '4'){
-    $('#lblRateHabil').textContent = `$12.000/h ($1.000/km)`;
-    $('#lblRateTarde').textContent = `$15.000/h ($1.000/km)`;
-    $('#lblRateNocturno').textContent = `$18.000/h ($1.000/km)`;
+  } else if(mode === '3'){
+    $('#lblRateHabil').textContent = `$12.000/h`;
+    $('#lblRateTarde').textContent = `$15.000/h`;
+    $('#lblRateNocturno').textContent = `$18.000/h`;
+  } else if(mode === '4'){
+    $('#lblRateHabil').textContent = `$12.000/h`;
+    $('#lblRateTarde').textContent = `$15.000/h`;
+    $('#lblRateNocturno').textContent = `$18.000/h`;
   }
 
   let timeCost = 0;
