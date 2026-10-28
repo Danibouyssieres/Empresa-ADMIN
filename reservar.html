@@ -788,11 +788,11 @@ footer a{color:#fff}
           <small style="color:var(--mute);font-size:.82rem;display:block;margin-top:4px">⚠️ Por capacidad vehicular, no se admiten sillas neurológicas rígidas ni motorizadas.</small>
         </div>
         <div>
-          <label for="b_comp">¿Viaja o estará con un acompañante familiar? *</label>
+          <label for="b_comp">¿El paciente viaja solo o acompañado? *</label>
           <select id="b_comp" onchange="onMobilityOrCompanionChange()">
-            <option value="No, solo con la profesional">No, paciente viaja/estará solo con la profesional (Solo adultos orientados)</option>
-            <option value="Sí, 1 acompañante">Sí, 1 acompañante familiar (Sin costo adicional)</option>
-            <option value="Sí, 2 acompañantes">Sí, 2 acompañantes familiares (Máximo permitido en cabina)</option>
+            <option value="Sí, viaja solo">Sí, viaja solo</option>
+            <option value="No, viaja con 1 acompañante">No, viaja con 1 acompañante</option>
+            <option value="No, viaja con 2 acompañantes (máximo permitido)">No, viaja con 2 acompañantes (máximo permitido)</option>
           </select>
           <div id="compValidationNotice" style="display:none;margin-top:6px;font-size:.84rem;color:#b45309;background:#fffbeb;border:1px solid #fef3c7;border-radius:6px;padding:8px 10px;line-height:1.4">
             ⚠️ <b>Recomendación para Modalidad 2 (Traslado con Espera):</b> Al requerir asistencia de marcha o no ser autovalente, y considerando que este servicio no incluye acompañamiento TENS dentro del recinto o box médico, sugerimos fuertemente que viaje un familiar acompañante para apoyarlo durante su atención o trámite.
@@ -821,13 +821,8 @@ footer a{color:#fff}
       </div>
 
       <div style="margin-top:20px">
-        <label style="font-weight:700">Requerimientos asistenciales durante la atención (puede marcar varios):</label>
-        <div class="rqs" id="reqContainer"></div>
-      </div>
-
-      <div style="margin-top:20px">
         <label for="b_obs" style="font-weight:600">Observaciones especiales o indicaciones para la llegada (Opcional)</label>
-        <textarea id="b_obs" rows="3" placeholder="Indique antecedentes relevantes para el traslado: accesos, timbres, uso de oxígeno portátil propio, propensión a mareos, etc." style="width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);font-size:.92rem;color:var(--ink);font-family:inherit;resize:vertical"></textarea>
+        <textarea id="b_obs" rows="3" placeholder="Indique detalles de acceso, timbres, si usa oxígeno portátil propio, propensión a mareos o cualquier indicación puntual para la profesional." style="width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);font-size:.92rem;color:var(--ink);font-family:inherit;resize:vertical"></textarea>
       </div>
     </section>
 
@@ -1487,15 +1482,7 @@ function applyModalityVisibility(){
 }
 
 function renderRequirements(mode){
-  const container = $('#reqContainer');
-  if(!container) return;
-  const list = REQ_BY_MODE[mode] || REQ_BY_MODE['1'];
-  container.innerHTML = list.map(item => `
-    <label class="rq-item">
-      <input type="checkbox" class="rq-cb" value="${e(item.text)}" ${item.def ? 'checked' : ''}>
-      <span>${e(item.text)}</span>
-    </label>
-  `).join('');
+  // Bloque de requerimientos asistenciales eliminado para simplificar la Sección 3
 }
 
 function onMobilityOrCompanionChange(){
@@ -1510,7 +1497,7 @@ function checkCompanionRecommendation(){
   if(!notice) return;
 
   const isNotAutovalente = mobVal && !mobVal.startsWith('Autovalente');
-  const isSolo = compVal && compVal.startsWith('No');
+  const isSolo = compVal && compVal.includes('solo');
 
   if(mode === '2' && isNotAutovalente && isSolo){
     notice.style.display = 'block';
@@ -3894,11 +3881,8 @@ async function submitBooking(ev){
   const depto = ($('#b_depto') && $('#b_depto').value.trim()) || '';
   const to = showDest ? $('#b_to').value.trim() : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
   const compVal = $('#b_comp').value;
-  const comp = compVal.startsWith('Sí');
-  const reqs = [...document.querySelectorAll('.rq-cb:checked')].map(x=>x.value);
-  if(reqs.length === 0){
-    reqs.push(mode === '2' ? 'Ficha preventiva de signos vitales al inicio (Marcada por defecto - Gratuita)' : (mode === '3' ? 'Ficha de Valoración y Control de Signos Vitales (Marcada por defecto - Gratuita)' : (mode === '5' ? 'Ficha de Valoración y Signos Vitales al inicio del viaje (Marcada por defecto - Gratuita)' : 'Ficha de Valoración y Signos Vitales al inicio (Marcada por defecto - Gratuita)')));
-  }
+  const comp = compVal.includes('acompañante');
+  const reqs = [];
   const obs = ($('#b_obs') && $('#b_obs').value.trim()) || '';
 
   const taxDocRadio = document.querySelector('input[name="b_tax_doc"]:checked');
@@ -4005,8 +3989,7 @@ async function submitBooking(ev){
     `• Estado de Conciencia: ${conciencia}\n` +
     `• Condición de Movilidad: ${mob}\n` +
     `• Patologías crónicas / Base: ${pathologiesText}\n` +
-    `• Acompañante Familiar: ${compVal}\n` +
-    `• Requerimientos asistenciales: ${reqs.join(', ')}\n` +
+    `• ¿Viaja solo o acompañado?: ${compVal}\n` +
     (obs ? `• Observaciones e Indicaciones: ${obs}\n` : '') +
     `• Contacto: ${coord} (${ph})\n` +
     taxDocWa +
@@ -4051,8 +4034,7 @@ async function submitBooking(ev){
         <li><span>🧠 <b>Estado de Conciencia:</b></span> <span>${e(conciencia)}</span></li>
         <li><span>♿ <b>Condición de Movilidad:</b></span> <span>${e(mob)}</span></li>
         <li><span>🩺 <b>Patologías Crónicas / Base:</b></span> <span>${e(pathologiesText)}</span></li>
-        <li><span>👥 <b>Acompañante Familiar:</b></span> <span>${e(compVal)}</span></li>
-        <li><span>📋 <b>Requerimientos Asistenciales:</b></span> <span>${reqs.map(r=>e(r)).join('; ')}</span></li>
+        <li><span>👥 <b>¿Viaja solo o acompañado?:</b></span> <span>${e(compVal)}</span></li>
         ${obs ? `<li><span>📝 <b>Observaciones / Indicaciones:</b></span> <span>${e(obs)}</span></li>` : ''}
         <li><span>📞 <b>Coordinador:</b></span> <span>${e(coord)} (${e(ph)})</span></li>
         <li><span>📑 <b>Documento Tributario:</b></span> <span>${isInvoice ? `Factura Electrónica Exenta<br><small style="color:var(--mute)">Razón Social: <b>${e(taxRS)}</b> · RUT: <b>${e(taxRUT)}</b> · Giro: <b>${e(taxGiro)}</b><br>Dirección Tributaria: <b>${e(taxDir)}</b></small>` : 'Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)'}</span></li>
