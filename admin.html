@@ -525,7 +525,7 @@ ${s.patologias ? `<div><b>Patologías:</b> ${e(Array.isArray(s.patologias)?s.pat
 <div><b>Ruta:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''} → ${e(s.to)}</div>
 ${s.obs?`<div><b>Observaciones:</b> ${e(s.obs)}</div>`:''}
 ${s.taxDoc?`<div><b>Doc. Tributario:</b> ${e(s.taxDoc.label||s.taxDoc.type)}${s.taxDoc.type==='factura'?' ('+e(s.taxDoc.rs)+' · RUT '+e(s.taxDoc.rut)+' · Giro '+e(s.taxDoc.giro)+' · Dir: '+e(s.taxDoc.dir)+')':''}</div>`:''}
-<div><b>Contacto:</b> ${e(s.coord)} (${e(s.ph)})</div>
+<div><b>Contacto:</b> ${e(s.coord)} (${e(s.ph)})${s.coordType==='paciente'?' [Paciente directo]':' [Familiar/Tutor]'}${s.patPhone ? ` · <b>Tel. Paciente:</b> ${e(s.patPhone)}` : ''}</div>
 <div class=msg>Bloqueo operativo hasta ${fm(s.start+s.dur+BUF)} · Tarifa ${$c(s.fare)} · Abono ${$c(s.paid)} · Saldo ${$c(s.fare-s.paid)}</div>
 <div class=row style="margin-top:8px">
 <div><label>Reasignar a</label><select onchange="reasg(${s.id},this.value)">${opts.map(t=>`<option value="${t.id}" ${t.id==s.tid?'selected':''}>${e(t.nom)}</option>`).join('')}</select></div>
@@ -603,7 +603,7 @@ return `<div class=card><div class=row style="justify-content:space-between"><b>
 ${s.alergias ? `<div style="font-size:12px;margin:2px 0"><b>Alergias:</b> <span style="${s.alergias.startsWith('Sí')?'color:#dc2626;font-weight:700':''}">${e(s.alergias)}</span> · <b>Conciencia:</b> ${e(s.conciencia||'Lúcido / Orientado')}</div>` : ''}
 ${s.patologias ? `<div style="font-size:12px;margin:2px 0"><b>Patologías:</b> ${e(Array.isArray(s.patologias)?s.patologias.join(', '):s.patologias)}</div>` : ''}
 <div class=al>⚠ ${e(s.mob)}${s.compDesc ? ' · ' + e(s.compDesc) : (s.comp?' · Viaja con acompañante':'')}${s.req && s.req.length ? '<br>' + s.req.map(e).join(' · ') : ''}</div>
-<div>Contacto: ${e(s.coord)} ${e(s.ph)}</div><div style="margin:4px 0"><a class=b href="tel:${e(s.ph)}">📞 Llamar</a><a class=b href="https://wa.me/${wa}" target=_blank rel=noopener>WhatsApp</a></div>
+<div>Contacto: ${e(s.coord)} ${e(s.ph)}${s.coordType==='paciente'?' (Paciente)':' (Familiar/Tutor)'}${s.patPhone ? `<br><small style="color:var(--mute)">Tel. Paciente: ${e(s.patPhone)}</small>` : ''}</div><div style="margin:4px 0"><a class=b href="tel:${e(s.ph)}">📞 Llamar</a><a class=b href="https://wa.me/${wa}" target=_blank rel=noopener>WhatsApp</a></div>
 <div><b>Recogida:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''}<br><b>Destino:</b> ${e(s.to)}</div>
 ${s.obs?`<div style="font-size:12px;color:var(--pri);margin-top:2px"><b>📝 Observaciones:</b> ${e(s.obs)}</div>`:''}
 <div style="margin:4px 0"><a class=b href="https://waze.com/ul?q=${qo}&navigate=yes" target=_blank rel=noopener>Waze (recogida)</a><a class=b href="https://www.google.com/maps/dir/?api=1&origin=${qo}&destination=${q}" target=_blank rel=noopener>Google Maps (ruta)</a></div>

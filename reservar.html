@@ -747,7 +747,14 @@ footer a{color:#fff}
       <div class="grid">
         <div>
           <label for="b_pat">Nombre completo del paciente *</label>
-          <input id="b_pat" type="text" placeholder="Ej: Rosa Medina" required>
+          <input id="b_pat" type="text" placeholder="Ej: Rosa Medina" required oninput="onPatientFieldInput()">
+        </div>
+        <div>
+          <label for="b_pat_phone">Teléfono móvil del paciente (+569)</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-weight:700;padding:10px 12px;background:var(--mist);border:1px solid var(--line);border-radius:10px;color:var(--teal)">+569</span>
+            <input id="b_pat_phone" type="tel" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678" oninput="onPatientFieldInput()">
+          </div>
         </div>
         <div>
           <label for="b_age">Edad del paciente (años) *</label>
@@ -832,16 +839,22 @@ footer a{color:#fff}
     <section class="card">
       <span class="step-tag">Sección 4 de 4 · Datos de Contacto y Confirmación</span>
       <h2>4. ¿Con quién coordinamos la reserva?</h2>
+      <div style="margin:10px 0 16px">
+        <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-weight:700;background:var(--mist);border:1.5px solid var(--teal);padding:10px 14px;border-radius:10px;color:var(--ink);user-select:none;font-size:.92rem">
+          <input type="checkbox" id="cbCoordSameAsPatient" onchange="toggleCoordSameAsPatient(this.checked)" style="accent-color:var(--teal);width:19px;height:19px;margin:0;cursor:pointer">
+          <span>¿La coordinación es directamente con el paciente? (PACIENTE: Coordinar con la misma persona)</span>
+        </label>
+      </div>
       <div class="grid">
         <div>
           <label for="b_coord">Su nombre completo (Familiar o Coordinador) *</label>
-          <input id="b_coord" type="text" placeholder="Ej: Andrea Medina" required>
+          <input id="b_coord" type="text" placeholder="Ej: Andrea Medina" required oninput="onCoordManualInput()">
         </div>
         <div>
           <label for="b_ph">Teléfono móvil / WhatsApp (+569) *</label>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-weight:700;padding:10px 12px;background:var(--mist);border:1px solid var(--line);border-radius:10px;color:var(--teal)">+569</span>
-            <input id="b_ph" type="tel" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678" required>
+            <input id="b_ph" type="tel" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678" required oninput="onCoordManualInput()">
           </div>
         </div>
       </div>
@@ -1581,6 +1594,45 @@ function toggleTaxDocFields(val){
       if(!isFactura) el.value = '';
     }
   });
+}
+
+function toggleCoordSameAsPatient(isChecked){
+  const coordInp = $('#b_coord');
+  const phInp = $('#b_ph');
+  const patName = ($('#b_pat') && $('#b_pat').value) || '';
+  const patPhone = ($('#b_pat_phone') && $('#b_pat_phone').value) || '';
+
+  if(isChecked){
+    if(coordInp) coordInp.value = patName;
+    if(phInp) phInp.value = patPhone;
+  } else {
+    if(coordInp) coordInp.value = '';
+    if(phInp) phInp.value = '';
+    if(coordInp) coordInp.focus();
+  }
+}
+
+function onPatientFieldInput(){
+  const cb = $('#cbCoordSameAsPatient');
+  if(cb && cb.checked){
+    const coordInp = $('#b_coord');
+    const phInp = $('#b_ph');
+    if(coordInp) coordInp.value = ($('#b_pat') && $('#b_pat').value) || '';
+    if(phInp) phInp.value = ($('#b_pat_phone') && $('#b_pat_phone').value) || '';
+  }
+}
+
+function onCoordManualInput(){
+  const cb = $('#cbCoordSameAsPatient');
+  if(cb && cb.checked){
+    const patName = ($('#b_pat') && $('#b_pat').value) || '';
+    const patPhone = ($('#b_pat_phone') && $('#b_pat_phone').value) || '';
+    const coordVal = ($('#b_coord') && $('#b_coord').value) || '';
+    const phVal = ($('#b_ph') && $('#b_ph').value) || '';
+    if(coordVal !== patName || phVal !== patPhone){
+      cb.checked = false;
+    }
+  }
 }
 
 function applyMaxDurationRule(){
@@ -3795,6 +3847,8 @@ async function submitBooking(ev){
 
   // Validaciones de datos en Sección 3
   const pat = $('#b_pat').value.trim();
+  const patPhoneRaw = ($('#b_pat_phone') && $('#b_pat_phone').value.trim()) || '';
+  const patPhone = patPhoneRaw ? ('+569' + patPhoneRaw) : '';
   if(!pat){
     $('#b_pat').scrollIntoView({ behavior: 'smooth', block: 'center' });
     $('#b_pat').focus();
@@ -3866,6 +3920,7 @@ async function submitBooking(ev){
     return;
   }
   const ph = '+569' + phVal;
+  const isSameAsPatient = ($('#cbCoordSameAsPatient') && $('#cbCoordSameAsPatient').checked) || (coord.toLowerCase() === pat.toLowerCase());
 
   const isNightShift = (selectedBlock === 'noche');
   const endsAfter22 = isNightShift || (endMin > 22 * 60);
@@ -3926,9 +3981,11 @@ async function submitBooking(ev){
     start,
     dur,
     pat,
+    patPhone,
     age,
     dx: fullDx,
     coord,
+    coordType: isSameAsPatient ? 'paciente' : 'familiar',
     ph,
     from,
     depto,
@@ -3984,14 +4041,16 @@ async function submitBooking(ev){
     `• Valor Total Real: ${$c(lastFinalTotal)}\n` +
     `• Abono 50% para Reservar: ${$c(lastAbono50)}\n` +
     `• Saldo 50% al finalizar: ${$c(saldo50)}\n` +
-    `• Paciente: ${pat} (${age} años) · Motivo: ${dxInput}\n` +
+    `• Paciente: ${pat} (${age} años${patPhone ? ` · Móvil: ${patPhone}` : ''}) · Motivo: ${dxInput}\n` +
     `• Alergias conocidas: ${allergyText}\n` +
     `• Estado de Conciencia: ${conciencia}\n` +
     `• Condición de Movilidad: ${mob}\n` +
     `• Patologías crónicas / Base: ${pathologiesText}\n` +
     `• ¿Viaja solo o acompañado?: ${compVal}\n` +
     (obs ? `• Observaciones e Indicaciones: ${obs}\n` : '') +
-    `• Contacto: ${coord} (${ph})\n` +
+    (isSameAsPatient
+      ? `• Coordinación: Directa con el Paciente - ${coord} (${ph})\n`
+      : `• Coordinación: Familiar / Tutor - ${coord} (${ph})${patPhone ? ` (Móvil paciente: ${patPhone})` : ''}\n`) +
     taxDocWa +
     `Adjunto comprobante del abono del 50% (${$c(lastAbono50)}) transferido a Scotiabank Cta Cte 994989122.`;
   const waUrl = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waText)}`;
@@ -4029,14 +4088,14 @@ async function submitBooking(ev){
         </li>
         <li><span>🏁 <b>Saldo 50% al terminar la atención:</b></span> <span><b>${$c(saldo50)}</b></span></li>
         <li><span>🩺 <b>Profesional TENS:</b></span> <span>${e(techObj.nom)}</span></li>
-        <li><span>👤 <b>Paciente:</b></span> <span>${e(pat)} (${age} años) · <b>Motivo:</b> ${e(dxInput)}</span></li>
+        <li><span>👤 <b>Paciente:</b></span> <span>${e(pat)} (${age} años${patPhone ? ` · 📞 ${e(patPhone)}` : ''}) · <b>Motivo:</b> ${e(dxInput)}</span></li>
         <li><span>⚠️ <b>Alergias Conocidas:</b></span> <span style="${hasAllergy ? 'color:#b91c1c;font-weight:700' : ''}">${e(allergyText)}</span></li>
         <li><span>🧠 <b>Estado de Conciencia:</b></span> <span>${e(conciencia)}</span></li>
         <li><span>♿ <b>Condición de Movilidad:</b></span> <span>${e(mob)}</span></li>
         <li><span>🩺 <b>Patologías Crónicas / Base:</b></span> <span>${e(pathologiesText)}</span></li>
         <li><span>👥 <b>¿Viaja solo o acompañado?:</b></span> <span>${e(compVal)}</span></li>
         ${obs ? `<li><span>📝 <b>Observaciones / Indicaciones:</b></span> <span>${e(obs)}</span></li>` : ''}
-        <li><span>📞 <b>Coordinador:</b></span> <span>${e(coord)} (${e(ph)})</span></li>
+        <li><span>📞 <b>Coordinación de Reserva:</b></span> <span><b>${isSameAsPatient ? 'Directa con el Paciente' : 'Familiar / Tutor'}:</b> ${e(coord)} (${e(ph)})</span></li>
         <li><span>📑 <b>Documento Tributario:</b></span> <span>${isInvoice ? `Factura Electrónica Exenta<br><small style="color:var(--mute)">Razón Social: <b>${e(taxRS)}</b> · RUT: <b>${e(taxRUT)}</b> · Giro: <b>${e(taxGiro)}</b><br>Dirección Tributaria: <b>${e(taxDir)}</b></small>` : 'Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)'}</span></li>
       </ul>
 
