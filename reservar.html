@@ -656,7 +656,7 @@ footer a{color:#fff}
             <b id="tlHoraLlegadaDestino" style="color:var(--teal);font-size:1.1rem">09:10 hrs</b>
           </div>
           <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-            <small style="color:var(--mute);display:block;margin-bottom:2px">Permanencia estimada en destino:</small>
+            <small id="tlTiempoDestinoLabel" style="color:var(--mute);display:block;margin-bottom:2px">Permanencia estimada en destino:</small>
             <b id="tlTiempoDestino" style="color:var(--ink);font-size:1.1rem">1 hora</b>
           </div>
           <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
@@ -664,7 +664,7 @@ footer a{color:#fff}
             <b id="tlHoraRetorno" style="color:#168F4A;font-size:1.1rem">10:40 hrs</b>
           </div>
           <div style="padding:10px 12px;background:rgba(22,143,74,.08);border-radius:8px;border:1px solid var(--wa)">
-            <small style="color:var(--mute);display:block;margin-bottom:2px">Total horas efectivas a liquidar:</small>
+            <small id="tlHorasEfectivasLabel" style="color:var(--mute);display:block;margin-bottom:2px">Total horas efectivas a liquidar:</small>
             <b id="tlHorasEfectivas" style="color:#168F4A;font-size:1.1rem">2 h y 30 min (150 min)</b>
           </div>
         </div>
@@ -1419,10 +1419,15 @@ function applyModalityVisibility(){
     $('#durationBox12').style.display = 'block';
     $('#durationBox34').style.display = 'none';
     if($('#serviceTimelineBox')) $('#serviceTimelineBox').style.display = 'block';
-    $('#timeSectionTitle').textContent = mode === '1'
-      ? '⏱️ Permanencia en Destino y Duración del Servicio Completo'
-      : '⏱️ Tiempo de Espera en Destino y Duración del Servicio Completo';
-    $('#timeSectionSub').textContent = 'Indique cuánto tiempo estima permanecer en el lugar de atención o trámite. El sistema calculará automáticamente la duración total del viaje continuo sumando los traslados y el abordaje clínico.';
+    if(mode === '1'){
+      $('#timeSectionTitle').textContent = '⏱️ Permanencia en Destino y Duración del Servicio Completo';
+      $('#timeSectionSub').textContent = 'Indique cuánto tiempo estima permanecer en el lugar de atención o trámite. El sistema calculará automáticamente la duración total del viaje continuo sumando los traslados y el abordaje clínico.';
+      if($('#lblStayDestino')) $('#lblStayDestino').textContent = '¿Cuánto estimas que durará tu atención, trámite o actividad en el lugar? *';
+    } else {
+      $('#timeSectionTitle').textContent = '⏱️ Tiempo de Espera Requerido en Destino';
+      $('#timeSectionSub').textContent = 'Indique cuánto tiempo estima que el vehículo permanecerá esperando en el lugar. El cobro por tiempo se aplica exclusivamente a la espera en destino ($8.000/h).';
+      if($('#lblStayDestino')) $('#lblStayDestino').textContent = '¿Cuánto tiempo de espera requerirá en destino? *';
+    }
   } else {
     $('#durationBox12').style.display = 'none';
     $('#durationBox34').style.display = 'grid';
@@ -1649,7 +1654,7 @@ function applyMaxDurationRule(){
   if(selStay && (mode === '1' || mode === '2')){
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
-    const abordajeMin = 10;
+    const abordajeMin = (mode === '2') ? 0 : 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
     const travelMin = idaMin + abordajeMin + retornoMin;
     const maxStayAllowed = Math.max(60, 360 - travelMin);
@@ -1774,21 +1779,44 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   const curTime = (timeSelect && timeSelect.value) || currentSuggestedHour || '08:30';
   const startMin = tm(curTime);
 
-  const llegadaDestinoMin = startMin + abordajeMin + idaMin;
+  const realAbordaje = (mode === '2') ? 0 : abordajeMin;
+  const llegadaDestinoMin = startMin + realAbordaje + idaMin;
   const salidaDestinoMin = llegadaDestinoMin + stayMin;
   const retornoHogarMin = salidaDestinoMin + retornoMin;
   const isRoundTrip = tripMultiplier === 2;
 
   if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
   if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fm(llegadaDestinoMin % 1440)} hrs`;
+  if($('#tlTiempoDestinoLabel')){
+    $('#tlTiempoDestinoLabel').textContent = (mode === '2') ? 'Espera estimada en destino:' : 'Permanencia estimada en destino:';
+  }
   if($('#tlTiempoDestino')) $('#tlTiempoDestino').textContent = fmtHoursClean(stayMin);
   if($('#tlHoraRetornoLabel')) $('#tlHoraRetornoLabel').textContent = isRoundTrip ? 'Hora estimada de retorno al hogar:' : 'Hora estimada de término en destino:';
   if($('#tlHoraRetorno')) $('#tlHoraRetorno').textContent = `${fm(retornoHogarMin % 1440)} hrs`;
-  if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(billedMin)} (${billedMin} min)`;
 
-  const formulaDesc = isRoundTrip
-    ? `Fórmula del servicio: ${abordajeMin} min abordaje TENS + ${idaMin} min viaje ida + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`
-    : `Fórmula del servicio (Solo ida): ${abordajeMin} min abordaje TENS + ${idaMin} min viaje ida + ${stayMin} min en destino = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`;
+  const h = Math.floor(billedMin / 60);
+  const extraHalf = (billedMin % 60 === 30) ? 1 : 0;
+  const waitHoursText = extraHalf ? `${h > 0 ? `${h} h 30 min` : '30 min'}` : (h === 1 ? '1 hr' : `${h} hrs`);
+
+  if($('#tlHorasEfectivasLabel')){
+    $('#tlHorasEfectivasLabel').textContent = (mode === '2') ? 'Espera efectiva a liquidar:' : 'Total horas efectivas a liquidar:';
+  }
+  if($('#tlHorasEfectivas')){
+    $('#tlHorasEfectivas').textContent = (mode === '2')
+      ? `${waitHoursText} (${billedMin} min)`
+      : `${fmtHoursClean(billedMin)} (${billedMin} min)`;
+  }
+
+  let formulaDesc = '';
+  if(mode === '2'){
+    formulaDesc = isRoundTrip
+      ? `Tiempo operativo total: ${idaMin} min viaje ida + ${stayMin} min espera en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> | Espera efectiva a liquidar: <b>${waitHoursText}</b>.`
+      : `Tiempo operativo total (Solo ida): ${idaMin} min viaje ida + ${stayMin} min espera en destino = <b>${rawTotalMin} min</b> | Espera efectiva a liquidar: <b>${waitHoursText}</b>.`;
+  } else {
+    formulaDesc = isRoundTrip
+      ? `Fórmula del servicio: ${abordajeMin} min abordaje TENS + ${idaMin} min viaje ida + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`
+      : `Fórmula del servicio (Solo ida): ${abordajeMin} min abordaje TENS + ${idaMin} min viaje ida + ${stayMin} min en destino = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`;
+  }
 
   if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
 }
@@ -1800,7 +1828,7 @@ function getSelectedTotalMinutes(){
     const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
-    const abordajeMin = 10;
+    const abordajeMin = (mode === '2') ? 0 : 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
     const rawTotalMin = abordajeMin + idaMin + stayMin + retornoMin;
     const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
@@ -1842,7 +1870,7 @@ function recalcAll(){
   let timeCost = 0;
   let durationText = '';
 
-  if(mode === '1' || mode === '2'){
+  if(mode === '1'){
     const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
@@ -1856,6 +1884,20 @@ function recalcAll(){
     durationText = `${h} h${extraHalfBlocks ? ' y 30 min' : ''} (${$c(r.hour)}/h${extraHalfBlocks ? ` + ${$c(r.half)} bloque 30m` : ''})`;
 
     updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTotalMin, billedMin);
+  } else if(mode === '2'){
+    const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
+    const isRoundTrip = tripMultiplier === 2;
+    const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
+    const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
+    const rawTotalMin = idaMin + stayMin + retornoMin;
+    const billedMin = stayMin;
+    const h = Math.floor(billedMin / 60);
+    const extraHalfBlocks = (billedMin % 60 === 30) ? 1 : 0;
+    timeCost = (h * r.hour) + (extraHalfBlocks * r.half);
+    const waitHoursText = extraHalfBlocks ? `${h > 0 ? `${h} h 30 min` : '30 min'}` : (h === 1 ? '1 hr' : `${h} hrs`);
+    durationText = `${waitHoursText} a ${$c(r.hour)}/h`;
+
+    updateServiceTimeline(idaMin, 0, stayMin, retornoMin, rawTotalMin, billedMin);
   } else if(mode === '3'){
     let h = +$('#selHours34').value || 2;
     let m = +$('#selMins34').value || 0;
@@ -1932,7 +1974,7 @@ function recalcAll(){
 
     $('#sumTimeLabel').textContent = mode === '1'
       ? `Valor por Tiempo de Asistencia (${durationText})`
-      : `Valor por Tiempo de Espera (${durationText})`;
+      : `Valor por Tiempo de Espera en Destino (${durationText})`;
 
     const fmtKm = lastTotalKm.toFixed(1).replace('.', ',') + ' km';
     $('#sumKmText').textContent = fmtKm;
