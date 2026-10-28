@@ -32,10 +32,10 @@ for (let i = 1; i < 7; i++) {
 }
 console.log('✔ Section 3 checkboxes for Cuidados a Domicilio are exact and verified (7 items).');
 
-// 2. Check Guarantee notice for Modalidad 3
-assert(content.includes('Garantía de Cuidado Clínico en el Hogar:'), 'Guarantee title missing');
-assert(content.includes('Atención personalizada realizada por una Técnico en Enfermería de Nivel Superior (TENS), enfocada en el confort, higiene, seguridad y bienestar del paciente dentro de su domicilio. Si por requerimiento familiar la atención debe extenderse más allá de las horas reservadas, el tiempo adicional se regularizará al término del servicio en bloques de 30 minutos (sujeto a disponibilidad y tope máximo de 6 hrs continuas).'), 'Guarantee text missing');
-console.log('✔ Garantía de Cuidado Clínico en el Hogar text verified.');
+// 2. Check Guarantee notice is removed to avoid indefinite wait promises
+assert(!content.includes('id="maxDurationNotice"'), 'maxDurationNotice element must be removed');
+assert(!content.includes('Garantía de Cuidado Clínico en el Hogar:'), 'Guarantee text must be removed');
+console.log('✔ maxDurationNotice removed from Section 2.');
 
 // 3. Test Tariff / Calculation for Mode 3
 const ratesMatch = content.match(/const RATES = (\{[\s\S]*?\n\};)/);

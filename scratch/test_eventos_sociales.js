@@ -15,10 +15,9 @@ assert(content.includes('Pack Asistencia en Recinto (Sin Traslado)'), 'Sin trasl
 assert(content.includes('Pack Integral Puerta a Puerta (Con Traslado)'), 'Con traslado label missing');
 console.log('✔ Event sub-mode HTML structure verified.');
 
-// 2. Check Guarantee notice for Modalidad 4
-assert(content.includes('Garantía de Cobertura y Bienestar en Eventos:'), 'Guarantee title missing');
-assert(content.includes('Acompañamiento exclusivo y dedicado por una profesional TENS durante toda la celebración, asegurando el confort, movilidad asistida en salón, supervisión de medicamentos y tranquilidad integral para la familia. Si la celebración amerita extender el servicio más allá del tiempo contratado, cada bloque adicional de 30 minutos se regularizará al término del evento (sujeto a disponibilidad técnica).'), 'Guarantee text missing');
-console.log('✔ Garantía de Cobertura y Bienestar en Eventos text verified.');
+// 2. Check Guarantee notice is removed to avoid indefinite wait promises
+assert(!content.includes('Garantía de Cobertura y Bienestar en Eventos:'), 'Guarantee title must be removed');
+console.log('✔ maxDurationNotice removed from Section 2.');
 
 // 3. Test Tariff Calculation with pure functions matching the script
 function calcEventoCost(h, isConTraslado) {

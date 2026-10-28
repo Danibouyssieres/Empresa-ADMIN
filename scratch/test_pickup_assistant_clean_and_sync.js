@@ -14,7 +14,9 @@ assert(htmlContent.includes('Calculamos su salida considerando tiempo de viaje, 
 assert(!htmlContent.includes('¿Tienes una cita médica o compromiso programado? Ingresa la hora fijada en destino y calculamos automáticamente tu hora oficial de recogida considerando el tiempo de ruta vehicular'), 'Debe haber eliminado la descripción larga inicial');
 assert(!htmlContent.includes('Desglose del cálculo preventivo:'), 'Debe haber eliminado por completo el bloque inferior de desglose con viñetas');
 assert(!htmlContent.includes('Ajuste preventivo a bloque de agenda'), 'Debe haber eliminado las explicaciones repetidas de redondeo de agenda');
-console.log('   ✅ PASS: Redundancias y textos largos eliminados del Asistente.');
+assert(!htmlContent.includes('id="maxDurationNotice"'), 'maxDurationNotice debe estar completamente eliminado');
+assert(!htmlContent.includes('Garantía de acompañamiento y espera'), 'Texto de garantía de espera debe estar eliminado');
+console.log('   ✅ PASS: Redundancias y tarjeta de garantía de espera eliminadas del Asistente.');
 
 // Preparar ambiente mock para VM
 const scriptMatches = htmlContent.match(/<script>([\s\S]*?)<\/script>/gi);

@@ -679,11 +679,6 @@ footer a{color:#fff}
         </div>
       </div>
 
-      <!-- NOTA DE RESPALDO ANTE DEMORAS -->
-      <div id="maxDurationNotice" class="callout-box" style="margin-top:14px;margin-bottom:14px;border-left:4px solid var(--wa);background:rgba(22,143,74,.06)">
-        🛡️ <b>Garantía de acompañamiento y espera:</b> Sabemos que las consultas de salud, filas en notarías o gestiones pueden extenderse de forma imprevista. Tu profesional TENS y el móvil te esperarán todo el tiempo necesario. Cualquier sobretiempo que exceda la reserva se regularizará al volver al hogar en bloques de 30 minutos según la tarifa horaria correspondiente.<br>
-        <small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>
-      </div>
 
       <!-- =========================================================================
            SECCIÓN DE SUMA (KM + TIEMPO) Y ABONO 50%
@@ -1501,21 +1496,6 @@ function applyModalityVisibility(){
     warnInter.style.display = 'none';
   }
 
-  // Actualizar recuadro informativo bajo el cronograma de horas según modalidad
-  const noticeBox = $('#maxDurationNotice');
-  if(noticeBox){
-    if(mode === '2'){
-      noticeBox.innerHTML = `🛡️ <b>Garantía de Espera Vehicular Exclusiva:</b> El vehículo y su conductora permanecen a su total disposición en el recinto durante todo el tiempo contratado. Si la atención demora más de lo presupuestado, el excedente se liquida al regreso en bloques de 30 minutos según la tarifa horaria de espera.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
-    } else if(mode === '3'){
-      noticeBox.innerHTML = `🛡️ <b>Garantía de Cuidado Clínico en el Hogar:</b> Atención personalizada realizada por una Técnico en Enfermería de Nivel Superior (TENS), enfocada en el confort, higiene, seguridad y bienestar del paciente dentro de su domicilio. Si por requerimiento familiar la atención debe extenderse más allá de las horas reservadas, el tiempo adicional se regularizará al término del servicio en bloques de 30 minutos (sujeto a disponibilidad y tope máximo de 6 hrs continuas).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
-    } else if(mode === '4'){
-      noticeBox.innerHTML = `🛡️ <b>Garantía de Cobertura y Bienestar en Eventos:</b> Acompañamiento exclusivo y dedicado por una profesional TENS durante toda la celebración, asegurando el confort, movilidad asistida en salón, supervisión de medicamentos y tranquilidad integral para la familia. Si la celebración amerita extender el servicio más allá del tiempo contratado, cada bloque adicional de 30 minutos se regularizará al término del evento (sujeto a disponibilidad técnica).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
-    } else if(mode === '5'){
-      noticeBox.innerHTML = `🛡️ <b>Garantía de Cobertura y Traslado Interregional:</b> Servicio integral puerta a puerta de larga distancia. La tarifa plana cerrada incluye vehículo exclusivo climatizado, acompañamiento de profesional TENS, combustible, TAG urbano y la totalidad de peajes interurbanos de ida y regreso (Ruta 68 / Autopista del Aconcagua / Ruta 5 Sur). Si el procedimiento clínico en Santiago demora más de las horas contratadas en el plan, el tiempo adicional se regularizará al regreso ($15.000 por cada bloque de 30 minutos / $25.000 por hora).<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
-    } else {
-      noticeBox.innerHTML = `🛡️ <b>Garantía de acompañamiento y espera:</b> Sabemos que las consultas de salud, filas en notarías o gestiones pueden extenderse de forma imprevista. Tu profesional TENS y el móvil te esperarán todo el tiempo necesario. Cualquier sobretiempo que exceda la reserva se regularizará al volver al hogar en bloques de 30 minutos según la tarifa horaria correspondiente.<br><small style="color:var(--mute);display:block;margin-top:4px">⏱️ Por capacidad operativa, la agenda web permite reservas continuas de hasta 6 horas. Todo tiempo adicional no contemplado se liquida al término del servicio.</small>`;
-    }
-  }
 
   renderRequirements(mode);
   checkCompanionRecommendation();
