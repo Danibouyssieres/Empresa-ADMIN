@@ -1416,6 +1416,10 @@ function applyModalityVisibility(){
 
   // Mostrar el selector de horas correspondiente (1-2 vs 3-4-5)
   if(mode === '1' || mode === '2'){
+    const selStay = $('#selStayDestino');
+    if(selStay && (!selStay.value || selStay.value === '')){
+      selStay.value = '60';
+    }
     $('#durationBox12').style.display = 'block';
     $('#durationBox34').style.display = 'none';
     if($('#serviceTimelineBox')) $('#serviceTimelineBox').style.display = 'block';
@@ -1652,6 +1656,9 @@ function applyMaxDurationRule(){
   // 1. Modalidades 1 y 2 (Traslados con cálculo de Servicio Completo)
   const selStay = $('#selStayDestino');
   if(selStay && (mode === '1' || mode === '2')){
+    if(!selStay.value || selStay.value === ''){
+      selStay.value = '60';
+    }
     const isRoundTrip = tripMultiplier === 2;
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
     const abordajeMin = 10;
@@ -1660,14 +1667,15 @@ function applyMaxDurationRule(){
     const maxStayAllowed = Math.max(60, 360 - travelMin);
     [...selStay.options].forEach(opt => {
       const v = +opt.value;
+      const txt = opt.textContent || opt.text || '';
       if(v > maxStayAllowed){
         opt.disabled = true;
-        if(!opt.textContent.includes('(Excede tope 6h)')){
-          opt.textContent = opt.textContent + ' (Excede tope 6h)';
+        if(!txt.includes('(Excede tope 6h)')){
+          opt.textContent = txt + ' (Excede tope 6h)';
         }
       } else {
         opt.disabled = false;
-        opt.textContent = opt.textContent.replace(' (Excede tope 6h)', '');
+        opt.textContent = txt.replace(' (Excede tope 6h)', '');
       }
     });
     if(+selStay.value > maxStayAllowed){
@@ -1756,6 +1764,11 @@ function fmtHoursClean(mins){
 }
 
 function onStayDestinoChange(){
+  const selStay = $('#selStayDestino');
+  if(selStay){
+    selStay.style.borderColor = '';
+    selStay.style.boxShadow = '';
+  }
   applyMaxDurationRule();
   recalcAll();
   updateSlots(true);
@@ -3654,6 +3667,32 @@ function calcSuggestedPickup(){
     avail.innerHTML = '';
   }
 
+  // Quitar feedback de error previo en combobox de duración
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const selStay = $('#selStayDestino');
+  if(selStay){
+    selStay.style.borderColor = '';
+    selStay.style.boxShadow = '';
+  }
+
+  // Si Modalidad 1 o 2, verificar que el combobox de duración no esté vacío
+  if((mode === '1' || mode === '2') && selStay){
+    if(!selStay.value || selStay.value === ''){
+      selStay.style.borderColor = '#dc2626';
+      selStay.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.25)';
+      selStay.focus();
+      if(msg){
+        msg.innerHTML = `
+          <div style="padding:12px 14px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:8px;color:#991b1b;font-size:.87rem;line-height:1.45">
+            ⚠️ <b>Duración requerida:</b> Por favor indique la duración estimada del servicio a la derecha para generar el cronograma.
+          </div>
+        `;
+      }
+      if(callout) callout.style.display = 'block';
+      return;
+    }
+  }
+
   // 1. Validar que la ruta esté calculada en el mapa
   if(!lastRouteIdaMin || lastRouteIdaMin <= 0){
     if(msg){
@@ -3832,6 +3871,7 @@ function calcSuggestedPickup(){
 
   // Habilitar botón de confirmación
   if(subBtn) subBtn.disabled = false;
+  recalcAll();
 
   const llegadaRecintoMin = targetSlotMin + margenAbordaje + routeMin;
   const minutosAntesDelBox = appTimeMin - llegadaRecintoMin;
@@ -3889,6 +3929,10 @@ async function initForm(){
   }
 
   $('#b_mob').innerHTML = MOB.map(m=>`<option value="${e(m)}">${e(m)}</option>`).join('');
+  const selStay = $('#selStayDestino');
+  if(selStay && (!selStay.value || selStay.value === '')){
+    selStay.value = '60';
+  }
   renderRequirements($('#b_svc_type').value || '1');
   checkCompanionRecommendation();
 
