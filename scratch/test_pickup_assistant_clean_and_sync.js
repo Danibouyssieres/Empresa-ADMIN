@@ -267,4 +267,10 @@ assert.strictEqual(elements['tlTiempoDestino'].textContent, '1 h', 'tlTiempoDest
 assert.strictEqual(elements['tlHoraRetorno'].textContent, '10:55 hrs', 'tlHoraRetorno debe ser 10:55 hrs');
 console.log('   ✅ PASS: Números del Cronograma coinciden 1 a 1 con el Asistente sin ninguna contradicción.');
 
+// 5. SECUENCIA CRONOLÓGICA DE LA FÓRMULA DEL SERVICIO
+console.log('\n5. Verificando secuencia cronológica de la fórmula del servicio:');
+const desgloseText = elements['tlDesgloseDetalle'].innerHTML;
+assert(desgloseText.includes('10 min abordaje TENS + 15 min viaje ida + 60 min en destino + 15 min viaje retorno = <b>100 min</b>'), 'Fórmula debe listar abordaje primero, luego viaje ida, luego destino y retorno');
+console.log('   ✅ PASS: Secuencia cronológica verificada (abordaje -> viaje ida -> destino -> retorno).');
+
 console.log('\n🎉 ¡TODAS LAS PRUEBAS DE LIMPIEZA Y CÁLCULO DEL ASISTENTE PASARON AL 100%!\n');

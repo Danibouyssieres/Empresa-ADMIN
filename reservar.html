@@ -665,7 +665,7 @@ footer a{color:#fff}
           </div>
         </div>
         <div id="tlDesgloseDetalle" style="font-size:.83rem;color:var(--mute);line-height:1.5;border-top:1px dashed var(--line);padding-top:10px">
-          Fórmula del servicio: 30 min viaje ida + 10 min abordaje TENS + 60 min en destino + 30 min viaje retorno = 130 min continuos estimados → 2 h y 30 min efectivos a liquidar y reservar (bloques de 30 min).
+          Fórmula del servicio: 10 min abordaje TENS + 30 min viaje ida + 60 min en destino + 30 min viaje retorno = 130 min continuos estimados → 2 h y 30 min efectivos a liquidar y reservar (bloques de 30 min).
         </div>
       </div>
 
@@ -1776,8 +1776,8 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(billedMin)} (${billedMin} min)`;
 
   const formulaDesc = isRoundTrip
-    ? `Fórmula del servicio: ${idaMin} min viaje ida + ${abordajeMin} min abordaje TENS + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`
-    : `Fórmula del servicio (Solo ida): ${idaMin} min viaje ida + ${abordajeMin} min abordaje TENS + ${stayMin} min en destino = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`;
+    ? `Fórmula del servicio: ${abordajeMin} min abordaje TENS + ${idaMin} min viaje ida + ${stayMin} min en destino + ${retornoMin} min viaje retorno = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`
+    : `Fórmula del servicio (Solo ida): ${abordajeMin} min abordaje TENS + ${idaMin} min viaje ida + ${stayMin} min en destino = <b>${rawTotalMin} min</b> continuos estimados → <b>${fmtHoursClean(billedMin)}</b> efectivos a liquidar y reservar (bloques de 30 min).`;
 
   if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
 }
@@ -1791,7 +1791,7 @@ function getSelectedTotalMinutes(){
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
     const abordajeMin = 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
-    const rawTotalMin = (idaMin + abordajeMin) + stayMin + retornoMin;
+    const rawTotalMin = abordajeMin + idaMin + stayMin + retornoMin;
     const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
     totalMin = billedMin;
   } else if(mode === '5'){
@@ -1837,7 +1837,7 @@ function recalcAll(){
     const idaMin = lastRouteIdaMin > 0 ? lastRouteIdaMin : 30;
     const abordajeMin = 10;
     const retornoMin = isRoundTrip ? (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30) : 0;
-    const rawTotalMin = (idaMin + abordajeMin) + stayMin + retornoMin;
+    const rawTotalMin = abordajeMin + idaMin + stayMin + retornoMin;
     const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
     const h = Math.floor(billedMin / 60);
     const extraHalfBlocks = (billedMin % 60 === 30) ? 1 : 0;
