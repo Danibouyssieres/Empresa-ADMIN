@@ -754,8 +754,33 @@ footer a{color:#fff}
           <input id="b_age" type="number" min="0" max="120" placeholder="Ej: 80" required>
         </div>
         <div>
-          <label for="b_dx">Motivo de atención o diagnóstico base *</label>
+          <label for="b_dx">Motivo de atención *</label>
           <input id="b_dx" type="text" placeholder="Ej: Control cardiológico, Diálisis, Cuidado en casa" required>
+        </div>
+        <div>
+          <label style="font-weight:700">¿Paciente presenta alergias conocidas? *</label>
+          <div style="display:flex;gap:18px;margin-top:6px;align-items:center;min-height:38px">
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:.92rem;font-weight:600">
+              <input type="radio" name="b_allergy_radio" value="no" checked onchange="toggleAllergyField(this.value)" style="accent-color:var(--teal);width:18px;height:18px;margin:0">
+              <span>No</span>
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:.92rem;font-weight:600">
+              <input type="radio" name="b_allergy_radio" value="si" onchange="toggleAllergyField(this.value)" style="accent-color:var(--teal);width:18px;height:18px;margin:0">
+              <span>Sí</span>
+            </label>
+          </div>
+          <div id="allergyDetailWrap" style="display:none;margin-top:8px">
+            <label for="b_allergy_detail" style="font-size:.85rem;color:#b91c1c;font-weight:700">Especifique alergias (medicamentos, látex, parches, alimentos) *</label>
+            <input id="b_allergy_detail" type="text" placeholder="Ej: Penicilina, látex, parches, alimentos, etc." style="border-color:#fca5a5;background:rgba(254,242,242,.4)">
+          </div>
+        </div>
+        <div>
+          <label for="b_conciencia">Estado de Conciencia *</label>
+          <select id="b_conciencia" required>
+            <option value="Lúcido / Orientado" selected>Lúcido / Orientado</option>
+            <option value="Somnoliento">Somnoliento</option>
+            <option value="Desorientado">Desorientado</option>
+          </select>
         </div>
         <div>
           <label for="b_mob">Condición de movilidad *</label>
@@ -775,12 +800,32 @@ footer a{color:#fff}
         </div>
       </div>
 
-      <div style="margin-top:18px">
-        <label>Requerimientos asistenciales durante la atención (puede marcar varios):</label>
+      <div style="margin-top:20px">
+        <label style="font-weight:700">Patologías crónicas o condiciones de base (puede marcar varias):</label>
+        <div class="rqs" id="patContainer">
+          <label class="rq-item"><input type="checkbox" class="pat-cb" value="HTA (Hipertensión arterial)" onchange="onPathologyChange(this)"><span>HTA (Hipertensión arterial)</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" value="Insulino Dependiente (Diabetes)" onchange="onPathologyChange(this)"><span>Insulino Dependiente (Diabetes)</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" value="Demencia / Alzheimer" onchange="onPathologyChange(this)"><span>Demencia / Alzheimer</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" value="Oxígeno dependiente" onchange="onPathologyChange(this)"><span>Oxígeno dependiente</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" value="Asma / Uso de Inhalador" onchange="onPathologyChange(this)"><span>Asma / Uso de Inhalador</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" value="Trastorno del Espectro Autista (TEA)" onchange="onPathologyChange(this)"><span>Trastorno del Espectro Autista (TEA)</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" value="Epilepsia" onchange="onPathologyChange(this)"><span>Epilepsia</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" value="Artritis" onchange="onPathologyChange(this)"><span>Artritis</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" id="cbPatNinguna" value="Ninguna" onchange="onPathologyNingunaChange(this)"><span>Ninguna</span></label>
+          <label class="rq-item"><input type="checkbox" class="pat-cb" id="cbPatOtra" value="Otra patología" onchange="onPathologyOtraChange(this)"><span>Otra patología</span></label>
+        </div>
+        <div id="pathologyOtherWrap" style="display:none;margin-top:10px">
+          <label for="b_pathology_other" style="font-size:.85rem;color:var(--teal);font-weight:700">Especifique otra patología o condición de base *</label>
+          <input id="b_pathology_other" type="text" placeholder="Ej: Parkinson, insuficiencia renal, etc." style="width:100%;padding:9px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);font-size:.92rem;color:var(--ink)">
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <label style="font-weight:700">Requerimientos asistenciales durante la atención (puede marcar varios):</label>
         <div class="rqs" id="reqContainer"></div>
       </div>
 
-      <div style="margin-top:18px">
+      <div style="margin-top:20px">
         <label for="b_obs" style="font-weight:600">Observaciones especiales o indicaciones para la llegada (Opcional)</label>
         <textarea id="b_obs" rows="3" placeholder="Indique antecedentes relevantes para el traslado: accesos, timbres, uso de oxígeno portátil propio, propensión a mareos, etc." style="width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);font-size:.92rem;color:var(--ink);font-family:inherit;resize:vertical"></textarea>
       </div>
@@ -880,12 +925,10 @@ footer a{color:#fff}
 <script>
 const K='msa-v1',TODAY='2026-10-17',BUF=180,TM_K='msa-theme',WA_NUM='56929990095',PRICE_PER_KM=1000;
 const MOB = [
-  'Autovalente (camina por sus propios medios sin asistencia)',
-  'Marcha asistida / Apoyo físico de un brazo o bastón',
-  'Usa andador (burrito) propio plegable',
-  'Requiere andador (burrito) de la empresa (Uso gratuito)',
-  'Usa silla de ruedas manual plegable propia',
-  'Requiere silla de ruedas plegable de la empresa (Uso gratuito)'
+  'Autovalente',
+  'Bastón / andador',
+  'Silla de ruedas',
+  'Dependencia Severa'
 ];
 
 const REQ_BY_MODE = {
@@ -1474,6 +1517,69 @@ function checkCompanionRecommendation(){
   } else {
     notice.style.display = 'none';
   }
+}
+
+function toggleAllergyField(val){
+  const wrap = $('#allergyDetailWrap');
+  const inp = $('#b_allergy_detail');
+  if(!wrap || !inp) return;
+  if(val === 'si'){
+    wrap.style.display = 'block';
+    inp.required = true;
+    inp.focus();
+  } else {
+    wrap.style.display = 'none';
+    inp.required = false;
+    inp.value = '';
+  }
+}
+
+function onPathologyNingunaChange(el){
+  if(el.checked){
+    document.querySelectorAll('.pat-cb').forEach(cb => {
+      if(cb !== el) cb.checked = false;
+    });
+    const wrap = $('#pathologyOtherWrap');
+    const inp = $('#b_pathology_other');
+    if(wrap) wrap.style.display = 'none';
+    if(inp){ inp.required = false; inp.value = ''; }
+  }
+}
+
+function onPathologyOtraChange(el){
+  const wrap = $('#pathologyOtherWrap');
+  const inp = $('#b_pathology_other');
+  if(el.checked){
+    const ning = $('#cbPatNinguna');
+    if(ning) ning.checked = false;
+    if(wrap) wrap.style.display = 'block';
+    if(inp){ inp.required = true; inp.focus(); }
+  } else {
+    if(wrap) wrap.style.display = 'none';
+    if(inp){ inp.required = false; inp.value = ''; }
+  }
+}
+
+function onPathologyChange(el){
+  if(el.checked){
+    const ning = $('#cbPatNinguna');
+    if(ning) ning.checked = false;
+  }
+}
+
+function getSelectedPathologies(){
+  const cbs = [...document.querySelectorAll('.pat-cb:checked')];
+  if(cbs.length === 0) return ['Ninguna'];
+  const list = [];
+  cbs.forEach(cb => {
+    if(cb.value === 'Otra patología'){
+      const otherDetail = ($('#b_pathology_other') && $('#b_pathology_other').value.trim()) || '';
+      list.push(otherDetail ? `Otra: ${otherDetail}` : 'Otra patología');
+    } else {
+      list.push(cb.value);
+    }
+  });
+  return list;
 }
 
 function toggleTaxDocFields(val){
@@ -3719,6 +3825,47 @@ async function submitBooking(ev){
     $('#b_dx').focus();
     return;
   }
+
+  // Validación de Alerta Clínica de Alergias
+  const allergyRadio = document.querySelector('input[name="b_allergy_radio"]:checked');
+  const hasAllergy = allergyRadio ? allergyRadio.value === 'si' : false;
+  const allergyDetail = hasAllergy ? (($('#b_allergy_detail') && $('#b_allergy_detail').value.trim()) || '') : '';
+  if(hasAllergy && !allergyDetail){
+    const inp = $('#b_allergy_detail');
+    if(inp){
+      inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      inp.focus();
+    }
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      submitAlert.innerHTML = `<span>⚠️ <b>Alergias requeridas:</b> Ha indicado que el paciente presenta alergias conocidas. Por favor especifíquelas en el campo correspondiente antes de confirmar.</span>`;
+    }
+    return;
+  }
+  const allergyText = hasAllergy ? `Sí (${allergyDetail})` : 'No';
+
+  // Estado de Conciencia
+  const conciencia = ($('#b_conciencia') && $('#b_conciencia').value) || 'Lúcido / Orientado';
+
+  // Validación de Otra Patología si está marcada
+  const cbOtra = $('#cbPatOtra');
+  if(cbOtra && cbOtra.checked){
+    const otherInp = $('#b_pathology_other');
+    if(otherInp && !otherInp.value.trim()){
+      otherInp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      otherInp.focus();
+      const submitAlert = $('#submitBlockAlert');
+      if(submitAlert){
+        submitAlert.style.display = 'block';
+        submitAlert.innerHTML = `<span>⚠️ <b>Patología requerida:</b> Ha marcado la opción "Otra patología". Por favor especifíquela por escrito antes de continuar.</span>`;
+      }
+      return;
+    }
+  }
+  const pathologies = getSelectedPathologies();
+  const pathologiesText = pathologies.join(', ');
+
   const coord = $('#b_coord').value.trim();
   if(!coord){
     $('#b_coord').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3803,6 +3950,9 @@ async function submitBooking(ev){
     depto,
     to,
     mob,
+    conciencia,
+    alergias: allergyText,
+    patologias: pathologies,
     req: reqs,
     obs,
     taxDoc: {
@@ -3850,8 +4000,11 @@ async function submitBooking(ev){
     `• Valor Total Real: ${$c(lastFinalTotal)}\n` +
     `• Abono 50% para Reservar: ${$c(lastAbono50)}\n` +
     `• Saldo 50% al finalizar: ${$c(saldo50)}\n` +
-    `• Paciente: ${pat} (${age} años) · ${dxInput}\n` +
+    `• Paciente: ${pat} (${age} años) · Motivo: ${dxInput}\n` +
+    `• Alergias conocidas: ${allergyText}\n` +
+    `• Estado de Conciencia: ${conciencia}\n` +
     `• Condición de Movilidad: ${mob}\n` +
+    `• Patologías crónicas / Base: ${pathologiesText}\n` +
     `• Acompañante Familiar: ${compVal}\n` +
     `• Requerimientos asistenciales: ${reqs.join(', ')}\n` +
     (obs ? `• Observaciones e Indicaciones: ${obs}\n` : '') +
@@ -3893,8 +4046,11 @@ async function submitBooking(ev){
         </li>
         <li><span>🏁 <b>Saldo 50% al terminar la atención:</b></span> <span><b>${$c(saldo50)}</b></span></li>
         <li><span>🩺 <b>Profesional TENS:</b></span> <span>${e(techObj.nom)}</span></li>
-        <li><span>👤 <b>Paciente:</b></span> <span>${e(pat)} (${age} años) · ${e(dxInput)}</span></li>
+        <li><span>👤 <b>Paciente:</b></span> <span>${e(pat)} (${age} años) · <b>Motivo:</b> ${e(dxInput)}</span></li>
+        <li><span>⚠️ <b>Alergias Conocidas:</b></span> <span style="${hasAllergy ? 'color:#b91c1c;font-weight:700' : ''}">${e(allergyText)}</span></li>
+        <li><span>🧠 <b>Estado de Conciencia:</b></span> <span>${e(conciencia)}</span></li>
         <li><span>♿ <b>Condición de Movilidad:</b></span> <span>${e(mob)}</span></li>
+        <li><span>🩺 <b>Patologías Crónicas / Base:</b></span> <span>${e(pathologiesText)}</span></li>
         <li><span>👥 <b>Acompañante Familiar:</b></span> <span>${e(compVal)}</span></li>
         <li><span>📋 <b>Requerimientos Asistenciales:</b></span> <span>${reqs.map(r=>e(r)).join('; ')}</span></li>
         ${obs ? `<li><span>📝 <b>Observaciones / Indicaciones:</b></span> <span>${e(obs)}</span></li>` : ''}

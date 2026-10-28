@@ -87,12 +87,10 @@ function toggleTheme(){const cur=document.documentElement.getAttribute('data-the
 const ST=['Pendiente','Confirmado','En Ruta','En Atención','Finalizado','Cancelado'];
 const COL={'Pendiente':'#b45309','Confirmado':'#2563eb','En Ruta':'#7c3aed','En Atención':'#0d9488','Finalizado':'#15803d','Cancelado':'#6b7280'};
 const MOB=[
-  'Autovalente (camina por sus propios medios sin asistencia)',
-  'Marcha asistida / Apoyo físico de un brazo o bastón',
-  'Usa andador (burrito) propio plegable',
-  'Requiere andador (burrito) de la empresa (Uso gratuito)',
-  'Usa silla de ruedas manual plegable propia',
-  'Requiere silla de ruedas plegable de la empresa (Uso gratuito)'
+  'Autovalente',
+  'Bastón / andador',
+  'Silla de ruedas',
+  'Dependencia Severa'
 ];
 const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
 const NEXT={'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
@@ -522,6 +520,8 @@ function detail(){const s=D.svcs.find(x=>x.id==U.sel);if(!s)return '';
 const opts=D.techs.filter(t=>t.act&&(t.id==s.tid||avail(t.id,s.date,s.start,s.dur,s.id)));
 return `<div class=card id=det style="margin-top:10px"><h2>Folio #MSA-${s.id} · ${e(s.pat)} (${s.age}) · ${fm(s.start)}–${fm(s.start+s.dur)} <span class=badge style="background:${COL[s.st]}">${s.st}</span></h2>
 <div><b>Motivo:</b> ${e(s.dx)} · <b>Movilidad:</b> ${e(s.mob)}${s.comp?' (Con acompañante)':''}</div>
+${s.alergias ? `<div><b>Alergias:</b> <span style="${s.alergias.startsWith('Sí') ? 'color:#dc2626;font-weight:700':''}">${e(s.alergias)}</span> · <b>Conciencia:</b> ${e(s.conciencia||'Lúcido / Orientado')}</div>` : ''}
+${s.patologias ? `<div><b>Patologías:</b> ${e(Array.isArray(s.patologias)?s.patologias.join(', '):s.patologias)}</div>` : ''}
 <div><b>Ruta:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''} → ${e(s.to)}</div>
 ${s.obs?`<div><b>Observaciones:</b> ${e(s.obs)}</div>`:''}
 ${s.taxDoc?`<div><b>Doc. Tributario:</b> ${e(s.taxDoc.label||s.taxDoc.type)}${s.taxDoc.type==='factura'?' ('+e(s.taxDoc.rs)+' · RUT '+e(s.taxDoc.rut)+' · Giro '+e(s.taxDoc.giro)+' · Dir: '+e(s.taxDoc.dir)+')':''}</div>`:''}
@@ -600,6 +600,8 @@ function tens(){
 function card(s){const n=NEXT[s.st],wa=s.ph.replace(/\D/g,''),q=encodeURIComponent(s.to),qo=encodeURIComponent(s.from);
 return `<div class=card><div class=row style="justify-content:space-between"><b>${fm(s.start)}–${fm(s.start+s.dur)}</b><span class=badge style="background:${COL[s.st]}">${s.st}</span></div>
 <h2 style="margin-top:6px">${e(s.pat)}, ${s.age} años</h2><div>${e(s.dx)}</div>
+${s.alergias ? `<div style="font-size:12px;margin:2px 0"><b>Alergias:</b> <span style="${s.alergias.startsWith('Sí')?'color:#dc2626;font-weight:700':''}">${e(s.alergias)}</span> · <b>Conciencia:</b> ${e(s.conciencia||'Lúcido / Orientado')}</div>` : ''}
+${s.patologias ? `<div style="font-size:12px;margin:2px 0"><b>Patologías:</b> ${e(Array.isArray(s.patologias)?s.patologias.join(', '):s.patologias)}</div>` : ''}
 <div class=al>⚠ ${e(s.mob)}${s.comp?' · Viaja con acompañante':''}<br>${s.req.map(e).join(' · ')}</div>
 <div>Contacto: ${e(s.coord)} ${e(s.ph)}</div><div style="margin:4px 0"><a class=b href="tel:${e(s.ph)}">📞 Llamar</a><a class=b href="https://wa.me/${wa}" target=_blank rel=noopener>WhatsApp</a></div>
 <div><b>Recogida:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''}<br><b>Destino:</b> ${e(s.to)}</div>
