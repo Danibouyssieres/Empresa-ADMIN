@@ -480,7 +480,39 @@ footer a{color:#fff}
             </div>
           </div>
 
+          <!-- BOTÓN DE CÁLCULO PARA SERVICIOS PAQUETIZADOS CON TRASLADO -->
+          <div id="packCalcControls" style="display:none;margin-top:10px">
+            <button type="button" class="btn pri" style="width:100%" onclick="calculateNow()">
+              🧮 Trazar Ruta y Calcular Tiempos de Traslado
+            </button>
+          </div>
+
           <div id="routeStatusMsg" style="margin-top:10px;font-size:.88rem;color:var(--mute);text-align:center"></div>
+
+          <!-- TARJETA RESUMEN DE DISTANCIA Y TIEMPO BAJO CONFIRMACIÓN DE RUTA (SERVICIOS PAQUETIZADOS CON TRASLADO) -->
+          <div id="packRouteMetricsCard" style="display:none;margin-top:12px;padding:14px 16px;background:var(--card);border:1.5px solid var(--teal);border-radius:12px;box-shadow:0 2px 8px rgba(15,118,110,0.08)">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+              <span style="font-weight:700;color:var(--teal);font-size:0.92rem;display:inline-flex;align-items:center;gap:6px">
+                <span>🚗</span> Métricas Estimadas del Traslado
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:rgba(22,143,74,0.12);color:#12783E;border:1px solid rgba(22,143,74,0.25);font-size:0.78rem;font-weight:700">
+                ✓ Kilometraje incluido en el pack contratado
+              </span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+              <div style="background:var(--card-sub, #f8fafc);padding:10px 12px;border-radius:8px;border:1px solid var(--line)">
+                <small style="color:var(--mute);display:block;font-size:0.78rem;margin-bottom:2px">Distancia total estimada:</small>
+                <b id="packMetricKm" style="color:var(--ink);font-size:1.02rem;font-weight:800">0,0 km (Ida + Vuelta)</b>
+              </div>
+              <div style="background:var(--card-sub, #f8fafc);padding:10px 12px;border-radius:8px;border:1px solid var(--line)">
+                <small style="color:var(--mute);display:block;font-size:0.78rem;margin-bottom:2px">Tiempo estimado de traslado:</small>
+                <b id="packMetricTime" style="color:var(--ink);font-size:1.02rem;font-weight:800">0 min de ida + 0 min de retorno</b>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:var(--mute);display:flex;align-items:center;gap:4px">
+              <span>ℹ️</span> <span>Sin cobro adicional por km para tarifas planas</span>
+            </div>
+          </div>
         </div>
 
         <!-- COLUMNA DERECHA: MAPA INTERACTIVO (SOLO VISIBLE EN MODALIDAD 1 Y 2) -->
@@ -679,11 +711,11 @@ footer a{color:#fff}
         </div>
         <div class="timeline-grid" style="display:grid;grid-template-columns:repeat(5, 1fr);align-items:stretch;gap:12px;margin-bottom:12px;font-size:.88rem">
           <div class="timeline-card" style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box">
-            <small style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Hora de recogida programada:</small>
+            <small id="tlHoraRecogidaLabel" style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Hora de recogida programada:</small>
             <b id="tlHoraRecogida" style="color:var(--teal);font-size:1.1rem;margin-top:auto;display:flex;align-items:flex-end;font-weight:700">08:30 hrs</b>
           </div>
           <div class="timeline-card" style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box">
-            <small style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Llegada estimada al recinto:</small>
+            <small id="tlHoraLlegadaDestinoLabel" style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Llegada estimada al recinto:</small>
             <b id="tlHoraLlegadaDestino" style="color:var(--teal);font-size:1.1rem;margin-top:auto;display:flex;align-items:flex-end;font-weight:700">09:10 hrs</b>
           </div>
           <div class="timeline-card" style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box">
@@ -1153,6 +1185,7 @@ let lastFinalTotal = 0;
 let lastAbono50 = 0;
 let lastTimeCost = 0;
 let lastRouteIdaMin = 0;
+let lastRouteVueltaMin = 0;
 let lastRouteTotalMin = 0;
 let pickMode = 'from';
 let typeTimers = {from:null, to:null};
@@ -1232,6 +1265,9 @@ function selectEventSubMode(subMode){
   applyModalityVisibility();
   refreshDuration34Options();
   recalcAll();
+  if(!isSin && ptFrom && ptTo && isMapEnabledForCurrentState()){
+    computeRoute();
+  }
 }
 
 function isMapEnabledForCurrentState(){
@@ -1441,6 +1477,24 @@ function applyModalityVisibility(){
     kmControls.style.display = 'none';
   }
 
+  const packCalc = $('#packCalcControls');
+  if(packCalc){
+    packCalc.style.display = ((mode === '4' && selectedEventSubMode === 'con_traslado') || mode === '5') ? 'block' : 'none';
+  }
+
+  const packCard = $('#packRouteMetricsCard');
+  if(packCard){
+    if(((mode === '4' && selectedEventSubMode === 'con_traslado') || mode === '5') && lastTotalKm > 0){
+      packCard.style.display = 'block';
+      const vMin = lastRouteVueltaMin > 0 ? lastRouteVueltaMin : lastRouteIdaMin;
+      const fmtTotal = lastTotalKm.toFixed(1).replace('.', ',');
+      if($('#packMetricKm')) $('#packMetricKm').textContent = `${fmtTotal} km (Ida + Vuelta)`;
+      if($('#packMetricTime')) $('#packMetricTime').textContent = `${lastRouteIdaMin} min de ida + ${vMin} min de retorno`;
+    } else {
+      packCard.style.display = 'none';
+    }
+  }
+
   if(showDestAddress){
     destWrap.style.display = 'block';
     bTo.required = true;
@@ -1507,7 +1561,8 @@ function applyModalityVisibility(){
   } else {
     $('#durationBox12').style.display = 'none';
     $('#durationBox34').style.display = 'grid';
-    if($('#serviceTimelineBox')) $('#serviceTimelineBox').style.display = 'none';
+    const showTimeline = (mode === '4' && selectedEventSubMode === 'con_traslado');
+    if($('#serviceTimelineBox')) $('#serviceTimelineBox').style.display = showTimeline ? 'block' : 'none';
     if(mode === '3'){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'block';
@@ -1533,6 +1588,9 @@ function applyModalityVisibility(){
       if($('#lblHours34')) $('#lblHours34').textContent = 'Plan de Asistencia y Cobertura *';
       $('#durationBox34').style.gridTemplateColumns = '1fr';
       const isCon = selectedEventSubMode === 'con_traslado';
+      if(isCon){
+        updateServiceTimeline();
+      }
       if(timeBadge){
         timeBadge.textContent = 'Tarifa Plana · Cobertura continua (4 o 6 hrs)';
         timeBadge.style.background = 'rgba(22,143,74,.12)';
@@ -1942,16 +2000,51 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   const box = $('#serviceTimelineBox');
   if(!box) return;
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  if(mode !== '1' && mode !== '2'){
+  const isEventConTraslado = (mode === '4' && selectedEventSubMode === 'con_traslado');
+  if(mode !== '1' && mode !== '2' && !isEventConTraslado){
     box.style.display = 'none';
     return;
   }
   box.style.display = 'block';
 
   const timeSelect = $('#b_time');
-  const curTime = (timeSelect && timeSelect.value) || currentSuggestedHour || '08:30';
+  const curTime = (timeSelect && timeSelect.value)
+    ? timeSelect.value
+    : (isEventConTraslado ? '16:00' : (currentSuggestedHour || '08:30'));
   const startMin = tm(curTime);
 
+  if(isEventConTraslado){
+    let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+    if(h >= 6) h = 6;
+    else h = 4;
+    const eventStayMin = h * 60;
+    const effIdaMin = (typeof idaMin === 'number' && idaMin > 0) ? idaMin : (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30);
+    const effRetornoMin = (typeof retornoMin === 'number' && retornoMin > 0) ? retornoMin : (lastRouteVueltaMin > 0 ? lastRouteVueltaMin : effIdaMin);
+
+    const llegadaRecintoMin = startMin + effIdaMin;
+    const terminoEventoMin = llegadaRecintoMin + eventStayMin;
+    const retornoHogarMin = terminoEventoMin + effRetornoMin;
+    const totalCircuitoMin = effIdaMin + eventStayMin + effRetornoMin;
+
+    if($('#tlBadge')) $('#tlBadge').textContent = 'Ida + Asistencia en Evento + Retorno';
+    if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora de recogida programada:';
+    if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
+    if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Llegada estimada al recinto:';
+    if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fm(llegadaRecintoMin % 1440)} hrs`;
+    if($('#tlTiempoDestinoLabel')) $('#tlTiempoDestinoLabel').textContent = 'Tiempo de permanencia contratado:';
+    if($('#tlTiempoDestino')) $('#tlTiempoDestino').textContent = `${h} hrs continuas`;
+    if($('#tlHoraRetornoLabel')) $('#tlHoraRetornoLabel').textContent = 'Hora estimada de regreso al hogar:';
+    if($('#tlHoraRetorno')) $('#tlHoraRetorno').textContent = `${fm(retornoHogarMin % 1440)} hrs`;
+    if($('#tlHorasEfectivasLabel')) $('#tlHorasEfectivasLabel').textContent = 'Duración total del compromiso:';
+    if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)`;
+
+    const formulaDesc = `Circuito completo del servicio: ${effIdaMin} min viaje de ida + ${h} hrs de permanencia continua en el evento + ${effRetornoMin} min viaje de regreso = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados de dedicación exclusiva.`;
+    if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
+    return;
+  }
+
+  if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora de recogida programada:';
+  if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Llegada estimada al recinto:';
   const llegadaDestinoMin = startMin + abordajeMin + idaMin;
   const salidaDestinoMin = llegadaDestinoMin + stayMin;
   const retornoHogarMin = salidaDestinoMin + retornoMin;
@@ -2131,6 +2224,7 @@ function recalcAll(){
         planName = 'Pack Base (4 hrs continuas + Traslados)';
         basePkgCost = 95000;
       }
+      updateServiceTimeline();
     } else {
       if(h === 6){
         planName = 'Plan Total (6 hrs continuas en recinto)';
@@ -2139,6 +2233,8 @@ function recalcAll(){
         planName = 'Plan Base (4 hrs continuas en recinto)';
         basePkgCost = 65000;
       }
+      const tlBox = $('#serviceTimelineBox');
+      if(tlBox) tlBox.style.display = 'none';
     }
     timeCost = basePkgCost;
     durationText = `Plan Seleccionado: ${planName} — Tarifa Plana Cerrada`;
@@ -2645,6 +2741,10 @@ async function computeRoute(){
       const idaDurationMin = (legs[0] && legs[0].duration)
         ? Math.max(1, Math.round(legs[0].duration / 60))
         : Math.max(1, Math.round(totalDurationMin / 2));
+      const vueltaDurationMin = (legs[1] && legs[1].duration)
+        ? Math.max(1, Math.round(legs[1].duration / 60))
+        : Math.max(1, totalDurationMin - idaDurationMin);
+      lastRouteVueltaMin = vueltaDurationMin;
 
       if(routeLine) map.removeLayer(routeLine);
       routeLine = L.geoJSON(route.geometry, {
@@ -2652,8 +2752,13 @@ async function computeRoute(){
       }).addTo(map);
       map.fitBounds(routeLine.getBounds(), {padding:[40,40]});
 
-      renderPricing(lastIdaKm, lastVueltaKm, lastTotalKm, totalDurationMin, idaDurationMin);
-      setRouteStatus('✅ Ruta de Ida y Vuelta calculada y sumada al total.');
+      renderPricing(lastIdaKm, lastVueltaKm, lastTotalKm, totalDurationMin, idaDurationMin, vueltaDurationMin);
+      const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+      if(mode === '4' || mode === '5'){
+        setRouteStatus('✅ Ruta de Ida y Vuelta calculada y confirmada.');
+      } else {
+        setRouteStatus('✅ Ruta de Ida y Vuelta calculada y sumada al total.');
+      }
     } else {
       setRouteStatus('⚠️ No se pudo trazar ruta vehicular entre ambos puntos.');
     }
@@ -2664,7 +2769,8 @@ async function computeRoute(){
     lastIdaKm = dKm;
     lastVueltaKm = dKm;
     lastTotalKm = totalKm;
-    renderPricing(dKm, dKm, totalKm, estIdaMin * 2, estIdaMin);
+    lastRouteVueltaMin = estIdaMin;
+    renderPricing(dKm, dKm, totalKm, estIdaMin * 2, estIdaMin, estIdaMin);
     setRouteStatus('✅ Distancia calculada.');
   }
 }
@@ -2675,7 +2781,7 @@ function haversineKm(lat1, lon1, lat2, lon2){
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin){
+function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin, vueltaMin){
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
   const isRoundTrip = tripMultiplier === 2;
   const rIda = Math.round(idaKm * 10) / 10;
@@ -2686,12 +2792,26 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin){
   lastTotalKm = rTotal;
   lastRouteTotalMin = totalMin || 0;
   lastRouteIdaMin = (idaMin && idaMin > 0) ? idaMin : (isRoundTrip ? Math.max(1, Math.round(lastRouteTotalMin / 2)) : lastRouteTotalMin);
+  lastRouteVueltaMin = (vueltaMin && vueltaMin > 0) ? vueltaMin : (lastRouteVueltaMin > 0 ? lastRouteVueltaMin : lastRouteIdaMin);
   const fmtIda = rIda.toFixed(1).replace('.', ',');
   const fmtVuelta = rVuelta.toFixed(1).replace('.', ',');
   const fmtTotal = rTotal.toFixed(1).replace('.', ',');
   const modeLabel = 'Ida y Vuelta (A → B → A)';
 
-  $('#resultPanel').style.display = 'block';
+  // Tarjeta resumen de distancia y tiempo bajo confirmación de ruta para packs paquetizados
+  const packCard = $('#packRouteMetricsCard');
+  if(packCard){
+    if((mode === '4' && selectedEventSubMode === 'con_traslado') || mode === '5'){
+      packCard.style.display = 'block';
+      const vMin = lastRouteVueltaMin > 0 ? lastRouteVueltaMin : lastRouteIdaMin;
+      if($('#packMetricKm')) $('#packMetricKm').textContent = `${fmtTotal} km (Ida + Vuelta)`;
+      if($('#packMetricTime')) $('#packMetricTime').textContent = `${lastRouteIdaMin} min de ida + ${vMin} min de retorno`;
+    } else {
+      packCard.style.display = 'none';
+    }
+  }
+
+  $('#resultPanel').style.display = (mode === '1' || mode === '2') ? 'block' : 'none';
   $('#lblResultTitle').textContent = 'Distancia total Ida y Vuelta:';
   $('#outKm').textContent = `${fmtTotal} km`;
   $('#outTime').textContent = totalMin > 0 ? `(aprox. ${totalMin} min de conducción total · ${lastRouteIdaMin} min de ida)` : '';
@@ -2704,6 +2824,14 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin){
     $('#bdReturn').textContent = `${fmtVuelta} km`;
     $('#bdMode').textContent = `${modeLabel} · Dedicación Exclusiva`;
     $('#bdTotalPrice').textContent = 'Incluido en Programa';
+  } else if(mode === '4'){
+    lastKmCost = 0;
+    $('#outPrice').textContent = 'Incluido';
+    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min de viaje)`;
+    $('#rowReturn').style.display = 'flex';
+    $('#bdReturn').textContent = `${fmtVuelta} km`;
+    $('#bdMode').textContent = `${modeLabel} · Dedicación Exclusiva`;
+    $('#bdTotalPrice').textContent = 'Incluido en Pack';
   } else {
     lastKmCost = Math.round((rTotal * PRICE_PER_KM) / 100) * 100;
     $('#outPrice').textContent = $c(lastKmCost);
