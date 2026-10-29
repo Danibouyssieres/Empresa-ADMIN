@@ -396,7 +396,7 @@ footer a{color:#fff}
             <span class="reg-check" id="eventChk_con"></span>
             <div>
               <strong>Pack Integral Puerta a Puerta (Con Traslado)</strong>
-              <small>Incluye traslados completos Ida y Vuelta en vehículo exclusivo + Atención TENS</small>
+              <small>Incluye traslados completos Ida y Vuelta + Cobertura TENS efectiva íntegra durante la celebración</small>
             </div>
           </button>
         </div>
@@ -1241,7 +1241,7 @@ function setInterProgram(hours){
   applyMaxDurationRule();
   recalcAll();
   updateSlots();
-  if(lastRouteIdaMin > 0){
+  if(typeof calcSuggestedPickup === 'function'){
     calcSuggestedPickup();
   }
 }
@@ -1328,8 +1328,8 @@ function refreshDuration34Options(resetSelection = false){
       ? 'Pack Integral Puerta a Puerta (Traslados Ida/Vuelta + Asistencia TENS)'
       : 'Plan de Asistencia en Recinto (Sin Traslado Vehicular)';
     $('#selHours34').innerHTML = isCon ? `
-      <option value="4">Pack Base (4 hrs continuas + Traslados) — $95.000</option>
-      <option value="6">Pack Total (6 hrs continuas + Traslados) — $125.000</option>
+      <option value="4">Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta) — $95.000</option>
+      <option value="6">Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta) — $125.000</option>
     ` : `
       <option value="4">Plan Base (4 hrs continuas en recinto) — $65.000</option>
       <option value="6">Plan Total (6 hrs continuas en recinto) — $95.000</option>
@@ -1561,7 +1561,7 @@ function applyModalityVisibility(){
   } else {
     $('#durationBox12').style.display = 'none';
     $('#durationBox34').style.display = 'grid';
-    const showTimeline = (mode === '4' && selectedEventSubMode === 'con_traslado');
+    const showTimeline = (mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado'));
     if($('#serviceTimelineBox')) $('#serviceTimelineBox').style.display = showTimeline ? 'block' : 'none';
     if(mode === '3'){
       $('#eventStartCol').style.display = 'none';
@@ -1605,7 +1605,9 @@ function applyModalityVisibility(){
     } else if(mode === '5'){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'none';
+      $('#mins34Col').style.display = 'block';
       $('#durationBox34').style.gridTemplateColumns = '1fr';
+      updateServiceTimeline();
       if(timeBadge){
         timeBadge.textContent = 'Programa Cerrado · Tarifa Plana';
         timeBadge.style.background = 'rgba(22,143,74,.12)';
@@ -1617,11 +1619,11 @@ function applyModalityVisibility(){
     }
   }
 
-  // Inversión visual de columnas (CSS Order): Izquierda = Horas/Plan, Derecha = Hora de Inicio + WhatsApp (Mod 3 y 4)
+  // Inversión visual de columnas (CSS Order): Izquierda = Horas/Plan/Programa, Derecha = Asistente/Inicio (Mod 3, 4 y 5)
   const gridSchedule = $('#pickupScheduleGrid');
   const colAsistente = $('#colAsistentePickup');
   const colDuration = $('#colDurationService');
-  if(mode === '3' || mode === '4'){
+  if(mode === '3' || mode === '4' || mode === '5'){
     if(gridSchedule) gridSchedule.classList.add('modality-reverse-cols');
     if(colDuration) colDuration.style.order = '1';
     if(colAsistente) colAsistente.style.order = '2';
@@ -1630,6 +1632,8 @@ function applyModalityVisibility(){
     if(colAsistente) colAsistente.style.order = '1';
     if(colDuration) colDuration.style.order = '2';
   }
+
+  populateAppTimeOptions(mode);
 
   // Mostrar/ocultar sección de Suma (KM + TIEMPO) vs Valor Directo sin suma de KM (Tarjeta Azul)
   if(mode === '1' || mode === '2'){
@@ -1903,6 +1907,10 @@ function onHours34Change(){
   syncJornadaFromSchedule();
   recalcAll();
   updateSlots(true);
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  if(mode === '5' && typeof calcSuggestedPickup === 'function'){
+    calcSuggestedPickup();
+  }
 }
 
 function onEventStart1Change(){
@@ -1974,7 +1982,7 @@ function recalcularTodoElServicio(triggerSource){
     recalcAll();
     updateSlots(true);
 
-    if(mode === '1' || mode === '2'){
+    if(mode === '1' || mode === '2' || mode === '5'){
       const appTime = ($('#appTimeInput') && $('#appTimeInput').value) || ($('#b_app_time') && $('#b_app_time').value);
       if(appTime && typeof calcSuggestedPickup === 'function'){
         calcSuggestedPickup();
@@ -2001,11 +2009,47 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   if(!box) return;
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
   const isEventConTraslado = (mode === '4' && selectedEventSubMode === 'con_traslado');
-  if(mode !== '1' && mode !== '2' && !isEventConTraslado){
+  const isInterregional = (mode === '5');
+  if(mode !== '1' && mode !== '2' && !isEventConTraslado && !isInterregional){
     box.style.display = 'none';
     return;
   }
   box.style.display = 'block';
+
+  // 1. MODALIDAD 5: PROGRAMAS INTERREGIONALES
+  if(isInterregional){
+    const timeSelect = $('#b_time');
+    const curTime = (timeSelect && timeSelect.value) || currentSuggestedHour || '07:30';
+    const startMin = tm(curTime);
+
+    const routeIda = (typeof idaMin === 'number' && idaMin > 0) ? idaMin : (lastRouteIdaMin > 0 ? lastRouteIdaMin : 90);
+    const routeRetorno = (typeof retornoMin === 'number' && retornoMin > 0) ? retornoMin : (lastRouteVueltaMin > 0 ? lastRouteVueltaMin : routeIda);
+
+    const progH = selectedInterProgram || 4;
+    const extraM = (+$('#selMins34').value) || 0;
+    const stayClinicalMin = progH * 60 + extraM;
+
+    const llegadaSantiagoMin = startMin + 10 + routeIda;
+    const salidaSantiagoMin = llegadaSantiagoMin + stayClinicalMin;
+    const retornoHogarMin = salidaSantiagoMin + routeRetorno;
+    const totalCircuitoMin = 10 + routeIda + stayClinicalMin + routeRetorno;
+
+    if($('#tlBadge')) $('#tlBadge').textContent = 'Traslado Interregional Ida + Asistencia + Retorno';
+    if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora exacta de recogida en el domicilio regional:';
+    if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
+    if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Hora estimada de llegada al centro hospitalario/clínico en Santiago:';
+    if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fm(llegadaSantiagoMin % 1440)} hrs`;
+    if($('#tlTiempoDestinoLabel')) $('#tlTiempoDestinoLabel').textContent = 'Horas de permanencia/atención clínica:';
+    if($('#tlTiempoDestino')) $('#tlTiempoDestino').textContent = extraM > 0 ? `${progH} hrs + ${extraM} min (${fmtHoursClean(stayClinicalMin)})` : `${progH} hrs continuas`;
+    if($('#tlHoraRetornoLabel')) $('#tlHoraRetornoLabel').textContent = 'Hora estimada de retorno al domicilio regional:';
+    if($('#tlHoraRetorno')) $('#tlHoraRetorno').textContent = `${fm(retornoHogarMin % 1440)} hrs`;
+    if($('#tlHorasEfectivasLabel')) $('#tlHorasEfectivasLabel').textContent = 'Total horas del circuito interregional completo:';
+    if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)`;
+
+    const formulaDesc = `Circuito Interregional Completo (${selectedInterRegion}): ${routeIda} min traslado ida a Santiago + ${fmtHoursClean(stayClinicalMin)} de permanencia/atención clínica + ${routeRetorno} min traslado de retorno = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados con vehículo y TENS en dedicación exclusiva.`;
+    if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
+    return;
+  }
 
   const timeSelect = $('#b_time');
   const curTime = (timeSelect && timeSelect.value)
@@ -2038,7 +2082,7 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     if($('#tlHorasEfectivasLabel')) $('#tlHorasEfectivasLabel').textContent = 'Duración total del compromiso:';
     if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)`;
 
-    const formulaDesc = `Circuito completo del servicio: ${effIdaMin} min viaje de ida + ${h} hrs de permanencia continua en el evento + ${effRetornoMin} min viaje de regreso = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados de dedicación exclusiva.`;
+    const formulaDesc = `Circuito completo del servicio: ${effIdaMin} min viaje de ida + ${h} hrs de permanencia continua en el evento + ${effRetornoMin} min viaje de regreso = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados de dedicación exclusiva.<br><span style="display:inline-block;margin-top:6px;color:var(--ink);font-weight:600">Nota: Las 4 o 6 horas contratadas corresponden a permanencia continua y efectiva en el evento. Los traslados de ida y regreso se suman como tiempo de viaje adicional, garantizando que el paciente disfrute su fiesta completa.</span>`;
     if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
     return;
   }
@@ -2218,10 +2262,10 @@ function recalcAll(){
     let basePkgCost = 0;
     if(isCon){
       if(h === 6){
-        planName = 'Pack Total (6 hrs continuas + Traslados)';
+        planName = 'Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta)';
         basePkgCost = 125000;
       } else {
-        planName = 'Pack Base (4 hrs continuas + Traslados)';
+        planName = 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)';
         basePkgCost = 95000;
       }
       updateServiceTimeline();
@@ -2259,6 +2303,7 @@ function recalcAll(){
 
     lastInterBreakdown = `${progShortName} (${$c(basePkgCost)})${extraPart} = Total: ${$c(timeCost)}`;
     durationText = lastInterBreakdown;
+    updateServiceTimeline();
   }
 
   lastTimeCost = timeCost;
@@ -2330,7 +2375,7 @@ function recalcAll(){
       const isCon = (selectedEventSubMode === 'con_traslado');
       let planName = '';
       if(isCon){
-        planName = h === 6 ? 'Pack Total (6 hrs continuas + Traslados)' : 'Pack Base (4 hrs continuas + Traslados)';
+        planName = h === 6 ? 'Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta)' : 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)';
       } else {
         planName = h === 6 ? 'Plan Total (6 hrs continuas en recinto)' : 'Plan Base (4 hrs continuas en recinto)';
       }
@@ -4101,9 +4146,11 @@ function calcSuggestedPickup(){
       }
     }
 
-    // 1. Minutos de viaje: si aún no se calcula en mapa, asumir base temporal de 10 min
+    // 1. Minutos de viaje: si aún no se calcula en mapa, asumir base temporal (10 min en Santiago, 90 min en Interregional)
+    const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
     const isEstimatedTempRoute = (!lastRouteIdaMin || lastRouteIdaMin <= 0);
-    const routeMin = isEstimatedTempRoute ? 10 : lastRouteIdaMin;
+    const defaultRouteMin = isInter ? 90 : 10;
+    const routeMin = isEstimatedTempRoute ? defaultRouteMin : lastRouteIdaMin;
 
     const appTimeInput = $('#appTimeInput') || $('#hora-cita-medica') || $('#b_app_time');
     const appTimeStr = (appTimeInput && appTimeInput.value) || '10:00';
@@ -4121,7 +4168,6 @@ function calcSuggestedPickup(){
   let targetSlotMin = Math.floor(rawPickupMin / 15) * 15;
   if(targetSlotMin < 0) targetSlotMin += 1440;
 
-  const isInter = ($('#b_svc_type') && $('#b_svc_type').value === '5');
   const durMins = getSelectedTotalMinutes();
 
   let targetBlock = 'manana';
@@ -4266,7 +4312,7 @@ function calcSuggestedPickup(){
 
     const tempRouteNote = isEstimatedTempRoute
       ? `<div style="font-size:.82rem;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;margin-top:8px;line-height:1.4">
-          ⚠️ <b>Calcule la ruta primero en el mapa</b> para obtener los minutos reales de conducción (cálculo provisional con tiempo base de 10 min de viaje).
+          ⚠️ <b>Calcule la ruta primero en el mapa</b> para obtener los minutos reales de conducción (cálculo provisional con tiempo base de ${isInter ? '90' : '10'} min de viaje).
          </div>`
       : '';
 
@@ -4304,6 +4350,23 @@ function applySuggestedPickup(){
 }
 window.applySuggestedPickup = recalcularTodoElServicio;
 
+function populateAppTimeOptions(mode){
+  const appTimeSel = $('#appTimeInput') || $('#hora-cita-medica');
+  if(!appTimeSel) return;
+  const currentVal = appTimeSel.value;
+  const isInter = (mode === '5');
+  const startMin = isInter ? (8 * 60) : (7 * 60);
+  const endMin = isInter ? (12 * 60) : (18 * 60);
+  const appTimes = [];
+  for(let m = startMin; m <= endMin; m += 15){
+    appTimes.push(fm(m));
+  }
+  const defaultVal = appTimes.includes(currentVal) ? currentVal : (isInter ? '10:00' : (currentVal || '10:00'));
+  appTimeSel.innerHTML = appTimes.map(t => `<option value="${t}" ${t === defaultVal ? 'selected' : ''}>${t} hrs</option>`).join('');
+  appTimeSel.value = defaultVal;
+}
+window.populateAppTimeOptions = populateAppTimeOptions;
+
 async function initForm(){
   applyTheme(getTheme());
   const firstDate = findFirstAvailableDate();
@@ -4312,18 +4375,12 @@ async function initForm(){
   calViewYear = dt.getFullYear();
   calViewMonth = dt.getMonth();
 
-  // Inicializar opciones de hora de cita médica para el Asistente de Recogida (límite máximo estricto: 18:00 hrs)
-  const appTimes = [];
-  for(let m = 7 * 60; m <= 18 * 60; m += 15){
-    appTimes.push(fm(m));
-  }
+  // Inicializar opciones de hora de cita médica para el Asistente de Recogida
   const appTimeSel = $('#appTimeInput') || $('#hora-cita-medica');
-  if(appTimeSel){
-    appTimeSel.innerHTML = appTimes.map(t => `<option value="${t}" ${t === '10:00' ? 'selected' : ''}>${t} hrs</option>`).join('');
-    if(appTimeSel.addEventListener){
-      appTimeSel.addEventListener('change', () => recalcularTodoElServicio('appTime'));
-    }
+  if(appTimeSel && appTimeSel.addEventListener){
+    appTimeSel.addEventListener('change', () => recalcularTodoElServicio('appTime'));
   }
+  populateAppTimeOptions($('#b_svc_type') ? $('#b_svc_type').value : '1');
 
   // Conexión obligatoria de eventos para botón y selector de duración
   const btnCalc = document.getElementById('btnCalcularHora') || document.querySelector('button[onclick*="recalcularTodoElServicio"]');

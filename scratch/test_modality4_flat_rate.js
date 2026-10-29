@@ -14,8 +14,8 @@ assert(content.includes('id="dirTimeLbl"'), 'dirTimeLbl span id must exist');
 assert(content.includes("'4': '4. Acompañamiento en Eventos Sociales'"), 'SVC_NAMES must use "en Eventos Sociales"');
 assert(content.includes('Plan Base (4 hrs continuas en recinto) — $65.000'), 'Sin Traslado 4h option missing');
 assert(content.includes('Plan Total (6 hrs continuas en recinto) — $95.000'), 'Sin Traslado 6h option missing');
-assert(content.includes('Pack Base (4 hrs continuas + Traslados) — $95.000'), 'Con Traslado 4h option missing');
-assert(content.includes('Pack Total (6 hrs continuas + Traslados) — $125.000'), 'Con Traslado 6h option missing');
+assert(content.includes('Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta) — $95.000'), 'Con Traslado 4h option missing');
+assert(content.includes('Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta) — $125.000'), 'Con Traslado 6h option missing');
 
 function createMockEnv() {
   const elements = {};
@@ -221,7 +221,7 @@ assert.strictEqual(elements['dirFinalTotal'].textContent, '$95.000', 'Total Con 
 assert.strictEqual(elements['dirAbono50'].textContent, '$47.500', 'Abono 50% Con Traslados 4h must be $47.500');
 assert.strictEqual(elements['dirSaldoFinal'].textContent, '$47.500', 'Saldo 50% Con Traslados 4h must be $47.500');
 assert.strictEqual(elements['dirSvcName'].textContent, 'Modalidad: 4. Acompañamiento en Eventos Sociales');
-assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Pack Base (4 hrs continuas + Traslados) — Tarifa Plana Cerrada');
+assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta) — Tarifa Plana Cerrada');
 
 // Switch to 6h in Con Traslados
 elements['selHours34'].value = '6';
@@ -229,7 +229,7 @@ ctx.onHours34Change();
 assert.strictEqual(elements['dirFinalTotal'].textContent, '$125.000', 'Total Con Traslados 6h must be $125.000');
 assert.strictEqual(elements['dirAbono50'].textContent, '$62.500', 'Abono 50% Con Traslados 6h must be $62.500');
 assert.strictEqual(elements['dirSaldoFinal'].textContent, '$62.500', 'Saldo 50% Con Traslados 6h must be $62.500');
-assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Pack Total (6 hrs continuas + Traslados) — Tarifa Plana Cerrada');
+assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta) — Tarifa Plana Cerrada');
 
 // Verification 4: Invariance under different dates and shifts
 const testCases = [
