@@ -740,9 +740,9 @@ footer a{color:#fff}
         <div class="gt-grid">
           <div>
             <ul class="breakdown" style="border-top:0;padding-top:0;margin-top:0">
-              <li><span>Modalidad seleccionada:</span> <b id="dirSvcName">Cuidados a Domicilio</b></li>
+              <li><span id="dirSvcLbl">Modalidad seleccionada:</span> <b id="dirSvcName">Cuidados a Domicilio</b></li>
               <li id="dirRegionRow" style="display:none"><span>Región del programa:</span> <b id="dirRegionVal">Región de Valparaíso</b></li>
-              <li><span>Valor por Tiempo de Asistencia:</span> <b id="dirTimeDesc">2 h ($24.000) · Hábil</b></li>
+              <li><span id="dirTimeLbl">Valor por Tiempo de Asistencia:</span> <b id="dirTimeDesc">2 h ($24.000) · Hábil</b></li>
               <li class="total-real-row">
                 <span class="tr-lbl">VALOR REAL TOTAL DE LA ATENCIÓN:</span> <b class="tr-val" id="dirFinalTotal">$24.000</b>
               </li>
@@ -1007,7 +1007,7 @@ const SVC_NAMES = {
   '1': '1. Servicio Integral (Asistencia + Traslado)',
   '2': '2. Traslado Exclusivo con Espera',
   '3': '3. Cuidados a Domicilio',
-  '4': '4. Acompañamiento a Eventos Sociales',
+  '4': '4. Acompañamiento en Eventos Sociales',
   '5': '5. Programas Interregionales'
 };
 
@@ -1288,19 +1288,17 @@ function refreshDuration34Options(resetSelection = false){
       ? 'Pack Integral Puerta a Puerta (Traslados Ida/Vuelta + Asistencia TENS)'
       : 'Plan de Asistencia en Recinto (Sin Traslado Vehicular)';
     $('#selHours34').innerHTML = isCon ? `
-      <option value="4">Pack Base (4 horas en evento + Traslados incluidos) · $95.000</option>
-      <option value="6">Pack Cobertura Total (6 horas en evento + Traslados incluidos) · $125.000</option>
+      <option value="4">Pack Integral Puerta a Puerta (Con Traslados) · $95.000 fijo</option>
     ` : `
-      <option value="4">Plan Base (4 horas continuas en recinto) · $65.000</option>
-      <option value="6">Plan Cobertura Total (6 horas continuas en recinto) · $95.000</option>
+      <option value="4">Pack Asistencia en Recinto (Sin Traslado) · $65.000 fijo</option>
     `;
-    $('#selHours34').value = (!resetSelection && prevH === '6') ? '6' : '4';
+    $('#selHours34').value = '4';
 
     $('#lblMins34').textContent = 'Minutos adicionales (cerrado en planes de evento)';
     $('#selMins34').innerHTML = `<option value="0">+ 0 min (incluido en paquete)</option>`;
     $('#selMins34').value = '0';
     $('#selMins34').disabled = true;
-    $('#selMins34').title = 'Los eventos sociales se contratan en paquetes cerrados de 4 o 6 horas.';
+    $('#selMins34').title = 'Los eventos sociales se contratan en paquetes de tarifa plana cerrada.';
   } else if(mode === '5'){
     $('#lblMins34').textContent = 'Tiempo adicional no programado (en destino)';
     $('#selMins34').innerHTML = `
@@ -1776,7 +1774,7 @@ function applyMaxDurationRule(){
     if(selM34){
       selM34.value = '0';
       selM34.disabled = true;
-      selM34.title = 'Los eventos sociales se contratan en paquetes cerrados de 4 o 6 horas.';
+      selM34.title = 'Los eventos sociales se contratan en paquetes de tarifa plana cerrada.';
     }
   } else if(mode === '5'){
     if(selM34){
@@ -2070,17 +2068,11 @@ function recalcAll(){
     timeCost = basePkgCost + extraHalfCost;
     durationText = `${h} h${extraHalfCost ? ' y 30 min' : ''} (${$c(basePkgCost)}${extraHalfCost ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
   } else if(mode === '4'){
-    let h = +$('#selHours34').value || 4;
-    if(h >= 6) h = 6;
-    else h = 4;
     const isCon = (selectedEventSubMode === 'con_traslado');
-    const basePkgCost = isCon ? (h === 6 ? 125000 : 95000) : (h === 6 ? 95000 : 65000);
-    const planTitle = isCon
-      ? (h === 6 ? 'Pack Cobertura Total (6 hrs en evento + Traslados Ida/Vuelta)' : 'Pack Base (4 hrs en evento + Traslados Ida/Vuelta)')
-      : (h === 6 ? 'Plan Cobertura Total (6 hrs continuas en recinto · Sin traslado)' : 'Plan Base (4 hrs continuas en recinto · Sin traslado)');
-
+    const packName = isCon ? 'Pack Integral Puerta a Puerta (Con Traslados)' : 'Pack Asistencia en Recinto (Sin Traslado)';
+    const basePkgCost = isCon ? 95000 : 65000;
     timeCost = basePkgCost;
-    durationText = `${planTitle} (${$c(basePkgCost)})`;
+    durationText = `Plan Seleccionado: ${packName} — Tarifa Plana Cerrada`;
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
     let m = +$('#selMins34').value || 0;
@@ -2109,7 +2101,7 @@ function recalcAll(){
     if(mode === '5'){
       $('#lblTimeSummaryDesc').textContent = lastInterBreakdown;
     } else if(mode === '4'){
-      $('#lblTimeSummaryDesc').textContent = `Valor cerrado (${durationText} · Tarifa Plana RM):`;
+      $('#lblTimeSummaryDesc').textContent = `${durationText}:`;
     } else {
       const jShort = currentJornada === 'habil' ? 'Hábil (Lun a Vie · 06:00 a 20:00)' : currentJornada === 'tarde' ? 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)' : 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
       $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · ${jShort}):`;
@@ -2159,20 +2151,26 @@ function recalcAll(){
     $('#sumSaldoFinal').textContent = $c(saldo50);
   } else {
     // Modalidad 3 (Cuidados a Domicilio), Modalidad 4 (Eventos Sociales) o Modalidad 5 (Programas Interregionales)
-    $('#dirSvcName').textContent = SVC_NAMES[mode];
     if(mode === '5'){
+      if($('#dirSvcLbl')) $('#dirSvcLbl').textContent = 'Modalidad seleccionada:';
       $('#dirSvcName').textContent = SVC_NAMES[mode];
       $('#dirRegionRow').style.display = 'flex';
       $('#dirRegionVal').textContent = selectedInterRegion;
+      if($('#dirTimeLbl')) $('#dirTimeLbl').textContent = 'Valor del Programa Interregional:';
       $('#dirTimeDesc').textContent = lastInterBreakdown;
     } else if(mode === '4'){
       const isCon = (selectedEventSubMode === 'con_traslado');
-      $('#dirSvcName').textContent = `4. Acompañamiento en Eventos Sociales (${isCon ? 'Pack Puerta a Puerta con Traslados' : 'Pack Asistencia en Recinto sin Traslado'})`;
+      const packName = isCon ? 'Pack Integral Puerta a Puerta (Con Traslados)' : 'Pack Asistencia en Recinto (Sin Traslado)';
+      if($('#dirSvcLbl')) $('#dirSvcLbl').textContent = '';
+      $('#dirSvcName').textContent = 'Modalidad: 4. Acompañamiento en Eventos Sociales';
       $('#dirRegionRow').style.display = 'none';
-      $('#dirTimeDesc').textContent = `${durationText} · Tarifa Plana Cerrada RM`;
+      if($('#dirTimeLbl')) $('#dirTimeLbl').textContent = '';
+      $('#dirTimeDesc').textContent = `Plan Seleccionado: ${packName} — Tarifa Plana Cerrada`;
     } else {
+      if($('#dirSvcLbl')) $('#dirSvcLbl').textContent = 'Modalidad seleccionada:';
       $('#dirSvcName').textContent = SVC_NAMES[mode];
       $('#dirRegionRow').style.display = 'none';
+      if($('#dirTimeLbl')) $('#dirTimeLbl').textContent = 'Valor por Tiempo de Asistencia:';
       $('#dirTimeDesc').textContent = `${durationText} · ${getJornadaLabel(currentJornada, mode).split(' (')[0]}`;
     }
     lastFinalTotal = Math.round(timeCost / 100) * 100;
@@ -3259,6 +3257,10 @@ function actualizarTarifaSegunAgenda(skipRecalc = false){
   try {
     const dateStr = $('#b_date') ? $('#b_date').value : '';
     const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+    const jWrap = $('#jornadaSelectorWrap');
+    if(jWrap && (mode === '4' || mode === '5')){
+      jWrap.style.display = 'none';
+    }
     let day = -1;
     let isHoliday = false;
 
@@ -4218,7 +4220,7 @@ async function submitBooking(ev){
   const mode = $('#b_svc_type').value;
   const isConEvento = (mode === '4' && selectedEventSubMode === 'con_traslado');
   const svcName = mode === '4'
-    ? `4. Acompañamiento en Eventos Sociales (${isConEvento ? 'Pack Puerta a Puerta con Traslados' : 'Pack Asistencia en Recinto sin Traslado'})`
+    ? `4. Acompañamiento en Eventos Sociales (${isConEvento ? 'Pack Integral Puerta a Puerta (Con Traslados)' : 'Pack Asistencia en Recinto (Sin Traslado)'})`
     : SVC_NAMES[mode];
   const showMap = isMapEnabledForCurrentState();
   const showDest = (mode === '1' || mode === '2' || mode === '5' || isConEvento);
