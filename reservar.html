@@ -217,6 +217,8 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .buffer-strip{padding:10px 14px;border-radius:10px;background:var(--mist);border:1px dashed var(--sage);font-size:.82rem;color:var(--mute);display:flex;align-items:center;gap:10px}
 .buffer-strip b{color:var(--teal)}
 .pickup-time-box{padding:14px 16px;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin-top:2px}
+.modality-reverse-cols #colDurationService{order:1 !important}
+.modality-reverse-cols #colAsistentePickup{order:2 !important}
 .rule-alert{margin-top:10px;padding:11px 14px;border-radius:10px;background:rgba(217,119,6,.12);border-left:4px solid #d97706;font-size:.85rem;color:var(--ink);display:none}
 .status-box{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.92rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .status-box.ok{background:rgba(22,143,74,.12);border:1px solid var(--wa);color:var(--ink)}
@@ -508,10 +510,10 @@ footer a{color:#fff}
            SECCIÓN 2: HORARIO DE RECOGIDA Y DURACIÓN EN DOS COLUMNAS PARALELAS
            ========================================================================= -->
       <div id="pickupScheduleSection" class="pickup-time-box" style="margin-top:22px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:stretch">
+        <div id="pickupScheduleGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:stretch">
           
-          <!-- COLUMNA IZQUIERDA: ASISTENTE DE HORA DE RECOGIDA SUGERIDA (O SELECTOR DOMICILIARIO) -->
-          <div style="padding:18px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+          <!-- COLUMNA 1 (IZQUIERDA EN TRASLADOS / DERECHA EN CUIDADOS Y EVENTOS) -->
+          <div id="colAsistentePickup" style="padding:18px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
             <div>
               <!-- MECANISMO DEFINITIVO PARA TRASLADOS (MODALIDADES 1, 2 Y 5): ASISTENTE DE HORA DE RECOGIDA -->
               <div class="asistente-box" id="asistenteBox">
@@ -575,15 +577,15 @@ footer a{color:#fff}
             <div id="availStatus" class="status-box ok" style="display:none;margin-top:10px"></div>
           </div>
 
-          <!-- COLUMNA DERECHA: PERMANENCIA EN DESTINO Y DURACIÓN DEL SERVICIO -->
-          <div style="padding:18px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);display:flex;flex-direction:column;justify-content:space-between">
+          <!-- COLUMNA 2 (DERECHA EN TRASLADOS / IZQUIERDA EN CUIDADOS Y EVENTOS) -->
+          <div id="colDurationService" style="padding:18px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);display:flex;flex-direction:column;justify-content:space-between">
             <input type="hidden" id="b_tens" value="t1">
             <div>
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
                 <span id="timeSectionTitle" style="font-weight:700;color:var(--teal);font-size:.95rem;display:flex;align-items:center;gap:6px">
                   ⏱️ Permanencia en Destino y Duración del Servicio
                 </span>
-                <span style="font-size:.76rem;background:var(--mist);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Mínimo 1 hora · Bloques de 30 min</span>
+                <span id="timeSectionBadge" style="font-size:.76rem;background:var(--mist);color:var(--mute);padding:2px 8px;border-radius:6px;border:1px solid var(--line)">Mínimo 1 hora · Bloques de 30 min</span>
               </div>
               <p id="timeSectionSub" style="font-size:.84rem;color:var(--mute);margin:0 0 12px;line-height:1.45">
                 Indique cuánto tiempo estima permanecer en el lugar de atención o trámite. El sistema calculará automáticamente la duración total del viaje continuo sumando los traslados y el abordaje clínico.
@@ -1471,6 +1473,7 @@ function applyModalityVisibility(){
   }
 
   // Mostrar el selector de horas correspondiente (1-2 vs 3-4-5)
+  const timeBadge = $('#timeSectionBadge');
   if(mode === '1' || mode === '2'){
     const selStay = $('#selStayDestino');
     if(selStay && (!selStay.value || selStay.value === '')){
@@ -1479,6 +1482,13 @@ function applyModalityVisibility(){
     $('#durationBox12').style.display = 'block';
     $('#durationBox34').style.display = 'none';
     if($('#serviceTimelineBox')) $('#serviceTimelineBox').style.display = 'block';
+    if(timeBadge){
+      timeBadge.textContent = 'Mínimo 1 hora · Bloques de 30 min';
+      timeBadge.style.background = 'var(--mist)';
+      timeBadge.style.color = 'var(--mute)';
+      timeBadge.style.borderColor = 'var(--line)';
+      timeBadge.style.fontWeight = 'normal';
+    }
     if(mode === '1'){
       $('#timeSectionTitle').textContent = '⏱️ Permanencia en Destino y Duración del Servicio Completo';
       $('#timeSectionSub').textContent = 'Indique cuánto tiempo estima permanecer en el lugar de atención o trámite. El sistema calculará automáticamente la duración total del viaje continuo sumando los traslados y el abordaje clínico.';
@@ -1503,25 +1513,60 @@ function applyModalityVisibility(){
       let minH = 2;
       if(detectedRing && detectedRing.id === 2) minH = 3;
       else if(detectedRing && detectedRing.id === 3) minH = 4;
+      if(timeBadge){
+        timeBadge.textContent = `Mínimo ${minH} horas · Bloques de 30 min`;
+        timeBadge.style.background = 'var(--mist)';
+        timeBadge.style.color = 'var(--mute)';
+        timeBadge.style.borderColor = 'var(--line)';
+        timeBadge.style.fontWeight = 'normal';
+      }
       $('#timeSectionTitle').textContent = `⏱️ Tiempo de Asistencia en Domicilio (Piso mínimo ${minH}h según comuna · Máximo 6h)`;
       $('#timeSectionSub').textContent = 'Seleccione la cantidad de horas continuas de atención en el hogar. Cada bloque adicional de 30 minutos se calcula al 50% del valor hora.';
     } else if(mode === '4'){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'block';
       $('#mins34Col').style.display = 'none';
-      if($('#lblHours34')) $('#lblHours34').textContent = 'Cantidad de horas de asistencia (4 o 6 horas) *';
+      if($('#lblHours34')) $('#lblHours34').textContent = 'Plan de Asistencia y Cobertura *';
       $('#durationBox34').style.gridTemplateColumns = '1fr';
       const isCon = selectedEventSubMode === 'con_traslado';
+      if(timeBadge){
+        timeBadge.textContent = 'Tarifa Plana · Cobertura continua (4 o 6 hrs)';
+        timeBadge.style.background = 'rgba(22,143,74,.12)';
+        timeBadge.style.color = '#12783E';
+        timeBadge.style.borderColor = 'rgba(22,143,74,.25)';
+        timeBadge.style.fontWeight = '700';
+      }
       $('#timeSectionTitle').textContent = isCon
         ? '⏱️ Pack Integral Puerta a Puerta (Traslados Ida/Vuelta + Atención en Evento)'
         : '⏱️ Plan de Asistencia en Recinto / Salón (Tarifa Plana Cerrada)';
-      $('#timeSectionSub').textContent = 'Seleccione la cobertura deseada (4 o 6 horas continuas). En Eventos Sociales rigen tarifas planas paquetizadas cerradas para toda la Región Metropolitana.';
+      $('#timeSectionSub').textContent = 'Seleccione la cobertura deseada. En Eventos Sociales rigen tarifas planas paquetizadas cerradas para toda la Región Metropolitana.';
     } else if(mode === '5'){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'none';
       $('#durationBox34').style.gridTemplateColumns = '1fr';
+      if(timeBadge){
+        timeBadge.textContent = 'Programa Cerrado · Tarifa Plana';
+        timeBadge.style.background = 'rgba(22,143,74,.12)';
+        timeBadge.style.color = '#12783E';
+        timeBadge.style.borderColor = 'rgba(22,143,74,.25)';
+        timeBadge.style.fontWeight = '700';
+      }
       $('#timeSectionTitle').textContent = '⏱️ Selección de Programa Interregional y Tiempo Adicional';
     }
+  }
+
+  // Inversión visual de columnas (CSS Order): Izquierda = Horas/Plan, Derecha = Hora de Inicio + WhatsApp (Mod 3 y 4)
+  const gridSchedule = $('#pickupScheduleGrid');
+  const colAsistente = $('#colAsistentePickup');
+  const colDuration = $('#colDurationService');
+  if(mode === '3' || mode === '4'){
+    if(gridSchedule) gridSchedule.classList.add('modality-reverse-cols');
+    if(colDuration) colDuration.style.order = '1';
+    if(colAsistente) colAsistente.style.order = '2';
+  } else {
+    if(gridSchedule) gridSchedule.classList.remove('modality-reverse-cols');
+    if(colAsistente) colAsistente.style.order = '1';
+    if(colDuration) colDuration.style.order = '2';
   }
 
   // Mostrar/ocultar sección de Suma (KM + TIEMPO) vs Valor Directo sin suma de KM (Tarjeta Azul)
