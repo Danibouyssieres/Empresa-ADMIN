@@ -38,6 +38,8 @@ nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .btn.ghost:hover{background:var(--mist)}
 .btn.pri{background:#0f766e;color:#fff}
 .btn.pri:hover{background:#0d5f59}
+#btnCalcularHora{transition:transform .15s ease,opacity .15s ease,filter .15s ease}
+#btnCalcularHora.active,#btnCalcularHora:active{transform:scale(.96);filter:brightness(1.18);opacity:.85}
 .hero-bar{background:linear-gradient(160deg,var(--mist),var(--bg) 80%);padding:28px 0 20px;border-bottom:1px solid var(--line)}
 .hero-bar p{color:var(--mute);max-width:100%}
 
@@ -521,8 +523,8 @@ footer a{color:#fff}
                     Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.
                   </p>
                   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <select id="appTimeInput" onchange="onAppTimeChange()" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
-                    <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
+                    <select id="appTimeInput" onchange="onAppTimeChange()" name="hora-cita-medica" class="hora-cita-medica" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
+                    <button type="button" id="btnCalcularHora" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
                       🧭 Calcular Hora de Salida Sugerida
                     </button>
                   </div>
@@ -585,7 +587,7 @@ footer a{color:#fff}
                 <label for="selStayDestino" id="lblStayDestino" style="font-weight:700;color:var(--ink);font-size:.88rem;margin-bottom:6px;display:block">
                   ¿Cuánto estimas que durará tu atención, trámite o actividad en el lugar? *
                 </label>
-                <select id="selStayDestino" onchange="onStayDestinoChange()" style="padding:10px 14px;font-size:.92rem;background:var(--mist);border-radius:10px;border:1.5px solid var(--line);width:100%">
+                <select id="selStayDestino" name="duracion-atencion" class="duracion-atencion" onchange="onStayDestinoChange()" style="padding:10px 14px;font-size:.92rem;background:var(--mist);border-radius:10px;border:1.5px solid var(--line);width:100%">
                   <option value="60" selected>1 hora (Consulta estándar / Trámite breve / Compras - Base mínima)</option>
                   <option value="90">1 hora 30 min (Notaría / Trámites bancarios / Consulta con exámenes)</option>
                   <option value="120">2 horas (Procedimiento ambulatorio / Diligencias públicas extensas)</option>
@@ -1076,7 +1078,12 @@ const MEDICAL_PLACES = [
   {name:'Clínica Bupa Santiago', addr:'Av. Departamental 1455, La Florida, Santiago', lat:-33.5122, lon:-70.5897}
 ];
 
-const $=s=>document.querySelector(s);
+const $ = s => {
+  if (s === '#hora-cita-medica') return document.querySelector('#hora-cita-medica') || document.querySelector('#appTimeInput');
+  if (s === '#duracion-atencion') return document.querySelector('#duracion-atencion') || document.querySelector('#selStayDestino');
+  if (s === '#btnCalcularHora') return document.querySelector('#btnCalcularHora') || document.querySelector('button[onclick*="recalcularTodoElServicio"]') || document.querySelector('button[onclick*="calcSuggestedPickup"]');
+  return document.querySelector(s);
+};
 const $c=n=>'$'+Math.round(n).toLocaleString('es-CL');
 const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pad=n=>String(n).padStart(2,'0'),fm=m=>pad(Math.floor(m/60))+':'+pad(m%60),tm=t=>{const[a,b]=t.split(':');return +a*60+ +b};
@@ -1771,36 +1778,54 @@ function fmtHoursClean(mins){
   return `${m} min`;
 }
 
-function onStayDestinoChange(){
-  const selStay = $('#selStayDestino');
-  if(selStay){
-    selStay.style.borderColor = '';
-    selStay.style.boxShadow = '';
-  }
-  applyMaxDurationRule();
-  recalcAll();
-  updateSlots(true);
-  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  if((mode === '1' || mode === '2') && lastRouteIdaMin > 0){
-    calcSuggestedPickup();
+function recalcularTodoElServicio(triggerSource){
+  try {
+    // Micro-feedback visual en el botón de cálculo (#btnCalcularHora)
+    const btn = $('#btnCalcularHora') || document.querySelector('button[onclick*="calcSuggestedPickup"]') || document.querySelector('button[onclick*="recalcularTodoElServicio"]');
+    if(btn){
+      btn.classList.add('active');
+      btn.style.transform = 'scale(0.96)';
+      btn.style.opacity = '0.85';
+      setTimeout(() => {
+        btn.classList.remove('active');
+        btn.style.transform = '';
+        btn.style.opacity = '';
+      }, 180);
+    }
+
+    const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+
+    // Duración en destino: asegurar 60 min por defecto si está vacío y limpiar estilos de error
+    const selStay = $('#selStayDestino') || $('#duracion-atencion');
+    if(selStay && (!selStay.value || selStay.value === '')){
+      selStay.value = '60';
+    }
+    if(selStay){
+      selStay.style.borderColor = '';
+      selStay.style.boxShadow = '';
+    }
+
+    applyMaxDurationRule();
+    applyModalityVisibility();
+    recalcAll();
+    updateSlots(true);
+
+    if(mode === '1' || mode === '2'){
+      calcSuggestedPickup();
+    }
+  } catch(err) {
+    console.error('Error en recalcularTodoElServicio:', err);
   }
 }
+window.recalcularTodoElServicio = recalcularTodoElServicio;
+
+function onStayDestinoChange(){
+  recalcularTodoElServicio('duration');
+}
+window.onStayDestinoChange = onStayDestinoChange;
 
 function onAppTimeChange(){
-  const selStay = $('#selStayDestino');
-  if(selStay && (!selStay.value || selStay.value === '')){
-    selStay.value = '60';
-  }
-  if(selStay){
-    selStay.style.borderColor = '';
-    selStay.style.boxShadow = '';
-  }
-  recalcAll();
-  updateSlots(true);
-  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  if(mode === '1' || mode === '2'){
-    calcSuggestedPickup();
-  }
+  recalcularTodoElServicio('appTime');
 }
 window.onAppTimeChange = onAppTimeChange;
 
@@ -2530,12 +2555,7 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin){
     $('#bdTotalPrice').textContent = $c(lastKmCost);
   }
 
-  recalcAll();
-
-  const sugCallout = $('#suggestedPickupCallout');
-  if(sugCallout && sugCallout.style.display !== 'none'){
-    calcSuggestedPickup();
-  }
+  recalcularTodoElServicio('mapRoute');
 }
 
 function useMyLocation(){
@@ -3685,64 +3705,55 @@ let currentSuggestedHour = '08:30';
 let currentSuggestedBlock = 'manana';
 
 function calcSuggestedPickup(){
-  const callout = $('#suggestedPickupCallout');
-  const msg = $('#suggestedPickupMsg');
-  const subBtn = $('#submitBtn');
+  try {
+    const callout = $('#suggestedPickupCallout');
+    const msg = $('#suggestedPickupMsg');
+    const subBtn = $('#submitBtn');
 
-  // 0. Reset de estado obligatorio al recalcular
-  if(callout) callout.style.display = 'none';
-  if(msg) msg.innerHTML = '';
-  const blkAlert = $('#submitBlockAlert');
-  if(blkAlert) blkAlert.style.display = 'none';
-  const avail = $('#availStatus');
-  if(avail && avail.classList.contains('err')){
-    avail.style.display = 'none';
-    avail.innerHTML = '';
-  }
+    // 0. Reset de estado obligatorio al recalcular
+    if(callout) callout.style.display = 'none';
+    if(msg) msg.innerHTML = '';
+    const blkAlert = $('#submitBlockAlert');
+    if(blkAlert) blkAlert.style.display = 'none';
+    const avail = $('#availStatus');
+    if(avail && avail.classList.contains('err')){
+      avail.style.display = 'none';
+      avail.innerHTML = '';
+    }
 
-  // Quitar feedback de error previo en combobox de duración
-  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  const selStay = $('#selStayDestino');
-  if(selStay){
-    selStay.style.borderColor = '';
-    selStay.style.boxShadow = '';
-  }
+    // Quitar feedback de error previo en combobox de duración
+    const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+    const selStay = $('#selStayDestino') || $('#duracion-atencion');
+    if(selStay){
+      selStay.style.borderColor = '';
+      selStay.style.boxShadow = '';
+    }
 
-  // Si Modalidad 1 o 2, verificar que el combobox de duración no esté vacío
-  if((mode === '1' || mode === '2') && selStay){
-    if(!selStay.value || selStay.value === ''){
-      selStay.style.borderColor = '#dc2626';
-      selStay.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.25)';
-      selStay.focus();
-      if(msg){
-        msg.innerHTML = `
-          <div style="padding:12px 14px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:8px;color:#991b1b;font-size:.87rem;line-height:1.45">
-            ⚠️ <b>Duración requerida:</b> Por favor indique la duración estimada del servicio a la derecha para generar el cronograma.
-          </div>
-        `;
+    // Si Modalidad 1 o 2, verificar que el combobox de duración no esté vacío
+    if((mode === '1' || mode === '2') && selStay){
+      if(!selStay.value || selStay.value === ''){
+        selStay.style.borderColor = '#dc2626';
+        selStay.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.25)';
+        selStay.focus();
+        if(msg){
+          msg.innerHTML = `
+            <div style="padding:12px 14px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:8px;color:#991b1b;font-size:.87rem;line-height:1.45">
+              ⚠️ <b>Duración requerida:</b> Por favor indique la duración estimada del servicio a la derecha para generar el cronograma.
+            </div>
+          `;
+        }
+        if(callout) callout.style.display = 'block';
+        return;
       }
-      if(callout) callout.style.display = 'block';
-      return;
     }
-  }
 
-  // 1. Validar que la ruta esté calculada en el mapa
-  if(!lastRouteIdaMin || lastRouteIdaMin <= 0){
-    if(msg){
-      msg.innerHTML = `
-        <div style="padding:12px 14px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;color:#92400e;font-size:.87rem;line-height:1.45">
-          ⚠️ <b>Calcule la ruta primero:</b> Por favor ingrese y busque las direcciones de <b>Inicio (A)</b> y <b>Destino (B)</b> en el mapa superior para obtener los minutos reales de conducción antes de calcular su hora de salida.
-        </div>
-      `;
-    }
-    if(callout) callout.style.display = 'block';
-    return;
-  }
+    // 1. Minutos de viaje: si aún no se calcula en mapa, asumir base temporal de 10 min
+    const isEstimatedTempRoute = (!lastRouteIdaMin || lastRouteIdaMin <= 0);
+    const routeMin = isEstimatedTempRoute ? 10 : lastRouteIdaMin;
 
-  const appTimeInput = $('#appTimeInput') || $('#b_app_time');
-  const appTimeStr = (appTimeInput && appTimeInput.value) || '10:00';
-  const appTimeMin = tm(appTimeStr);
-  const routeMin = lastRouteIdaMin;
+    const appTimeInput = $('#appTimeInput') || $('#hora-cita-medica') || $('#b_app_time');
+    const appTimeStr = (appTimeInput && appTimeInput.value) || '10:00';
+    const appTimeMin = tm(appTimeStr);
 
   const margenAbordaje = 10; // 10 min abordaje vehicular y valoración inicial TENS
   const margenAdmision = 20; // 20 min margen previo para admisión o estacionamiento
@@ -3916,32 +3927,43 @@ function calcSuggestedPickup(){
   };
   const blockHuman = blockNames[targetBlock] || targetBlock;
 
-  // Formato visual simple, limpio y sin redundancias según especificación
-  msg.innerHTML = `
-    <div style="background:#ffffff;border:1.5px solid var(--wa);border-left:5px solid #168F4A;border-radius:10px;padding:12px 16px;box-shadow:0 2px 6px rgba(22,143,74,.08);line-height:1.6">
-      <div style="font-weight:700;color:#12783E;font-size:.96rem;display:flex;align-items:center;gap:6px">
-        <span>✓</span> Hora de recogida programada: <span style="font-size:1.06rem;font-weight:800;color:var(--ink)">${targetSlotStr} hrs</span>
-      </div>
-      <div style="font-size:.86rem;color:var(--ink);margin-top:3px">
-        Llegada estimada al recinto: <b>${fm(llegadaRecintoMin)} hrs</b> (${minutosAntesDelBox} min antes del box)
-      </div>
-      <div style="font-size:.84rem;color:var(--mute);margin-top:3px">
-        Bloque asignado: <b>${blockHuman}</b>
-      </div>
-    </div>
-  `;
+    const tempRouteNote = isEstimatedTempRoute
+      ? `<div style="font-size:.82rem;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;margin-top:8px;line-height:1.4">
+          ⚠️ <b>Calcule la ruta primero en el mapa</b> para obtener los minutos reales de conducción (cálculo provisional con tiempo base de 10 min de viaje).
+         </div>`
+      : '';
 
-  callout.style.display = 'block';
+    // Formato visual simple, limpio y sin redundancias según especificación
+    msg.innerHTML = `
+      <div style="background:#ffffff;border:1.5px solid var(--wa);border-left:5px solid #168F4A;border-radius:10px;padding:12px 16px;box-shadow:0 2px 6px rgba(22,143,74,.08);line-height:1.6">
+        <div style="font-weight:700;color:#12783E;font-size:.96rem;display:flex;align-items:center;gap:6px">
+          <span>✓</span> Hora de recogida programada: <span style="font-size:1.06rem;font-weight:800;color:var(--ink)">${targetSlotStr} hrs</span>
+        </div>
+        <div style="font-size:.86rem;color:var(--ink);margin-top:3px">
+          Llegada estimada al recinto: <b>${fm(llegadaRecintoMin)} hrs</b> (${minutosAntesDelBox} min antes del box)
+        </div>
+        <div style="font-size:.84rem;color:var(--mute);margin-top:3px">
+          Bloque asignado: <b>${blockHuman}</b>
+        </div>
+        ${tempRouteNote}
+      </div>
+    `;
+
+    callout.style.display = 'block';
+  } catch(err) {
+    console.error('Error en calcSuggestedPickup:', err);
+  }
 }
 
 function calculateSuggestedTime(){
-  return calcSuggestedPickup();
+  return recalcularTodoElServicio('manual');
 }
-window.calculateSuggestedTime = calcSuggestedPickup;
+window.calculateSuggestedTime = recalcularTodoElServicio;
 
 function applySuggestedPickup(){
-  calcSuggestedPickup();
+  return recalcularTodoElServicio('manual');
 }
+window.applySuggestedPickup = recalcularTodoElServicio;
 
 async function initForm(){
   applyTheme(getTheme());
@@ -3956,19 +3978,28 @@ async function initForm(){
   for(let m = 7 * 60; m <= 18 * 60; m += 15){
     appTimes.push(fm(m));
   }
-  const appTimeSel = $('#appTimeInput');
+  const appTimeSel = $('#appTimeInput') || $('#hora-cita-medica');
   if(appTimeSel){
     appTimeSel.innerHTML = appTimes.map(t => `<option value="${t}" ${t === '10:00' ? 'selected' : ''}>${t} hrs</option>`).join('');
     if(appTimeSel.addEventListener){
-      appTimeSel.addEventListener('change', onAppTimeChange);
+      appTimeSel.addEventListener('change', () => recalcularTodoElServicio('appTime'));
     }
   }
 
-  $('#b_mob').innerHTML = MOB.map(m=>`<option value="${e(m)}">${e(m)}</option>`).join('');
-  const selStay = $('#selStayDestino');
+  // Conexión obligatoria de eventos para botón y selector de duración
+  const btnCalc = document.getElementById('btnCalcularHora') || document.querySelector('button[onclick*="recalcularTodoElServicio"]');
+  if(btnCalc && btnCalc.addEventListener){
+    btnCalc.addEventListener('click', () => recalcularTodoElServicio('button'));
+  }
+
+  const selStay = $('#selStayDestino') || $('#duracion-atencion');
   if(selStay && (!selStay.value || selStay.value === '')){
     selStay.value = '60';
   }
+  if(selStay && selStay.addEventListener){
+    selStay.addEventListener('change', () => recalcularTodoElServicio('duration'));
+  }
+  $('#b_mob').innerHTML = MOB.map(m=>`<option value="${e(m)}">${e(m)}</option>`).join('');
   renderRequirements($('#b_svc_type').value || '1');
   checkCompanionRecommendation();
 
