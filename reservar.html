@@ -219,6 +219,7 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .pickup-time-box{padding:14px 16px;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin-top:2px}
 .modality-reverse-cols #colDurationService{order:1 !important}
 .modality-reverse-cols #colAsistentePickup{order:2 !important}
+#nightRuleNotice{display:none !important}
 .rule-alert{margin-top:10px;padding:11px 14px;border-radius:10px;background:rgba(217,119,6,.12);border-left:4px solid #d97706;font-size:.85rem;color:var(--ink);display:none}
 .status-box{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.92rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .status-box.ok{background:rgba(22,143,74,.12);border:1px solid var(--wa);color:var(--ink)}
@@ -573,7 +574,8 @@ footer a{color:#fff}
               </div>
             </div>
 
-            <div id="nightRuleNotice" class="rule-alert" style="display:none"></div>
+            <!-- Recuadro informativo de Ventana Biológica Post-Nocturno retirado permanentemente -->
+            <div id="nightRuleNotice" class="rule-alert" style="display:none !important"></div>
             <div id="availStatus" class="status-box ok" style="display:none;margin-top:10px"></div>
           </div>
 
@@ -3783,8 +3785,8 @@ function updateSlots(keepCurrentTime = false){
       }
 
       if(prevTimeExceededShift){
-        estWindow.textContent = '';
-        nightNotice.style.display = 'none';
+        if(estWindow) estWindow.textContent = '';
+        if(nightNotice) nightNotice.style.display = 'none';
         stBox.className = 'status-box err';
         if(dur >= 360 && (selectedBlock === 'manana' || !isInter)){
           stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
@@ -3819,8 +3821,8 @@ function updateSlots(keepCurrentTime = false){
     const isMiddayCase = (!isInter && (window.isMiddaySpecial || (stMin >= 720 && stMin < 840) || (selectedBlock === 'manana' && endMin > 720 && endMin <= 840)));
 
     if(!isInter && endMin > shiftEnd && !isMiddayCase){
-      estWindow.textContent = '';
-      nightNotice.style.display = 'none';
+      if(estWindow) estWindow.textContent = '';
+      if(nightNotice) nightNotice.style.display = 'none';
       stBox.className = 'status-box err';
       const shiftName = selectedBlock === 'manana' ? 'Turno Mañana (12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (20:00 hrs)' : 'Turno Noche (04:00 hrs)');
       stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> Esta atención (${fmtHoursClean(dur)}) finaliza a las <b>${fm(endMin % 1440)} hrs</b>, superando la hora de cierre del ${shiftName}. Por favor seleccione una hora de recogida más temprana o reduzca la duración.</span>`;
@@ -3838,15 +3840,9 @@ function updateSlots(keepCurrentTime = false){
 
     if(estWindow) estWindow.textContent = '';
 
-    if(selectedBlock === 'noche' || endsAfter22){
-      nightNotice.style.display = 'block';
-      const reasonText = selectedBlock === 'noche' ? 'en <b>Turno Noche</b>' : 'un servicio con <b>término posterior a las 22:00 hrs</b>';
-      nightNotice.innerHTML = `🌙 <b>Descanso Biológico Post-Nocturno:</b> Al agendar ${reasonText} (término estimado: <b>${fm(endMin % 1440)} hrs</b>), el sistema bloqueará automáticamente el <b>Turno Mañana (06:00 a 12:00 hrs) del día siguiente (${formatHumanDate(addDaysYMD(dateStr, 1))})</b> para garantizar la recuperación biológica del personal. Para esa fecha posterior, la agenda solo recibirá reservas a partir del Turno Tarde (14:00 hrs).`;
-    } else if(isInter){
-      nightNotice.style.display = 'block';
-      nightNotice.innerHTML = `🗺️ <b>Regla de Programa Interregional:</b> Esta reserva bloquea automáticamente <b>el día completo (Bloque Mañana y Bloque Tarde)</b> y el <b>Turno Noche de la víspera (día anterior)</b> para dedicación exclusiva, descanso preventivo y seguridad vial en carretera.`;
-    } else {
+    if(nightNotice){
       nightNotice.style.display = 'none';
+      nightNotice.innerHTML = '';
     }
 
     const availUnits = activeBlockObj.availUnits;
@@ -3864,8 +3860,8 @@ function updateSlots(keepCurrentTime = false){
     if(submitAlert) submitAlert.style.display = 'none';
   } else if(ev.inRange && activeBlockObj.available && !curTime){
     // Turno activo y disponible, pero aún no selecciona la hora exacta
-    estWindow.textContent = '';
-    nightNotice.style.display = 'none';
+    if(estWindow) estWindow.textContent = '';
+    if(nightNotice) nightNotice.style.display = 'none';
     stBox.className = 'status-box';
     const blockNames = { manana: 'Turno Mañana (06:00 a 12:00 hrs)', tarde: 'Turno Tarde (14:00 a 20:00 hrs)', noche: 'Turno Noche (22:00 a 04:00 hrs)' };
     const bName = isInter ? 'Programa Interregional' : (blockNames[selectedBlock] || 'Turno seleccionado');
