@@ -543,14 +543,31 @@ footer a{color:#fff}
                 </div>
               </div>
 
-              <!-- MECANISMO PARA CUIDADOS A DOMICILIO (MODALIDAD 3 Y EVENTOS 4 SIN TRASLADO): SELECTOR SIMPLE -->
-              <div id="homeTimeWrap" style="display:none">
-                <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700;display:block;margin-bottom:6px">
-                  Hora de inicio de la atención en el domicilio *
-                </label>
-                <select id="b_time" onchange="onPickupTimeChange()" disabled style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px">
-                  <option value="">Primero seleccione un turno arriba</option>
-                </select>
+              <!-- MECANISMO PARA CUIDADOS A DOMICILIO (MODALIDAD 3 Y EVENTOS 4 SIN TRASLADO): SELECTOR SIMPLE Y CONTACTO HORARIO ESPECIAL -->
+              <div id="homeTimeWrap" style="display:none;height:100%">
+                <div style="display:flex;flex-direction:column;justify-content:space-between;min-height:260px;height:100%">
+                  <div>
+                    <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700;display:block;margin-bottom:6px">
+                      Hora de inicio de la atención en el domicilio *
+                    </label>
+                    <select id="b_time" onchange="onPickupTimeChange()" disabled style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px">
+                      <option value="">Primero seleccione un turno arriba</option>
+                    </select>
+                  </div>
+
+                  <!-- TARJETA INFORMATIVA ROJA: HORARIO ESPECIAL / CONSULTA WHATSAPP -->
+                  <div id="homeSpecialScheduleCard" style="margin-top:20px;padding:14px 16px;background-color:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:var(--ink);line-height:1.5;box-sizing:border-box">
+                    <div style="font-weight:800;color:#B91C1C;font-size:.95rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+                      <span>💬</span> ¿Requiere un horario de inicio diferente?
+                    </div>
+                    <p style="font-size:.85rem;color:var(--ink);margin:0 0 12px;line-height:1.45">
+                      Si necesita que la atención comience en una hora específica fuera de las opciones listadas o requiere una cobertura personalizada, escríbanos directamente para coordinar factibilidad operativa.
+                    </p>
+                    <a id="btnHomeSpecialWa" href="https://wa.me/56929990095?text=Hola%2C%20necesito%20consultar%20por%20un%20horario%20de%20inicio%20especial%20o%20cobertura%20personalizada%20para%20el%20servicio%20de%20Cuidados%20a%20Domicilio." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 16px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25);width:100%;box-sizing:border-box">
+                      💬 Consultar Horario Especial por WhatsApp
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1528,6 +1545,7 @@ function applyModalityVisibility(){
   if(homeTimeWrap){
     homeTimeWrap.style.display = isTransfer ? 'none' : 'block';
   }
+  updateHomeSpecialWaLink();
   const lblPick = $('#lblPickupSelect');
   if(lblPick){
     if(mode === '3'){
@@ -1553,6 +1571,16 @@ function applyModalityVisibility(){
 
   updateRingDisplay();
 }
+
+function updateHomeSpecialWaLink(){
+  const btn = $('#btnHomeSpecialWa');
+  if(!btn) return;
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '3';
+  const modeName = mode === '4' ? 'Acompañamiento en Eventos Sociales' : 'Cuidados a Domicilio';
+  const msg = `Hola, necesito consultar por un horario de inicio especial o cobertura personalizada para el servicio de ${modeName}.`;
+  btn.href = `https://wa.me/56929990095?text=${encodeURIComponent(msg)}`;
+}
+window.updateHomeSpecialWaLink = updateHomeSpecialWaLink;
 
 function renderRequirements(mode){
   // Bloque de requerimientos asistenciales eliminado para simplificar la Sección 3
@@ -3663,13 +3691,18 @@ function updateSlots(keepCurrentTime = false){
   } else {
     if(timeSelect){
       timeSelect.disabled = false;
+      const isDomicilioOrEvento = (mode === '3' || mode === '4');
       const timeLabelSuffix = isInter
         ? 'Salida temprana interregional (hacia Santiago)'
-        : ((selectedBlock === 'noche') ? 'Hora de inicio de atención nocturna' : 'Hora exacta de recogida');
+        : (isDomicilioOrEvento
+            ? ((selectedBlock === 'noche') ? 'Hora de inicio de atención nocturna' : 'Llegada estimada / Inicio de atención')
+            : ((selectedBlock === 'noche') ? 'Hora de inicio de atención nocturna' : 'Hora exacta de recogida'));
 
       const placeholderText = isInter
         ? 'Seleccione hora de salida temprana...'
-        : ((selectedBlock === 'noche') ? 'Seleccione hora de inicio nocturno...' : 'Seleccione hora exacta de recogida...');
+        : (isDomicilioOrEvento
+            ? ((selectedBlock === 'noche') ? 'Seleccione hora de inicio nocturno...' : 'Seleccione hora de inicio de atención...')
+            : ((selectedBlock === 'noche') ? 'Seleccione hora de inicio nocturno...' : 'Seleccione hora exacta de recogida...'));
 
       timeSelect.innerHTML = [
         `<option value="">${placeholderText}</option>`,
