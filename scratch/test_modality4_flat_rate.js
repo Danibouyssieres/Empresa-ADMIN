@@ -12,8 +12,10 @@ const content = fs.readFileSync(htmlPath, 'utf8');
 assert(content.includes('id="dirSvcLbl"'), 'dirSvcLbl span id must exist');
 assert(content.includes('id="dirTimeLbl"'), 'dirTimeLbl span id must exist');
 assert(content.includes("'4': '4. Acompañamiento en Eventos Sociales'"), 'SVC_NAMES must use "en Eventos Sociales"');
-assert(content.includes("Pack Asistencia en Recinto (Sin Traslado) · $65.000 fijo"), 'Sin Traslado option should indicate $65.000 fijo');
-assert(content.includes("Pack Integral Puerta a Puerta (Con Traslados) · $95.000 fijo"), 'Con Traslados option should indicate $95.000 fijo');
+assert(content.includes('Plan Base (4 hrs continuas en recinto) — $65.000'), 'Sin Traslado 4h option missing');
+assert(content.includes('Plan Total (6 hrs continuas en recinto) — $95.000'), 'Sin Traslado 6h option missing');
+assert(content.includes('Pack Base (4 hrs continuas + Traslados) — $95.000'), 'Con Traslado 4h option missing');
+assert(content.includes('Pack Total (6 hrs continuas + Traslados) — $125.000'), 'Con Traslado 6h option missing');
 
 function createMockEnv() {
   const elements = {};
@@ -191,25 +193,43 @@ ctx.onServiceTypeChange();
 // Verification 1: #jornadaSelectorWrap must be display: none
 assert.strictEqual(elements['jornadaSelectorWrap'].style.display, 'none', '#jornadaSelectorWrap must be hidden in Modalidad 4');
 
-// Verification 2: Sin Traslado Flat Rate ($65.000 / $32.500)
+// Verification 2: Sin Traslado Dynamic Plans (4h: $65.000 / $32.500; 6h: $95.000 / $47.500)
 ctx.selectEventSubMode('sin_traslado');
-ctx.recalcAll();
+elements['selHours34'].value = '4';
+ctx.onHours34Change();
 
-assert.strictEqual(elements['dirFinalTotal'].textContent, '$65.000', 'Total Sin Traslado must be $65.000');
-assert.strictEqual(elements['dirAbono50'].textContent, '$32.500', 'Abono 50% Sin Traslado must be $32.500');
-assert.strictEqual(elements['dirSaldoFinal'].textContent, '$32.500', 'Saldo 50% Sin Traslado must be $32.500');
+assert.strictEqual(elements['dirFinalTotal'].textContent, '$65.000', 'Total Sin Traslado 4h must be $65.000');
+assert.strictEqual(elements['dirAbono50'].textContent, '$32.500', 'Abono 50% Sin Traslado 4h must be $32.500');
+assert.strictEqual(elements['dirSaldoFinal'].textContent, '$32.500', 'Saldo 50% Sin Traslado 4h must be $32.500');
 assert.strictEqual(elements['dirSvcName'].textContent, 'Modalidad: 4. Acompañamiento en Eventos Sociales');
-assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Pack Asistencia en Recinto (Sin Traslado) — Tarifa Plana Cerrada');
+assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Plan Base (4 hrs continuas en recinto) — Tarifa Plana Cerrada');
 
-// Verification 3: Con Traslados Flat Rate ($95.000 / $47.500)
+// Switch to 6h in Sin Traslado
+elements['selHours34'].value = '6';
+ctx.onHours34Change();
+assert.strictEqual(elements['dirFinalTotal'].textContent, '$95.000', 'Total Sin Traslado 6h must be $95.000');
+assert.strictEqual(elements['dirAbono50'].textContent, '$47.500', 'Abono 50% Sin Traslado 6h must be $47.500');
+assert.strictEqual(elements['dirSaldoFinal'].textContent, '$47.500', 'Saldo 50% Sin Traslado 6h must be $47.500');
+assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Plan Total (6 hrs continuas en recinto) — Tarifa Plana Cerrada');
+
+// Verification 3: Con Traslados Dynamic Plans (4h: $95.000 / $47.500; 6h: $125.000 / $62.500)
 ctx.selectEventSubMode('con_traslado');
-ctx.recalcAll();
+elements['selHours34'].value = '4';
+ctx.onHours34Change();
 
-assert.strictEqual(elements['dirFinalTotal'].textContent, '$95.000', 'Total Con Traslados must be $95.000');
-assert.strictEqual(elements['dirAbono50'].textContent, '$47.500', 'Abono 50% Con Traslados must be $47.500');
-assert.strictEqual(elements['dirSaldoFinal'].textContent, '$47.500', 'Saldo 50% Con Traslados must be $47.500');
+assert.strictEqual(elements['dirFinalTotal'].textContent, '$95.000', 'Total Con Traslados 4h must be $95.000');
+assert.strictEqual(elements['dirAbono50'].textContent, '$47.500', 'Abono 50% Con Traslados 4h must be $47.500');
+assert.strictEqual(elements['dirSaldoFinal'].textContent, '$47.500', 'Saldo 50% Con Traslados 4h must be $47.500');
 assert.strictEqual(elements['dirSvcName'].textContent, 'Modalidad: 4. Acompañamiento en Eventos Sociales');
-assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Pack Integral Puerta a Puerta (Con Traslados) — Tarifa Plana Cerrada');
+assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Pack Base (4 hrs continuas + Traslados) — Tarifa Plana Cerrada');
+
+// Switch to 6h in Con Traslados
+elements['selHours34'].value = '6';
+ctx.onHours34Change();
+assert.strictEqual(elements['dirFinalTotal'].textContent, '$125.000', 'Total Con Traslados 6h must be $125.000');
+assert.strictEqual(elements['dirAbono50'].textContent, '$62.500', 'Abono 50% Con Traslados 6h must be $62.500');
+assert.strictEqual(elements['dirSaldoFinal'].textContent, '$62.500', 'Saldo 50% Con Traslados 6h must be $62.500');
+assert.strictEqual(elements['dirTimeDesc'].textContent, 'Plan Seleccionado: Pack Total (6 hrs continuas + Traslados) — Tarifa Plana Cerrada');
 
 // Verification 4: Invariance under different dates and shifts
 const testCases = [
@@ -225,20 +245,20 @@ testCases.forEach(tc => {
   ctx.selectedBlock = tc.shift;
   ctx.actualizarTarifaSegunAgenda();
 
-  // Test Sin Traslado
+  // Test Sin Traslado 4h
   ctx.selectEventSubMode('sin_traslado');
-  ctx.recalcAll();
-  assert.strictEqual(elements['dirFinalTotal'].textContent, '$65.000', `Total Sin Traslado must be $65.000 on ${tc.label}`);
-  assert.strictEqual(elements['dirAbono50'].textContent, '$32.500', `Abono Sin Traslado must be $32.500 on ${tc.label}`);
-  assert.strictEqual(elements['dirSaldoFinal'].textContent, '$32.500', `Saldo Sin Traslado must be $32.500 on ${tc.label}`);
+  elements['selHours34'].value = '4';
+  ctx.onHours34Change();
+  assert.strictEqual(elements['dirFinalTotal'].textContent, '$65.000', `Total Sin Traslado 4h must be $65.000 on ${tc.label}`);
+  assert.strictEqual(elements['dirAbono50'].textContent, '$32.500', `Abono Sin Traslado 4h must be $32.500 on ${tc.label}`);
   assert.strictEqual(elements['jornadaSelectorWrap'].style.display, 'none', `Tariff cards must remain hidden on ${tc.label}`);
 
-  // Test Con Traslado
+  // Test Con Traslado 6h
   ctx.selectEventSubMode('con_traslado');
-  ctx.recalcAll();
-  assert.strictEqual(elements['dirFinalTotal'].textContent, '$95.000', `Total Con Traslado must be $95.000 on ${tc.label}`);
-  assert.strictEqual(elements['dirAbono50'].textContent, '$47.500', `Abono Con Traslado must be $47.500 on ${tc.label}`);
-  assert.strictEqual(elements['dirSaldoFinal'].textContent, '$47.500', `Saldo Con Traslado must be $47.500 on ${tc.label}`);
+  elements['selHours34'].value = '6';
+  ctx.onHours34Change();
+  assert.strictEqual(elements['dirFinalTotal'].textContent, '$125.000', `Total Con Traslado 6h must be $125.000 on ${tc.label}`);
+  assert.strictEqual(elements['dirAbono50'].textContent, '$62.500', `Abono Con Traslado 6h must be $62.500 on ${tc.label}`);
   assert.strictEqual(elements['jornadaSelectorWrap'].style.display, 'none', `Tariff cards must remain hidden on ${tc.label}`);
 });
 

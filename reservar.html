@@ -1292,11 +1292,13 @@ function refreshDuration34Options(resetSelection = false){
       ? 'Pack Integral Puerta a Puerta (Traslados Ida/Vuelta + Asistencia TENS)'
       : 'Plan de Asistencia en Recinto (Sin Traslado Vehicular)';
     $('#selHours34').innerHTML = isCon ? `
-      <option value="4">Pack Integral Puerta a Puerta (Con Traslados) · $95.000 fijo</option>
+      <option value="4">Pack Base (4 hrs continuas + Traslados) — $95.000</option>
+      <option value="6">Pack Total (6 hrs continuas + Traslados) — $125.000</option>
     ` : `
-      <option value="4">Pack Asistencia en Recinto (Sin Traslado) · $65.000 fijo</option>
+      <option value="4">Plan Base (4 hrs continuas en recinto) — $65.000</option>
+      <option value="6">Plan Total (6 hrs continuas en recinto) — $95.000</option>
     `;
-    $('#selHours34').value = '4';
+    $('#selHours34').value = (!resetSelection && prevH === '6') ? '6' : '4';
 
     $('#lblMins34').textContent = 'Minutos adicionales (cerrado en planes de evento)';
     $('#selMins34').innerHTML = `<option value="0">+ 0 min (incluido en paquete)</option>`;
@@ -2115,11 +2117,31 @@ function recalcAll(){
     timeCost = basePkgCost + extraHalfCost;
     durationText = `${h} h${extraHalfCost ? ' y 30 min' : ''} (${$c(basePkgCost)}${extraHalfCost ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
   } else if(mode === '4'){
+    let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+    if(h >= 6) h = 6;
+    else h = 4;
     const isCon = (selectedEventSubMode === 'con_traslado');
-    const packName = isCon ? 'Pack Integral Puerta a Puerta (Con Traslados)' : 'Pack Asistencia en Recinto (Sin Traslado)';
-    const basePkgCost = isCon ? 95000 : 65000;
+    let planName = '';
+    let basePkgCost = 0;
+    if(isCon){
+      if(h === 6){
+        planName = 'Pack Total (6 hrs continuas + Traslados)';
+        basePkgCost = 125000;
+      } else {
+        planName = 'Pack Base (4 hrs continuas + Traslados)';
+        basePkgCost = 95000;
+      }
+    } else {
+      if(h === 6){
+        planName = 'Plan Total (6 hrs continuas en recinto)';
+        basePkgCost = 95000;
+      } else {
+        planName = 'Plan Base (4 hrs continuas en recinto)';
+        basePkgCost = 65000;
+      }
+    }
     timeCost = basePkgCost;
-    durationText = `Plan Seleccionado: ${packName} — Tarifa Plana Cerrada`;
+    durationText = `Plan Seleccionado: ${planName} — Tarifa Plana Cerrada`;
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
     let m = +$('#selMins34').value || 0;
@@ -2206,13 +2228,21 @@ function recalcAll(){
       if($('#dirTimeLbl')) $('#dirTimeLbl').textContent = 'Valor del Programa Interregional:';
       $('#dirTimeDesc').textContent = lastInterBreakdown;
     } else if(mode === '4'){
+      let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+      if(h >= 6) h = 6;
+      else h = 4;
       const isCon = (selectedEventSubMode === 'con_traslado');
-      const packName = isCon ? 'Pack Integral Puerta a Puerta (Con Traslados)' : 'Pack Asistencia en Recinto (Sin Traslado)';
+      let planName = '';
+      if(isCon){
+        planName = h === 6 ? 'Pack Total (6 hrs continuas + Traslados)' : 'Pack Base (4 hrs continuas + Traslados)';
+      } else {
+        planName = h === 6 ? 'Plan Total (6 hrs continuas en recinto)' : 'Plan Base (4 hrs continuas en recinto)';
+      }
       if($('#dirSvcLbl')) $('#dirSvcLbl').textContent = '';
       $('#dirSvcName').textContent = 'Modalidad: 4. Acompañamiento en Eventos Sociales';
       $('#dirRegionRow').style.display = 'none';
       if($('#dirTimeLbl')) $('#dirTimeLbl').textContent = '';
-      $('#dirTimeDesc').textContent = `Plan Seleccionado: ${packName} — Tarifa Plana Cerrada`;
+      $('#dirTimeDesc').textContent = `Plan Seleccionado: ${planName} — Tarifa Plana Cerrada`;
     } else {
       if($('#dirSvcLbl')) $('#dirSvcLbl').textContent = 'Modalidad seleccionada:';
       $('#dirSvcName').textContent = SVC_NAMES[mode];
@@ -4179,6 +4209,11 @@ async function initForm(){
   }
   if(selStay && selStay.addEventListener){
     selStay.addEventListener('change', () => recalcularTodoElServicio('duration'));
+  }
+
+  const selHours34 = $('#selHours34');
+  if(selHours34 && selHours34.addEventListener){
+    selHours34.addEventListener('change', () => onHours34Change());
   }
 
   const svcSelect = $('#b_svc_type');
