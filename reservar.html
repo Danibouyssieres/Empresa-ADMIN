@@ -360,12 +360,12 @@ footer a{color:#fff}
           </div>
           <div id="pillJornada_tarde" class="rate-pill">
             <strong>Fin de Semana (Sáb y Dom · 06:00 a 20:00)</strong>
-            <small>Jornada diurna de fin de semana (+25%)</small>
+            <small id="subJornadaTarde">Sábados, domingos y festivos estándar</small>
             <div class="rp-val" id="lblRateTarde">$15.000/h ($1.000/km)</div>
           </div>
           <div id="pillJornada_nocturno" class="rate-pill">
             <strong id="titleJornadaNocturno">Día Festivo (06:00 a 20:00)</strong>
-            <small id="subJornadaNocturno">Feriado oficial de calendario (+50%)</small>
+            <small id="subJornadaNocturno">Feriados oficiales irrenunciables y cobertura nocturna</small>
             <div class="rp-val" id="lblRateNocturno">$18.000/h ($1.000/km)</div>
           </div>
         </div>
@@ -1361,14 +1361,35 @@ function applyModalityVisibility(){
   const noctPill = $('#pillJornada_nocturno');
   const titleNoct = $('#titleJornadaNocturno');
   const subNoct = $('#subJornadaNocturno');
+  const subTarde = $('#subJornadaTarde') || ($('#pillJornada_tarde') ? $('#pillJornada_tarde').querySelector('small') : null);
   if(noctPill) noctPill.classList.remove('disabled');
+  if(subTarde) subTarde.textContent = 'Sábados, domingos y festivos estándar';
+  if(subNoct) subNoct.textContent = 'Feriados oficiales irrenunciables y cobertura nocturna';
 
   if(mode === '1' || mode === '2'){
     if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00)';
-    if(subNoct) subNoct.textContent = 'Feriado oficial en jornada diurna (+50%)';
   } else {
-    if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
-    if(subNoct) subNoct.textContent = 'Días festivos diurnos y atención nocturna (+50%)';
+    if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00) y Turno Noche (22:00 a 04:00)';
+  }
+
+  // Actualizar etiquetas de precios en las píldoras de jornada según la modalidad activa
+  const lblHabil = $('#lblRateHabil');
+  const lblTarde = $('#lblRateTarde');
+  const lblNocturno = $('#lblRateNocturno');
+  if(lblHabil && lblTarde && lblNocturno){
+    if(mode === '2'){
+      lblHabil.textContent = '$8.000/h ($1.000/km)';
+      lblTarde.textContent = '$10.000/h ($1.000/km)';
+      lblNocturno.textContent = '$12.000/h ($1.000/km)';
+    } else if(mode === '1'){
+      lblHabil.textContent = '$12.000/h ($1.000/km)';
+      lblTarde.textContent = '$15.000/h ($1.000/km)';
+      lblNocturno.textContent = '$18.000/h ($1.000/km)';
+    } else {
+      lblHabil.textContent = '$12.000/h';
+      lblTarde.textContent = '$15.000/h';
+      lblNocturno.textContent = '$18.000/h';
+    }
   }
 
   if(mode === '5'){
@@ -1923,18 +1944,36 @@ function recalcAll(){
   const r = RATES[mode][currentJornada];
 
   // Actualizar etiquetas de precios en las píldoras de jornada según la modalidad activa
-  if(mode === '1' || mode === '2'){
-    $('#lblRateHabil').textContent = `${$c(RATES[mode].habil.hour)}/h ($1.000/km)`;
-    $('#lblRateTarde').textContent = `${$c(RATES[mode].tarde.hour)}/h ($1.000/km)`;
-    $('#lblRateNocturno').textContent = `${$c(RATES[mode].nocturno.hour)}/h ($1.000/km)`;
-  } else if(mode === '3'){
-    $('#lblRateHabil').textContent = `$12.000/h`;
-    $('#lblRateTarde').textContent = `$15.000/h`;
-    $('#lblRateNocturno').textContent = `$18.000/h`;
-  } else if(mode === '4'){
-    $('#lblRateHabil').textContent = `$12.000/h`;
-    $('#lblRateTarde').textContent = `$15.000/h`;
-    $('#lblRateNocturno').textContent = `$18.000/h`;
+  const lblHabil = $('#lblRateHabil');
+  const lblTarde = $('#lblRateTarde');
+  const lblNocturno = $('#lblRateNocturno');
+  if(lblHabil && lblTarde && lblNocturno){
+    if(mode === '2'){
+      lblHabil.textContent = '$8.000/h ($1.000/km)';
+      lblTarde.textContent = '$10.000/h ($1.000/km)';
+      lblNocturno.textContent = '$12.000/h ($1.000/km)';
+    } else if(mode === '1'){
+      lblHabil.textContent = '$12.000/h ($1.000/km)';
+      lblTarde.textContent = '$15.000/h ($1.000/km)';
+      lblNocturno.textContent = '$18.000/h ($1.000/km)';
+    } else {
+      lblHabil.textContent = '$12.000/h';
+      lblTarde.textContent = '$15.000/h';
+      lblNocturno.textContent = '$18.000/h';
+    }
+  }
+
+  const titleNoct = $('#titleJornadaNocturno');
+  const subNoct = $('#subJornadaNocturno');
+  const subTarde = $('#subJornadaTarde') || ($('#pillJornada_tarde') ? $('#pillJornada_tarde').querySelector('small') : null);
+  if(subTarde) subTarde.textContent = 'Sábados, domingos y festivos estándar';
+  if(subNoct) subNoct.textContent = 'Feriados oficiales irrenunciables y cobertura nocturna';
+  if(titleNoct){
+    if(mode === '1' || mode === '2'){
+      titleNoct.textContent = 'Día Festivo (06:00 a 20:00)';
+    } else {
+      titleNoct.textContent = 'Día Festivo (06:00 a 20:00) y Turno Noche (22:00 a 04:00)';
+    }
   }
 
   let timeCost = 0;
@@ -3180,22 +3219,27 @@ function syncJornadaFromSchedule(){
 
   const titleNoct = $('#titleJornadaNocturno');
   const subNoct = $('#subJornadaNocturno');
+  const subTarde = $('#subJornadaTarde') || ($('#pillJornada_tarde') ? $('#pillJornada_tarde').querySelector('small') : null);
+  if(subTarde) subTarde.textContent = 'Sábados, domingos y festivos estándar';
+  if(subNoct) subNoct.textContent = 'Feriados oficiales irrenunciables y cobertura nocturna';
+
+  if(mode === '1' || mode === '2'){
+    if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00)';
+  } else {
+    if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00) y Turno Noche (22:00 a 04:00)';
+  }
 
   if(isHoliday){
-    // Feriado Oficial (cualquier día de la semana) -> Tarifa $18.000/h (+50%)
-    if(titleNoct) titleNoct.textContent = 'Día Festivo (06:00 a 20:00)';
-    if(subNoct) subNoct.textContent = `Feriado oficial: ${holidayName || 'Festivo de calendario'} (+50%)`;
+    // Feriado Oficial (cualquier día de la semana) -> Tarifa Festivo
     setJornada('nocturno');
-  } else if((mode === '3' || mode === '4') && (selectedBlock === 'noche' || mins >= 20*60 || mins < 6*60)){
-    // Horario Nocturno (cualquier día, hábil o fin de semana) -> Tarifa Especial (+50%)
-    if(titleNoct) titleNoct.textContent = 'Horario Nocturno (20:00 a 06:00)';
-    if(subNoct) subNoct.textContent = 'Atención nocturna exclusiva (+50%)';
+  } else if((mode === '3' || mode === '4') && (selectedBlock === 'noche' || mins >= 22*60 || mins < 4*60)){
+    // Horario Nocturno (22:00 a 04:00)
     setJornada('nocturno');
   } else if(day === 0 || day === 6){
-    // Sábados o Domingos (no feriado, diurno) -> Tarifa $15.000/h (+25%)
+    // Sábados o Domingos (no feriado, diurno)
     setJornada('tarde');
   } else {
-    // Lunes a Viernes (no feriado, diurno) -> Tarifa Hábil $12.000/h
+    // Lunes a Viernes (no feriado, diurno)
     setJornada('habil');
   }
 }
@@ -3300,9 +3344,9 @@ function renderCalendar(){
     }
 
     if(isHoliday){
-      titleTip += ` · Feriado oficial: ${holidayName} (+50%)`;
+      titleTip += ` · Feriado oficial: ${holidayName}`;
     } else if(isWeekend){
-      titleTip += ` · Fin de Semana (+25%)`;
+      titleTip += ` · Fin de Semana`;
     }
 
     const dayClasses = [
