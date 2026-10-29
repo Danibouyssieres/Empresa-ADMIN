@@ -521,7 +521,7 @@ footer a{color:#fff}
                     Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.
                   </p>
                   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <select id="appTimeInput" onchange="if(lastRouteIdaMin > 0) calcSuggestedPickup()" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
+                    <select id="appTimeInput" onchange="onAppTimeChange()" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
                     <button type="button" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
                       🧭 Calcular Hora de Salida Sugerida
                     </button>
@@ -1783,6 +1783,24 @@ function onStayDestinoChange(){
     calcSuggestedPickup();
   }
 }
+
+function onAppTimeChange(){
+  const selStay = $('#selStayDestino');
+  if(selStay && (!selStay.value || selStay.value === '')){
+    selStay.value = '60';
+  }
+  if(selStay){
+    selStay.style.borderColor = '';
+    selStay.style.boxShadow = '';
+  }
+  recalcAll();
+  updateSlots(true);
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  if(mode === '1' || mode === '2'){
+    calcSuggestedPickup();
+  }
+}
+window.onAppTimeChange = onAppTimeChange;
 
 function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTotalMin, billedMin){
   const box = $('#serviceTimelineBox');
@@ -3928,14 +3946,17 @@ async function initForm(){
   calViewYear = dt.getFullYear();
   calViewMonth = dt.getMonth();
 
-  // Inicializar opciones de hora de cita médica para el Asistente de Recogida
+  // Inicializar opciones de hora de cita médica para el Asistente de Recogida (límite máximo estricto: 18:00 hrs)
   const appTimes = [];
-  for(let m = 7 * 60; m <= 20 * 60; m += 15){
+  for(let m = 7 * 60; m <= 18 * 60; m += 15){
     appTimes.push(fm(m));
   }
   const appTimeSel = $('#appTimeInput');
   if(appTimeSel){
     appTimeSel.innerHTML = appTimes.map(t => `<option value="${t}" ${t === '10:00' ? 'selected' : ''}>${t} hrs</option>`).join('');
+    if(appTimeSel.addEventListener){
+      appTimeSel.addEventListener('change', onAppTimeChange);
+    }
   }
 
   $('#b_mob').innerHTML = MOB.map(m=>`<option value="${e(m)}">${e(m)}</option>`).join('');
