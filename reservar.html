@@ -135,6 +135,13 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .rate-pill small{display:block;color:var(--mute);font-size:.8rem;margin:2px 0 4px}
 .rate-pill .rp-val{font-weight:800;color:var(--ink);font-size:.95rem}
 
+/* CRONOGRAMA ESTIMADO DEL SERVICIO COMPLETO (5 CASILLAS ALINEADAS) */
+.timeline-grid{display:grid;grid-template-columns:repeat(5, 1fr);align-items:stretch;gap:12px;margin-bottom:12px;font-size:.88rem}
+@media(max-width:860px){.timeline-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
+.timeline-card{display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box}
+.timeline-card small{min-height:2.8em;line-height:1.3;margin-bottom:8px;display:block}
+.timeline-card b{margin-top:auto;display:flex;align-items:flex-end;font-weight:700}
+
 .breakdown li.total-real-row{border-top:2px solid var(--teal);padding:12px 14px;margin:8px 0 4px;background:rgba(14,74,85,.07);border-radius:10px;align-items:center}
 :root[data-theme="dark"] .breakdown li.total-real-row{background:rgba(45,212,191,.1)}
 .breakdown li.total-real-row .tr-lbl{font-size:1.05rem;font-weight:800;color:var(--teal);letter-spacing:.01em}
@@ -649,26 +656,26 @@ footer a{color:#fff}
           <span>⏱️ Cronograma Estimado del Servicio Completo</span>
           <span id="tlBadge" style="font-size:.78rem;background:rgba(22,143,74,.12);color:#12783E;padding:3px 10px;border-radius:999px;font-weight:700">Ida + Asistencia + Retorno</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px;font-size:.88rem">
-          <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-            <small style="color:var(--mute);display:block;margin-bottom:2px">Hora de recogida programada:</small>
-            <b id="tlHoraRecogida" style="color:var(--teal);font-size:1.1rem">08:30 hrs</b>
+        <div class="timeline-grid" style="display:grid;grid-template-columns:repeat(5, 1fr);align-items:stretch;gap:12px;margin-bottom:12px;font-size:.88rem">
+          <div class="timeline-card" style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box">
+            <small style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Hora de recogida programada:</small>
+            <b id="tlHoraRecogida" style="color:var(--teal);font-size:1.1rem;margin-top:auto;display:flex;align-items:flex-end;font-weight:700">08:30 hrs</b>
           </div>
-          <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-            <small style="color:var(--mute);display:block;margin-bottom:2px">Llegada estimada al recinto:</small>
-            <b id="tlHoraLlegadaDestino" style="color:var(--teal);font-size:1.1rem">09:10 hrs</b>
+          <div class="timeline-card" style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box">
+            <small style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Llegada estimada al recinto:</small>
+            <b id="tlHoraLlegadaDestino" style="color:var(--teal);font-size:1.1rem;margin-top:auto;display:flex;align-items:flex-end;font-weight:700">09:10 hrs</b>
           </div>
-          <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-            <small id="tlTiempoDestinoLabel" style="color:var(--mute);display:block;margin-bottom:2px">Permanencia estimada en destino:</small>
-            <b id="tlTiempoDestino" style="color:var(--ink);font-size:1.1rem">1 hora</b>
+          <div class="timeline-card" style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box">
+            <small id="tlTiempoDestinoLabel" style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Permanencia estimada en destino:</small>
+            <b id="tlTiempoDestino" style="color:var(--ink);font-size:1.1rem;margin-top:auto;display:flex;align-items:flex-end;font-weight:700">1 hora</b>
           </div>
-          <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
-            <small id="tlHoraRetornoLabel" style="color:var(--mute);display:block;margin-bottom:2px">Hora estimada de retorno al hogar:</small>
-            <b id="tlHoraRetorno" style="color:#168F4A;font-size:1.1rem">10:40 hrs</b>
+          <div class="timeline-card" style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box">
+            <small id="tlHoraRetornoLabel" style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Hora estimada de retorno al hogar:</small>
+            <b id="tlHoraRetorno" style="color:#168F4A;font-size:1.1rem;margin-top:auto;display:flex;align-items:flex-end;font-weight:700">10:40 hrs</b>
           </div>
-          <div style="padding:10px 12px;background:rgba(22,143,74,.08);border-radius:8px;border:1px solid var(--wa)">
-            <small id="tlHorasEfectivasLabel" style="color:var(--mute);display:block;margin-bottom:2px">Total horas efectivas a liquidar:</small>
-            <b id="tlHorasEfectivas" style="color:#168F4A;font-size:1.1rem">2 h y 30 min (150 min)</b>
+          <div class="timeline-card" style="padding:10px 12px;background:rgba(22,143,74,.08);border-radius:8px;border:1px solid var(--wa);display:flex;flex-direction:column;justify-content:space-between;height:100%;box-sizing:border-box">
+            <small id="tlHorasEfectivasLabel" style="color:var(--mute);display:block;min-height:2.8em;line-height:1.3;margin-bottom:8px">Total horas efectivas a liquidar:</small>
+            <b id="tlHorasEfectivas" style="color:#168F4A;font-size:1.1rem;margin-top:auto;display:flex;align-items:flex-end;font-weight:700">2 h y 30 min (150 min)</b>
           </div>
         </div>
         <div id="tlDesgloseDetalle" style="font-size:.83rem;color:var(--mute);line-height:1.5;border-top:1px dashed var(--line);padding-top:10px">
