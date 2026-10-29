@@ -645,7 +645,7 @@ footer a{color:#fff}
       <div id="serviceTimelineBox" style="margin-top:18px;padding:16px 18px;background:var(--card);border:1.5px solid var(--sage);border-radius:12px">
         <div style="font-weight:700;color:var(--teal);font-size:.95rem;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
           <span>⏱️ Cronograma Estimado del Servicio Completo</span>
-          <span style="font-size:.78rem;background:rgba(22,143,74,.12);color:#12783E;padding:3px 10px;border-radius:999px;font-weight:700">Ida + Espera en Destino + Retorno</span>
+          <span id="tlBadge" style="font-size:.78rem;background:rgba(22,143,74,.12);color:#12783E;padding:3px 10px;border-radius:999px;font-weight:700">Ida + Asistencia + Retorno</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px;font-size:.88rem">
           <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
@@ -1431,10 +1431,12 @@ function applyModalityVisibility(){
       $('#timeSectionTitle').textContent = '⏱️ Permanencia en Destino y Duración del Servicio Completo';
       $('#timeSectionSub').textContent = 'Indique cuánto tiempo estima permanecer en el lugar de atención o trámite. El sistema calculará automáticamente la duración total del viaje continuo sumando los traslados y el abordaje clínico.';
       if($('#lblStayDestino')) $('#lblStayDestino').textContent = '¿Cuánto estimas que durará tu atención, trámite o actividad en el lugar? *';
+      if($('#tlBadge')) $('#tlBadge').textContent = 'Ida + Asistencia + Retorno';
     } else {
       $('#timeSectionTitle').textContent = '⏱️ Tiempo de Espera Requerido en Destino';
       $('#timeSectionSub').textContent = 'Indique cuánto tiempo estima que el vehículo permanecerá esperando en el lugar. El cobro por tiempo se aplica exclusivamente a la espera en destino ($8.000/h).';
       if($('#lblStayDestino')) $('#lblStayDestino').textContent = '¿Cuánto tiempo de espera requerirá en destino? *';
+      if($('#tlBadge')) $('#tlBadge').textContent = 'Ida + Espera en Destino + Retorno';
     }
   } else {
     $('#durationBox12').style.display = 'none';
@@ -1823,6 +1825,9 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
 
   if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
   if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fm(llegadaDestinoMin % 1440)} hrs`;
+  if($('#tlBadge')){
+    $('#tlBadge').textContent = (mode === '2') ? 'Ida + Espera en Destino + Retorno' : 'Ida + Asistencia + Retorno';
+  }
   if($('#tlTiempoDestinoLabel')){
     $('#tlTiempoDestinoLabel').textContent = (mode === '2') ? 'Espera estimada en destino:' : 'Permanencia estimada en destino:';
   }
