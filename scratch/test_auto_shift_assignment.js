@@ -234,15 +234,15 @@ assert(elements['btnBlock_tarde'].classList.contains('active'), 'Tarjeta de Turn
 assert.strictEqual(elements['submitBtn'].disabled, false, 'Botón submit debe quedar habilitado');
 console.log('   ✅ PASS: Cita 16:00 asigna automáticamente Turno Tarde (15:00 hrs) y resalta tarjeta.');
 
-// 4. VALIDACIÓN ESTRICTA DE HORARIOS FRONTERA (BLOQUEO DURO)
-console.log('\n4. Validación dura: invasión de mediodía en turno mañana:');
+// 4. VALIDACIÓN DE HORARIOS ESPECIALES (MEDIODÍA: AVISO ROJO + CONTINUIDAD DE CÁLCULO)
+console.log('\n4. Validación de horario especial de mediodía en turno mañana:');
 elements['appTimeInput'].value = '12:45'; // Salida 11:45 -> slot 11:30. Duración estándar 3h -> finaliza 14:30 > 12:00
 ctx.calcSuggestedPickup();
 const msgHtml = elements['suggestedPickupMsg'].innerHTML;
 assert(msgHtml.includes('Horario Especial de Mediodía Requerido'), 'Debe desplegar aviso de horario especial de mediodía');
-assert.strictEqual(elements['b_time'].value, '', 'b_time debe quedar vacío al haber bloqueo');
-assert.strictEqual(elements['submitBtn'].disabled, true, 'submitBtn debe quedar inhabilitado');
-console.log('   ✅ PASS: Invasión de mediodía bloquea el agendamiento y solicita WhatsApp.');
+assert.strictEqual(elements['b_time'].value, '11:45', 'b_time debe fijarse en 11:45 para permitir cotización completa');
+assert.strictEqual(elements['submitBtn'].disabled, false, 'submitBtn debe quedar habilitado para pre-reserva sujeta a confirmación');
+console.log('   ✅ PASS: Invasión de mediodía muestra aviso especial rojo y mantiene flujo de cálculo activo.');
 
 console.log('\n5. Validación dura: exceso de cierre de Turno Tarde (> 20:00 hrs):');
 elements['appTimeInput'].value = '20:00'; // Salida 19:00. Duración 3h -> finaliza 22:00 > 20:00

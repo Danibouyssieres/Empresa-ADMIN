@@ -3581,7 +3581,8 @@ function updateSlots(keepCurrentTime = false){
         return (slotStart + dur) <= shiftEnd;
       });
 
-  if(!ev.inRange || !activeBlockObj.available || hoursList.length === 0){
+  const isTransfer = (mode === '1' || mode === '2');
+  if(!ev.inRange || !activeBlockObj.available || (hoursList.length === 0 && !isTransfer)){
     let timeOptText = 'Sin horarios disponibles en este bloque';
     if(hoursList.length === 0 && !isInter && ev.inRange && activeBlockObj.available){
       const shiftName = selectedBlock === 'manana' ? 'Turno Mañana (cierre 12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (cierre 20:00 hrs)' : 'Turno Noche (cierre 04:00 hrs)');
@@ -3623,8 +3624,13 @@ function updateSlots(keepCurrentTime = false){
       });
 
       let prevTimeExceededShift = false;
+      const isTransfer = (mode === '1' || mode === '2');
       if(keepCurrentTime && prevTime){
-        if(validChoices.includes(prevTime)){
+        if(validChoices.includes(prevTime) || (isTransfer && (window.isMiddaySpecial || prevTime))){
+          const hasOpt = timeSelect.options ? [...timeSelect.options].some(o => o.value === prevTime) : false;
+          if(isTransfer && !hasOpt){
+            timeSelect.innerHTML += `<option value="${prevTime}">${prevTime} hrs</option>`;
+          }
           timeSelect.value = prevTime;
         } else {
           timeSelect.value = '';
@@ -3664,12 +3670,13 @@ function updateSlots(keepCurrentTime = false){
 
   const curTime = timeSelect ? timeSelect.value : '';
 
-  if(ev.inRange && activeBlockObj.available && curTime && hoursList.length > 0){
+  if(ev.inRange && activeBlockObj.available && curTime && (hoursList.length > 0 || isTransfer)){
     const stMin = getSlotStartMin(curTime, selectedBlock);
     const endMin = stMin + dur;
     const endsAfter22 = endMin > 22 * 60;
+    const isMiddayCase = (!isInter && (window.isMiddaySpecial || (stMin >= 720 && stMin < 840) || (selectedBlock === 'manana' && endMin > 720 && endMin <= 840)));
 
-    if(!isInter && endMin > shiftEnd){
+    if(!isInter && endMin > shiftEnd && !isMiddayCase){
       estWindow.textContent = '';
       nightNotice.style.display = 'none';
       stBox.className = 'status-box err';
@@ -3823,68 +3830,17 @@ function calcSuggestedPickup(){
 
   let targetBlock = 'manana';
 
-  // 1. REGLA ESPECIAL MEDIODÍA (12:00 a 14:00 hrs) Y REGLAS DE CIERRE DE TURNO
-  if(!isInter && targetSlotMin >= 720 && targetSlotMin < 840){
-    // Salida calculada cae exactamente dentro de la ventana de mediodía (12:00 a 14:00 hrs)
-    const timeSel = $('#b_time');
-    if(timeSel) timeSel.value = '';
-    if(subBtn) subBtn.disabled = true;
-
-    msg.innerHTML = `
-      <div style="padding:14px 16px;background-color:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:var(--ink);line-height:1.5">
-        <div style="font-weight:800;color:#B91C1C;font-size:1rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
-          <span>⏰</span> Horario Especial de Mediodía Requerido
-        </div>
-        <div style="font-size:.87rem;margin-bottom:8px">
-          La hora de salida calculada para su cita de las <b>${appTimeStr} hrs</b> es a las <b>${fm(targetSlotMin)} hrs</b>, la cual se encuentra en la ventana de mediodía (12:00 a 14:00 hrs) fuera de los bloques estándar de la agenda.
-        </div>
-        <div style="font-size:.83rem;color:var(--mute);margin-bottom:12px">
-          Contáctenos directamente por WhatsApp para evaluar factibilidad operativa y coordinar una atención personalizada fuera de los bloques estándar.
-        </div>
-        <a href="https://wa.me/56929990095?text=Hola%2C%20necesito%20consultar%20por%20factibilidad%20de%20un%20traslado%20en%20horario%20de%20mediod%C3%ADa%20(salida%20${encodeURIComponent(fm(targetSlotMin))}%20hrs)." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 18px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25)">
-          💬 Coordinar por WhatsApp (+56 9 2999 0095)
-        </a>
-      </div>
-    `;
-    callout.style.display = 'block';
-    return;
-  }
-
+  // 1. EVALUACIÓN DE BLOQUE Y REGLAS DE TURNO (MAÑANA, TARDE O INTERREGIONAL)
   if(isInter){
     targetBlock = 'manana';
     if(targetSlotMin < 300) targetSlotMin = 300; // Mínimo 05:00 AM (300 min)
     if(targetSlotMin > 540) targetSlotMin = 540; // Máximo 09:00 AM (540 min)
-  } else if(targetSlotMin < 720){ // Mañana (06:00 a 12:00 hrs)
+  } else if(targetSlotMin < 720 || (targetSlotMin >= 720 && targetSlotMin < 840)){
+    // Mañana o Mediodía (06:00 a 14:00 hrs)
     targetBlock = 'manana';
     if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00 AM (360 min)
-
-    // Validación dura de tope de turno mañana: [Hora de recogida] + [Duración] <= 12:00 (720 min)
-    const endServiceMin = targetSlotMin + durMins;
-    if(endServiceMin > 720){
-      const timeSel = $('#b_time');
-      if(timeSel) timeSel.value = '';
-      if(subBtn) subBtn.disabled = true;
-
-      msg.innerHTML = `
-        <div style="padding:14px 16px;background-color:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:var(--ink);line-height:1.5">
-          <div style="font-weight:800;color:#B91C1C;font-size:1rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
-            <span>⏰</span> Horario Especial de Mediodía Requerido
-          </div>
-          <div style="font-size:.87rem;margin-bottom:8px">
-            Con la hora de salida requerida (<b>${fm(targetSlotMin)} hrs</b>) y la duración de servicio seleccionada (<b>${fmtHoursClean(durMins)}</b>), la atención terminaría a las <b>${fm(endServiceMin)} hrs</b>, invadiendo la ventana de mediodía (12:00 a 14:00 hrs) fuera del Turno Mañana.
-          </div>
-          <div style="font-size:.83rem;color:var(--mute);margin-bottom:12px">
-            Por favor contáctenos directamente por WhatsApp para evaluar factibilidad operativa y coordinar una atención personalizada fuera de los bloques estándar.
-          </div>
-          <a href="https://wa.me/56929990095?text=Hola%2C%20necesito%20coordinar%20un%20traslado%20que%20abarca%20horario%20de%20mediod%C3%ADa%20(terminando%20a%20las%20${encodeURIComponent(fm(endServiceMin))}%20hrs)." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 18px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25)">
-            💬 Coordinar por WhatsApp (+56 9 2999 0095)
-          </a>
-        </div>
-      `;
-      callout.style.display = 'block';
-      return;
-    }
-  } else { // Tarde (14:00 a 20:00 hrs)
+  } else {
+    // Tarde (14:00 a 20:00 hrs)
     targetBlock = 'tarde';
     if(targetSlotMin < 840) targetSlotMin = 840; // Mínimo 14:00 (840 min)
 
@@ -3909,6 +3865,36 @@ function calcSuggestedPickup(){
       callout.style.display = 'block';
       return;
     }
+  }
+
+  const endServiceMin = targetSlotMin + durMins;
+
+  // REGLA ESPECIAL MEDIODÍA (12:01 a 13:59 hrs o salida entre 12:00 y 14:00 hrs):
+  // Se activa la advertencia roja pero NO se corta la ejecución (sin return) para calcular y mostrar el cronograma y totales completos.
+  const isMiddaySpecial = (!isInter && ((targetSlotMin >= 720 && targetSlotMin < 840) || (targetSlotMin < 720 && endServiceMin > 720)));
+  window.isMiddaySpecial = isMiddaySpecial;
+
+  if(isMiddaySpecial){
+    msg.innerHTML = `
+      <div style="padding:14px 16px;background-color:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:var(--ink);line-height:1.5">
+        <div style="font-weight:800;color:#B91C1C;font-size:1rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+          <span>⏰</span> Horario Especial de Mediodía Requerido
+        </div>
+        <div style="font-size:.87rem;margin-bottom:8px">
+          ${targetSlotMin >= 720
+            ? `La hora de salida calculada para su cita de las <b>${appTimeStr} hrs</b> es a las <b>${fm(targetSlotMin)} hrs</b>, la cual se encuentra en la ventana de mediodía (12:00 a 14:00 hrs) fuera de los bloques estándar de la agenda.`
+            : `Con la hora de salida requerida (<b>${fm(targetSlotMin)} hrs</b>) y la duración de servicio seleccionada (<b>${fmtHoursClean(durMins)}</b>), la atención terminaría a las <b>${fm(endServiceMin)} hrs</b>, invadiendo la ventana de mediodía (12:00 a 14:00 hrs) fuera del Turno Mañana.`
+          }
+        </div>
+        <div style="font-size:.83rem;color:var(--mute);margin-bottom:12px">
+          Por favor contáctenos directamente por WhatsApp para evaluar factibilidad operativa y coordinar una atención personalizada fuera de los bloques estándar.
+        </div>
+        <a href="https://wa.me/56929990095?text=Hola%2C%20necesito%20coordinar%20un%20traslado%20que%20abarca%20horario%20de%20mediod%C3%ADa%20(terminando%20a%20las%20${encodeURIComponent(fm(endServiceMin))}%20hrs)." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 18px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25)">
+          💬 Coordinar por WhatsApp (+56 9 2999 0095)
+        </a>
+      </div>
+    `;
+    callout.style.display = 'block';
   }
 
   const targetSlotStr = fm(targetSlotMin);
@@ -3953,10 +3939,14 @@ function calcSuggestedPickup(){
   if(timeSel){
     if(timeSel.options && typeof timeSel.options[Symbol.iterator] === 'function'){
       if(![...timeSel.options].some(o => o.value === targetSlotStr)){
-        const opt = document.createElement('option');
-        opt.value = targetSlotStr;
-        opt.text = `${targetSlotStr} hrs`;
-        timeSel.appendChild(opt);
+        if(timeSel.innerHTML !== undefined){
+          timeSel.innerHTML += `<option value="${targetSlotStr}">${targetSlotStr} hrs</option>`;
+        } else if(typeof document !== 'undefined' && document.createElement && timeSel.appendChild){
+          const opt = document.createElement('option');
+          opt.value = targetSlotStr;
+          opt.text = `${targetSlotStr} hrs`;
+          timeSel.appendChild(opt);
+        }
       }
     }
     timeSel.value = targetSlotStr;
@@ -3984,21 +3974,23 @@ function calcSuggestedPickup(){
          </div>`
       : '';
 
-    // Formato visual simple, limpio y sin redundancias según especificación
-    msg.innerHTML = `
-      <div style="background:#ffffff;border:1.5px solid var(--wa);border-left:5px solid #168F4A;border-radius:10px;padding:12px 16px;box-shadow:0 2px 6px rgba(22,143,74,.08);line-height:1.6">
-        <div style="font-weight:700;color:#12783E;font-size:.96rem;display:flex;align-items:center;gap:6px">
-          <span>✓</span> Hora de recogida programada: <span style="font-size:1.06rem;font-weight:800;color:var(--ink)">${targetSlotStr} hrs</span>
+    // Formato visual simple, limpio y sin redundancias según especificación (si es horario especial de mediodía, conserva la tarjeta roja)
+    if(!isMiddaySpecial){
+      msg.innerHTML = `
+        <div style="background:#ffffff;border:1.5px solid var(--wa);border-left:5px solid #168F4A;border-radius:10px;padding:12px 16px;box-shadow:0 2px 6px rgba(22,143,74,.08);line-height:1.6">
+          <div style="font-weight:700;color:#12783E;font-size:.96rem;display:flex;align-items:center;gap:6px">
+            <span>✓</span> Hora de recogida programada: <span style="font-size:1.06rem;font-weight:800;color:var(--ink)">${targetSlotStr} hrs</span>
+          </div>
+          <div style="font-size:.86rem;color:var(--ink);margin-top:3px">
+            Llegada estimada al recinto: <b>${fm(llegadaRecintoMin)} hrs</b> (${minutosAntesDelBox} min antes del box)
+          </div>
+          <div style="font-size:.84rem;color:var(--mute);margin-top:3px">
+            Bloque asignado: <b>${blockHuman}</b>
+          </div>
+          ${tempRouteNote}
         </div>
-        <div style="font-size:.86rem;color:var(--ink);margin-top:3px">
-          Llegada estimada al recinto: <b>${fm(llegadaRecintoMin)} hrs</b> (${minutosAntesDelBox} min antes del box)
-        </div>
-        <div style="font-size:.84rem;color:var(--mute);margin-top:3px">
-          Bloque asignado: <b>${blockHuman}</b>
-        </div>
-        ${tempRouteNote}
-      </div>
-    `;
+      `;
+    }
 
     callout.style.display = 'block';
   } catch(err) {
@@ -4163,9 +4155,10 @@ async function submitBooking(ev){
   const start = timeStr ? getSlotStartMin(timeStr, selectedBlock) : 0;
   const endMin = start + dur;
   const shiftEnd = getShiftEndTime(selectedBlock);
-  const exceedsShift = (!isInter && selectedBlock && endMin > shiftEnd);
+  const isMiddayCase = (!isInter && (window.isMiddaySpecial || (start >= 720 && start < 840) || (selectedBlock === 'manana' && endMin > 720 && endMin <= 840)));
+  const exceedsShift = (!isInter && selectedBlock && endMin > shiftEnd && !isMiddayCase);
 
-  if(!date || (!selectedBlock && !isInter) || !timeStr || !capEval.inRange || !targetBlockObj.available || !isSlotAtLeast24hAhead(date, timeStr, selectedBlock === 'noche' && timeStr < '12:00') || exceedsShift){
+  if(!date || (!selectedBlock && !isInter) || !timeStr || !capEval.inRange || (!targetBlockObj.available && !isMiddayCase) || !isSlotAtLeast24hAhead(date, timeStr, selectedBlock === 'noche' && timeStr < '12:00') || exceedsShift){
     updateSlots();
     const submitAlert = $('#submitBlockAlert');
     if(submitAlert){
@@ -4387,6 +4380,7 @@ async function submitBooking(ev){
     `• Fecha: ${formatHumanDate(date)} (${date})\n` +
     `• Turno / Bloque: ${blockHuman}\n` +
     `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n` +
+    (isMiddayCase ? `• ⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.\n` : '') +
     `• Dirección: ${from}${depto ? ` (${depto})` : ''}\n` +
     (showDest ? `• Destino / Recinto: ${to}\n` : '') +
     (showMap && (mode === '1' || mode === '2') ? `• Recorrido: ${modeLabel} (${fmtTotalKm} = ${$c(lastKmCost)})\n` : '') +
@@ -4426,6 +4420,7 @@ async function submitBooking(ev){
         <li><span>📅 <b>Fecha Reservada:</b></span> <span><b>${e(formatHumanDate(date))}</b></span></li>
         <li><span>🌅 <b>Bloque de Agenda:</b></span> <span><b>${e(blockHuman)}</b></span></li>
         <li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>
+        ${isMiddayCase ? `<li style="background:#FEF2F2;border:1px solid #EF4444;color:#B91C1C"><span>⚠️ <b>Observación de Horario:</b></span> <b>⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.</b></li>` : ''}
         ${endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : ''}
         ${mode === '5' ? `<li><span>🛡️ <b>Seguridad Vial y Descanso:</b></span> <span>Bloquea jornada completa de la fecha y el Turno Noche de la víspera (noche anterior)</span></li>` : ''}
         <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : 'Dirección de Recogida / Inicio (A):'}</b></span> <span>${e(from)}${depto ? ` · <b>${e(depto)}</b>` : ''}</span></li>

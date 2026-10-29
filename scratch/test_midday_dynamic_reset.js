@@ -196,10 +196,10 @@ selStayDestino.value = '120';
 
 ctx.calcSuggestedPickup();
 
-if (msg.innerHTML.includes('Horario Especial de Mediodía Requerido') && subBtn.disabled === true && b_time.value === '') {
-  console.log('   ✅ PASS: Muestra tarjeta de "Horario Especial de Mediodía Requerido", deshabilita submitBtn y vacía b_time.');
+if (msg.innerHTML.includes('Horario Especial de Mediodía Requerido') && subBtn.disabled === false && b_time.value === '10:15') {
+  console.log('   ✅ PASS: Muestra tarjeta roja de "Horario Especial de Mediodía Requerido", mantiene submitBtn habilitado y fija b_time en 10:15.');
 } else {
-  console.error('   ❌ FAIL: No activó correctamente la advertencia de mediodía.', {
+  console.error('   ❌ FAIL: No activó correctamente la advertencia de mediodía o interrumpió el flujo.', {
     html: msg.innerHTML,
     subBtnDisabled: subBtn.disabled,
     b_time: b_time.value
