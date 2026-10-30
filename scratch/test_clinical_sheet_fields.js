@@ -4,8 +4,8 @@ const assert = require('assert');
 
 console.log('Testing Clinical Sheet alignment in reservar.html and admin.html...\n');
 
-const resHtml = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
-const admHtml = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+const resHtml = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8') + '\n' + (fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js')) ? fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8') : '');
+const admHtml = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8') + '\n' + (fs.existsSync(path.join(__dirname, '..', 'js', 'admin.js')) ? fs.readFileSync(path.join(__dirname, '..', 'js', 'admin.js'), 'utf8') : '');
 
 // 1. Motivo de atención label check
 assert(resHtml.includes('<label for="b_dx">Motivo de atención *</label>'), 'Should have simplified label "Motivo de atención *"');

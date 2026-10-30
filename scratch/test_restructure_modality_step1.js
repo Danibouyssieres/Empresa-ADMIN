@@ -5,7 +5,7 @@ const assert = require('assert');
 
 console.log('=== TEST SUITE: Reestructuración de Modalidad de Servicio a Cabecera de Paso 1 ===\n');
 
-const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8');
+const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Verificación de ubicación en HTML estático
 console.log('1. Verificando ubicación de Modalidad en Sección 1 y ausencia de duplicados:');
@@ -28,10 +28,8 @@ assert.strictEqual(secondSvcTypeIdx, -1, 'b_svc_type NO debe estar duplicado en 
 console.log('   ✅ PASS: b_svc_type está en la cabecera del Paso 1 y no existe duplicado en Sección 2.');
 
 // 2. Preparar entorno VM para verificar reactividad y cálculo
-const scriptMatches = htmlContent.match(/<script>([\s\S]*?)<\/script>/gi);
-const mainScript = scriptMatches[scriptMatches.length - 1]
-  .replace(/^<script>/i, '')
-  .replace(/<\/script>$/i, '');
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+const mainScript = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : '';
 
 function createMockEnv() {
   const elements = {};

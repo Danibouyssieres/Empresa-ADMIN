@@ -5,7 +5,7 @@ const assert = require('assert');
 console.log('--- TEST SUITE: UX VALIDATION, SCROLL & VISIBLE FEEDBACK ---');
 
 const htmlPath = path.resolve(__dirname, '../reservar.html');
-const html = fs.readFileSync(htmlPath, 'utf8');
+const html = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Verify HTML elements
 assert(html.includes('id="submitBlockAlert"'), 'submitBlockAlert element must exist in Section 4');
@@ -24,7 +24,8 @@ console.log('✔ Exact wording for schedule conflict and 6h guidance verified.')
 // 3. Test script logic in VM
 const vm = require('vm');
 const scriptMatches = [...html.matchAll(/<script(?![^>]*src=)>([\s\S]*?)<\/script>/gi)];
-let scriptContent = scriptMatches[1][1];
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+let scriptContent = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : (scriptMatches[1] ? scriptMatches[1][1] : '');
 scriptContent = scriptContent.replace('initForm();', '// initForm();');
 
 let scrolledTo = null;

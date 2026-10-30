@@ -6,7 +6,7 @@ const vm = require('vm');
 console.log('Testing Event Pack Route Metrics and Timeline in reservar.html...');
 
 const htmlPath = path.join(__dirname, '..', 'reservar.html');
-const content = fs.readFileSync(htmlPath, 'utf8');
+const content = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Static HTML Assertions
 assert(content.includes('id="packRouteMetricsCard"'), 'Must have #packRouteMetricsCard in HTML');
@@ -169,8 +169,8 @@ function createMockEnv() {
 }
 
 // Extract scripts from reservar.html
-const scriptMatches = [...content.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)];
-const fullScript = scriptMatches.map(m => m[1]).join('\n;\n');
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+const fullScript = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : (fs.existsSync('js/reservar.js') ? fs.readFileSync('js/reservar.js', 'utf8') : '');
 
 const { sandbox, elements } = createMockEnv();
 vm.createContext(sandbox);

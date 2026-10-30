@@ -1,0 +1,40 @@
+:root{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf}}
+:root[data-theme="dark"]{--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf}
+:root[data-theme="light"]{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:1100px;margin:0 auto;padding:12px}
+h1{font-size:18px;margin:0}h2{font-size:16px;margin:0 0 8px}
+.top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px}
+button,select,input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
+button{cursor:pointer}button.p{background:var(--pri);color:#fff;border-color:var(--pri);font-weight:600}button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+button:disabled{opacity:.5}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.met{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.met div{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px}.met b{display:block;font-size:20px}.met span{color:var(--mut);font-size:12px}
+.cal{display:flex;overflow-x:auto;border:1px solid var(--bd);border-radius:10px;background:var(--card)}
+.tc{width:46px;flex:none;font-size:11px;color:var(--mut)}.tc div{height:44px;padding:2px 4px;border-top:1px solid var(--bd)}
+.col{min-width:170px;flex:1;border-left:1px solid var(--bd)}
+.ch{padding:8px;font-weight:600;border-bottom:3px solid;height:38px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb{position:relative;overflow:hidden;background:repeating-linear-gradient(to bottom,transparent 0,transparent 43px,var(--bd) 43px,var(--bd) 44px)}
+.buf{position:absolute;left:3px;right:3px;background:var(--buf);border:1px dashed var(--bd);border-radius:6px;font-size:11px;color:var(--mut);padding:3px 5px;overflow:hidden}
+.sv{position:absolute;left:3px;right:3px;border-radius:6px;color:#fff;font-size:12px;padding:3px 6px;overflow:hidden;cursor:pointer;z-index:2}
+.sv.c{opacity:.5;text-decoration:line-through}
+.badge{display:inline-block;color:#fff;border-radius:99px;padding:1px 9px;font-size:12px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:2px}.g input,.g select{width:100%}
+.rqs label{display:inline-flex;gap:4px;align-items:center;color:var(--fg);font-size:14px;margin-right:12px}
+.al{background:rgba(217,119,6,.15);border:1px solid #d97706;border-radius:8px;padding:6px 8px;margin:6px 0;font-size:13px}
+.msg{font-size:13px;color:var(--mut);margin-top:6px}
+a.b{display:inline-block;text-decoration:none;border:1px solid var(--bd);border-radius:8px;padding:7px 10px;color:var(--fg);margin:2px 4px 2px 0;font-size:14px}
+a.b:hover{background:var(--buf)}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;border-bottom:1px solid var(--bd);font-size:14px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px}
+/* Estilos Login */
+.login-box{max-width:440px;margin:40px auto;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:26px 22px;box-shadow:0 8px 30px rgba(0,0,0,0.08)}
+.login-header{text-align:center;margin-bottom:20px}
+.login-header img{max-height:75px;margin-bottom:10px}
+.quick-btn{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;width:100%;text-align:left;font-size:13px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.quick-btn:hover{background:var(--buf);border-color:var(--pri)}

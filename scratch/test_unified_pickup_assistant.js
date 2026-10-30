@@ -4,7 +4,7 @@ const assert = require('assert');
 
 console.log('Testing unified pickup assistant and removal of redundant elements in reservar.html...\n');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8');
 
 // 1. Verify redundant moon footnote box is completely removed
 assert(!html.includes('id="jornadaFootNote"'), 'jornadaFootNote element must be removed from HTML');

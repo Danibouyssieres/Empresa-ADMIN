@@ -5,7 +5,7 @@ const assert = require('assert');
 console.log('Testing Section 3 simplification in reservar.html...');
 
 const htmlPath = path.join(__dirname, '..', 'reservar.html');
-const content = fs.readFileSync(htmlPath, 'utf8');
+const content = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Check MOB array definitions
 assert(content.includes('const MOB = ['), 'MOB array should be defined');

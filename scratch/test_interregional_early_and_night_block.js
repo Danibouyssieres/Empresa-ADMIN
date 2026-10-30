@@ -5,16 +5,12 @@ const vm = require('vm');
 console.log('--- TEST SUITE: INTERREGIONAL EARLY PICKUP & NIGHT REST BLOCK ---');
 
 const htmlPath = path.resolve(__dirname, '../reservar.html');
-const html = fs.readFileSync(htmlPath, 'utf8');
+const html = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // Extract main script content (second non-src script tag in reservar.html)
 const scriptMatches = [...html.matchAll(/<script(?![^>]*src=)>([\s\S]*?)<\/script>/gi)];
-if (scriptMatches.length < 2) {
-  console.error('❌ Could not find main script in reservar.html');
-  process.exit(1);
-}
-
-let scriptContent = scriptMatches[1][1];
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+let scriptContent = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : (scriptMatches[1] ? scriptMatches[1][1] : '');
 // Mock initForm so it doesn't auto-run on load
 scriptContent = scriptContent.replace('initForm();', '// initForm();');
 scriptContent += `

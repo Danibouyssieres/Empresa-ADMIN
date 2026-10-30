@@ -4,7 +4,7 @@ const assert = require('assert');
 
 console.log('Testing shift hours and duration end-time cap validation in reservar.html...\n');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8');
 
 // 1. Verify official hours in Step 1 and compact styling (no subtext lines)
 assert(html.includes('🌅 Turno Mañana (06:00 a 12:00 hrs)'), 'Turno Mañana title must be (06:00 a 12:00 hrs)');

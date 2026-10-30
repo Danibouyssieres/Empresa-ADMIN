@@ -4,7 +4,7 @@ const assert = require('assert');
 
 console.log('=== TEST SUITE: Alineación CSS de Desglose de Suma Total (Flexbox) ===\n');
 
-const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8');
+const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8') + '\n' + (fs.existsSync(path.join(__dirname, '../css/reservar.css')) ? fs.readFileSync(path.join(__dirname, '../css/reservar.css'), 'utf8') : '');
 
 // 1. Verificación de Flexbox en .breakdown li
 console.log('1. Verificando reglas CSS de dos columnas con Flexbox:');

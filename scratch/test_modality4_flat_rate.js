@@ -6,7 +6,7 @@ const vm = require('vm');
 console.log('Testing Modalidad 4 Flat Rate strict rules...');
 
 const htmlPath = path.join(__dirname, '..', 'reservar.html');
-const content = fs.readFileSync(htmlPath, 'utf8');
+const content = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Static HTML assertions
 assert(content.includes('id="dirSvcLbl"'), 'dirSvcLbl span id must exist');
@@ -173,8 +173,8 @@ function createMockEnv() {
   };
   sandbox.window = sandbox;
 
-  const scriptMatches = [...content.matchAll(/<script(?![^>]*src=)(?:[^>]*)>([\s\S]*?)<\/script>/gi)];
-  const inlineScript = scriptMatches.map(m => m[1]).join('\n');
+  const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+const inlineScript = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : (fs.existsSync('js/reservar.js') ? fs.readFileSync('js/reservar.js', 'utf8') : '');
 
   const ctx = vm.createContext(sandbox);
   vm.runInContext(inlineScript, ctx);

@@ -2,13 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8');
+const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../css/reservar.css'), 'utf8');
 
 // Extraer el bloque de script principal
-const scriptMatches = htmlContent.match(/<script>([\s\S]*?)<\/script>/gi);
-const mainScript = scriptMatches[scriptMatches.length - 1]
-  .replace(/^<script>/i, '')
-  .replace(/<\/script>$/i, '');
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+const mainScript = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : '';
 
 // Crear un DOM mock para ejecutar en Node vm
 function createMockEnv() {

@@ -1,7 +1,8 @@
+const path = require('path');
 const fs = require('fs');
 const vm = require('vm');
 
-const html = fs.readFileSync('reservar.html', 'utf8');
+const html = fs.readFileSync('reservar.html', 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8');
 
 // Mock DOM elements
 class ElementMock {
@@ -119,8 +120,7 @@ const sandbox = {
 sandbox.alert = (msg) => sandbox.alerts.push(msg);
 
 // Extract the main JS code from the second script tag
-const scripts = html.match(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi);
-const mainScript = scripts[scripts.length - 1].replace(/<\/?script[^>]*>/gi, '');
+const mainScript = fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8');
 
 // Run script in sandbox
 vm.createContext(sandbox);

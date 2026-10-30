@@ -1,8 +1,9 @@
+const path = require('path');
 const fs = require('fs');
 const assert = require('assert');
 const vm = require('vm');
 
-const html = fs.readFileSync('reservar.html', 'utf8');
+const html = fs.readFileSync('reservar.html', 'utf8') + '\n' + fs.readFileSync('js/reservar.js', 'utf8') + '\n' + fs.readFileSync('css/reservar.css', 'utf8');
 
 console.log('=== TEST SUITE: Flujo Completo de Cálculo en Horarios Especiales de Mediodía ===\n');
 
@@ -156,8 +157,8 @@ function createMockEnv() {
   };
   sandbox.window = sandbox;
 
-  const scriptMatches = [...html.matchAll(/<script(?![^>]*src=)(?:[^>]*)>([\s\S]*?)<\/script>/gi)];
-  const inlineScript = scriptMatches.map(m => m[1]).join('\n');
+  const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+const inlineScript = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : (fs.existsSync('js/reservar.js') ? fs.readFileSync('js/reservar.js', 'utf8') : '');
 
   const ctx = vm.createContext(sandbox);
   vm.runInContext(inlineScript, ctx);

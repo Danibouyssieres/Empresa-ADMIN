@@ -1,7 +1,7 @@
 const fs = require('fs');
 const assert = require('assert');
 
-const html = fs.readFileSync('reservar.html', 'utf8');
+const html = fs.readFileSync('reservar.html', 'utf8') + '\n' + fs.readFileSync('css/reservar.css', 'utf8');
 
 console.log('=== TEST SUITE: Alineación Vertical de Casillas de Cronograma ===\n');
 

@@ -1,7 +1,8 @@
+const path = require('path');
 const fs = require('fs');
 const assert = require('assert');
 
-const html = fs.readFileSync('reservar.html', 'utf8');
+const html = fs.readFileSync('reservar.html', 'utf8') + '\n' + fs.readFileSync('js/reservar.js', 'utf8') + '\n' + fs.readFileSync('css/reservar.css', 'utf8');
 
 // 1. Static HTML assertions
 assert(!html.includes('(+25%)'), 'reservar.html must not contain (+25%)');
@@ -53,8 +54,8 @@ function getEl(id) {
   return dom[id];
 }
 
-const scriptMatches = [...html.matchAll(/<script(?![^>]*src=)(?:[^>]*)>([\s\S]*?)<\/script>/gi)];
-const inlineScript = scriptMatches.map(m => m[1]).join('\n');
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+const inlineScript = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : (fs.existsSync('js/reservar.js') ? fs.readFileSync('js/reservar.js', 'utf8') : '');
 
 const mockWindow = {
   document: {

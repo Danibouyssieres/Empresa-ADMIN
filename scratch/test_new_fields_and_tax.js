@@ -5,7 +5,7 @@ const assert = require('assert');
 console.log('--- TEST SUITE: NEW FIELDS (DEPTO, OBS, TAX DOC) IN RESERVAR.HTML ---');
 
 const htmlPath = path.resolve(__dirname, '../reservar.html');
-const html = fs.readFileSync(htmlPath, 'utf8');
+const html = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Check HTML elements and labels
 assert(html.includes('id="b_depto"'), 'b_depto input must exist');
@@ -31,7 +31,8 @@ console.log('✔ Selector y campos de Documento Tributario (Boleta / Factura) ve
 // 2. Test toggleTaxDocFields function in VM context
 const vm = require('vm');
 const scriptMatches = [...html.matchAll(/<script(?![^>]*src=)>([\s\S]*?)<\/script>/gi)];
-let scriptContent = scriptMatches[1][1];
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+let scriptContent = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : (scriptMatches[1] ? scriptMatches[1][1] : '');
 scriptContent = scriptContent.replace('initForm();', '// initForm();');
 
 const domElements = {
@@ -94,7 +95,7 @@ console.log('✔ toggleTaxDocFields("boleta") hides fields and clears required.'
 
 // 3. Check admin.html integration
 const adminHtmlPath = path.resolve(__dirname, '../admin.html');
-const adminHtml = fs.readFileSync(adminHtmlPath, 'utf8');
+const adminHtml = fs.readFileSync(adminHtmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/admin.js'), 'utf8');
 assert(adminHtml.includes('s.depto'), 'admin.html must reference s.depto');
 assert(adminHtml.includes('s.obs'), 'admin.html must reference s.obs');
 assert(adminHtml.includes('s.taxDoc'), 'admin.html must reference s.taxDoc');

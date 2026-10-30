@@ -6,7 +6,7 @@ const vm = require('vm');
 console.log('Testing Interregional Restructuring, Timeline and Modality 4 texts...');
 
 const htmlPath = path.join(__dirname, '..', 'reservar.html');
-const content = fs.readFileSync(htmlPath, 'utf8');
+const content = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Static HTML assertions
 assert(content.includes('Incluye traslados completos Ida y Vuelta + Cobertura TENS efectiva íntegra durante la celebración'), 'Modalidad 4 con traslado subtitle must match');
@@ -162,7 +162,7 @@ function createMockEnv() {
   const ctx = vm.createContext(sandbox);
 
   // Extract <script> content
-  const scripts = [];
+  const scripts = [fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8')];
   const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
   let match;
   while ((match = scriptRegex.exec(content)) !== null) {

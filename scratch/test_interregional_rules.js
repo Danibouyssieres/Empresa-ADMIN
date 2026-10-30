@@ -5,7 +5,7 @@ const assert = require('assert');
 console.log('Testing Modalidad 5 (Programas Interregionales) rules...');
 
 const htmlPath = path.join(__dirname, '..', 'reservar.html');
-const content = fs.readFileSync(htmlPath, 'utf8');
+const content = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Check Guarantee Notice for Modalidad 5 (Removed per User Request #6)
 // assert(content.includes('Garantía de Cobertura y Traslado Interregional:'), 'Guarantee title missing');

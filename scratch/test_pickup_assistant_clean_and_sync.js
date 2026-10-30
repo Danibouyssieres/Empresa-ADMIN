@@ -5,7 +5,7 @@ const assert = require('assert');
 
 console.log('=== TEST SUITE: Asistente de Recogida Limpio, Redondeo a 15m y Sincronización con Cronograma ===\n');
 
-const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8');
+const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. VERIFICACIÓN DE LIMPIEZA DE REDUNDANCIAS EN HTML
 console.log('1. Verificando eliminación de descripciones redundantes en Sección 2:');
@@ -24,10 +24,8 @@ assert(!htmlContent.includes('Término estimado:</b>'), 'Línea secundaria de re
 console.log('   ✅ PASS: Redundancias, tarjeta de garantía, nota de bombilla y línea de reloj eliminadas.');
 
 // Preparar ambiente mock para VM
-const scriptMatches = htmlContent.match(/<script>([\s\S]*?)<\/script>/gi);
-const mainScript = scriptMatches[scriptMatches.length - 1]
-  .replace(/^<script>/i, '')
-  .replace(/<\/script>$/i, '');
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+const mainScript = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : '';
 
 function createMockEnv() {
   const elements = {};

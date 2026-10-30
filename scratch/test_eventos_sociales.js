@@ -5,7 +5,7 @@ const assert = require('assert');
 console.log('Testing Modalidad 4 (Acompañamiento en Eventos Sociales) rules...');
 
 const htmlPath = path.join(__dirname, '..', 'reservar.html');
-const content = fs.readFileSync(htmlPath, 'utf8');
+const content = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Check HTML elements
 assert(content.includes('id="eventSubModeBox"'), 'eventSubModeBox must exist in HTML');

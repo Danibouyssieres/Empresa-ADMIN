@@ -5,7 +5,7 @@ const assert = require('assert');
 
 console.log('=== TEST SUITE: Reglas Condicionales del Turno Noche por Modalidad ===\n');
 
-const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8');
+const htmlContent = fs.readFileSync(path.join(__dirname, '../reservar.html'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Verificación de estructura inicial en HTML
 console.log('1. Verificando estado inicial en HTML:');
@@ -16,10 +16,8 @@ assert(htmlContent.includes('No disponible para traslados vehiculares (habilitad
 console.log('   ✅ PASS: HTML inicial configurado correctamente.');
 
 // Preparar mock para probar lógica JS
-const scriptMatches = htmlContent.match(/<script>([\s\S]*?)<\/script>/gi);
-const mainScript = scriptMatches[scriptMatches.length - 1]
-  .replace(/^<script>/i, '')
-  .replace(/<\/script>$/i, '');
+const jsResPath = path.resolve(__dirname, '../js/reservar.js');
+const mainScript = fs.existsSync(jsResPath) ? fs.readFileSync(jsResPath, 'utf8') : '';
 
 function createMockEnv() {
   const elements = {};

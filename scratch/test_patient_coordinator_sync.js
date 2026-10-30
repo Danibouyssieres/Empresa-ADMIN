@@ -4,8 +4,8 @@ const assert = require('assert');
 
 console.log('Testing Patient and Coordinator synchronization in reservar.html and admin.html...\n');
 
-const resHtml = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
-const admHtml = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+const resHtml = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8');
+const admHtml = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '..', 'js', 'admin.js'), 'utf8');
 
 // 1. Verify HTML elements in Section 3
 assert(resHtml.includes('id="b_pat_phone"'), 'b_pat_phone input must exist');

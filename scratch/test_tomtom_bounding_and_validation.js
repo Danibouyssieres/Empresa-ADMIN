@@ -6,7 +6,7 @@ const vm = require('vm');
 console.log('Testing TomTom Search Bounding Box, Regional Validation and Button Removal...');
 
 const htmlPath = path.join(__dirname, '..', 'reservar.html');
-const content = fs.readFileSync(htmlPath, 'utf8');
+const content = fs.readFileSync(htmlPath, 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../css/reservar.css'), 'utf8');
 
 // 1. Static HTML assertions
 assert(!content.includes('Trazar Ruta y Calcular Tiempos de Traslado'), 'Button "Trazar Ruta y Calcular Tiempos de Traslado" must be removed');
@@ -160,7 +160,7 @@ function createMockEnv() {
   sandbox.window = sandbox;
   const ctx = vm.createContext(sandbox);
 
-  const scripts = [];
+  const scripts = [fs.readFileSync(path.resolve(__dirname, '../js/reservar.js'), 'utf8')];
   const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
   let match;
   while ((match = scriptRegex.exec(content)) !== null) {
