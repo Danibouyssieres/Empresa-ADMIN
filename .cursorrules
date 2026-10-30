@@ -1,0 +1,6 @@
+# Reglas del Proyecto para Cursor / AI Agents
+
+ANTES DE REALIZAR CUALQUIER CAMBIO EN LA PÁGINA DE RESERVAS (`reservar.html`, `js/reservar.js`, `css/reservar.css`):
+1. Debes consultar obligatoriamente el archivo `REGLAS_NEGOCIO_RESERVAR.md`.
+2. No debes alterar bajo ninguna circunstancia las tarifas, pisos mínimos, recargos horarios, restricciones de turno noche para traslados, buffer de 3 horas, reglas de descanso biológico, ni fórmulas de cálculo preventivo de citas médicas, a menos que el usuario lo solicite de manera explícita y directa.
+3. Cualquier cambio explícito en las reglas debe reflejarse y sincronizarse inmediatamente en `REGLAS_NEGOCIO_RESERVAR.md`.
