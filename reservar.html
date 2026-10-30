@@ -434,6 +434,7 @@ footer a{color:#fff}
               <input id="b_from" type="text" placeholder="Ej: Pasaje Los Océanos 424, Maipú" autocomplete="off" required oninput="onType('from')" onblur="onFromBlur()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('from',true)}">
               <button type="button" class="search-btn" onclick="searchAddr('from',true)">Buscar</button>
             </div>
+            <div id="errFrom" style="display:none;margin-top:6px;padding:8px 12px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:6px;color:#991b1b;font-size:.84rem;line-height:1.4"></div>
             <div id="sugFrom" class="suggestions"></div>
           </div>
 
@@ -456,15 +457,12 @@ footer a{color:#fff}
               <input id="b_to" type="text" placeholder="Ej: Hospital El Carmen o Av. Santa María 1810, Providencia" autocomplete="off" oninput="onType('to')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('to',true)}">
               <button type="button" class="search-btn" onclick="searchAddr('to',true)">Buscar</button>
             </div>
+            <div id="errTo" style="display:none;margin-top:6px;padding:8px 12px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:6px;color:#991b1b;font-size:.84rem;line-height:1.4"></div>
             <div id="sugTo" class="suggestions"></div>
           </div>
 
           <!-- CONTROLES EXCLUSIVOS DE CÁLCULO DE KILÓMETROS (SOLO VISIBLE EN MODALIDAD 1 Y 2) -->
           <div id="kmCalcControls">
-            <button type="button" class="btn pri" style="width:100%" onclick="calculateNow()">
-              🧮 Calcular Kilómetros del Viaje
-            </button>
-
             <!-- RESULTADO DE KILÓMETROS -->
             <div id="resultPanel" class="result-box" style="display:none">
               <div class="result-km"><span id="lblResultTitle">Distancia total Ida y Vuelta:</span> <b id="outKm">0 km</b> <span id="outTime" style="font-size:.86rem"></span></div>
@@ -481,11 +479,7 @@ footer a{color:#fff}
           </div>
 
           <!-- BOTÓN DE CÁLCULO PARA SERVICIOS PAQUETIZADOS CON TRASLADO -->
-          <div id="packCalcControls" style="display:none;margin-top:10px">
-            <button type="button" class="btn pri" style="width:100%" onclick="calculateNow()">
-              🧮 Trazar Ruta y Calcular Tiempos de Traslado
-            </button>
-          </div>
+          <div id="packCalcControls" style="display:none"></div>
 
           <div id="routeStatusMsg" style="margin-top:10px;font-size:.88rem;color:var(--mute);text-align:center"></div>
 
@@ -564,11 +558,8 @@ footer a{color:#fff}
                   <p style="font-size:.81rem;color:var(--mute);margin:0 0 10px;line-height:1.4">
                     Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.
                   </p>
-                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <select id="appTimeInput" onchange="onAppTimeChange()" name="hora-cita-medica" class="hora-cita-medica" style="flex:1;min-width:140px;padding:9px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
-                    <button type="button" id="btnCalcularHora" class="btn sm pri" onclick="calcSuggestedPickup()" style="padding:10px 16px;font-size:.85rem;white-space:nowrap">
-                      🧭 Calcular Hora de Salida Sugerida
-                    </button>
+                  <div>
+                    <select id="appTimeInput" onchange="onAppTimeChange()" name="hora-cita-medica" class="hora-cita-medica" style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px"></select>
                   </div>
                 </div>
 
@@ -2465,9 +2456,12 @@ function setPickMode(m){
 map.on('click', async function(ev){
   const {lat, lng} = ev.latlng;
   const target = pickMode;
-  setPoint(target, lat, lng, `${lat.toFixed(5)}, ${lng.toFixed(5)}`, false);
   const addrObj = await reverseGeocodeExact(lat, lng);
   if(addrObj && addrObj.label){
+    if(!validateAddressRegion(addrObj, target)){
+      return;
+    }
+    setPoint(target, lat, lng, addrObj.label, false, addrObj.full);
     if(target==='from'){
       ptFrom.label = addrObj.label;
       $('#b_from').value = addrObj.label;
@@ -2483,6 +2477,8 @@ map.on('click', async function(ev){
       ptTo.label = addrObj.label;
       $('#b_to').value = addrObj.label;
     }
+  } else {
+    setPoint(target, lat, lng, `${lat.toFixed(5)}, ${lng.toFixed(5)}`, false);
   }
   if(target==='from' && !ptTo) setPickMode('to');
   if(ptFrom && ptTo && isMapEnabledForCurrentState()) computeRoute();
@@ -2507,6 +2503,9 @@ function setPoint(which, lat, lon, label, fit=true, rawFull=''){
         ptFrom.lat = pos.lat; ptFrom.lon = pos.lng;
         const addrObj = await reverseGeocodeExact(pos.lat, pos.lng);
         if(addrObj && addrObj.label){
+          if(!validateAddressRegion(addrObj, 'from')){
+            return;
+          }
           ptFrom.label = addrObj.label;
           $('#b_from').value = addrObj.label;
           const d2 = detectRingFromText(addrObj.full || addrObj.label, pos.lat, pos.lng);
@@ -2533,7 +2532,13 @@ function setPoint(which, lat, lon, label, fit=true, rawFull=''){
         const pos = e.target.getLatLng();
         ptTo.lat = pos.lat; ptTo.lon = pos.lng;
         const addrObj = await reverseGeocodeExact(pos.lat, pos.lng);
-        if(addrObj && addrObj.label){ ptTo.label = addrObj.label; $('#b_to').value = addrObj.label; }
+        if(addrObj && addrObj.label){
+          if(!validateAddressRegion(addrObj, 'to')){
+            return;
+          }
+          ptTo.label = addrObj.label;
+          $('#b_to').value = addrObj.label;
+        }
         if(ptFrom && ptTo && isMapEnabledForCurrentState()) computeRoute();
       });
     } else {
@@ -2558,9 +2563,19 @@ async function reverseGeocodeExact(lat, lon){
       const a = d.address;
       const street = a.Address || a.Match_addr || '';
       const city = a.District || a.City || a.Subregion || '';
-      const full = [street, a.Nbrhd, a.District, a.City, a.Subregion].filter(Boolean).join(', ');
-      if(street && city) return {label: `${street}, ${city}`, full};
-      if(street) return {label: street, full};
+      const reg = a.Region || '';
+      const full = [street, a.Nbrhd, a.District, a.City, a.Subregion, reg].filter(Boolean).join(', ');
+      const lbl = (street && city) ? `${street}, ${city}` : (street || a.Match_addr || '');
+      return {
+        label: lbl,
+        full,
+        result: {
+          address: {
+            countrySubdivision: reg,
+            municipalitySubdivision: city
+          }
+        }
+      };
     }
   }catch(e){}
   try{
@@ -2572,8 +2587,18 @@ async function reverseGeocodeExact(lat, lon){
       const road = a.road || a.pedestrian || '';
       const num = a.house_number ? ' ' + a.house_number : '';
       const com = a.city_district || a.suburb || a.town || a.municipality || a.city || '';
+      const reg = a.state || '';
       const lbl = [road + num, com].filter(Boolean).join(', ') || d2.display_name;
-      return {label: lbl, full: d2.display_name || lbl};
+      return {
+        label: lbl,
+        full: d2.display_name || lbl,
+        result: {
+          address: {
+            countrySubdivision: reg,
+            municipalitySubdivision: com
+          }
+        }
+      };
     }
   }catch(e){}
   return null;
@@ -2581,6 +2606,11 @@ async function reverseGeocodeExact(lat, lon){
 
 function onType(which){
   clearTimeout(typeTimers[which]);
+  const errBox = which === 'from' ? $('#errFrom') : $('#errTo');
+  if(errBox){ errBox.style.display = 'none'; errBox.textContent = ''; }
+  const inp = which === 'from' ? $('#b_from') : $('#b_to');
+  if(inp) inp.style.borderColor = '';
+
   if(which==='from') ptFrom = null;
   else ptTo = null;
 
@@ -2619,13 +2649,155 @@ function onFromBlur(){
   }
 }
 
+// ===== CONFIGURACIÓN Y PARÁMETROS GEOGRÁFICOS DE BÚSQUEDA (TOMTOM / ARCGIS) =====
+function getTomTomSearchParams(){
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const isInterregional = (mode === '5');
+  const countrySet = 'CL';
+  // Bounding box dinámico según la modalidad:
+  // - Modalidades 1, 2, 3 o 4 (Cobertura Local / RM): '-71.15,-33.80,-70.35,-33.20'
+  // - Programas Interregionales (Modalidad 5): '-72.10,-34.70,-70.20,-32.50' (V Región, RM y VI Región)
+  const boundingBox = isInterregional
+    ? '-72.10,-34.70,-70.20,-32.50'
+    : '-71.15,-33.80,-70.35,-33.20';
+  return { countrySet, boundingBox, isInterregional, mode };
+}
+window.getTomTomSearchParams = getTomTomSearchParams;
+
+// ===== VALIDACIÓN Y FILTRO SEMÁNTICO DE RESULTADOS POR REGIÓN =====
+function validateAddressRegion(item, which){
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const errEl = which === 'from' ? $('#errFrom') : $('#errTo');
+  const inp = which === 'from' ? $('#b_from') : $('#b_to');
+
+  function clearError(){
+    if(errEl){
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+    }
+    if(inp) inp.style.borderColor = '';
+  }
+
+  function triggerError(msg){
+    if(errEl){
+      errEl.style.display = 'block';
+      errEl.textContent = msg;
+    }
+    if(inp){
+      inp.value = '';
+      inp.style.borderColor = '#ef4444';
+      inp.focus();
+    }
+    // Cancelar trazado en el mapa y reiniciar puntos
+    if(which === 'from'){
+      if(markerFrom && map){ map.removeLayer(markerFrom); markerFrom = null; }
+      ptFrom = null;
+    } else {
+      if(markerTo && map){ map.removeLayer(markerTo); markerTo = null; }
+      ptTo = null;
+    }
+    if(routeLine && map){ map.removeLayer(routeLine); routeLine = null; }
+    lastTotalKm = 0;
+    lastRouteIdaMin = 0;
+    lastRouteVueltaMin = 0;
+    const packMetrics = $('#packRouteMetricsCard');
+    if(packMetrics) packMetrics.style.display = 'none';
+    const resPanel = $('#resultPanel');
+    if(resPanel) resPanel.style.display = 'none';
+    setRouteStatus('');
+    recalcAll();
+    return false;
+  }
+
+  if(!item) return false;
+
+  const addr = (item.result && item.result.address) || {};
+  const subDiv = (addr.countrySubdivision || '').trim();
+  const muniDiv = (addr.municipalitySubdivision || '').trim();
+  const fullRaw = (item.rawFull || item.title || item.label || '').toLowerCase();
+  const subDivLow = subDiv.toLowerCase();
+  const muniDivLow = muniDiv.toLowerCase();
+
+  // Helper de detección de Región Metropolitana
+  const isRM = (
+    subDivLow.includes('metropolitana') ||
+    subDivLow.includes('santiago') ||
+    subDivLow.includes('cordillera') ||
+    subDivLow.includes('maipo') ||
+    subDivLow.includes('talagante') ||
+    subDivLow.includes('melipilla') ||
+    subDivLow.includes('chacabuco') ||
+    fullRaw.includes('región metropolitana') ||
+    fullRaw.includes('region metropolitana') ||
+    Boolean(detectRingFromText(fullRaw, null, null))
+  ) && !subDivLow.includes('valparaíso') && !subDivLow.includes('valparaiso') && !subDivLow.includes("o'higgins") && !subDivLow.includes('ohiggins');
+
+  // Helper de detección de Valparaíso
+  const isValpo = subDivLow.includes('valparaíso') ||
+                  subDivLow.includes('valparaiso') ||
+                  muniDivLow.includes('valparaíso') ||
+                  muniDivLow.includes('valparaiso') ||
+                  muniDivLow.includes('viña del mar') ||
+                  muniDivLow.includes('vina del mar') ||
+                  muniDivLow.includes('concón') ||
+                  muniDivLow.includes('concon') ||
+                  muniDivLow.includes('quilpué') ||
+                  muniDivLow.includes('quilpue') ||
+                  muniDivLow.includes('villa alemana') ||
+                  muniDivLow.includes('san antonio') ||
+                  muniDivLow.includes('quillota');
+
+  // Helper de detección de O'Higgins
+  const isOHiggins = subDivLow.includes("o'higgins") ||
+                     subDivLow.includes('ohiggins') ||
+                     subDivLow.includes('libertador') ||
+                     muniDivLow.includes('rancagua') ||
+                     muniDivLow.includes('machalí') ||
+                     muniDivLow.includes('machali') ||
+                     muniDivLow.includes('rengo') ||
+                     muniDivLow.includes('san fernando');
+
+  if(mode === '1' || mode === '2' || mode === '3' || mode === '4'){
+    // Para Modalidades 1, 2, 3 y 4 (Cobertura Local / RM):
+    if(!isRM){
+      return triggerError('La dirección ingresada se encuentra fuera de nuestra zona de cobertura urbana (Región Metropolitana).');
+    }
+  } else if(mode === '5'){
+    // Para Programas Interregionales:
+    if(which === 'from'){
+      const isValpoTarget = selectedInterRegion.includes('Valparaíso') || selectedInterRegion.includes('Valparaiso');
+      if(isValpoTarget){
+        if(!isValpo){
+          return triggerError('La dirección de origen debe pertenecer a la Región de Valparaíso según el programa seleccionado. Por favor corrija el punto de partida.');
+        }
+      } else {
+        // Región de O'Higgins
+        if(!isOHiggins){
+          return triggerError("La dirección de origen debe pertenecer a la Región de O'Higgins según el programa seleccionado. Por favor corrija el punto de partida.");
+        }
+      }
+    } else {
+      // Destino en Modalidad 5 debe ser Santiago / RM
+      if(!isRM){
+        return triggerError('El destino del programa interregional debe ubicarse en la Región Metropolitana (Santiago). Por favor ingrese un centro médico o dirección en Santiago.');
+      }
+    }
+  }
+
+  clearError();
+  return true;
+}
+window.validateAddressRegion = validateAddressRegion;
+
 async function searchAddr(which, autoPickFirst){
   const inp = which==='from' ? $('#b_from') : $('#b_to');
   const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
   const q = inp.value.trim();
   if(!q) return;
 
+  const { countrySet, boundingBox, isInterregional, mode } = getTomTomSearchParams();
   setRouteStatus('🔍 Buscando dirección exacta...');
+
   try{
     const qLow = q.toLowerCase();
     const medMatches = MEDICAL_PLACES.filter(m =>
@@ -2634,54 +2806,87 @@ async function searchAddr(which, autoPickFirst){
       title: m.name,
       subtitle: m.addr,
       fullLabel: `${m.name} (${m.addr})`,
-      rawFull: `${m.name}, ${m.addr}`,
+      rawFull: `${m.name}, ${m.addr}, Santiago, Región Metropolitana de Santiago`,
       lat: m.lat,
-      lon: m.lon
+      lon: m.lon,
+      result: {
+        address: {
+          countrySubdivision: 'Región Metropolitana de Santiago',
+          municipalitySubdivision: m.comuna || 'Santiago'
+        }
+      }
     }));
 
-    const arcUrl = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(q)}&countryCode=CHL&location=-70.70,-33.46&searchExtent=-71.9,-34.9,-69.8,-32.5&maxLocations=6&outFields=PlaceName,Match_addr,Place_addr,City,Subregion,District,Nbrhd,Region`;
-    const r = await fetch(arcUrl);
-    const data = await r.json();
-    let arcList = [];
+    let tomtomOrArcResults = [];
+    const apiKey = window.TOMTOM_API_KEY || '';
 
-    if(data && data.candidates && data.candidates.length > 0){
-      arcList = data.candidates.map(c => {
-        const attr = c.attributes || {};
-        const mainAddr = (c.address || attr.Match_addr || '').replace(/, CHL$/i, '');
-        const subAddr = (attr.Place_addr || '').replace(/, CHL$/i, '');
-        const title = attr.PlaceName && !mainAddr.startsWith(attr.PlaceName)
-          ? `${attr.PlaceName} · ${mainAddr}`
-          : mainAddr;
-        return {
-          title: title,
-          subtitle: subAddr || 'Chile',
-          fullLabel: title,
-          rawFull: `${title}, ${subAddr}, ${attr.District||''}, ${attr.City||''}`,
-          lat: c.location.y,
-          lon: c.location.x
-        };
-      });
-    } else {
-      const arcAllUrl = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(q)}&countryCode=CHL&location=-70.70,-33.46&maxLocations=6&outFields=PlaceName,Match_addr,Place_addr,City,District`;
-      const rAll = await fetch(arcAllUrl);
-      const dataAll = await rAll.json();
-      if(dataAll && dataAll.candidates){
-        arcList = dataAll.candidates.map(c => {
+    if(apiKey){
+      try {
+        const tomtomUrl = `https://api.tomtom.com/search/2/search/${encodeURIComponent(q)}.json?key=${encodeURIComponent(apiKey)}&countrySet=${countrySet}&bbox=${boundingBox}&limit=6&language=es-ES`;
+        const resTom = await fetch(tomtomUrl);
+        if(resTom.ok){
+          const dataTom = await resTom.json();
+          if(dataTom && dataTom.results && dataTom.results.length > 0){
+            tomtomOrArcResults = dataTom.results.map(r => {
+              const a = r.address || {};
+              const title = a.freeformAddress || a.streetName || q;
+              const sub = [a.municipalitySubdivision || a.municipality, a.countrySubdivision].filter(Boolean).join(', ') || 'Chile';
+              return {
+                title: title,
+                subtitle: sub,
+                fullLabel: title,
+                rawFull: `${title}, ${sub}`,
+                lat: r.position ? r.position.lat : 0,
+                lon: r.position ? r.position.lon : 0,
+                result: {
+                  address: {
+                    countrySubdivision: a.countrySubdivision || '',
+                    municipalitySubdivision: a.municipalitySubdivision || a.municipality || ''
+                  }
+                }
+              };
+            });
+          }
+        }
+      } catch(eTom) {
+        console.warn('TomTom Search falló, utilizando respaldo:', eTom);
+      }
+    }
+
+    if(tomtomOrArcResults.length === 0){
+      const arcUrl = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(q)}&countryCode=CHL&searchExtent=${boundingBox}&maxLocations=6&outFields=PlaceName,Match_addr,Place_addr,City,Subregion,District,Nbrhd,Region`;
+      const r = await fetch(arcUrl);
+      const data = await r.json();
+
+      if(data && data.candidates && data.candidates.length > 0){
+        tomtomOrArcResults = data.candidates.map(c => {
           const attr = c.attributes || {};
-          const mainAddr = (c.address || '').replace(/, CHL$/i, '');
+          const mainAddr = (c.address || attr.Match_addr || '').replace(/, CHL$/i, '');
+          const subAddr = (attr.Place_addr || '').replace(/, CHL$/i, '');
+          const title = attr.PlaceName && !mainAddr.startsWith(attr.PlaceName)
+            ? `${attr.PlaceName} · ${mainAddr}`
+            : mainAddr;
+          const reg = attr.Region || (attr.Subregion && attr.Subregion.includes('Santiago') ? 'Región Metropolitana de Santiago' : '');
+          const muni = attr.District || attr.City || attr.Nbrhd || '';
           return {
-            title: mainAddr,
-            subtitle: attr.Place_addr || 'Chile',
-            fullLabel: mainAddr,
-            rawFull: `${mainAddr}, ${attr.Place_addr||''}, ${attr.District||''}, ${attr.City||''}`,
+            title: title,
+            subtitle: subAddr || 'Chile',
+            fullLabel: title,
+            rawFull: `${title}, ${subAddr}, ${muni}, ${reg}`,
             lat: c.location.y,
-            lon: c.location.x
+            lon: c.location.x,
+            result: {
+              address: {
+                countrySubdivision: reg,
+                municipalitySubdivision: muni
+              }
+            }
           };
         });
       }
     }
 
-    const combined = [...medMatches, ...arcList].slice(0, 7);
+    const combined = [...medMatches, ...tomtomOrArcResults].slice(0, 7);
 
     if(combined.length === 0){
       sugBox.innerHTML = `<div class="sug-item"><small>No encontramos esa dirección. Intente indicar calle, número y comuna.</small></div>`;
@@ -2693,6 +2898,9 @@ async function searchAddr(which, autoPickFirst){
     if(autoPickFirst){
       const first = combined[0];
       sugBox.style.display = 'none';
+      if(!validateAddressRegion(first, which)){
+        return;
+      }
       const userNumberMatch = q.match(/\b(\d{1,5})\b/);
       let finalLabel = first.fullLabel;
       if(userNumberMatch && !finalLabel.includes(userNumberMatch[1])){
@@ -2725,15 +2933,20 @@ async function searchAddr(which, autoPickFirst){
 function pickSugIndex(which, idx){
   const item = (window._lastSugs || [])[idx];
   if(!item) return;
-  const inp = which==='from' ? $('#b_from') : $('#b_to');
   const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
+  sugBox.style.display = 'none';
+
+  if(!validateAddressRegion(item, which)){
+    return;
+  }
+
+  const inp = which==='from' ? $('#b_from') : $('#b_to');
   const typed = inp.value.trim();
   const userNum = typed.match(/\b(\d{1,5})\b/);
   let label = item.fullLabel;
   if(userNum && !label.includes(userNum[1])){
     label = `${typed} (${item.title})`;
   }
-  sugBox.style.display = 'none';
   setPoint(which, item.lat, item.lon, label, true, `${typed}, ${item.rawFull}`);
   if(isMapEnabledForCurrentState()){
     if(which==='from' && !ptTo) setPickMode('to');
@@ -4552,7 +4765,7 @@ async function submitBooking(ev){
       } else if(!timeStr){
         const isTransfer = (mode === '1' || mode === '2' || mode === '5');
         if(isTransfer){
-          submitAlert.innerHTML = `<span>⚠️ <b>Hora oficial de recogida requerida en Paso 2:</b> Por favor ingrese la hora de su cita médica en destino y presione <b>"Calcular Hora de Salida Sugerida"</b> para fijar automáticamente la hora de recogida de su reserva.</span>`;
+          submitAlert.innerHTML = `<span>⚠️ <b>Hora oficial de recogida requerida en Paso 2:</b> Por favor seleccione la hora de su cita médica en destino para fijar automáticamente la hora de recogida de su reserva.</span>`;
         } else {
           submitAlert.innerHTML = `<span>⚠️ <b>Hora requerida en Paso 2:</b> Por favor seleccione la hora de inicio de la atención en el domicilio antes de continuar.</span>`;
         }

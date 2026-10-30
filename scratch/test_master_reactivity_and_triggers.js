@@ -178,7 +178,7 @@ console.log('=== TEST SUITE: Función Maestra Centralizada recalcularTodoElServi
 
 // 1. Verificación en HTML de los elementos y gatillantes
 console.log('1. Verificando identificadores y atributos en HTML:');
-assert(htmlContent.includes('id="btnCalcularHora"'), 'HTML debe incluir id="btnCalcularHora"');
+assert(htmlContent.includes('id="appTimeInput"'), 'HTML debe incluir selector reactivo id="appTimeInput"');
 assert(htmlContent.includes('recalcularTodoElServicio'), 'HTML debe conectar recalcularTodoElServicio');
 assert(htmlContent.includes('name="hora-cita-medica"') || htmlContent.includes('id="appTimeInput"'), 'HTML debe asociar hora de cita médica');
 assert(htmlContent.includes('name="duracion-atencion"') || htmlContent.includes('id="selStayDestino"'), 'HTML debe asociar duración de atención');
