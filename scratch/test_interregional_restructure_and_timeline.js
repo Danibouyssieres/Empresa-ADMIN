@@ -205,8 +205,8 @@ console.log('✔ Test 2: Inverted column layout verified for Modality 5.');
 // --- TEST 3: Switch back to Modality 1 - restores 07:00..18:00 and normal column order ---
 elements['b_svc_type'].value = '1';
 ctx.applyModalityVisibility();
-assert.strictEqual(elements['colAsistentePickup'].style.order, '1', 'colAsistentePickup must have order 1 in Modality 1');
-assert.strictEqual(elements['colDurationService'].style.order, '2', 'colDurationService must have order 2 in Modality 1');
+assert.strictEqual(elements['colDurationService'].style.order, '1', 'colDurationService must have order 1 in Modality 1');
+assert.strictEqual(elements['colAsistentePickup'].style.order, '2', 'colAsistentePickup must have order 2 in Modality 1');
 const m1Opts = appTimeInput.options.map(o => o.value);
 assert.strictEqual(m1Opts[0], '07:00', 'Modality 1 must start at 07:00');
 assert.strictEqual(m1Opts[m1Opts.length - 1], '18:00', 'Modality 1 must end at 18:00');
