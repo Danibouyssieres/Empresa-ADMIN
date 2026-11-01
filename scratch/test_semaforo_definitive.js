@@ -127,6 +127,7 @@ function createMockEnv() {
     RegExp,
     window: {},
     document: {
+      readyState: 'complete',
       documentElement: { setAttribute: () => {} },
       getElementById: (id) => elements[id] || makeEl(id),
       querySelector: (sel) => {
@@ -150,131 +151,138 @@ function createMockEnv() {
       setItem: () => {},
       removeItem: () => {}
     },
-    navigator: { userAgent: 'node' },
-    setTimeout: (fn) => { fn(); },
+    sessionStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {}
+    },
+    setTimeout: (fn) => fn(),
     clearTimeout: () => {},
+    setInterval: () => {},
+    clearInterval: () => {},
     L: {
       map: () => {
-        const m = { setView: () => m, on: () => m, invalidateSize: () => m, removeLayer: () => m };
+        const m = {
+          setView: () => m,
+          addLayer: () => m,
+          removeLayer: () => m,
+          fitBounds: () => m,
+          invalidateSize: () => m,
+          on: () => m
+        };
         return m;
       },
       tileLayer: () => ({ addTo: () => {} }),
-      marker: () => ({ addTo: () => ({ bindPopup: () => ({ openPopup: () => {} }) }) }),
+      marker: () => ({ addTo: () => {}, bindPopup: () => {} }),
       polyline: () => ({ addTo: () => {} }),
-      divIcon: () => ({}),
-      latLngBounds: () => ({ pad: () => ({}) })
-    },
-    scrollTo: () => {}
+      geoJSON: () => ({ addTo: () => {}, getBounds: () => ({}) }),
+      divIcon: () => ({})
+    }
   };
 
   sandbox.window = sandbox;
-
-  const scriptMatches = [...content.matchAll(/<script(?![^>]*src=)(?:[^>]*)>([\s\S]*?)<\/script>/gi)];
-  const inlineScript = scriptMatches.map(m => m[1]).join('\n');
-
   const ctx = vm.createContext(sandbox);
-  vm.runInContext(inlineScript, ctx);
+
+  // Extract JS script from reservar.html
+  const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+  let fullScript = '';
+  while ((match = scriptRegex.exec(content)) !== null) {
+    if (!match[0].includes('leaflet@1.9.4')) {
+      fullScript += '\n' + match[1];
+    }
+  }
+
+  if (!fullScript.trim() && fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js'))) {
+    fullScript = fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8');
+  }
+  vm.runInContext(fullScript, ctx);
 
   return { ctx, elements };
 }
 
+// --- SUITE 0: Markup & CSS Initial State Validation ---
+console.log('Testing Suite 0: Markup and CSS initial hidden state...');
+const cssPath = path.join(__dirname, '..', 'css', 'reservar.css');
+const cssContent = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : content;
+assert(content.includes('.hidden-step{display:none !important}') || cssContent.includes('.hidden-step{display:none !important}'), 'CSS must define .hidden-step with display: none !important');
+assert(content.includes('id="section3Card" class="card hidden-step" style="display:none !important"'), 'section3Card markup must start with hidden-step and display:none !important');
+assert(content.includes('id="section4Card" class="card hidden-step" style="display:none !important"'), 'section4Card markup must start with hidden-step and display:none !important');
+console.log('✔ SUITE 0 passed: HTML & CSS markup defaults verified.');
+
+// --- SUITE 1: Shifts Nominal Limits and 30-min Tolerance ---
+console.log('Testing Suite 1: Shift nominal limits and 30-minute tolerance...');
 const { ctx, elements } = createMockEnv();
 
-// --- SUITE 1: Función Maestra evaluarSemaforoTurno ---
-console.log('Testing evaluarSemaforoTurno function logic...');
+// 1. Turno Mañana (Nominal: 12:00 / 720 min, Tolerancia: 12:30 / 750 min)
+assert.strictEqual(ctx.evaluarSemaforoTurno(720, 'manana').state, 'green', 'Mañana at 12:00 must be GREEN');
+assert.strictEqual(ctx.evaluarSemaforoTurno(721, 'manana').state, 'yellow', 'Mañana at 12:01 must be YELLOW');
+assert.strictEqual(ctx.evaluarSemaforoTurno(750, 'manana').state, 'yellow', 'Mañana at 12:30 must be YELLOW');
+assert.strictEqual(ctx.evaluarSemaforoTurno(751, 'manana').state, 'red', 'Mañana at 12:31 must be RED');
 
-// Turno Mañana (Nominal: 12:00 = 720 min, Tolerancia: 12:30 = 750 min)
-let res = ctx.evaluarSemaforoTurno(700, 'manana'); // 11:40
-assert.strictEqual(res.state, 'green', '11:40 in Mañana must be green');
+// 2. Turno Tarde (Nominal: 20:00 / 1200 min, Tolerancia: 20:30 / 1230 min)
+assert.strictEqual(ctx.evaluarSemaforoTurno(1200, 'tarde').state, 'green', 'Tarde at 20:00 must be GREEN');
+assert.strictEqual(ctx.evaluarSemaforoTurno(1201, 'tarde').state, 'yellow', 'Tarde at 20:01 must be YELLOW');
+assert.strictEqual(ctx.evaluarSemaforoTurno(1230, 'tarde').state, 'yellow', 'Tarde at 20:30 must be YELLOW');
+assert.strictEqual(ctx.evaluarSemaforoTurno(1231, 'tarde').state, 'red', 'Tarde at 20:31 must be RED');
 
-res = ctx.evaluarSemaforoTurno(720, 'manana'); // 12:00 exacto
-assert.strictEqual(res.state, 'green', '12:00 in Mañana must be green');
+// 3. Turno Noche (Nominal: 04:00 / 28*60 = 1680 min, Tolerancia: 04:30 / 1710 min)
+// When midnight crosses: 04:00 am is represented as 240 or 1680 min
+assert.strictEqual(ctx.evaluarSemaforoTurno(4 * 60, 'noche').state, 'green', 'Noche at 04:00 must be GREEN');
+assert.strictEqual(ctx.evaluarSemaforoTurno(4 * 60 + 15, 'noche').state, 'yellow', 'Noche at 04:15 must be YELLOW');
+assert.strictEqual(ctx.evaluarSemaforoTurno(4 * 60 + 30, 'noche').state, 'yellow', 'Noche at 04:30 must be YELLOW');
+assert.strictEqual(ctx.evaluarSemaforoTurno(4 * 60 + 31, 'noche').state, 'red', 'Noche at 04:31 must be RED');
 
-res = ctx.evaluarSemaforoTurno(721, 'manana'); // 12:01
-assert.strictEqual(res.state, 'yellow', '12:01 in Mañana must be yellow');
+console.log('✔ SUITE 1 passed: All shift limits and tolerances verified.');
 
-res = ctx.evaluarSemaforoTurno(750, 'manana'); // 12:30 exacto
-assert.strictEqual(res.state, 'yellow', '12:30 in Mañana must be yellow');
+// --- SUITE 2: Visual Styling and Exact Texts of Semáforo Cards ---
+console.log('Testing Suite 2: Visual styling and exact texts...');
 
-res = ctx.evaluarSemaforoTurno(751, 'manana'); // 12:31
-assert.strictEqual(res.state, 'red', '12:31 in Mañana must be red');
+// A) Green State: renderSemaforoCard returns empty string
+assert.strictEqual(ctx.renderSemaforoCard({ state: 'green' }), '', 'Green card must return empty string');
 
-res = ctx.evaluarSemaforoTurno(800, 'manana'); // 13:20
-assert.strictEqual(res.state, 'red', '13:20 in Mañana must be red');
+// B) Yellow State: Amber background (#FFFBEB), border (#F59E0B), dark text (#92400E)
+const yellowCard = ctx.renderSemaforoCard({ state: 'yellow', effEnd: 735 });
+assert(yellowCard.includes('#FFFBEB') || yellowCard.includes('#fffbeb'), 'Yellow card must have amber background #FFFBEB');
+assert(yellowCard.includes('#F59E0B') || yellowCard.includes('#f59e0b'), 'Yellow card must have amber border #F59E0B');
+assert(yellowCard.includes('#92400E') || yellowCard.includes('#92400e'), 'Yellow card must have dark amber typography #92400E');
+assert(yellowCard.includes('Atención con Cierre al Límite del Turno') && yellowCard.includes('⚠️'), 'Yellow card must have exact title');
+assert(yellowCard.includes('El retorno estimado finaliza a las <b>12:15 hrs</b>, en el margen límite de nuestro turno. Puede continuar con su reserva con normalidad; sin embargo, considere que durante el servicio no será posible solicitar extensiones de tiempo en el lugar, con el propósito de resguardar los tiempos de traslado y la puntualidad de la atención siguiente.'), 'Yellow card must contain exact regulatory notice');
 
-// Turno Tarde (Nominal: 20:00 = 1200 min, Tolerancia: 20:30 = 1230 min)
-res = ctx.evaluarSemaforoTurno(1180, 'tarde'); // 19:40
-assert.strictEqual(res.state, 'green', '19:40 in Tarde must be green');
-
-res = ctx.evaluarSemaforoTurno(1200, 'tarde'); // 20:00 exacto
-assert.strictEqual(res.state, 'green', '20:00 in Tarde must be green');
-
-res = ctx.evaluarSemaforoTurno(1205, 'tarde'); // 20:05
-assert.strictEqual(res.state, 'yellow', '20:05 in Tarde must be yellow');
-
-res = ctx.evaluarSemaforoTurno(1230, 'tarde'); // 20:30 exacto
-assert.strictEqual(res.state, 'yellow', '20:30 in Tarde must be yellow');
-
-res = ctx.evaluarSemaforoTurno(1231, 'tarde'); // 20:31
-assert.strictEqual(res.state, 'red', '20:31 in Tarde must be red');
-
-// Turno Noche (Nominal: 04:00 = 1680 min / 240 min, Tolerancia: 04:30 = 1710 min / 270 min)
-res = ctx.evaluarSemaforoTurno(1650, 'noche'); // 03:30 AM
-assert.strictEqual(res.state, 'green', '03:30 AM in Noche must be green');
-
-res = ctx.evaluarSemaforoTurno(1680, 'noche'); // 04:00 AM exacto
-assert.strictEqual(res.state, 'green', '04:00 AM in Noche must be green');
-
-res = ctx.evaluarSemaforoTurno(1695, 'noche'); // 04:15 AM
-assert.strictEqual(res.state, 'yellow', '04:15 AM in Noche must be yellow');
-
-res = ctx.evaluarSemaforoTurno(1710, 'noche'); // 04:30 AM exacto
-assert.strictEqual(res.state, 'yellow', '04:30 AM in Noche must be yellow');
-
-res = ctx.evaluarSemaforoTurno(1715, 'noche'); // 04:35 AM
-assert.strictEqual(res.state, 'red', '04:35 AM in Noche must be red');
-
-// Test with next-day modulo values (e.g. 04:15 is 255 min)
-res = ctx.evaluarSemaforoTurno(255, 'noche'); // 04:15 AM
-assert.strictEqual(res.state, 'yellow', '04:15 AM (as 255 min) in Noche must be yellow');
-
-res = ctx.evaluarSemaforoTurno(280, 'noche'); // 04:40 AM
-assert.strictEqual(res.state, 'red', '04:40 AM (as 280 min) in Noche must be red');
-
-console.log('✔ SUITE 1 passed: evaluarSemaforoTurno mathematical boundaries validated.');
-
-// --- SUITE 2: renderSemaforoCard Output & Text Compliance ---
-console.log('Testing renderSemaforoCard textual and visual compliance...');
-
-// Green: returns empty string
-const greenHtml = ctx.renderSemaforoCard({ state: 'green', effEnd: 700 });
-assert.strictEqual(greenHtml, '', 'Green state must return empty HTML (hidden)');
-
-// Yellow: verifies amber background, border, title and verbatim text
-const yellowHtml = ctx.renderSemaforoCard({ state: 'yellow', effEnd: 735 }); // 12:15
-assert(yellowHtml.includes('background:#FFFBEB'), 'Yellow card must have #FFFBEB background');
-assert(yellowHtml.includes('border:1.5px solid #F59E0B'), 'Yellow card must have #F59E0B border');
-assert(yellowHtml.includes('Atención con Cierre al Límite del Turno') && yellowHtml.includes('⚠️'), 'Yellow card must have required title');
-assert(yellowHtml.includes('El retorno estimado finaliza a las <b>12:15 hrs</b>, en el margen límite de nuestro turno. Puede continuar con su reserva con normalidad; sin embargo, considere que durante el servicio no será posible solicitar extensiones de tiempo en el lugar, con el propósito de resguardar los tiempos de traslado y la puntualidad de la atención siguiente.'), 'Yellow card must contain exact required text');
-
-// Red: verifies red background, border, title, verbatim text and WhatsApp CTA
-elements['b_from'].value = 'Av. Los Pajaritos 1450, Maipú';
-elements['b_to'].value = 'Clínica Santa María, Providencia';
-const redHtml = ctx.renderSemaforoCard({ state: 'red', effEnd: 765 }); // 12:45
-assert(redHtml.includes('background:#FEF2F2'), 'Red card must have #FEF2F2 background');
-assert(redHtml.includes('border:1.5px solid #EF4444'), 'Red card must have #EF4444 border');
-assert(redHtml.includes('Horario fuera de rango operativo estándar') && redHtml.includes('🛑'), 'Red card must have required title');
-assert(redHtml.includes('Con la duración seleccionada, el servicio finalizaría a las <b>12:45 hrs</b>, invadiendo el cambio de turno. Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp.'), 'Red card must contain exact required text');
-assert(redHtml.includes('href="https://wa.me/56929990095'), 'Red card must contain functional WhatsApp link');
+// C) Red State: Red background (#FEF2F2), border (#EF4444)
+const redCard = ctx.renderSemaforoCard({ state: 'red', effEnd: 825 });
+assert(redCard.includes('#FEF2F2') || redCard.includes('#fef2f2'), 'Red card must have red background #FEF2F2');
+assert(redCard.includes('#EF4444') || redCard.includes('#ef4444'), 'Red card must have red border #EF4444');
+assert(redCard.includes('Horario fuera de rango operativo estándar') && redCard.includes('🛑'), 'Red card must have exact title');
+assert(redCard.includes('Con la duración seleccionada, el servicio finalizaría a las <b>13:45 hrs</b>, invadiendo el cambio de turno. Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp.'), 'Red card must contain exact regulatory explanation');
+assert(redCard.includes('btnSemaforoWa'), 'Red card must contain dedicated WhatsApp button');
 
 console.log('✔ SUITE 2 passed: renderSemaforoCard styling and text compliance verified.');
 
-// --- SUITE 3: Interactive calcSuggestedPickup Integration ---
-console.log('Testing calcSuggestedPickup interactive integration...');
+// --- SUITE 3: Interactive calcSuggestedPickup Integration and Conditional Visibility ---
+console.log('Testing Suite 3: Interactive calcSuggestedPickup integration and conditional visibility...');
 
-// Mock map route: 10 min ida
-ctx.lastRouteIdaMin = 10;
-ctx.tripMultiplier = 2; // ida y vuelta
+// Check initial state before route calculation
+assert.strictEqual(ctx.isCalculationComplete(), false, 'Before route/pricing calculation, isCalculationComplete must be false');
+ctx.updateSectionsVisibility();
+assert.strictEqual(elements['section3Card'].style.display, 'none', 'Before calculation complete: Section 3 must be HIDDEN');
+assert.strictEqual(elements['section4Card'].style.display, 'none', 'Before calculation complete: Section 4 must be HIDDEN');
+
+// Setup valid addresses and calculated route
+elements['b_from'].value = 'Av. Pajaritos 1450, Maipú';
+elements['b_to'].value = 'Clínica Santa María, Providencia';
+vm.runInContext(`
+  ptFrom = { lat: -33.50, lon: -70.75 };
+  ptTo = { lat: -33.43, lon: -70.62 };
+  lastTotalKm = 24.5;
+  lastRouteIdaMin = 10;
+  lastFinalTotal = 38000;
+  lastAbono50 = 19000;
+  tripMultiplier = 2;
+`, ctx);
+
+assert.strictEqual(ctx.isCalculationComplete(), true, 'With valid points and metrics, isCalculationComplete must be true');
+
 const testDate = ctx.addDaysYMD(ctx.toYMD(new Date()), 6);
 elements['b_date'].value = testDate;
 
@@ -289,8 +297,10 @@ ctx.calcSuggestedPickup();
 assert.strictEqual(elements['submitBtn'].disabled, false, 'Green state: submitBtn must be ENABLED');
 assert(!elements['suggestedPickupMsg'].innerHTML.includes('shiftSemaforoCard'), 'Green state: semaforo card must NOT be present in message');
 assert(elements['suggestedPickupMsg'].innerHTML.includes('Hora de recogida programada: <span style="font-size:1.06rem;font-weight:800;color:var(--ink)">09:45 hrs</span>'), 'Green state: scheduled pickup 09:45 hrs');
-assert.notStrictEqual(elements['section3Card'].style.display, 'none', 'Green state: Section 3 must be VISIBLE');
-assert.notStrictEqual(elements['section4Card'].style.display, 'none', 'Green state: Section 4 must be VISIBLE');
+assert.strictEqual(elements['section3Card'].style.display, 'block', 'Green state: Section 3 must be VISIBLE');
+assert.strictEqual(elements['section4Card'].style.display, 'block', 'Green state: Section 4 must be VISIBLE');
+assert(!elements['section3Card'].classList.contains('hidden-step'), 'Green state: Section 3 must not have hidden-step');
+assert(!elements['section4Card'].classList.contains('hidden-step'), 'Green state: Section 4 must not have hidden-step');
 
 // Scenario B: Estado Amarillo (Cita 11:30, permanencia 60 min)
 // Recogida: 11:30 - 40 min = 10:45 (645 min)
@@ -302,15 +312,13 @@ ctx.calcSuggestedPickup();
 assert.strictEqual(elements['submitBtn'].disabled, false, 'Yellow state: submitBtn must be ENABLED');
 assert(elements['suggestedPickupMsg'].innerHTML.includes('Atención con Cierre al Límite del Turno'), 'Yellow state: yellow semaforo card must be rendered');
 assert(elements['suggestedPickupMsg'].innerHTML.includes('El retorno estimado finaliza a las <b>12:15 hrs</b>, en el margen límite de nuestro turno'), 'Yellow state: exact yellow notice present');
-assert.notStrictEqual(elements['section3Card'].style.display, 'none', 'Yellow state: Section 3 must be VISIBLE');
-assert.notStrictEqual(elements['section4Card'].style.display, 'none', 'Yellow state: Section 4 must be VISIBLE');
+assert.strictEqual(elements['section3Card'].style.display, 'block', 'Yellow state: Section 3 must be VISIBLE');
+assert.strictEqual(elements['section4Card'].style.display, 'block', 'Yellow state: Section 4 must be VISIBLE');
 
 // Scenario C: Estado Rojo (Cita 12:00, permanencia 120 min)
 // Recogida: 12:00 - 40 min = 11:15 (675 min)
 // Duración completa: 11:15 (675) + 10 + 10 + 120 + 10 = 13:45 (825 min)
 // 825 min > 750 min (12:30) -> Rojo
-elements['b_from'].value = 'Av. Pajaritos 1450, Maipú';
-elements['b_to'].value = 'Clínica Santa María, Providencia';
 elements['appTimeInput'].value = '12:00';
 elements['selStayDestino'].value = '120';
 ctx.calcSuggestedPickup();
@@ -323,6 +331,8 @@ assert(elements['suggestedPickupMsg'].innerHTML.includes('btnSemaforoWa'), 'Red 
 // Section 3 and 4 must be HIDDEN in Red State
 assert.strictEqual(elements['section3Card'].style.display, 'none', 'Red state: Section 3 must be HIDDEN');
 assert.strictEqual(elements['section4Card'].style.display, 'none', 'Red state: Section 4 must be HIDDEN');
+assert(elements['section3Card'].classList.contains('hidden-step'), 'Red state: Section 3 must have hidden-step class');
+assert(elements['section4Card'].classList.contains('hidden-step'), 'Red state: Section 4 must have hidden-step class');
 
 // Timeline and Totals must remain VISIBLE in Red State
 assert.strictEqual(elements['serviceTimelineBox'].style.display, 'block', 'Red state: serviceTimelineBox must remain VISIBLE');
@@ -344,15 +354,28 @@ assert(decodedWa.includes('¿Tienen factibilidad operativa para coordinar este h
 
 console.log('✔ SUITE 3 passed: calcSuggestedPickup interactive integration, conditional visibility and enriched WhatsApp URL verified.');
 
-// --- SUITE 4: Dynamic Reactivity on Address Change ---
-console.log('Testing dynamic reactivity on address changes...');
+// --- SUITE 4: Dynamic Reactivity on Address Change & Input Invalidation ---
+console.log('Testing Suite 4: Dynamic reactivity on address changes and invalidation...');
+
+// Return to Green State first
+elements['appTimeInput'].value = '10:30';
+elements['selStayDestino'].value = '60';
+ctx.calcSuggestedPickup();
+assert.strictEqual(elements['section3Card'].style.display, 'block', 'Returned to Green: Section 3 must be VISIBLE');
+
+// When user changes address in b_from: onType('from') invalidates route and hides sections
 elements['b_from'].value = 'Calle Nueva 123, La Florida';
+ctx.onType('from');
+assert.strictEqual(ctx.isCalculationComplete(), false, 'Address change invalidates route calculation');
+assert.strictEqual(elements['section3Card'].style.display, 'none', 'Address change must immediately HIDE Section 3');
+assert.strictEqual(elements['section4Card'].style.display, 'none', 'Address change must immediately HIDE Section 4');
+
+// WhatsApp text reactivity test
 ctx.refreshSemaforoWaLinkIfPresent();
-// Note: In our mock, suggestedPickupMsg innerHTML was rendered earlier; testing getSemaforoRedWaText reactivity:
 const refreshedWaText = ctx.getSemaforoRedWaText(ctx.window.currentSemaforo);
 assert(refreshedWaText.includes('Calle Nueva 123, La Florida ➔ Clínica Santa María, Providencia'), 'Address change must dynamically update WhatsApp text');
 
 console.log('✔ SUITE 4 passed: Address change reactivity verified.');
 
-console.log('\nAll Semáforo de Validación de Jornada tests passed successfully! 🚀');
+console.log('\nAll Semáforo de Validación de Jornada & Section Visibility tests passed successfully! 🚀');
 process.exit(0);

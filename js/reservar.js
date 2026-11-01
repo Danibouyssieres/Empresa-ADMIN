@@ -242,6 +242,7 @@ function selectInterRegion(regName){
   if(dirRow && ($('#b_svc_type') && $('#b_svc_type').value === '5')) dirRow.style.display = 'flex';
 
   recalcAll();
+  if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility(); // onPickupTimeChange
 }
 
 function setInterProgram(hours){
@@ -278,6 +279,7 @@ function selectEventSubMode(subMode){
   if(!isSin && ptFrom && ptTo && isMapEnabledForCurrentState()){
     computeRoute();
   }
+  if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility(); // selectEventSubMode
 }
 
 function isMapEnabledForCurrentState(){
@@ -389,6 +391,7 @@ function onServiceTypeChange(){
   recalcAll();
   updateSlots();
   syncJornadaFromSchedule();
+  if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility(); // service type change
 
   if(nightReset){
     const submitAlert = $('#submitBlockAlert');
@@ -992,6 +995,7 @@ function recalcularTodoElServicio(triggerSource){
         calcSuggestedPickup();
       }
     }
+    if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility(); // recalcularTodoElServicio
   } catch(err) {
     console.error('Error en recalcularTodoElServicio:', err);
   }
@@ -1626,6 +1630,15 @@ function onType(which){
 
   if(which==='from') ptFrom = null;
   else ptTo = null;
+
+  // Invalidate route metrics on address change
+  if(isMapEnabledForCurrentState()){
+    lastTotalKm = 0;
+    lastRouteIdaMin = 0;
+  }
+  if(typeof updateSectionsVisibility === 'function'){
+    updateSectionsVisibility();
+  }
 
   const val = (which==='from' ? $('#b_from').value : $('#b_to').value).trim();
   const sugBox = which==='from' ? $('#sugFrom') : $('#sugTo');
@@ -3356,28 +3369,70 @@ function evaluarSemaforoTurno(endServiceMin, targetBlock){
 }
 window.evaluarSemaforoTurno = evaluarSemaforoTurno;
 
+function isCalculationComplete(){
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  // Tarifa calculada: debe existir un valor final total superior a cero
+  if(!lastFinalTotal || lastFinalTotal <= 0) return false;
+
+  const showMap = isMapEnabledForCurrentState();
+  if(showMap){
+    // En modalidades con traslado vehicular (1, 2, 5 y 4 con traslado)
+    // Es obligatorio haber calculado ruta en mapa: puntos válidos, km > 0 y minutos > 0
+    if(!ptFrom || !ptTo) return false;
+    if(!lastTotalKm || lastTotalKm <= 0) return false;
+    if(!lastRouteIdaMin || lastRouteIdaMin <= 0) return false;
+    const fromVal = ($('#b_from') && $('#b_from').value.trim()) || '';
+    const toVal = ($('#b_to') && $('#b_to').value.trim()) || '';
+    if(!fromVal || !toVal) return false;
+    return true;
+  } else {
+    // En modalidades sin traslado vehicular (3 y 4 sin traslado)
+    const fromVal = ($('#b_from') && $('#b_from').value.trim()) || '';
+    if(!fromVal && !ptFrom) return false;
+    return true;
+  }
+}
+window.isCalculationComplete = isCalculationComplete;
+
+function updateSectionsVisibility(state){
+  const sec3 = $('#section3Card') || (document.querySelectorAll && document.querySelectorAll('main > form > section.card') && document.querySelectorAll('main > form > section.card')[2]);
+  const sec4 = $('#section4Card') || (document.querySelectorAll && document.querySelectorAll('main > form > section.card') && document.querySelectorAll('main > form > section.card')[3]);
+
+  const semaState = state || (window.currentSemaforo && window.currentSemaforo.state) || 'none';
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+
+  const calcComplete = isCalculationComplete();
+  let semaOk = false;
+
+  if(mode === '1' || mode === '2' || mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado')){
+    // En modalidades con traslado y asistente de jornada: Verde o Amarillo
+    semaOk = (semaState === 'green' || semaState === 'yellow');
+  } else {
+    // En modalidades sin traslado: mientras no esté en rojo
+    semaOk = (semaState !== 'red');
+  }
+
+  const shouldShow = Boolean(calcComplete && semaOk);
+
+  [sec3, sec4].forEach(el => {
+    if(!el) return;
+    if(shouldShow){
+      el.classList.remove('hidden-step');
+      if(el.style && el.style.removeProperty) el.style.removeProperty('display');
+      if(el.style) el.style.display = 'block';
+    } else {
+      el.classList.add('hidden-step');
+      if(el.style && el.style.setProperty) el.style.setProperty('display', 'none', 'important');
+      else if(el.style) el.style.display = 'none';
+    }
+  });
+
+  return shouldShow;
+}
+window.updateSectionsVisibility = updateSectionsVisibility;
+
 function updateSectionsVisibilityBySemaforo(state){
-  const sec3 = $('#section3Card') || (document.querySelectorAll('main > form > section.card') && document.querySelectorAll('main > form > section.card')[2]);
-  const sec4 = $('#section4Card') || (document.querySelectorAll('main > form > section.card') && document.querySelectorAll('main > form > section.card')[3]);
-  const isRed = (state === 'red');
-  if(sec3){
-    if(isRed){
-      if(sec3.style.setProperty) sec3.style.setProperty('display', 'none', 'important');
-      else sec3.style.display = 'none';
-    } else {
-      if(sec3.style.removeProperty) sec3.style.removeProperty('display');
-      else sec3.style.display = 'block';
-    }
-  }
-  if(sec4){
-    if(isRed){
-      if(sec4.style.setProperty) sec4.style.setProperty('display', 'none', 'important');
-      else sec4.style.display = 'none';
-    } else {
-      if(sec4.style.removeProperty) sec4.style.removeProperty('display');
-      else sec4.style.display = 'block';
-    }
-  }
+  return updateSectionsVisibility(state);
 }
 window.updateSectionsVisibilityBySemaforo = updateSectionsVisibilityBySemaforo;
 
@@ -3689,7 +3744,7 @@ function calcSuggestedPickup(){
     `;
 
     // APLICACIÓN DEL SISTEMA DE SEMÁFORO Y VISIBILIDAD DE SECCIONES 3 Y 4
-    updateSectionsVisibilityBySemaforo(semaforo.state);
+    updateSectionsVisibility(semaforo.state);
     if(semaforo.state === 'red'){
       if(subBtn) subBtn.disabled = true;
       msg.innerHTML = renderSemaforoCard(semaforo);
@@ -3737,6 +3792,8 @@ window.populateAppTimeOptions = populateAppTimeOptions;
 
 async function initForm(){
   applyTheme(getTheme());
+  // Ocultamiento por defecto de Secciones 3 y 4 al inicio
+  if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility(); // initForm start
   const firstDate = findFirstAvailableDate();
   $('#b_date').value = firstDate;
   const dt = parseYMD(firstDate);
@@ -3747,8 +3804,14 @@ async function initForm(){
   ['b_from', 'b_to'].forEach(id => {
     const el = document.getElementById(id);
     if(el && el.addEventListener){
-      el.addEventListener('input', () => { if(typeof refreshSemaforoWaLinkIfPresent === 'function') refreshSemaforoWaLinkIfPresent(); });
-      el.addEventListener('change', () => { if(typeof refreshSemaforoWaLinkIfPresent === 'function') refreshSemaforoWaLinkIfPresent(); });
+      el.addEventListener('input', () => {
+        if(typeof refreshSemaforoWaLinkIfPresent === 'function') refreshSemaforoWaLinkIfPresent();
+        if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility();
+      });
+      el.addEventListener('change', () => {
+        if(typeof refreshSemaforoWaLinkIfPresent === 'function') refreshSemaforoWaLinkIfPresent();
+        if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility();
+      });
     }
   });
 
@@ -4273,3 +4336,12 @@ addEventListener('storage',ev=>{
 });
 
 initForm();
+
+// DOMContentLoaded visibility initialization
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', () => {
+    if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility();
+  });
+} else {
+  if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility();
+}
