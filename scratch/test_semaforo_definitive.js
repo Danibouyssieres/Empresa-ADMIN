@@ -275,6 +275,8 @@ vm.runInContext(`
   ptFrom = { lat: -33.50, lon: -70.75 };
   ptTo = { lat: -33.43, lon: -70.62 };
   lastTotalKm = 24.5;
+  lastKmCost = 24500;
+  lastTimeCost = 13500;
   lastRouteIdaMin = 10;
   lastFinalTotal = 38000;
   lastAbono50 = 19000;
@@ -349,8 +351,72 @@ assert(decodedWa.includes('• *Fecha y Turno:*'), 'Date and shift must match');
 assert(decodedWa.includes('• *Trayecto:* Av. Pajaritos 1450, Maipú ➔ Clínica Santa María, Providencia'), 'Route must match');
 assert(decodedWa.includes('• *Horario previsto:* Salida sugerida 11:15 hrs | Retorno estimado 13:45 hrs'), 'Suggested departure and return must match');
 assert(decodedWa.includes('• *Tiempo total circuito:* 2 h 30 min (2 h de espera/atención)'), 'Total circuit time must match');
-assert(decodedWa.includes('• *Valor cotizado:*'), 'Quoted price must match');
+assert(decodedWa.includes('⚠️ Desfase de turno: +105 min sobre el horario estándar de cierre (12:00 hrs)'), 'Desfase de turno must match +105 min');
+assert(decodedWa.includes('💰 *DESGLOSE ECONÓMICO:*'), 'Breakdown header must match');
+assert(decodedWa.includes('• Kilometraje (24,5 km ida/vuelta): $24.500'), 'Kilometraje breakdown must match');
+assert(decodedWa.includes('• Tiempo de asistencia/espera (2 hrs):'), 'Tiempo breakdown must match');
+assert(decodedWa.includes('• TOTAL COTIZADO: $62.000'), 'Total cotizado must match');
+assert(decodedWa.includes('• Abono 50% para reserva: $31.000'), 'Abono 50% must match');
+assert(decodedWa.includes('• Saldo restante al finalizar el servicio: $31.000'), 'Saldo restante must match');
 assert(decodedWa.includes('¿Tienen factibilidad operativa para coordinar este horario especial?'), 'Closing question must match');
+
+// Test Ring floor minimum line when applicable
+vm.runInContext(`
+  detectedRing = { name: 'Anillo 3 Periférico', minFare: 50000 };
+  lastKmCost = 15000;
+  lastTimeCost = 15000; // raw sum 30000 < 50000
+  lastTotalKm = 15;
+`, ctx);
+const waRingFloor = ctx.getSemaforoRedWaText(ctx.window.currentSemaforo);
+assert(waRingFloor.includes('• Tarifa base comunal aplicada: $50.000'), 'Ring minimum floor line must appear when raw sum < minFare');
+vm.runInContext("detectedRing = null;", ctx); // restore
+
+// Test Modality 3 (Domicilio) breakdown in WA text
+elements['b_svc_type'].value = '3';
+elements['selHours34'].value = '3';
+elements['selMins34'].value = '30';
+vm.runInContext(`
+  lastFinalTotal = 43000;
+  lastAbono50 = 21500;
+`, ctx);
+const waMod3 = ctx.getSemaforoRedWaText({ state: 'red', effEnd: 750, limitNominal: 720 });
+assert(waMod3.includes('• Horas de cuidado continuo (3 hrs + 30 min): $43.000'), 'Modality 3 WA breakdown must match');
+assert(waMod3.includes('• TOTAL COTIZADO: $43.000'), 'Modality 3 Total must match');
+
+// Test Modality 4 (Eventos) breakdown in WA text
+elements['b_svc_type'].value = '4';
+elements['selHours34'].value = '6';
+vm.runInContext(`
+  selectedEventSubMode = 'con_traslado';
+  lastFinalTotal = 125000;
+  lastAbono50 = 62500;
+`, ctx);
+const waMod4 = ctx.getSemaforoRedWaText({ state: 'red', effEnd: 780, limitNominal: 720 });
+assert(waMod4.includes('• Plan base contratado: Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta) ($125.000)'), 'Modality 4 WA breakdown must match');
+
+// Test Modality 5 (Interregional) breakdown in WA text with extra blocks
+elements['b_svc_type'].value = '5';
+elements['selMins34'].value = '60';
+vm.runInContext(`
+  selectedInterProgram = 4;
+  lastFinalTotal = 275000;
+  lastAbono50 = 137500;
+`, ctx);
+const waMod5 = ctx.getSemaforoRedWaText({ state: 'red', effEnd: 800, limitNominal: 720 });
+assert(waMod5.includes('• Plan base contratado: Programa Estándar (4 hrs) ($250.000)'), 'Modality 5 Base Plan must match');
+assert(waMod5.includes('• Horas/tiempo adicional: +60 min ($25.000)'), 'Modality 5 Extra blocks line must match');
+assert(waMod5.includes('• TOTAL COTIZADO: $275.000'), 'Modality 5 Total must match');
+assert(waMod5.includes('• Saldo restante al finalizar el servicio: $137.500'), 'Modality 5 Saldo must match');
+
+// Restore Modality 1 for remaining test steps
+elements['b_svc_type'].value = '1';
+vm.runInContext(`
+  lastTotalKm = 24.5;
+  lastKmCost = 24500;
+  lastTimeCost = 24000;
+  lastFinalTotal = 48500;
+  lastAbono50 = 24250;
+`, ctx);
 
 console.log('✔ SUITE 3 passed: calcSuggestedPickup interactive integration, conditional visibility and enriched WhatsApp URL verified.');
 
