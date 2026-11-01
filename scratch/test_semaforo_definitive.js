@@ -21,7 +21,10 @@ function createMockEnv() {
       textContent: '',
       innerHTML: '',
       disabled: false,
-      style: {},
+      style: {
+        setProperty: function(prop, val) { this[prop] = val; },
+        removeProperty: function(prop) { delete this[prop]; }
+      },
       classList: {
         classes: new Set(),
         add(c) { this.classes.add(c); },
@@ -100,7 +103,8 @@ function createMockEnv() {
     'tlHoraLlegadaDestino', 'tlHoraLlegadaDestinoLabel', 'tlTiempoDestino',
     'tlTiempoDestinoLabel', 'tlHoraRetorno', 'tlHoraRetornoLabel',
     'tlHorasEfectivas', 'tlHorasEfectivasLabel', 'tlDesgloseDetalle',
-    'selHours34', 'selMins34', 'dirFinalTotal', 'dirAbono50', 'b_calc_total', 'b_calc_abono'
+    'selHours34', 'selMins34', 'dirFinalTotal', 'dirAbono50', 'b_calc_total', 'b_calc_abono',
+    'sumFinalTotal', 'sumAbono50', 'section3Card', 'section4Card'
   ].forEach(id => makeEl(id, id.startsWith('b_time') || id.startsWith('appTime') || id.startsWith('selStay') || id.startsWith('b_svc') || id.startsWith('selHours') || id.startsWith('selMins') ? 'select' : 'div'));
 
   const sandbox = {
@@ -112,6 +116,7 @@ function createMockEnv() {
     isNaN,
     isFinite,
     encodeURIComponent,
+    decodeURIComponent,
     Set,
     Map,
     Array,
@@ -128,7 +133,10 @@ function createMockEnv() {
         if (sel.startsWith('#')) return elements[sel.slice(1)] || makeEl(sel.slice(1));
         return null;
       },
-      querySelectorAll: () => [],
+      querySelectorAll: (sel) => {
+        if (sel === 'main > form > section.card') return [makeEl('sec1'), makeEl('sec2'), elements['section3Card'], elements['section4Card']];
+        return [];
+      },
       createElement: (tag) => makeEl('temp_' + Math.random(), tag),
       head: { appendChild: () => {} },
       body: { appendChild: () => {} },
@@ -250,6 +258,8 @@ assert(yellowHtml.includes('Atención con Cierre al Límite del Turno') && yello
 assert(yellowHtml.includes('El retorno estimado finaliza a las <b>12:15 hrs</b>, en el margen límite de nuestro turno. Puede continuar con su reserva con normalidad; sin embargo, considere que durante el servicio no será posible solicitar extensiones de tiempo en el lugar, con el propósito de resguardar los tiempos de traslado y la puntualidad de la atención siguiente.'), 'Yellow card must contain exact required text');
 
 // Red: verifies red background, border, title, verbatim text and WhatsApp CTA
+elements['b_from'].value = 'Av. Los Pajaritos 1450, Maipú';
+elements['b_to'].value = 'Clínica Santa María, Providencia';
 const redHtml = ctx.renderSemaforoCard({ state: 'red', effEnd: 765 }); // 12:45
 assert(redHtml.includes('background:#FEF2F2'), 'Red card must have #FEF2F2 background');
 assert(redHtml.includes('border:1.5px solid #EF4444'), 'Red card must have #EF4444 border');
@@ -279,6 +289,8 @@ ctx.calcSuggestedPickup();
 assert.strictEqual(elements['submitBtn'].disabled, false, 'Green state: submitBtn must be ENABLED');
 assert(!elements['suggestedPickupMsg'].innerHTML.includes('shiftSemaforoCard'), 'Green state: semaforo card must NOT be present in message');
 assert(elements['suggestedPickupMsg'].innerHTML.includes('Hora de recogida programada: <span style="font-size:1.06rem;font-weight:800;color:var(--ink)">09:45 hrs</span>'), 'Green state: scheduled pickup 09:45 hrs');
+assert.notStrictEqual(elements['section3Card'].style.display, 'none', 'Green state: Section 3 must be VISIBLE');
+assert.notStrictEqual(elements['section4Card'].style.display, 'none', 'Green state: Section 4 must be VISIBLE');
 
 // Scenario B: Estado Amarillo (Cita 11:30, permanencia 60 min)
 // Recogida: 11:30 - 40 min = 10:45 (645 min)
@@ -290,11 +302,15 @@ ctx.calcSuggestedPickup();
 assert.strictEqual(elements['submitBtn'].disabled, false, 'Yellow state: submitBtn must be ENABLED');
 assert(elements['suggestedPickupMsg'].innerHTML.includes('Atención con Cierre al Límite del Turno'), 'Yellow state: yellow semaforo card must be rendered');
 assert(elements['suggestedPickupMsg'].innerHTML.includes('El retorno estimado finaliza a las <b>12:15 hrs</b>, en el margen límite de nuestro turno'), 'Yellow state: exact yellow notice present');
+assert.notStrictEqual(elements['section3Card'].style.display, 'none', 'Yellow state: Section 3 must be VISIBLE');
+assert.notStrictEqual(elements['section4Card'].style.display, 'none', 'Yellow state: Section 4 must be VISIBLE');
 
 // Scenario C: Estado Rojo (Cita 12:00, permanencia 120 min)
 // Recogida: 12:00 - 40 min = 11:15 (675 min)
 // Duración completa: 11:15 (675) + 10 + 10 + 120 + 10 = 13:45 (825 min)
 // 825 min > 750 min (12:30) -> Rojo
+elements['b_from'].value = 'Av. Pajaritos 1450, Maipú';
+elements['b_to'].value = 'Clínica Santa María, Providencia';
 elements['appTimeInput'].value = '12:00';
 elements['selStayDestino'].value = '120';
 ctx.calcSuggestedPickup();
@@ -304,7 +320,39 @@ assert(elements['suggestedPickupMsg'].innerHTML.includes('Horario fuera de rango
 assert(elements['suggestedPickupMsg'].innerHTML.includes('Con la duración seleccionada, el servicio finalizaría a las <b>13:45 hrs</b>, invadiendo el cambio de turno'), 'Red state: exact red notice present');
 assert(elements['suggestedPickupMsg'].innerHTML.includes('btnSemaforoWa'), 'Red state: WhatsApp button must be present');
 
-console.log('✔ SUITE 3 passed: calcSuggestedPickup interactive integration verified.');
+// Section 3 and 4 must be HIDDEN in Red State
+assert.strictEqual(elements['section3Card'].style.display, 'none', 'Red state: Section 3 must be HIDDEN');
+assert.strictEqual(elements['section4Card'].style.display, 'none', 'Red state: Section 4 must be HIDDEN');
+
+// Timeline and Totals must remain VISIBLE in Red State
+assert.strictEqual(elements['serviceTimelineBox'].style.display, 'block', 'Red state: serviceTimelineBox must remain VISIBLE');
+
+// Verify Enriched WhatsApp Message
+const waMatch = elements['suggestedPickupMsg'].innerHTML.match(/href="https:\/\/wa\.me\/56929990095\?text=([^"]+)"/);
+assert(waMatch, 'WhatsApp URL must be present in red card');
+const decodedWa = decodeURIComponent(waMatch[1]);
+
+assert(decodedWa.includes('Hola! Estuve cotizando en la web pero mi horario requerido finaliza fuera del bloque estándar:'), 'Greeting must match');
+assert(decodedWa.includes('📋 *DETALLE DE MI COTIZACIÓN:*'), 'Header must match');
+assert(decodedWa.includes('• *Servicio:* 1. Servicio Integral (Asistencia + Traslado)'), 'Service name must match');
+assert(decodedWa.includes('• *Fecha y Turno:*'), 'Date and shift must match');
+assert(decodedWa.includes('• *Trayecto:* Av. Pajaritos 1450, Maipú ➔ Clínica Santa María, Providencia'), 'Route must match');
+assert(decodedWa.includes('• *Horario previsto:* Salida sugerida 11:15 hrs | Retorno estimado 13:45 hrs'), 'Suggested departure and return must match');
+assert(decodedWa.includes('• *Tiempo total circuito:* 2 h 30 min (2 h de espera/atención)'), 'Total circuit time must match');
+assert(decodedWa.includes('• *Valor cotizado:*'), 'Quoted price must match');
+assert(decodedWa.includes('¿Tienen factibilidad operativa para coordinar este horario especial?'), 'Closing question must match');
+
+console.log('✔ SUITE 3 passed: calcSuggestedPickup interactive integration, conditional visibility and enriched WhatsApp URL verified.');
+
+// --- SUITE 4: Dynamic Reactivity on Address Change ---
+console.log('Testing dynamic reactivity on address changes...');
+elements['b_from'].value = 'Calle Nueva 123, La Florida';
+ctx.refreshSemaforoWaLinkIfPresent();
+// Note: In our mock, suggestedPickupMsg innerHTML was rendered earlier; testing getSemaforoRedWaText reactivity:
+const refreshedWaText = ctx.getSemaforoRedWaText(ctx.window.currentSemaforo);
+assert(refreshedWaText.includes('Calle Nueva 123, La Florida ➔ Clínica Santa María, Providencia'), 'Address change must dynamically update WhatsApp text');
+
+console.log('✔ SUITE 4 passed: Address change reactivity verified.');
 
 console.log('\nAll Semáforo de Validación de Jornada tests passed successfully! 🚀');
 process.exit(0);
