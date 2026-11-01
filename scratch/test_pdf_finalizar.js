@@ -33,7 +33,9 @@ assert(html.includes('id="modRutPaciente"'), 'input #modRutPaciente must exist')
 assert(html.includes('id="modMedioPago"'), 'select #modMedioPago must exist');
 assert(html.includes('id="modFolioSII"'), 'input #modFolioSII must exist');
 assert(html.includes('id="btnFinalizarAtencion"'), 'button #btnFinalizarAtencion must exist in Section 2');
-assert(html.includes('id="btnFinalizarAtencionConfirm"'), 'button #btnFinalizarAtencionConfirm must exist in confirmation');
+
+const hasBtnConfirm = html.includes('id="btnFinalizarAtencionConfirm"') || (fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js')) && fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8').includes('id="btnFinalizarAtencionConfirm"'));
+assert(hasBtnConfirm, 'button #btnFinalizarAtencionConfirm must exist in confirmation');
 console.log('✓ Modal and trigger buttons verified');
 
 // 4. Test logic in Node simulated environment
@@ -135,10 +137,14 @@ const context = {
 
 vm.createContext(context);
 
-// Extract JS functions
-const jsStart = html.indexOf('// ===== GESTIÓN DE FINALIZACIÓN DE ATENCIÓN');
-const jsEnd = html.indexOf('window.ejecutarFinalizacionYDescargaPdf = ejecutarFinalizacionYDescargaPdf;', jsStart);
-const jsCode = html.substring(jsStart, jsEnd + 'window.ejecutarFinalizacionYDescargaPdf = ejecutarFinalizacionYDescargaPdf;'.length);
+// Extract JS functions from either inline script or external js/reservar.js
+const scriptSource = html.includes('// ===== GESTIÓN DE FINALIZACIÓN DE ATENCIÓN')
+  ? html
+  : fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8');
+
+const jsStart = scriptSource.indexOf('// ===== GESTIÓN DE FINALIZACIÓN DE ATENCIÓN');
+const jsEnd = scriptSource.indexOf('window.ejecutarFinalizacionYDescargaPdf = ejecutarFinalizacionYDescargaPdf;', jsStart);
+const jsCode = scriptSource.substring(jsStart, jsEnd + 'window.ejecutarFinalizacionYDescargaPdf = ejecutarFinalizacionYDescargaPdf;'.length);
 
 vm.runInContext(jsCode, context);
 
