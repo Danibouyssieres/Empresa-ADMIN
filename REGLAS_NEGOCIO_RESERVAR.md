@@ -227,8 +227,16 @@ El sistema cuenta con una función maestra de cálculo (`evaluarSemaforoTurno` y
   * **Botón de Reserva:** **DESHABILITADO (`disabled`)**.
 
 #### 3. Visibilidad Condicional de Secciones 3 y 4:
-* **En Estado Verde o Amarillo:** Las Secciones 3 ("Antecedentes del paciente") y 4 ("¿Con quién coordinamos la reserva?") permanecen **visibles** para completar la reserva normalmente.
-* **En Estado Rojo:** Las Secciones 3 y 4 se **ocultan por completo (`display: none !important`)** para evitar ingresos innecesarios de datos. Se mantienen plenamente visibles en la Sección 2 la tarjeta del **Cronograma** (`#serviceTimelineBox`) y la tarjeta de la **Suma Total del Servicio** (`#sumFinalTotal`, `#sumAbono50`) para que el usuario conozca la liquidación exacta calculada.
+* **Estado inicial por defecto (Carga de página):**
+  * Tanto en el HTML como en CSS (`.hidden-step { display: none !important; }`) y al iniciar (`DOMContentLoaded` e `initForm`), los contenedores de la Sección 3 ("Antecedentes del paciente") y Sección 4 ("¿Con quién coordinamos la reserva?") permanecen **estrictamente ocultos**.
+  * Al ingresar al cotizador, la pantalla termina limpiamente tras el selector/asistente de la Sección 2.
+* **Revelación dinámica condicional:**
+  * Las Secciones 3 y 4 solo se revelan (`display: block` y retiro de clase `.hidden-step`) cuando se cumplen simultáneamente dos condiciones:
+    1. **Cálculo exitoso de ruta y tarifa (`isCalculationComplete()`):** Existe un valor total calculado (`lastFinalTotal > 0`) y, para modalidades con traslado vehicular (1, 2, 5 y 4 con traslado), direcciones válidas con kilometraje (`lastTotalKm > 0`) y tiempo de viaje (`lastRouteIdaMin > 0`).
+    2. **Semáforo de turno admisible:** El semáforo de jornada se encuentra en estado **VERDE** o **AMARILLO**.
+* **Ocultamiento reactivo ante cambios:**
+  * Si el usuario modifica la hora o la duración y el semáforo cambia a **ROJO**, o si altera/borra las direcciones (invalidando la ruta calculada) o reinicia un campo esencial, las Secciones 3 y 4 vuelven a **ocultarse de inmediato (`display: none !important`)**.
+  * En Estado Rojo, se mantienen plenamente visibles en la Sección 2 la tarjeta del **Cronograma** (`#serviceTimelineBox`) y la tarjeta de la **Suma Total del Servicio** (`#sumFinalTotal`, `#sumAbono50`) para que el usuario conozca la liquidación exacta calculada.
 
 ### 6.5. Disposición Visual de Columnas en Sección 2
 En todas las modalidades (1, 2, 3, 4 y 5):
