@@ -1688,8 +1688,52 @@ function updateHomeSpecialWaLink(){
   if(!btn) return;
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '3';
   const modeName = mode === '4' ? 'Acompañamiento en Eventos Sociales' : 'Cuidados a Domicilio';
-  const msg = `Hola, necesito consultar por un horario de inicio especial o cobertura personalizada para el servicio de ${modeName}.`;
-  btn.href = `https://wa.me/56929990095?text=${encodeURIComponent(msg)}`;
+  const finalTotalNum = lastFinalTotal || 0;
+
+  if(finalTotalNum > 0){
+    const dateStr = ($('#b_date') && $('#b_date').value) || '';
+    const dateHuman = dateStr ? formatHumanDate(dateStr) : 'Fecha a coordinar';
+    const fromAddr = ($('#b_from') && $('#b_from').value.trim()) || 'Dirección de atención';
+    const abono50Num = lastAbono50 || (Math.round((finalTotalNum * 0.5) / 50) * 50);
+    const saldo50Num = finalTotalNum - abono50Num;
+
+    const breakdownLines = [];
+    if(mode === '3'){
+      const h = +($('#selHours34') ? $('#selHours34').value : 2) || 2;
+      const m = +($('#selMins34') ? $('#selMins34').value : 0) || 0;
+      breakdownLines.push(`• Horas de cuidado continuo (${h} hrs + ${m} min): ${$c(finalTotalNum)}`);
+    } else if(mode === '4'){
+      let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+      if(h >= 6) h = 6; else h = 4;
+      const isCon = (selectedEventSubMode === 'con_traslado');
+      const planName = isCon
+        ? (h === 6 ? 'Pack Total (6 hrs continuas + Traslados)' : 'Pack Base (4 hrs continuas + Traslados)')
+        : (h === 6 ? 'Plan Total (6 hrs continuas en recinto)' : 'Plan Base (4 hrs continuas en recinto)');
+      breakdownLines.push(`• Plan base contratado: ${planName} (${$c(finalTotalNum)})`);
+    }
+
+    const lines = [
+      `Hola! Necesito consultar por un horario de inicio especial o cobertura personalizada para el servicio de ${modeName}:`,
+      "",
+      "📋 *DETALLE DE MI COTIZACIÓN:*",
+      `• *Servicio:* ${modeName}`,
+      `• *Fecha:* ${dateHuman}`,
+      `• *Lugar:* ${fromAddr}`,
+      "",
+      "💰 *DESGLOSE ECONÓMICO:*",
+      ...breakdownLines,
+      `• TOTAL COTIZADO: ${$c(finalTotalNum)}`,
+      `• Abono 50% para reserva: ${$c(abono50Num)}`,
+      `• Saldo restante al finalizar el servicio: ${$c(saldo50Num)}`,
+      "",
+      "¿Tienen factibilidad operativa para coordinar este horario especial?"
+    ];
+
+    btn.href = `https://wa.me/56929990095?text=${encodeURIComponent(lines.join('\n'))}`;
+  } else {
+    const msg = `Hola, necesito consultar por un horario de inicio especial o cobertura personalizada para el servicio de ${modeName}.`;
+    btn.href = `https://wa.me/56929990095?text=${encodeURIComponent(msg)}`;
+  }
 }
 window.updateHomeSpecialWaLink = updateHomeSpecialWaLink;
 
@@ -4488,10 +4532,75 @@ function getSemaforoRedWaText(semaforo){
     tiempoTotalDesc = `${fmtHoursClean(dur)} (${fmtHoursClean(dur)} de atención)`;
   }
 
-  const totalRaw = (lastFinalTotal && lastFinalTotal > 0) ? $c(lastFinalTotal) : ($('#sumFinalTotal') ? $('#sumFinalTotal').textContent.trim() : ($('#dirFinalTotal') ? $('#dirFinalTotal').textContent.trim() : '$0'));
-  const abonoRaw = (lastAbono50 && lastAbono50 > 0) ? $c(lastAbono50) : ($('#sumAbono50') ? $('#sumAbono50').textContent.trim() : ($('#dirAbono50') ? $('#dirAbono50').textContent.trim() : '$0'));
-  const totalClean = totalRaw.startsWith('$') ? totalRaw : ('$' + totalRaw);
-  const abonoClean = abonoRaw.startsWith('$') ? abonoRaw : ('$' + abonoRaw);
+  // 3. Cálculo del desfase horario de turno
+  let nominalCloseMin = 12 * 60; // Turno Mañana: 12:00 (720 min)
+  let cierreStr = '12:00';
+  if(blockKey === 'tarde'){
+    nominalCloseMin = 20 * 60; // Turno Tarde: 20:00 (1200 min)
+    cierreStr = '20:00';
+  } else if(blockKey === 'noche'){
+    nominalCloseMin = 28 * 60; // Turno Noche: 04:00 (1680 min)
+    cierreStr = '04:00';
+  }
+
+  let effEnd = (semaforo && semaforo.effEnd) ? semaforo.effEnd : 0;
+  if(blockKey === 'noche' && effEnd < 12 * 60){
+    effEnd += 24 * 60;
+  }
+  const desfaseMin = (effEnd > nominalCloseMin) ? (effEnd - nominalCloseMin) : 0;
+
+  // 1. Estructura dinámica de desglose económico según modalidad
+  const breakdownLines = [];
+  if(mode === '1' || mode === '2'){
+    const kmStr = lastTotalKm ? lastTotalKm.toFixed(1).replace('.', ',') : '0';
+    const kmNum = (lastKmCost && lastKmCost > 0) ? lastKmCost : (lastTotalKm ? Math.round((lastTotalKm * PRICE_PER_KM) / 100) * 100 : 0);
+    const kmCostStr = $c(kmNum);
+    const stayHoursNum = stayMin / 60;
+    const stayHoursStr = (stayHoursNum % 1 === 0) ? `${stayHoursNum} hrs` : `${stayHoursNum.toString().replace('.', ',')} hrs`;
+    const timeCostStr = $c(lastTimeCost || 0);
+    breakdownLines.push(`• Kilometraje (${kmStr} km ida/vuelta): ${kmCostStr}`);
+    breakdownLines.push(`• Tiempo de asistencia/espera (${stayHoursStr}): ${timeCostStr}`);
+
+    const rawSum = (kmNum || 0) + (lastTimeCost || 0);
+    if(detectedRing && detectedRing.minFare && rawSum < detectedRing.minFare){
+      breakdownLines.push(`• Tarifa base comunal aplicada: ${$c(detectedRing.minFare)}`);
+    }
+  } else if(mode === '3'){
+    const h = +($('#selHours34') ? $('#selHours34').value : 2) || 2;
+    const m = +($('#selMins34') ? $('#selMins34').value : 0) || 0;
+    breakdownLines.push(`• Horas de cuidado continuo (${h} hrs + ${m} min): ${$c(lastFinalTotal || 0)}`);
+  } else if(mode === '4'){
+    let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+    if(h >= 6) h = 6; else h = 4;
+    const isCon = (selectedEventSubMode === 'con_traslado');
+    let planName = '';
+    let baseVal = 0;
+    if(isCon){
+      if(h === 6){ planName = 'Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta)'; baseVal = 125000; }
+      else { planName = 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)'; baseVal = 95000; }
+    } else {
+      if(h === 6){ planName = 'Plan Total (6 hrs continuas en recinto)'; baseVal = 95000; }
+      else { planName = 'Plan Base (4 hrs continuas en recinto)'; baseVal = 65000; }
+    }
+    breakdownLines.push(`• Plan base contratado: ${planName} (${$c(baseVal)})`);
+  } else if(mode === '5'){
+    const h = selectedInterProgram || 4;
+    const m = +($('#selMins34') ? $('#selMins34').value : 0) || 0;
+    const baseVal = (h === 6) ? 300000 : 250000;
+    const planName = (h === 6) ? 'Programa Crónico / Oncológico (6 hrs)' : 'Programa Estándar (4 hrs)';
+    breakdownLines.push(`• Plan base contratado: ${planName} (${$c(baseVal)})`);
+    if(m > 0){
+      const extraHours = Math.floor(m / 60);
+      const extraHalf = (m % 60 === 30) ? 1 : 0;
+      const extraVal = (extraHours * 25000) + (extraHalf * 15000);
+      breakdownLines.push(`• Horas/tiempo adicional: +${m} min (${$c(extraVal)})`);
+    }
+  }
+
+  // 2. Resumen financiero claro
+  const finalTotalNum = lastFinalTotal || 0;
+  const abono50Num = lastAbono50 || (Math.round((finalTotalNum * 0.5) / 50) * 50);
+  const saldo50Num = finalTotalNum - abono50Num;
 
   const lines = [
     "Hola! Estuve cotizando en la web pero mi horario requerido finaliza fuera del bloque estándar:",
@@ -4502,7 +4611,13 @@ function getSemaforoRedWaText(semaforo){
     `• *Trayecto:* ${trayecto}`,
     `• *Horario previsto:* Salida sugerida ${salidaStr} hrs | Retorno estimado ${retornoStr} hrs`,
     `• *Tiempo total circuito:* ${tiempoTotalDesc}`,
-    `• *Valor cotizado:* ${totalClean} (Abono 50%: ${abonoClean})`,
+    `⚠️ Desfase de turno: +${desfaseMin} min sobre el horario estándar de cierre (${cierreStr} hrs)`,
+    "",
+    "💰 *DESGLOSE ECONÓMICO:*",
+    ...breakdownLines,
+    `• TOTAL COTIZADO: ${$c(finalTotalNum)}`,
+    `• Abono 50% para reserva: ${$c(abono50Num)}`,
+    `• Saldo restante al finalizar el servicio: ${$c(saldo50Num)}`,
     "",
     "¿Tienen factibilidad operativa para coordinar este horario especial?"
   ];

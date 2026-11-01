@@ -210,7 +210,7 @@ El sistema cuenta con una función maestra de cálculo (`evaluarSemaforoTurno` y
   * **Contenedor Visual:** Fondo rojo (`#FEF2F2`) y borde rojo (`#EF4444`).
   * **Título:** `🛑 Horario fuera de rango operativo estándar`
   * **Mensaje:** *"Con la duración seleccionada, el servicio finalizaría a las [HH:MM] hrs, invadiendo el cambio de turno. Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp."*
-  * **Botón de WhatsApp Enriquecido:** Compila dinámicamente en tiempo real los datos calculados de la cotización (`https://wa.me/56929990095?text=...`):
+  * **Botón de WhatsApp Enriquecido con Desglose Completo y Desfase de Turno:** Compila dinámicamente en tiempo real los datos calculados de la cotización (`https://wa.me/56929990095?text=...` codificado con `encodeURIComponent`):
     ```text
     Hola! Estuve cotizando en la web pero mi horario requerido finaliza fuera del bloque estándar:
 
@@ -220,7 +220,22 @@ El sistema cuenta con una función maestra de cálculo (`evaluarSemaforoTurno` y
     • *Trayecto:* [Dirección origen] ➔ [Dirección destino o Recinto]
     • *Horario previsto:* Salida sugerida [HH:MM] hrs | Retorno estimado [HH:MM] hrs
     • *Tiempo total circuito:* [X] hrs ([X] horas de espera/atención)
-    • *Valor cotizado:* $[Total] (Abono 50%: $[Abono])
+    ⚠️ Desfase de turno: +[X] min sobre el horario estándar de cierre ([HH:MM] hrs)
+
+    💰 *DESGLOSE ECONÓMICO:*
+    [Modalidad 1 y 2]
+    • Kilometraje ([X] km ida/vuelta): $[MontoKm]
+    • Tiempo de asistencia/espera ([X] hrs): $[MontoHoras]
+    (Si aplica piso mínimo): • Tarifa base comunal aplicada: $[PisoMinimo]
+    [Modalidad 3]
+    • Horas de cuidado continuo ([X] hrs + [Y] min): $[Total]
+    [Modalidad 4 y 5]
+    • Plan base contratado: [Nombre del Plan] ($[ValorBase])
+    (Si agregó bloques extra): • Horas/tiempo adicional: +[Z] min ($[MontoExtra])
+    
+    • TOTAL COTIZADO: $[Total]
+    • Abono 50% para reserva: $[Abono]
+    • Saldo restante al finalizar el servicio: $[SaldoFinal]
 
     ¿Tienen factibilidad operativa para coordinar este horario especial?
     ```
