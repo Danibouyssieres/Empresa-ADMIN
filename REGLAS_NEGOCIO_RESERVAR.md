@@ -210,8 +210,25 @@ El sistema cuenta con una función maestra de cálculo (`evaluarSemaforoTurno` y
   * **Contenedor Visual:** Fondo rojo (`#FEF2F2`) y borde rojo (`#EF4444`).
   * **Título:** `🛑 Horario fuera de rango operativo estándar`
   * **Mensaje:** *"Con la duración seleccionada, el servicio finalizaría a las [HH:MM] hrs, invadiendo el cambio de turno. Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp."*
-  * **Botón de WhatsApp:** Visible y funcional (`https://wa.me/56929990095`).
+  * **Botón de WhatsApp Enriquecido:** Compila dinámicamente en tiempo real los datos calculados de la cotización (`https://wa.me/56929990095?text=...`):
+    ```text
+    Hola! Estuve cotizando en la web pero mi horario requerido finaliza fuera del bloque estándar:
+
+    📋 *DETALLE DE MI COTIZACIÓN:*
+    • *Servicio:* [Nombre de la modalidad activa]
+    • *Fecha y Turno:* [Fecha seleccionada] - [Turno activo]
+    • *Trayecto:* [Dirección origen] ➔ [Dirección destino o Recinto]
+    • *Horario previsto:* Salida sugerida [HH:MM] hrs | Retorno estimado [HH:MM] hrs
+    • *Tiempo total circuito:* [X] hrs ([X] horas de espera/atención)
+    • *Valor cotizado:* $[Total] (Abono 50%: $[Abono])
+
+    ¿Tienen factibilidad operativa para coordinar este horario especial?
+    ```
   * **Botón de Reserva:** **DESHABILITADO (`disabled`)**.
+
+#### 3. Visibilidad Condicional de Secciones 3 y 4:
+* **En Estado Verde o Amarillo:** Las Secciones 3 ("Antecedentes del paciente") y 4 ("¿Con quién coordinamos la reserva?") permanecen **visibles** para completar la reserva normalmente.
+* **En Estado Rojo:** Las Secciones 3 y 4 se **ocultan por completo (`display: none !important`)** para evitar ingresos innecesarios de datos. Se mantienen plenamente visibles en la Sección 2 la tarjeta del **Cronograma** (`#serviceTimelineBox`) y la tarjeta de la **Suma Total del Servicio** (`#sumFinalTotal`, `#sumAbono50`) para que el usuario conozca la liquidación exacta calculada.
 
 ### 6.5. Disposición Visual de Columnas en Sección 2
 En todas las modalidades (1, 2, 3, 4 y 5):

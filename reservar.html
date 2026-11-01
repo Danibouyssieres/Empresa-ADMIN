@@ -804,7 +804,7 @@ footer a{color:#fff}
     <!-- =========================================================================
          SECCIÓN 3: DATOS DEL PACIENTE
          ========================================================================= -->
-    <section class="card">
+    <section id="section3Card" class="card">
       <span class="step-tag">Sección 3 de 4 · Información del Paciente</span>
       <h2>3. Antecedentes del paciente y requerimientos</h2>
       <div class="grid">
@@ -899,7 +899,7 @@ footer a{color:#fff}
     <!-- =========================================================================
          SECCIÓN 4: CONTACTO Y ENVÍO
          ========================================================================= -->
-    <section class="card">
+    <section id="section4Card" class="card">
       <span class="step-tag">Sección 4 de 4 · Datos de Contacto y Confirmación</span>
       <h2>4. ¿Con quién coordinamos la reserva?</h2>
       <div style="margin:10px 0 16px">
@@ -4350,6 +4350,120 @@ function evaluarSemaforoTurno(endServiceMin, targetBlock){
 }
 window.evaluarSemaforoTurno = evaluarSemaforoTurno;
 
+function updateSectionsVisibilityBySemaforo(state){
+  const sec3 = $('#section3Card') || (document.querySelectorAll('main > form > section.card') && document.querySelectorAll('main > form > section.card')[2]);
+  const sec4 = $('#section4Card') || (document.querySelectorAll('main > form > section.card') && document.querySelectorAll('main > form > section.card')[3]);
+  const isRed = (state === 'red');
+  if(sec3){
+    if(isRed){
+      if(sec3.style.setProperty) sec3.style.setProperty('display', 'none', 'important');
+      else sec3.style.display = 'none';
+    } else {
+      if(sec3.style.removeProperty) sec3.style.removeProperty('display');
+      else sec3.style.display = 'block';
+    }
+  }
+  if(sec4){
+    if(isRed){
+      if(sec4.style.setProperty) sec4.style.setProperty('display', 'none', 'important');
+      else sec4.style.display = 'none';
+    } else {
+      if(sec4.style.removeProperty) sec4.style.removeProperty('display');
+      else sec4.style.display = 'block';
+    }
+  }
+}
+window.updateSectionsVisibilityBySemaforo = updateSectionsVisibilityBySemaforo;
+
+function getSemaforoRedWaText(semaforo){
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  let svcName = SVC_NAMES[mode] || 'Servicio Integral (Asistencia + Traslado)';
+  if(mode === '4'){
+    const isConEvento = (selectedEventSubMode === 'con_traslado');
+    svcName = isConEvento ? '4. Acompañamiento en Eventos Sociales (Con Traslados)' : '4. Acompañamiento en Eventos Sociales (Sin Traslado)';
+  } else if(mode === '5'){
+    svcName = `5. Programas Interregionales (${selectedInterRegion || 'Región de Valparaíso'})`;
+  }
+
+  const dateStr = ($('#b_date') && $('#b_date').value) || '';
+  const dateHuman = dateStr ? formatHumanDate(dateStr) : 'Fecha a coordinar';
+  const blockKey = selectedBlock || currentSuggestedBlock || 'manana';
+  const blockHuman = blockKey === 'manana' ? 'Turno Mañana' : (blockKey === 'tarde' ? 'Turno Tarde' : 'Turno Noche');
+
+  const fromAddr = ($('#b_from') && $('#b_from').value.trim()) || 'Dirección de origen';
+  const toAddr = ($('#b_to') && $('#b_to').value.trim()) || 'Destino / Recinto asistencial';
+  let trayecto = `${fromAddr} ➔ ${toAddr}`;
+  if(mode === '3'){
+    trayecto = `${fromAddr} (Atención en domicilio)`;
+  } else if(mode === '4' && selectedEventSubMode === 'sin_traslado'){
+    trayecto = `${fromAddr} (Centro de eventos / Salón)`;
+  }
+
+  const salidaStr = currentSuggestedHour || ($('#b_time') && $('#b_time').value) || '08:30';
+  const retornoStr = fm((semaforo && semaforo.effEnd ? semaforo.effEnd : 0) % 1440);
+
+  const routeMin = (lastRouteIdaMin && lastRouteIdaMin > 0) ? lastRouteIdaMin : (mode === '5' ? 90 : 10);
+  const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
+  const isRoundTrip = (tripMultiplier === 2);
+  const retornoMin = isRoundTrip ? routeMin : 0;
+  const margenAbordaje = 10;
+
+  let tiempoTotalDesc = '';
+  if(mode === '1' || mode === '2'){
+    const totalCircuitoMin = margenAbordaje + routeMin + stayMin + retornoMin;
+    tiempoTotalDesc = `${fmtHoursClean(totalCircuitoMin)} (${fmtHoursClean(stayMin)} de espera/atención)`;
+  } else if(mode === '5'){
+    const progH = selectedInterProgram || 4;
+    const extraM = (+$('#selMins34').value) || 0;
+    const stayClinicalMin = progH * 60 + extraM;
+    const totalCircuitoMin = 10 + routeMin + stayClinicalMin + routeMin;
+    tiempoTotalDesc = `${fmtHoursClean(totalCircuitoMin)} (${fmtHoursClean(stayClinicalMin)} de atención clínica)`;
+  } else if(mode === '4'){
+    const h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+    if(selectedEventSubMode === 'con_traslado'){
+      const totalCircuitoMin = routeMin + (h * 60) + routeMin;
+      tiempoTotalDesc = `${fmtHoursClean(totalCircuitoMin)} (${h} hrs de permanencia en el evento)`;
+    } else {
+      tiempoTotalDesc = `${h} hrs (${h} hrs de atención en evento)`;
+    }
+  } else {
+    // Mode 3
+    const dur = getSelectedTotalMinutes();
+    tiempoTotalDesc = `${fmtHoursClean(dur)} (${fmtHoursClean(dur)} de atención)`;
+  }
+
+  const totalRaw = (lastFinalTotal && lastFinalTotal > 0) ? $c(lastFinalTotal) : ($('#sumFinalTotal') ? $('#sumFinalTotal').textContent.trim() : ($('#dirFinalTotal') ? $('#dirFinalTotal').textContent.trim() : '$0'));
+  const abonoRaw = (lastAbono50 && lastAbono50 > 0) ? $c(lastAbono50) : ($('#sumAbono50') ? $('#sumAbono50').textContent.trim() : ($('#dirAbono50') ? $('#dirAbono50').textContent.trim() : '$0'));
+  const totalClean = totalRaw.startsWith('$') ? totalRaw : ('$' + totalRaw);
+  const abonoClean = abonoRaw.startsWith('$') ? abonoRaw : ('$' + abonoRaw);
+
+  const lines = [
+    "Hola! Estuve cotizando en la web pero mi horario requerido finaliza fuera del bloque estándar:",
+    "",
+    "📋 *DETALLE DE MI COTIZACIÓN:*",
+    `• *Servicio:* ${svcName}`,
+    `• *Fecha y Turno:* ${dateHuman} - ${blockHuman}`,
+    `• *Trayecto:* ${trayecto}`,
+    `• *Horario previsto:* Salida sugerida ${salidaStr} hrs | Retorno estimado ${retornoStr} hrs`,
+    `• *Tiempo total circuito:* ${tiempoTotalDesc}`,
+    `• *Valor cotizado:* ${totalClean} (Abono 50%: ${abonoClean})`,
+    "",
+    "¿Tienen factibilidad operativa para coordinar este horario especial?"
+  ];
+
+  return lines.join('\n');
+}
+window.getSemaforoRedWaText = getSemaforoRedWaText;
+
+function refreshSemaforoWaLinkIfPresent(){
+  const btnWa = $('#btnSemaforoWa');
+  if(btnWa && window.currentSemaforo && window.currentSemaforo.state === 'red'){
+    const waMsg = getSemaforoRedWaText(window.currentSemaforo);
+    btnWa.href = `https://wa.me/56929990095?text=${encodeURIComponent(waMsg)}`;
+  }
+}
+window.refreshSemaforoWaLinkIfPresent = refreshSemaforoWaLinkIfPresent;
+
 function renderSemaforoCard(semaforo){
   if(!semaforo || semaforo.state === 'green') return '';
   const timeFormatted = fm(semaforo.effEnd % 1440);
@@ -4365,6 +4479,8 @@ function renderSemaforoCard(semaforo){
       </div>
     `;
   } else if(semaforo.state === 'red'){
+    const waMsg = getSemaforoRedWaText(semaforo);
+    const waUrl = `https://wa.me/56929990095?text=${encodeURIComponent(waMsg)}`;
     return `
       <div id="shiftSemaforoCard" style="margin-top:12px;padding:14px 16px;background:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:#991B1B;line-height:1.5;box-sizing:border-box">
         <div style="font-weight:800;color:#B91C1C;font-size:1rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
@@ -4373,7 +4489,7 @@ function renderSemaforoCard(semaforo){
         <div style="font-size:.87rem;color:#7F1D1D;line-height:1.45;margin-bottom:12px">
           Con la duración seleccionada, el servicio finalizaría a las <b>${timeFormatted} hrs</b>, invadiendo el cambio de turno. Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp.
         </div>
-        <a id="btnSemaforoWa" href="https://wa.me/56929990095?text=Hola%2C%20necesito%20coordinar%20un%20servicio%20que%20finaliza%20a%20las%20${encodeURIComponent(timeFormatted)}%20hrs%20fuera%20del%20rango%20operativo%20est%C3%A1ndar." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 18px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25);width:100%;box-sizing:border-box">
+        <a id="btnSemaforoWa" href="${waUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#ffffff;padding:11px 18px;border-radius:8px;font-size:.88rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25);width:100%;box-sizing:border-box">
           💬 Coordinar por WhatsApp (+56 9 2999 0095)
         </a>
       </div>
@@ -4566,7 +4682,8 @@ function calcSuggestedPickup(){
       </div>
     `;
 
-    // APLICACIÓN DEL SISTEMA DE SEMÁFORO
+    // APLICACIÓN DEL SISTEMA DE SEMÁFORO Y VISIBILIDAD DE SECCIONES 3 Y 4
+    updateSectionsVisibilityBySemaforo(semaforo.state);
     if(semaforo.state === 'red'){
       if(subBtn) subBtn.disabled = true;
       msg.innerHTML = renderSemaforoCard(semaforo);
@@ -4619,6 +4736,15 @@ async function initForm(){
   const dt = parseYMD(firstDate);
   calViewYear = dt.getFullYear();
   calViewMonth = dt.getMonth();
+
+  // Reactividad dinámica para actualización inmediata del enlace de WhatsApp en alerta roja
+  ['b_from', 'b_to'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.addEventListener){
+      el.addEventListener('input', () => { if(typeof refreshSemaforoWaLinkIfPresent === 'function') refreshSemaforoWaLinkIfPresent(); });
+      el.addEventListener('change', () => { if(typeof refreshSemaforoWaLinkIfPresent === 'function') refreshSemaforoWaLinkIfPresent(); });
+    }
+  });
 
   // Inicializar opciones de hora de cita médica para el Asistente de Recogida
   const appTimeSel = $('#appTimeInput') || $('#hora-cita-medica');
