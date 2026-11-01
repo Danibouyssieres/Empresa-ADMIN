@@ -15,6 +15,7 @@ Este documento constituye la especificación canónica y exhaustiva de todas las
 8. [Requerimientos Clínicos y Valoración del Paciente](#8-requerimientos-clínicos-y-valoración-del-paciente)
 9. [Facturación y Documentos Tributarios](#9-facturación-y-documentos-tributarios)
 10. [Validaciones de Formulario y Despacho a WhatsApp](#10-validaciones-de-formulario-y-despacho-a-whatsapp)
+11. [Liquidación en Terreno, Boleta PDF y Cierre de Atención](#11-liquidación-en-terreno-boleta-pdf-y-cierre-de-atención-finalizar-atención)
 
 ---
 
@@ -358,6 +359,76 @@ Una vez superadas las validaciones:
    * Ficha de facturación (Boleta o Factura con sus datos).
    * **Liquidación final:** Tarifa total calculada, Abono del 50% requerido para agendar y Saldo pendiente a pagar en terreno.
 3. Se redirige al cliente a la aplicación de WhatsApp para el cierre formal del servicio con la central de operaciones.
+
+---
+
+## 11. Liquidación en Terreno, Boleta PDF y Cierre de Atención ("Finalizar Atención")
+
+Para completar el ciclo del servicio una vez prestada la atención médica o traslado, el sistema incorpora el flujo de **Finalización de Atención**, emisión de **Comprobante / Boleta Digital en PDF** y notificación formal vía WhatsApp.
+
+### 11.1. Integración de Motor de PDF (`html2pdf.js`)
+* Se integra la librería `html2pdf.js` (v0.10.1) vía CDN en el `<head>`.
+* Permite renderizar y vectorizar de manera limpia la plantilla HTML oculta `#recibo-pdf` directamente en el navegador del usuario en formato A4 retrato de 1 página.
+* **Configuración técnica de renderizado:**
+  ```javascript
+  html2pdf().set({
+    margin: 10,
+    filename: `Comprobante_Atencion_${folio}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  }).from(document.getElementById('recibo-pdf')).save();
+  ```
+
+### 11.2. Estructura de la Boleta / Comprobante de Atención (`#recibo-pdf`)
+Diseñada con estética clínica y corporativa formal para reembolsos ante Isapres, Fonasa, seguros complementarios y control tributario:
+1. **Encabezado Institucional:**
+   * Logotipo oficial a color (`Logo de Movilidad y Salud Asistida.png`).
+   * Razón Social: **MOVILIDAD Y SALUD ASISTIDA SpA**.
+   * R.U.T.: **78.521.776-4**.
+   * Canales de contacto oficiales y Región Metropolitana.
+   * Recuadro de identificación: N° de Folio (`#MSA-[id]`) y Fecha de emisión.
+2. **Identificación del Paciente y Servicio:**
+   * Nombre completo y RUT del paciente.
+   * Edad y diagnóstico / motivo de la atención.
+   * Modalidad contratada.
+   * Fecha y horario pactado (inicio a término proyectado).
+   * Dirección de origen y dirección de destino.
+   * Hora real de cierre del servicio y glosa de tiempo excedente en caso de retraso.
+3. **Tabla de Desglose Económico:**
+   * Ítem de Kilometraje asistido (ida y vuelta con kilometraje exacto y subtotal).
+   * Ítem de Tiempo de asistencia TENS y permanencia.
+   * Ítem de Tarifa mínima comunal aplicada (si corresponde).
+   * Ítem destacado de **Tiempo Adicional Excedente en Terreno** (si la hora real superó el horario pactado).
+   * Resumen numérico: **Subtotal del Servicio**, **Abono 50% previo** (pagado para reservar) y **Saldo Final pagado al cierre**.
+4. **Respaldo de Pago y Folio SII:**
+   * Registro del medio de pago del saldo (Transferencia Electrónica, Efectivo, Tarjeta Terminal POS).
+   * Número de Boleta Electrónica SII emitida.
+   * Espacio delimitado para **Firma y Recepción Conforme** del paciente o familiar responsable.
+5. **Nota Legal Tributaria (D.L. 825):**
+   * Glosa legal obligatoria: *"Servicios médicos, asistenciales y de enfermería exentos de IVA de conformidad con las disposiciones del D.L. 825 de 1974 (Ley sobre Impuesto a las Ventas y Servicios), Art. 8° y Art. 12° Letra E N° 1. Comprobante válido para reembolsos en Isapres, Seguros Complementarios y registros contables."*
+
+### 11.3. Modal Rápido de Confirmación Operativa
+Al presionar el botón *"Finalizar Atención (Emitir Boleta PDF)"*:
+1. Se despliega una ventana modal con los datos precargados del servicio.
+2. Solicita al personal confirmar o editar:
+   * **Hora Real de Cierre del Servicio:** Se compara automáticamente contra la hora pactada de término (`start + dur`).
+   * **RUT del Paciente:** Para la emisión correcta de la boleta.
+   * **Medio de Pago del Saldo Final:** Efectivo, Transferencia o Tarjeta POS.
+   * **N° de Boleta Electrónica SII:** Folio emitido ante el Servicio de Impuestos Internos.
+3. **Recálculo Dinámico de Tiempo Excedente:**
+   * Si la hora de cierre es posterior a la hora pactada, se calculan los minutos de diferencia y se convierten en bloques de 30 minutos:
+     $\text{Bloques Extra} = \left\lceil \frac{\text{Minutos Desfase}}{30} \right\rceil$
+   * Tarifas por bloque adicional de 30 minutos:
+     * **Modalidad 1:** $6.000 por bloque ($12.000/hr).
+     * **Modalidad 2:** $4.000 por bloque ($8.000/hr).
+     * **Modalidad 3:** $7.500 por bloque ($15.000/hr).
+     * **Modalidades 4 y 5:** $15.000 por bloque.
+   * Se ajusta el subtotal sumando el tiempo adicional y se recalcula el saldo restante a pagar, preservando intacto el abono inicial del 50%.
+
+### 11.4. Redirección Fluida a WhatsApp
+Al ejecutarse la descarga automática del archivo PDF `Comprobante_Atencion_[folio].pdf`, el sistema abre en paralelo la ventana de WhatsApp con el número del cliente o coordinador, con el mensaje predeterminado:
+> *"Hola [Nombre], adjunto el comprobante digital de atención y respaldo de pago del servicio finalizado."*
 
 ---
 
