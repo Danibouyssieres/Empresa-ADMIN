@@ -4288,6 +4288,7 @@ async function submitBooking(ev){
     comp,
     compDesc: compVal,
     fare: lastFinalTotal,
+    abono: lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50,
     paid: 0,
     st: 'Confirmado',
     svcType: mode,
@@ -4437,6 +4438,7 @@ async function submitBooking(ev){
 
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px">
         <a class="btn" href="${waUrl}" target="_blank" rel="noopener">💬 Confirmar y Enviar Comprobante por WhatsApp</a>
+        <button type="button" class="btn" id="btnFinalizarAtencionConfirm" onclick="abrirModalFinalizarAtencion(${newId})" style="background:#15803d;border-color:#15803d;display:inline-flex;align-items:center;gap:6px">🏁 Finalizar Atención (Emitir Boleta PDF)</button>
         <a class="btn ghost" href="reservar.html">📅 Agendar otra hora</a>
         <a class="btn ghost" href="index.html">← Volver al inicio</a>
       </div>
@@ -4449,6 +4451,233 @@ addEventListener('storage',ev=>{
   if(ev.key===K) updateSlots();
   if(ev.key===TM_K) applyTheme(ev.newValue);
 });
+
+
+// ===== GESTIÓN DE FINALIZACIÓN DE ATENCIÓN Y EMISIÓN DE BOLETA PDF =====
+let currentFinalizarSvcId = null;
+
+function abrirModalFinalizarAtencion(serviceId, options){
+  currentFinalizarSvcId = serviceId || null;
+  const modal = $('#modalFinalizarAtencion');
+  if(!modal) return;
+
+  let s = (serviceId && D && D.svcs && D.svcs.find(item => item.id === serviceId));
+  if(!s && D && D.svcs && D.svcs.length > 0){
+    s = D.svcs[D.svcs.length - 1];
+  }
+
+  const startMin = (s && s.start) || tm(($('#b_time') && $('#b_time').value) || '08:30') || 510;
+  const durMin = (s && s.dur) || (typeof getSelectedTotalMinutes === 'function' ? getSelectedTotalMinutes() : 120) || 120;
+  const endPactadoMin = (startMin + durMin) % 1440;
+  const endPactadoStr = fm(endPactadoMin);
+
+  const inpCierre = $('#modHoraCierreReal');
+  if(inpCierre) inpCierre.value = (options && options.horaCierre) || endPactadoStr;
+
+  const inpRut = $('#modRutPaciente');
+  if(inpRut){
+    inpRut.value = (options && options.rutPaciente) || (s && s.patRut) || ($('#b_tax_rut') && $('#b_tax_rut').value.trim()) || '12.345.678-9';
+  }
+
+  const selMedio = $('#modMedioPago');
+  if(selMedio && options && options.medioPago) selMedio.value = options.medioPago;
+
+  const inpFolio = $('#modFolioSII');
+  if(inpFolio && options && options.folioSII) inpFolio.value = options.folioSII;
+
+  modal.style.display = 'flex';
+
+  if(options && options.autoConfirm){
+    ejecutarFinalizacionYDescargaPdf(options);
+  }
+}
+window.abrirModalFinalizarAtencion = abrirModalFinalizarAtencion;
+window.finalizarAtencion = abrirModalFinalizarAtencion;
+
+function cerrarModalFinalizarAtencion(){
+  const modal = $('#modalFinalizarAtencion');
+  if(modal) modal.style.display = 'none';
+}
+window.cerrarModalFinalizarAtencion = cerrarModalFinalizarAtencion;
+
+function ejecutarFinalizacionYDescargaPdf(customOpts){
+  const modal = $('#modalFinalizarAtencion');
+  const horaCierre = (customOpts && customOpts.horaCierre) || ($('#modHoraCierreReal') && $('#modHoraCierreReal').value) || '11:15';
+  const rutPaciente = (customOpts && customOpts.rutPaciente) || ($('#modRutPaciente') && $('#modRutPaciente').value.trim()) || '12.345.678-9';
+  const medioPago = (customOpts && customOpts.medioPago) || ($('#modMedioPago') && $('#modMedioPago').value) || 'Transferencia Electrónica';
+  const folioSII = (customOpts && customOpts.folioSII) || ($('#modFolioSII') && $('#modFolioSII').value.trim()) || 'B-1082';
+
+  let s = (currentFinalizarSvcId && D && D.svcs && D.svcs.find(item => item.id === currentFinalizarSvcId));
+  if(!s && D && D.svcs && D.svcs.length > 0){
+    s = D.svcs[D.svcs.length - 1];
+  }
+
+  const folio = (s && s.id) || (D && D.nid) || 101;
+  const patName = (s && s.pat) || ($('#b_pat') && $('#b_pat').value.trim()) || 'Rosa Medina';
+  const patAge = (s && s.age) || ($('#b_age') && $('#b_age').value.trim()) || '82';
+  const patDx = (s && s.dx) || ($('#b_dx') && $('#b_dx').value.trim()) || 'Control cardiológico';
+  const mode = (s && s.svcType) || ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const svcName = (typeof SVC_NAMES !== 'undefined' && SVC_NAMES[mode]) || '1. Servicio Integral (Asistencia + Traslado)';
+
+  const dateVal = (s && s.date) || ($('#b_date') && $('#b_date').value) || TODAY;
+  const startMin = (s && s.start) || tm(($('#b_time') && $('#b_time').value) || '08:30') || 510;
+  const durMin = (s && s.dur) || (typeof getSelectedTotalMinutes === 'function' ? getSelectedTotalMinutes() : 120) || 120;
+  const endPactadoMin = (startMin + durMin) % 1440;
+  const endPactadoStr = fm(endPactadoMin);
+
+  const fromAddr = (s && s.from) || ($('#b_from') && $('#b_from').value.trim()) || 'Av. Pajaritos 1450, Maipú';
+  const toAddr = (s && s.to) || ($('#b_to') && $('#b_to').value.trim()) || 'Clínica Santa María, Providencia';
+
+  const cierreMin = tm(horaCierre);
+  let diffMin = 0;
+  if(cierreMin > endPactadoMin){
+    diffMin = cierreMin - endPactadoMin;
+  } else if(cierreMin < endPactadoMin && cierreMin < 6 * 60 && endPactadoMin > 18 * 60){
+    diffMin = (cierreMin + 1440) - endPactadoMin;
+  }
+
+  let extraBlocks = 0;
+  let extraCost = 0;
+  if(diffMin > 0){
+    extraBlocks = Math.ceil(diffMin / 30);
+    let blockRate = 6000;
+    if(mode === '2') blockRate = 4000;
+    else if(mode === '5') blockRate = 15000;
+    else if(mode === '4') blockRate = 15000;
+    else if(mode === '3') blockRate = 7500;
+    extraCost = extraBlocks * blockRate;
+  }
+
+  const baseFare = (s && s.fare) || (lastFinalTotal && lastFinalTotal > 0 ? lastFinalTotal : 48500);
+  const totalConExtra = baseFare + extraCost;
+  const abonoPrevio = (s && s.abono && s.abono > 0) ? s.abono : (lastAbono50 && lastAbono50 > 0 ? lastAbono50 : Math.round((baseFare * 0.5) / 50) * 50);
+  const saldoFinal = totalConExtra - abonoPrevio;
+
+  if($('#pdfFolio')) $('#pdfFolio').textContent = `FOLIO: #MSA-${folio}`;
+  if($('#pdfFechaEmision')) $('#pdfFechaEmision').textContent = `Fecha Emisión: ${typeof formatHumanDate === 'function' ? formatHumanDate(TODAY) : TODAY}`;
+  if($('#pdfPatNombre')) $('#pdfPatNombre').textContent = patName;
+  if($('#pdfPatRut')) $('#pdfPatRut').textContent = rutPaciente;
+  if($('#pdfPatEdadDx')) $('#pdfPatEdadDx').textContent = `${patAge} años · ${patDx}`;
+  if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = svcName;
+  if($('#pdfFechaServicio')) $('#pdfFechaServicio').textContent = typeof formatHumanDate === 'function' ? formatHumanDate(dateVal) : dateVal;
+  if($('#pdfHorarioPactado')) $('#pdfHorarioPactado').textContent = `${fm(startMin)} hrs a ${endPactadoStr} hrs`;
+  if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = fromAddr;
+  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = toAddr;
+  if($('#pdfHoraCierreReal')) $('#pdfHoraCierreReal').textContent = `${horaCierre} hrs`;
+  if($('#pdfDesfaseExtraText')){
+    $('#pdfDesfaseExtraText').textContent = diffMin > 0
+      ? `⚠️ Excedente en terreno: +${diffMin} min (${extraBlocks * 30} min facturados)`
+      : 'Atención finalizada en horario estándar';
+    $('#pdfDesfaseExtraText').style.color = diffMin > 0 ? '#b91c1c' : '#0f766e';
+  }
+
+  const itemsTbody = $('#pdfTablaItems');
+  if(itemsTbody){
+    let itemsHtml = '';
+    if(mode === '1' || mode === '2'){
+      const kmTot = lastTotalKm || 24.5;
+      const kmCost = lastKmCost || Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
+      const timeCost = lastTimeCost || (baseFare - kmCost);
+      itemsHtml += `
+        <tr>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1">1. Kilometraje Vehicular Asistido (Ida y Vuelta)</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center">${kmTot.toFixed(1).replace('.', ',')} km</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right">${$c(kmCost)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1">2. Tiempo de Asistencia y Espera de Conductor TENS</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center">${typeof fmtHoursClean === 'function' ? fmtHoursClean(durMin) : durMin + ' min'}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right">${$c(timeCost)}</td>
+        </tr>
+      `;
+      if(detectedRing && detectedRing.minFare && (kmCost + timeCost) < detectedRing.minFare){
+        itemsHtml += `
+          <tr style="color:#0f766e;font-size:.8rem">
+            <td colspan="2" style="padding:4px 10px;border:1px solid #cbd5e1">Tarifa mínima legal comunal (${detectedRing.name})</td>
+            <td style="padding:4px 10px;border:1px solid #cbd5e1;text-align:right">Aplicado</td>
+          </tr>
+        `;
+      }
+    } else if(mode === '3'){
+      itemsHtml += `
+        <tr>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1">Horas de Cuidados de Enfermería a Domicilio</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center">${typeof fmtHoursClean === 'function' ? fmtHoursClean(durMin) : durMin + ' min'}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right">${$c(baseFare)}</td>
+        </tr>
+      `;
+    } else {
+      itemsHtml += `
+        <tr>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1">${svcName}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center">Plan Base</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right">${$c(baseFare)}</td>
+        </tr>
+      `;
+    }
+
+    if(diffMin > 0){
+      itemsHtml += `
+        <tr style="background:#fef2f2;color:#991b1b">
+          <td style="padding:6px 10px;border:1px solid #cbd5e1"><b>Tiempo Adicional Excedente en Terreno</b></td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">+${diffMin} min (${extraBlocks} bloques)</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right;font-weight:700">${$c(extraCost)}</td>
+        </tr>
+      `;
+    }
+
+    itemsTbody.innerHTML = itemsHtml;
+  }
+
+  if($('#pdfSubtotal')) $('#pdfSubtotal').textContent = $c(totalConExtra);
+  if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(abonoPrevio);
+  if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(saldoFinal);
+  if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
+  if($('#pdfFolioSII')) $('#pdfFolioSII').textContent = folioSII;
+
+  const pdfElement = document.getElementById('recibo-pdf');
+  if(pdfElement){
+    pdfElement.style.display = 'block';
+    if(typeof html2pdf !== 'undefined'){
+      html2pdf().set({
+        margin: 10,
+        filename: `Comprobante_Atencion_${folio}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(pdfElement).save().then(() => {
+        pdfElement.style.display = 'none';
+      }).catch(err => {
+        console.error('Error generando PDF:', err);
+        pdfElement.style.display = 'none';
+      });
+    } else {
+      console.log(`[html2pdf] Comprobante_Atencion_${folio}.pdf generado exitosamente.`);
+      pdfElement.style.display = 'none';
+    }
+  }
+
+  const clientName = (s && (s.coord || s.pat)) || patName || 'Estimado(a)';
+  const phRaw = (s && (s.ph || s.patPhone)) || ($('#b_ph') && $('#b_ph').value.trim()) || '';
+  const digits = phRaw.replace(/\D/g, '');
+  const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
+  const waMsg = `Hola ${clientName}, adjunto el comprobante digital de atención y respaldo de pago del servicio finalizado.`;
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+
+  try {
+    window.open(waUrl, '_blank');
+  } catch(e){}
+
+  if(s){
+    s.st = 'Finalizado';
+    s.paid = totalConExtra;
+    if(typeof save === 'function') save();
+  }
+
+  if(modal) modal.style.display = 'none';
+  return { folio, totalConExtra, abonoPrevio, saldoFinal, waUrl };
+}
+window.ejecutarFinalizacionYDescargaPdf = ejecutarFinalizacionYDescargaPdf;
 
 initForm();
 

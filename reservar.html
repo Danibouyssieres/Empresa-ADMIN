@@ -19,6 +19,7 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <link rel="stylesheet" href="css/reservar.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -570,7 +571,14 @@
         </div>
       </div>
 
-    </section>
+    
+      <!-- ACCIÓN OPERATIVA: FINALIZAR ATENCIÓN -->
+      <div style="margin-top:16px;text-align:right">
+        <button type="button" id="btnFinalizarAtencion" class="btn" onclick="abrirModalFinalizarAtencion()" style="background:#0f766e;border-color:#0f766e;font-size:.9rem;padding:10px 20px;display:inline-flex;align-items:center;gap:8px">
+          🏁 Finalizar Atención (Emitir Boleta PDF)
+        </button>
+      </div>
+</section>
 
     <!-- =========================================================================
          SECCIÓN 3: DATOS DEL PACIENTE
@@ -755,6 +763,159 @@
     </section>
   </form>
 </main>
+
+
+<!-- =========================================================================
+     PLANTILLA OCULTA: BOLETA / COMPROBANTE MÉDICO DE ATENCIÓN EN PDF (html2pdf)
+     ========================================================================= -->
+<div id="recibo-pdf" style="display:none;width:780px;background:#ffffff;color:#1e293b;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:30px 34px;box-sizing:border-box;border:1px solid #cbd5e1;margin:0 auto">
+  <!-- ENCABEZADO -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0f766e;padding-bottom:16px;margin-bottom:18px">
+    <div style="display:flex;gap:14px;align-items:center">
+      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida" style="height:56px;width:auto">
+      <div>
+        <h1 style="font-size:1.2rem;font-weight:800;color:#0f766e;margin:0;letter-spacing:-.01em;font-family:Georgia,serif">MOVILIDAD Y SALUD ASISTIDA SpA</h1>
+        <div style="font-size:.84rem;color:#475569;margin-top:2px;font-weight:600">Servicios Integrales de Asistencia Clínica, Cuidados y Traslados</div>
+        <div style="font-size:.8rem;color:#64748b;margin-top:1px">R.U.T.: <b>78.521.776-4</b> · Región Metropolitana</div>
+        <div style="font-size:.78rem;color:#64748b">WhatsApp Oficial: <b>+56 9 2999 0095</b> · www.movilidadysaludasistida.cl</div>
+      </div>
+    </div>
+    <div style="border:2px solid #0f766e;border-radius:8px;padding:10px 14px;text-align:center;min-width:215px;background:#f8fafc">
+      <div style="font-size:.78rem;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.04em">COMPROBANTE DE ATENCIÓN</div>
+      <div style="font-size:.72rem;color:#64748b;font-weight:600">BOLETA ELECTRÓNICA EXENTA</div>
+      <div style="font-size:1.05rem;font-weight:800;color:#0f766e;margin:4px 0" id="pdfFolio">FOLIO: #MSA-101</div>
+      <div style="font-size:.76rem;color:#475569" id="pdfFechaEmision">Fecha Emisión: 01/11/2026</div>
+    </div>
+  </div>
+
+  <!-- DATOS DE LA ATENCIÓN Y DEL PACIENTE -->
+  <div style="background:#f1f5f9;border-radius:8px;padding:14px 16px;margin-bottom:18px;border:1px solid #cbd5e1">
+    <div style="font-weight:800;color:#0f766e;font-size:.85rem;text-transform:uppercase;margin-bottom:8px;letter-spacing:.02em">
+      📋 Identificación del Paciente y Datos del Servicio
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:.84rem;line-height:1.45">
+      <div><b>Nombre del Paciente:</b> <span id="pdfPatNombre">Rosa Medina</span></div>
+      <div><b>RUT del Paciente:</b> <span id="pdfPatRut">12.345.678-9</span></div>
+      <div><b>Edad / Diagnóstico:</b> <span id="pdfPatEdadDx">82 años · Control cardiológico</span></div>
+      <div><b>Modalidad:</b> <span id="pdfSvcModalidad">1. Servicio Integral (Asistencia + Traslado)</span></div>
+      <div><b>Fecha del Servicio:</b> <span id="pdfFechaServicio">07/11/2026</span></div>
+      <div><b>Horario Pactado:</b> <span id="pdfHorarioPactado">09:45 hrs a 11:15 hrs</span></div>
+      <div><b>Dirección de Origen (A):</b> <span id="pdfDirOrigen">Av. Pajaritos 1450, Maipú</span></div>
+      <div><b>Dirección Destino (B):</b> <span id="pdfDirDestino">Clínica Santa María, Providencia</span></div>
+      <div style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:2px">
+        <b>Hora Real de Cierre:</b> <span id="pdfHoraCierreReal">11:15 hrs</span>
+        <span style="margin-left:14px;color:#0f766e;font-weight:700" id="pdfDesfaseExtraText">Atención finalizada en horario estándar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESGLOSE ECONÓMICO -->
+  <div style="margin-bottom:18px">
+    <div style="font-weight:800;color:#0f766e;font-size:.85rem;text-transform:uppercase;margin-bottom:8px;letter-spacing:.02em">
+      💰 Desglose Económico de la Liquidación
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:.84rem;border:1px solid #cbd5e1">
+      <thead>
+        <tr style="background:#0f766e;color:#ffffff;text-align:left">
+          <th style="padding:7px 10px;border:1px solid #0f766e">Concepto / Ítem</th>
+          <th style="padding:7px 10px;border:1px solid #0f766e;text-align:center">Métrica</th>
+          <th style="padding:7px 10px;border:1px solid #0f766e;text-align:right">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody id="pdfTablaItems">
+        <!-- Rellenado dinámico -->
+      </tbody>
+      <tfoot style="font-weight:700">
+        <tr style="background:#f8fafc;border-top:2px solid #cbd5e1">
+          <td colspan="2" style="padding:6px 10px;text-align:right">SUBTOTAL SERVICIO:</td>
+          <td style="padding:6px 10px;text-align:right" id="pdfSubtotal">$48.500</td>
+        </tr>
+        <tr style="color:#0f766e">
+          <td colspan="2" style="padding:6px 10px;text-align:right">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
+          <td style="padding:6px 10px;text-align:right" id="pdfAbono">-$24.250</td>
+        </tr>
+        <tr style="background:#f1f5f9;font-size:.92rem;color:#0f766e">
+          <td colspan="2" style="padding:8px 10px;text-align:right;font-weight:800">SALDO FINAL PAGADO AL CIERRE:</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:800;font-size:1.02rem" id="pdfSaldoFinal">$24.250</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- CASILLA DE PAGO, SII Y FIRMA -->
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:16px">
+    <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:12px;background:#f8fafc;font-size:.82rem;line-height:1.5">
+      <div style="font-weight:800;color:#0f766e;margin-bottom:6px;text-transform:uppercase">🧾 Respaldo de Pago y Registro SII</div>
+      <div><b>Medio de Pago Saldo:</b> <span id="pdfMedioPago">Transferencia Electrónica</span></div>
+      <div><b>Boleta Electrónica SII N°:</b> <span id="pdfFolioSII">B-1082</span></div>
+      <div><b>Estado de Pago:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span></div>
+      <div style="margin-top:6px;font-size:.76rem;color:#64748b">
+        Atención ejecutada conforme a protocolos de seguridad clínica y traslado asistido de Movilidad y Salud Asistida SpA.
+      </div>
+    </div>
+    <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:12px;text-align:center;display:flex;flex-direction:column;justify-content:flex-end">
+      <div style="border-bottom:1px solid #475569;margin:0 18px 6px"></div>
+      <div style="font-size:.82rem;font-weight:700;color:#1e293b">Firma y Recepción Conforme</div>
+      <div style="font-size:.75rem;color:#64748b">Paciente o Familiar Responsable</div>
+    </div>
+  </div>
+
+  <!-- NOTA LEGAL TRIBUTARIA -->
+  <div style="font-size:.72rem;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px;line-height:1.4">
+    Servicios médicos, asistenciales y de enfermería exentos de IVA de conformidad con las disposiciones del D.L. 825 de 1974 (Ley sobre Impuesto a las Ventas y Servicios), Art. 8° y Art. 12° Letra E N° 1. Comprobante válido para reembolsos en Isapres, Seguros Complementarios y registros contables.
+  </div>
+</div>
+
+<!-- =========================================================================
+     MODAL RÁPIDO: FINALIZAR ATENCIÓN Y DESCARGAR BOLETA PDF
+     ========================================================================= -->
+<div id="modalFinalizarAtencion" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);max-width:480px;width:100%;border-radius:14px;border:1.5px solid var(--line);box-shadow:0 10px 35px rgba(0,0,0,.25);padding:22px 24px;box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="margin:0;font-size:1.15rem;color:var(--teal);display:flex;align-items:center;gap:8px">
+        <span>🏁</span> Finalizar Atención y Boleta PDF
+      </h3>
+      <button type="button" onclick="cerrarModalFinalizarAtencion()" style="background:transparent;border:0;font-size:1.2rem;cursor:pointer;color:var(--mute)">✕</button>
+    </div>
+    <p style="font-size:.86rem;color:var(--mute);margin:0 0 16px;line-height:1.4">
+      Confirme los datos reales de cierre para liquidar el saldo, generar la boleta PDF oficial y notificar al cliente vía WhatsApp:
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:.88rem">
+      <div>
+        <label for="modHoraCierreReal" style="font-weight:700;display:block;margin-bottom:4px">Hora Real de Cierre del Servicio *</label>
+        <input type="time" id="modHoraCierreReal" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:.92rem;background:var(--bg);color:var(--ink)">
+        <small style="color:var(--mute);font-size:.78rem">Si hubo retraso en destino, se recalcula automáticamente el tiempo adicional.</small>
+      </div>
+
+      <div>
+        <label for="modRutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Para la Boleta) *</label>
+        <input type="text" id="modRutPaciente" placeholder="Ej: 12.345.678-9" value="12.345.678-9" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:.92rem;background:var(--bg);color:var(--ink)">
+      </div>
+
+      <div>
+        <label for="modMedioPago" style="font-weight:700;display:block;margin-bottom:4px">Medio de Pago del Saldo Final *</label>
+        <select id="modMedioPago" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:.92rem;background:var(--bg);color:var(--ink)">
+          <option value="Transferencia Electrónica" selected>Transferencia Electrónica</option>
+          <option value="Efectivo">Efectivo en terreno</option>
+          <option value="Tarjeta Débito / Crédito (Terminal POS)">Tarjeta Débito / Crédito (Terminal POS)</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="modFolioSII" style="font-weight:700;display:block;margin-bottom:4px">N° de Boleta Electrónica SII emitida *</label>
+        <input type="text" id="modFolioSII" placeholder="Ej: B-1082" value="B-1082" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:.92rem;background:var(--bg);color:var(--ink)">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button type="button" class="btn ghost" onclick="cerrarModalFinalizarAtencion()" style="padding:9px 16px">Cancelar</button>
+      <button type="button" class="btn" id="btnConfirmarDescargarPdf" onclick="ejecutarFinalizacionYDescargaPdf()" style="background:#15803d;border-color:#15803d;padding:9px 18px;display:inline-flex;align-items:center;gap:6px">
+        📄 Descargar Boleta PDF y WhatsApp
+      </button>
+    </div>
+  </div>
+</div>
 
 <footer>
   <div class="wrap">
