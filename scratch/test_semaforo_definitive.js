@@ -193,6 +193,9 @@ function createMockEnv() {
     }
   }
 
+  if (!fullScript.trim() && fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js'))) {
+    fullScript = fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8');
+  }
   vm.runInContext(fullScript, ctx);
 
   return { ctx, elements };
@@ -200,7 +203,9 @@ function createMockEnv() {
 
 // --- SUITE 0: Markup & CSS Initial State Validation ---
 console.log('Testing Suite 0: Markup and CSS initial hidden state...');
-assert(content.includes('.hidden-step{display:none !important}'), 'CSS must define .hidden-step with display: none !important');
+const cssPath = path.join(__dirname, '..', 'css', 'reservar.css');
+const cssContent = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : content;
+assert(content.includes('.hidden-step{display:none !important}') || cssContent.includes('.hidden-step{display:none !important}'), 'CSS must define .hidden-step with display: none !important');
 assert(content.includes('id="section3Card" class="card hidden-step" style="display:none !important"'), 'section3Card markup must start with hidden-step and display:none !important');
 assert(content.includes('id="section4Card" class="card hidden-step" style="display:none !important"'), 'section4Card markup must start with hidden-step and display:none !important');
 console.log('✔ SUITE 0 passed: HTML & CSS markup defaults verified.');
