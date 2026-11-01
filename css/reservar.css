@@ -209,6 +209,8 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .pickup-time-box{padding:14px 16px;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin-top:2px}
 .modality-reverse-cols #colDurationService{order:1 !important}
 .modality-reverse-cols #colAsistentePickup{order:2 !important}
+#colDurationService{order:1 !important}
+#colAsistentePickup{order:2 !important}
 #nightRuleNotice{display:none !important}
 .rule-alert{margin-top:10px;padding:11px 14px;border-radius:10px;background:rgba(217,119,6,.12);border-left:4px solid #d97706;font-size:.85rem;color:var(--ink);display:none}
 .status-box{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.92rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}

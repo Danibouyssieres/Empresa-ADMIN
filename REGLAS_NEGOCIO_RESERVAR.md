@@ -185,6 +185,41 @@ $$\text{Hora de Recogida Sugerida} = \text{Hora Cita} - \left(\text{Tiempo de Co
 
 ---
 
+### 6.4. Semáforo de Validación de Jornada y Tolerancia Horaria
+
+El sistema cuenta con una función maestra de cálculo (`evaluarSemaforoTurno` y `renderSemaforoCard`) que evalúa la hora de término proyectada del servicio completo ($\text{Recogida} + \text{Viaje ida} + \text{Permanencia} + \text{Viaje retorno}$) respecto a los límites de la jornada activa:
+
+#### 1. Límites Nominales de Turno:
+* **Turno Mañana:** 12:00 hrs.
+* **Turno Tarde:** 20:00 hrs.
+* **Turno Noche:** 04:00 hrs.
+
+#### 2. Comportamiento según el Estado del Semáforo:
+* **A) ESTADO VERDE (Dentro del horario nominal):**
+  * **Criterio:** $\text{Hora de término} \le \text{Límite nominal}$ (Mañana $\le$ 12:00 hrs, Tarde $\le$ 20:00 hrs, Noche $\le$ 04:00 hrs).
+  * **Comportamiento:** Oculta cualquier recuadro de advertencia.
+  * **Botón de Reserva:** **HABILITADO**.
+* **B) ESTADO AMARILLO (Tolerancia de 1 a 30 minutos de excedente):**
+  * **Criterio:** $\text{Hora de término} \le \text{Límite nominal} + 30\text{ min}$ (Mañana hasta 12:30 hrs, Tarde hasta 20:30 hrs, Noche hasta 04:30 hrs).
+  * **Contenedor Visual:** Fondo ámbar suave (`#FFFBEB`), borde ámbar (`#F59E0B`) y tipografía oscura (`#92400E`).
+  * **Título:** `⚠️ Atención con Cierre al Límite del Turno`
+  * **Mensaje:** *"El retorno estimado finaliza a las [HH:MM] hrs, en el margen límite de nuestro turno. Puede continuar con su reserva con normalidad; sin embargo, considere que durante el servicio no será posible solicitar extensiones de tiempo en el lugar, con el propósito de resguardar los tiempos de traslado y la puntualidad de la atención siguiente."*
+  * **Botón de Reserva:** **HABILITADO**.
+* **C) ESTADO ROJO (Excedente superior a 30 minutos):**
+  * **Criterio:** $\text{Hora de término} > \text{Límite nominal} + 30\text{ min}$ (Mañana posterior a 12:30 hrs, Tarde posterior a 20:30 hrs, Noche posterior a 04:30 hrs).
+  * **Contenedor Visual:** Fondo rojo (`#FEF2F2`) y borde rojo (`#EF4444`).
+  * **Título:** `🛑 Horario fuera de rango operativo estándar`
+  * **Mensaje:** *"Con la duración seleccionada, el servicio finalizaría a las [HH:MM] hrs, invadiendo el cambio de turno. Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp."*
+  * **Botón de WhatsApp:** Visible y funcional (`https://wa.me/56929990095`).
+  * **Botón de Reserva:** **DESHABILITADO (`disabled`)**.
+
+### 6.5. Disposición Visual de Columnas en Sección 2
+En todas las modalidades (1, 2, 3, 4 y 5):
+* **Columna Izquierda (Order 1):** Tarjeta de *"Permanencia en Destino y Duración del Servicio Completo"* (Selector de horas de espera / diligencia / programa / permanencia).
+* **Columna Derecha (Order 2):** Tarjeta de *"Asistente de Hora de Recogida Sugerida"* (Selector de hora de cita médica / inicio de atención + Semáforo de validación de turno).
+
+---
+
 ## 7. Motor de Cálculo Tarifario y Liquidación Financiera
 
 ### 7.1. Costo por Kilometraje

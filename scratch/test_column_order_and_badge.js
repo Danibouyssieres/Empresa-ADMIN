@@ -194,18 +194,18 @@ console.log('✔ Script evaluated in VM.');
 elements['b_svc_type'].value = '1';
 ctx.applyModalityVisibility();
 
-assert.strictEqual(elements['colAsistentePickup'].style.order, '1', 'Mod 1: Asistente must have order: 1 (left)');
-assert.strictEqual(elements['colDurationService'].style.order, '2', 'Mod 1: Duration must have order: 2 (right)');
-assert.strictEqual(elements['pickupScheduleGrid'].classList.contains('modality-reverse-cols'), false, 'Mod 1 must NOT have modality-reverse-cols class');
+assert.strictEqual(elements['colDurationService'].style.order, '1', 'Mod 1: Duration must have order: 1 (left)');
+assert.strictEqual(elements['colAsistentePickup'].style.order, '2', 'Mod 1: Asistente must have order: 2 (right)');
+assert.strictEqual(elements['pickupScheduleGrid'].classList.contains('modality-reverse-cols'), true, 'Mod 1 must HAVE modality-reverse-cols class');
 assert.strictEqual(elements['timeSectionBadge'].textContent, 'Mínimo 1 hora · Bloques de 30 min', 'Mod 1 badge must say Mínimo 1 hora');
 
 // TEST 2: Modalidad 2 (Traslado Exclusivo con Espera) - Default Order
 elements['b_svc_type'].value = '2';
 ctx.applyModalityVisibility();
 
-assert.strictEqual(elements['colAsistentePickup'].style.order, '1', 'Mod 2: Asistente must have order: 1 (left)');
-assert.strictEqual(elements['colDurationService'].style.order, '2', 'Mod 2: Duration must have order: 2 (right)');
-assert.strictEqual(elements['pickupScheduleGrid'].classList.contains('modality-reverse-cols'), false, 'Mod 2 must NOT have modality-reverse-cols class');
+assert.strictEqual(elements['colDurationService'].style.order, '1', 'Mod 1: Duration must have order: 1 (left)');
+assert.strictEqual(elements['colAsistentePickup'].style.order, '2', 'Mod 1: Asistente must have order: 2 (right)');
+assert.strictEqual(elements['pickupScheduleGrid'].classList.contains('modality-reverse-cols'), true, 'Mod 1 must HAVE modality-reverse-cols class');
 assert.strictEqual(elements['timeSectionBadge'].textContent, 'Mínimo 1 hora · Bloques de 30 min', 'Mod 2 badge must say Mínimo 1 hora');
 
 // TEST 3: Modalidad 3 (Cuidados a Domicilio) - REVERSED Order
