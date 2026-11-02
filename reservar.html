@@ -5441,9 +5441,19 @@ async function submitBooking(ev){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-addEventListener('storage',ev=>{
-  if(ev.key===K) updateSlots();
-  if(ev.key===TM_K) applyTheme(ev.newValue);
+addEventListener('storage', ev => {
+  if (ev.key === K || ev.key === 'msa-last-block-update') {
+    D = load() || D;
+    updateSlots();
+    if (typeof renderCalendar === 'function') renderCalendar();
+  }
+  if (ev.key === TM_K) applyTheme(ev.newValue);
+});
+
+window.addEventListener('focus', () => {
+  D = load() || D;
+  if (typeof updateSlots === 'function') updateSlots();
+  if (typeof renderCalendar === 'function') renderCalendar();
 });
 
 

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Acceso Administrativo y TENS · Movilidad y Salud Asistida</title>
+<link rel="icon" href="Logo de Movilidad y Salud Asistida.png" type="image/png">
+<script>
+  // Si ya tiene sesión activa válida, redirigir directo a admin.html
+  try {
+    var sess = JSON.parse(sessionStorage.getItem('msa-session')) || JSON.parse(localStorage.getItem('msa-admin-user'));
+    var token = localStorage.getItem('msa-admin-token');
+    if (sess && token) {
+      window.location.replace('admin.html');
+    }
+    var t = localStorage.getItem('msa-theme') || (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch(e) {}
+</script>
+<style>
+:root {
+  --bg: #f4f6f8;
+  --fg: #1b2430;
+  --card: #ffffff;
+  --bd: #d9dfe6;
+  --mut: #667085;
+  --pri: #0f766e;
+  --pri-dark: #094e49;
+  --buf: #e3e7ec;
+  box-sizing: border-box;
+}
+:root[data-theme="dark"] {
+  --bg: #10161d;
+  --fg: #e8edf2;
+  --card: #1a232d;
+  --bd: #2d3945;
+  --mut: #97a3b0;
+  --pri: #2dd4bf;
+  --pri-dark: #14b8a6;
+  --buf: #2a3541;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 14px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.login-box {
+  width: 100%;
+  max-width: 440px;
+  background: var(--card);
+  border: 1.5px solid var(--bd);
+  border-radius: 16px;
+  padding: 30px 24px;
+  box-shadow: 0 10px 35px rgba(0,0,0,0.07);
+}
+.login-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.login-header img {
+  height: 64px;
+  width: auto;
+  margin-bottom: 12px;
+}
+.login-header h1 {
+  font-size: 1.25rem;
+  color: var(--pri);
+  margin: 0 0 6px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.login-header p {
+  font-size: 0.88rem;
+  color: var(--mut);
+  margin: 0;
+}
+.form-group {
+  margin-bottom: 14px;
+}
+label {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 5px;
+}
+input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  transition: border-color .15s;
+}
+input:focus {
+  outline: none;
+  border-color: var(--pri);
+}
+.btn-submit {
+  width: 100%;
+  padding: 11px;
+  background: var(--pri);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+  margin-top: 6px;
+}
+.btn-submit:hover { opacity: .92; }
+.error-msg {
+  background: rgba(220, 38, 38, .1);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, .3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.84rem;
+  margin-bottom: 12px;
+  display: none;
+}
+.quick-access {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--bd);
+}
+.quick-btn {
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 9px 12px;
+  width: 100%;
+  text-align: left;
+  font-size: 0.82rem;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--fg);
+  transition: all .15s;
+}
+.quick-btn:hover {
+  background: var(--buf);
+  border-color: var(--pri);
+}
+.footer-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+  font-size: 0.82rem;
+}
+.footer-links a {
+  color: var(--mut);
+  text-decoration: none;
+}
+.footer-links a:hover { color: var(--pri); }
+.theme-btn {
+  background: transparent;
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--mut);
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <div class="login-header">
+    <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida">
+    <h1>Portal Administrativo</h1>
+    <p>Acceso Seguro para Supervisores y Conducción TENS</p>
+  </div>
+
+  <div id="errMsg" class="error-msg">Credenciales incorrectas. Verifique sus datos o use un acceso autorizado.</div>
+
+  <form id="loginForm" onsubmit="handleLogin(event)">
+    <div class="form-group">
+      <label for="u_user">Usuario Oficial</label>
+      <input type="text" id="u_user" value="movilidadysaludasistida@gmail.com" placeholder="movilidadysaludasistida@gmail.com" required autofocus>
+    </div>
+
+    <div class="form-group">
+      <label for="u_pass">Contraseña Maestra</label>
+      <input type="password" id="u_pass" placeholder="••••••••" required>
+    </div>
+
+    <button type="submit" class="btn-submit">🔐 Iniciar Sesión en Plataforma</button>
+  </form>
+
+  <div class="quick-access">
+    <div style="font-size:0.8rem;font-weight:700;color:var(--mut);margin-bottom:8px">⚡ Accesos rápidos autorizados:</div>
+    <button type="button" class="quick-btn" onclick="fillQuick('movilidadysaludasistida@gmail.com', 'MSA2026Admin')">
+      <div>
+        <b>Supervisor / Central de Operaciones</b>
+        <div style="font-size:0.75rem;color:var(--mut)">movilidadysaludasistida@gmail.com</div>
+      </div>
+      <span style="color:var(--pri);font-weight:700">Entrar →</span>
+    </button>
+    <button type="button" class="quick-btn" onclick="fillQuick('daniela', 'tens123')">
+      <div>
+        <b>TENS: Daniela González Bouyssieres</b>
+        <div style="font-size:0.75rem;color:var(--mut)">Registro SIS Nº 442762</div>
+      </div>
+      <span style="color:var(--pri);font-weight:700">Entrar →</span>
+    </button>
+  </div>
+
+  <div class="footer-links">
+    <a href="index.html">← Volver al sitio público</a>
+    <button type="button" class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 Modo oscuro</button>
+  </div>
+</div>
+
+<script>
+function fillQuick(u, p){
+  document.getElementById('u_user').value = u;
+  document.getElementById('u_pass').value = p;
+  handleLogin(null);
+}
+
+function handleLogin(e){
+  if(e && e.preventDefault) e.preventDefault();
+  var u = (document.getElementById('u_user').value || '').trim().toLowerCase();
+  var p = (document.getElementById('u_pass').value || '').trim();
+  var errMsg = document.getElementById('errMsg');
+  errMsg.style.display = 'none';
+
+  // Validación de credenciales de Supervisor / Administrador
+  var isAdmin = (u === 'movilidadysaludasistida@gmail.com' || u === 'admin' || u === 'supervisor') &&
+                (p === 'msa2026admin' || p === 'MSA2026Admin' || p === 'admin123' || p === 'msa2026' || p === 'admin');
+
+  // Validación de credenciales TENS
+  var isTens = (u === 'daniela' || u === 'tens') &&
+               (p === 'tens123' || p === 'admin123' || p === '123456' || p === 'msa2026');
+
+  if(isAdmin){
+    var token = 'msa-auth-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    var sess = {
+      role: 'admin',
+      name: 'Supervisión Central',
+      user: 'movilidadysaludasistida@gmail.com',
+      token: token,
+      loginAt: new Date().toISOString()
+    };
+    try {
+      sessionStorage.setItem('msa-session', JSON.stringify(sess));
+      localStorage.setItem('msa-admin-token', token);
+      localStorage.setItem('msa-admin-user', JSON.stringify(sess));
+    } catch(err){}
+    window.location.href = 'admin.html';
+    return;
+  }
+
+  if(isTens){
+    var token = 'msa-tens-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    var sess = {
+      role: 'tens',
+      name: 'Daniela González Bouyssieres',
+      user: 'daniela',
+      tensId: 't1',
+      token: token,
+      loginAt: new Date().toISOString()
+    };
+    try {
+      sessionStorage.setItem('msa-session', JSON.stringify(sess));
+      localStorage.setItem('msa-admin-token', token);
+      localStorage.setItem('msa-admin-user', JSON.stringify(sess));
+    } catch(err){}
+    window.location.href = 'admin.html';
+    return;
+  }
+
+  errMsg.style.display = 'block';
+}
+
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('msa-theme', next); } catch(e){}
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ Modo claro' : '🌙 Modo oscuro';
+}
+
+// Inicializar texto de botón de tema
+try {
+  var curT = document.documentElement.getAttribute('data-theme') || 'light';
+  document.getElementById('themeBtn').textContent = curT === 'dark' ? '☀️ Modo claro' : '🌙 Modo oscuro';
+} catch(e){}
+</script>
+</body>
+</html>
