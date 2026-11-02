@@ -161,13 +161,13 @@ function hdr(sess){
       <div>
         <h1>Movilidad y Salud Asistida</h1>
         <div style="font-size:12px;color:var(--mut)">
-          ${isAdmin ? '👑 <b>Supervisor / Administrador</b>' : '🩺 TENS: <b>'+e(sess.name)+'</b>'}
+          ${isAdmin ? '👑 <b>' + (sess.roleLabel ? e(sess.roleLabel) : 'Superadmin / Operaciones') + '</b>' : '🩺 TENS: <b>'+e(sess.name)+'</b>'}
         </div>
       </div>
     </div>
     <div class="row">
       ${isAdmin ? `
-        <button class="${U.view=='admin'?'on':''}" onclick="U.view='admin';render()">Gestión</button>
+        <button class="${U.view=='admin'?'on':''}" onclick="U.view='admin';render()">Gestión y Finanzas</button>
         <button class="${U.view=='tens'?'on':''}" onclick="U.view='tens';render()">Vista Terreno</button>
       ` : `
         <button class="${U.view=='tens'?'on':''}" onclick="U.view='tens';render()">Mis Servicios</button>
