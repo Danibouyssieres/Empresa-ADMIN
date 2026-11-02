@@ -38,8 +38,11 @@ assert(!content.includes('Política de Cero Devolución:'), 'Old zero refund pol
 console.log('✓ Section 4 Política de Devolución y Respaldo Legal verified');
 
 // 6. Check JavaScript download handler functions
-assert(content.includes('function descargarTerminosPdf'), 'descargarTerminosPdf function must exist');
-assert(content.includes('function generarTerminosPdfHtml2Pdf'), 'generarTerminosPdfHtml2Pdf function must exist');
+const jsSrc = content.includes('function descargarTerminosPdf')
+  ? content
+  : (fs.existsSync(path.join(__dirname, '..', 'js', 'terminos.js')) ? fs.readFileSync(path.join(__dirname, '..', 'js', 'terminos.js'), 'utf8') : '');
+assert(jsSrc.includes('function descargarTerminosPdf'), 'descargarTerminosPdf function must exist');
+assert(jsSrc.includes('function generarTerminosPdfHtml2Pdf'), 'generarTerminosPdfHtml2Pdf function must exist');
 console.log('✓ JavaScript PDF handler functions verified');
 
 // 7. Verify physical PDF file on disk
