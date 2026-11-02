@@ -274,6 +274,7 @@ footer {
 footer a { color: #8FE0C0; text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -303,7 +304,7 @@ footer a:hover { text-decoration: underline; }
         </div>
       </div>
       <div style="align-self:flex-start;padding-top:4px">
-        <a class="btn pri" href="/terminos-y-condiciones.pdf" target="_blank" rel="noopener" download title="Descargar Términos y Condiciones en formato PDF">
+        <a class="btn pri" id="btnDescargarPdf" href="/Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf" download="Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf" onclick="descargarTerminosPdf(event)" title="Descargar Términos y Condiciones en formato PDF">
           📥 Descargar Términos y Condiciones en PDF
         </a>
       </div>
@@ -424,7 +425,7 @@ footer a:hover { text-decoration: underline; }
       <li><b>Traslado Exclusivo con Espera (Sin Asistencia):</b> Para transporte y permanencia del vehículo a disposición (sin acompañamiento al interior). Kilometraje ida y vuelta más 1 hora base de espera vehicular; tiempo extra en fracciones de 30 minutos.</li>
       <li><b>Cuidados en Domicilio o Trámites Peatonales:</b> Pisos de contratación continua según comuna: Anillo 1 (2 hrs), Anillo 2 (3 hrs) y Anillo 3 (4 hrs), con cobertura máxima de hasta 6 horas continuas. Fracciones intermedias de 30 minutos calculadas al 50% del valor hora de la jornada.</li>
       <li><b>Acompañamiento en Eventos Sociales:</b> Formato paquetizado cerrado de 4 y 6 horas continuas, en dos modalidades: Asistencia en Recinto (4h $65.000 / 6h $95.000) o Puerta a Puerta con Traslados incluidos (4h $95.000 / 6h $125.000).</li>
-      <li><b>Programas Interregionales (Valparaíso y O'Higgins):</b> Tarifas paquetizadas con traslado ida y vuelta, peajes, TAG y asistencia: Programa Estándar (hasta 4 hrs) por <b>$250.000</b> / Programa Crónico-Oncológico (hasta 6 hrs) por <b>$300.000</b>. Fracción extra de 30 min: $15.000 (hora extra: $25.000).</li>
+      <li><b>Programas Interregionales (Valparaíso y O'Higgins):</b> Tarifas paquetizadas con traslado ida y vuelta, peajes, TAG y asistencia: Programa Estándar (hasta 4 hrs) por <b>$250.000</b> / Programa Crónico-Oncológico (hasta 6 hrs) por <b>$300.000</b>. Todo tiempo adicional no programado tendrá un valor de: $15.000 por 30 minutos extra, $25.000 por 1 hora extra, $40.000 por 1 hora y 30 minutos, y $50.000 por 2 horas extras.</li>
       <li><b>Estacionamientos:</b> No forman parte de la tarifa. Se rinden y reembolsan al término según boleta o ticket exacto emitido por el recinto.</li>
     </ul>
 
@@ -548,6 +549,10 @@ footer a:hover { text-decoration: underline; }
     <div class="callout-box">
       <b>🌙 Servicios en Horario Nocturno (20:00 a 06:00 hrs):</b> Aplica de forma exclusiva para servicios de Cuidados a Domicilio y Acompañamiento en Eventos Sociales. No realizamos traslados clínicos vehiculares nocturnos. Los Días Festivos operan en jornada diurna de 06:00 a 20:00 hrs.
     </div>
+
+    <div class="callout-box" style="margin-top:14px">
+      <b>🚦 Límites de Jornada y Cierre de Turnos (Semáforo Operativo):</b> Nuestros turnos concluyen nominalmente a las 12:00 hrs (Mañana), 20:00 hrs (Tarde) y 04:00 hrs (Noche), disponiendo de un margen técnico máximo de 30 minutos de tolerancia operativa (alerta amarilla en plataforma). Por resguardo de la puntualidad del paciente agendado a continuación y de los tiempos de conducción, toda atención que finalice dentro de este margen de tolerancia no admitirá extensiones presenciales de tiempo en el recinto médico o destino, debiendo iniciarse el retorno a la hora estipulada.
+    </div>
   </section>
 
   <!-- SECCIÓN 3: RESERVA DE AGENDA Y FORMAS DE PAGO -->
@@ -569,7 +574,7 @@ footer a:hover { text-decoration: underline; }
       <li><b>Cancelaciones Tardías e Inasistencias (Menos de 12 horas):</b> Toda anulación con menos de 12 horas o la no presentación a la llegada del vehículo implica la pérdida total del abono (100% retenido) por concepto de lucro cesante y bloqueo de agenda no aprovechada.</li>
       <li><b>Suspensión en Terreno por Inaptitud o Incumplimiento:</b> Si al llegar al domicilio el paciente presenta descompensación médica aguda, crisis psiquiátrica violenta, si un menor no cuenta con tutor/alzador, o si existió omisión de datos clínicos críticos, el servicio se cancela de inmediato por seguridad con retención del 100% del abono.</li>
       <li><b>Liberación Anticipada de Espera:</b> Si en un servicio de ida y vuelta el cliente decide prescindir del regreso por hospitalización o demora del recinto, se cobra el kilometraje total de circuito más el tiempo exacto de espera transcurrido, liquidándose en el acto.</li>
-      <li><b>Política de Cero Devolución:</b> No se realizan reembolsos en dinero en efectivo ni bancario bajo ninguna circunstancia.</li>
+      <li><b>e) Política de Devolución y Respaldo Legal:</b> En caso de cancelación voluntaria, desistimiento o inasistencia imputable al cliente o familiar con menos de 12 horas de aviso previo, no se efectuarán devoluciones de dinero ni reintegros bancarios, aplicándose el abono retenido como compensación por el bloqueo exclusivo de agenda y lucro cesante. En el imprevisto caso de fuerza mayor operacional o imposibilidad técnica directamente atribuible a la empresa, se reintegrará el 100% del abono transferido o se reprogramará con carácter prioritario según la preferencia del contratante.</li>
     </ul>
   </section>
 
@@ -667,5 +672,39 @@ function setRateTab(col){
   });
 }
 </script>
+
+<script>
+function descargarTerminosPdf(e) {
+  if (window.location.protocol === 'file:') {
+    if (e && e.preventDefault) e.preventDefault();
+    generarTerminosPdfHtml2Pdf();
+    return false;
+  }
+  fetch('/Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf', { method: 'HEAD' })
+    .then(function(res) {
+      if (!res.ok) generarTerminosPdfHtml2Pdf();
+    })
+    .catch(function() {
+      generarTerminosPdfHtml2Pdf();
+    });
+}
+
+function generarTerminosPdfHtml2Pdf() {
+  var docElem = document.querySelector('main') || document.body;
+  if (typeof html2pdf !== 'undefined') {
+    var opt = {
+      margin: [10, 10, 10, 10],
+      filename: 'Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(docElem).save();
+  } else {
+    window.print();
+  }
+}
+</script>
+
 </body>
 </html>
