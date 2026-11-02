@@ -1034,7 +1034,7 @@ function abrirModalFinalizarAtencionAdmin(svcId, options){
   if(selMedio && options && options.medioPago) selMedio.value = options.medioPago;
 
   const inpFolio = $('#adm_folioSII');
-  if(inpFolio && options && options.folioSII) inpFolio.value = options.folioSII;
+  if(inpFolio) inpFolio.value = (options && options.folioSII !== undefined) ? options.folioSII : (s.folioSII || '');
 
   modal.style.display = 'flex';
 
@@ -1055,7 +1055,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const horaCierre = (customOpts && customOpts.horaCierre) || ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || '12:00';
   const rutPaciente = (customOpts && customOpts.rutPaciente) || ($('#adm_rutPaciente') && $('#adm_rutPaciente').value.trim()) || '12.345.678-9';
   const medioPago = (customOpts && customOpts.medioPago) || ($('#adm_medioPago') && $('#adm_medioPago').value) || 'Transferencia Electrónica';
-  const folioSII = (customOpts && customOpts.folioSII) || ($('#adm_folioSII') && $('#adm_folioSII').value.trim()) || 'B-1082';
+  const folioSII = (customOpts && customOpts.folioSII !== undefined) ? customOpts.folioSII : ($('#adm_folioSII') ? $('#adm_folioSII').value.trim() : '');
 
   const s = D.svcs.find(item => item.id === currentClosingSvcId);
   if(!s){ alert('Servicio no encontrado'); return; }
@@ -1120,17 +1120,17 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if(itemsTbody){
     let itemsHtml = `
       <tr>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1">1. Servicio y Asistencia Clínica Programada</td>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center">${(durMin/60).toFixed(1)} hrs</td>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right">${$c(baseFare)}</td>
+        <td style="padding:8px 12px;border:1px solid #cbd5e1">1. Servicio y Asistencia Clínica Programada</td>
+        <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center">${(durMin/60).toFixed(1)} hrs</td>
+        <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;white-space:nowrap;min-width:140px">${$c(baseFare)}</td>
       </tr>
     `;
     if(diffMin > 0){
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
-          <td style="padding:6px 10px;border:1px solid #cbd5e1"><b>Tiempo Adicional Excedente en Terreno</b></td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">+${diffMin} min (${extraBlocks} bloques)</td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right;font-weight:700">${$c(extraCost)}</td>
+          <td style="padding:8px 12px;border:1px solid #cbd5e1"><b>Tiempo Adicional Excedente en Terreno</b></td>
+          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">+${diffMin} min (${extraBlocks} bloques)</td>
+          <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;font-weight:700;white-space:nowrap;min-width:140px">${$c(extraCost)}</td>
         </tr>
       `;
     }
@@ -1141,7 +1141,16 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(abonoPrevio);
   if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(saldoFinal);
   if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
-  if($('#pdfFolioSII')) $('#pdfFolioSII').textContent = folioSII;
+  const folioContainer = $('#pdfFolioSIIContainer');
+  if(folioContainer){
+    if(folioSII){
+      folioContainer.innerHTML = `<b>Boleta Electrónica SII N°:</b> <span id="pdfFolioSII">${folioSII}</span>`;
+    } else {
+      folioContainer.innerHTML = `<b>Documento Tributario:</b> <span id="pdfFolioSII">Boleta Electrónica Exenta emitida vía e-Boleta SII</span>`;
+    }
+  } else if($('#pdfFolioSII')) {
+    $('#pdfFolioSII').textContent = folioSII || 'Boleta Electrónica Exenta emitida vía e-Boleta SII';
+  }
 
   // Generación y descarga con html2pdf
   const pdfElement = document.getElementById('recibo-pdf');
