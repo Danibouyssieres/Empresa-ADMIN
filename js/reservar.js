@@ -4464,3 +4464,19 @@ if(document.readyState === 'loading'){
 } else {
   if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility();
 }
+
+
+addEventListener('storage', ev => {
+  if (ev.key === K || ev.key === 'msa-last-block-update') {
+    D = load() || D;
+    if (typeof updateSlots === 'function') updateSlots();
+    if (typeof renderCalendar === 'function') renderCalendar();
+  }
+  if (ev.key === TM_K && typeof applyTheme === 'function') applyTheme(ev.newValue);
+});
+
+window.addEventListener('focus', () => {
+  D = load() || D;
+  if (typeof updateSlots === 'function') updateSlots();
+  if (typeof renderCalendar === 'function') renderCalendar();
+});

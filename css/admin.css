@@ -1,16 +1,19 @@
-:root{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf}}
-:root[data-theme="dark"]{--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf}
-:root[data-theme="light"]{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e}
+:root{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e;--teal:#0f766e;--pri-light:#e6f4f2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf;--teal:#2dd4bf;--pri-light:#152a2e}}
+:root[data-theme="dark"]{--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf;--teal:#2dd4bf;--pri-light:#152a2e}
+:root[data-theme="light"]{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e;--teal:#0f766e;--pri-light:#e6f4f2}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-#app{max-width:1100px;margin:0 auto;padding:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:1120px;margin:0 auto;padding:12px}
 h1{font-size:18px;margin:0}h2{font-size:16px;margin:0 0 8px}
 .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px}
-button,select,input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
-button{cursor:pointer}button.p{background:var(--pri);color:#fff;border-color:var(--pri);font-weight:600}button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
-button:disabled{opacity:.5}
+button,select,input,textarea{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
+button{cursor:pointer;transition:all .14s ease}
+button.p{background:var(--pri);color:#fff;border-color:var(--pri);font-weight:600}
+button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+button:disabled{opacity:.5;cursor:not-allowed}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .met{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
 .met div{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px}.met b{display:block;font-size:20px}.met span{color:var(--mut);font-size:12px}
@@ -25,19 +28,14 @@ button:disabled{opacity:.5}
 .badge{display:inline-block;color:#fff;border-radius:99px;padding:1px 9px;font-size:12px}
 .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 label{display:block;font-size:12px;color:var(--mut);margin-bottom:2px}.g input,.g select{width:100%}
-.rqs label{display:inline-flex;gap:4px;align-items:center;color:var(--fg);font-size:14px;margin-right:12px}
+.rqs label{display:inline-flex;gap:4px;align-items:center;color:var(--fg);font-size:13.5px;margin-right:12px}
 .al{background:rgba(217,119,6,.15);border:1px solid #d97706;border-radius:8px;padding:6px 8px;margin:6px 0;font-size:13px}
 .msg{font-size:13px;color:var(--mut);margin-top:6px}
 a.b{display:inline-block;text-decoration:none;border:1px solid var(--bd);border-radius:8px;padding:7px 10px;color:var(--fg);margin:2px 4px 2px 0;font-size:14px}
 a.b:hover{background:var(--buf)}
 table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;border-bottom:1px solid var(--bd);font-size:14px}
 .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px}
-/* Estilos Login */
-.login-box{max-width:440px;margin:40px auto;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:26px 22px;box-shadow:0 8px 30px rgba(0,0,0,0.08)}
-.login-header{text-align:center;margin-bottom:20px}
-.login-header img{max-height:75px;margin-bottom:10px}
-.quick-btn{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;width:100%;text-align:left;font-size:13px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-.quick-btn:hover{background:var(--buf);border-color:var(--pri)}
+
 /* Módulo Gestión de Disponibilidad y Bloqueos */
 .blk-layout{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;align-items:start}
 @media(max-width:860px){.blk-layout{grid-template-columns:1fr}}
@@ -61,3 +59,11 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 .blk-opt input{margin-top:3px}
 .unlock-btn{background:#dc2626;color:#fff;border-color:#dc2626;font-weight:700;padding:6px 11px;font-size:12px;border-radius:7px}
 .unlock-btn:hover{background:#b91c1c}
+
+/* Cotizador Administrativo Automático */
+.quote-box{background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;padding:16px;margin:12px 0}
+.quote-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.quote-num{font-size:1.25rem;font-weight:800;color:var(--pri);margin-top:2px}
+.suggest-list{position:absolute;z-index:99;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);max-height:200px;overflow-y:auto;display:none}
+.suggest-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--bd);font-size:13px}
+.suggest-item:hover{background:var(--buf)}
