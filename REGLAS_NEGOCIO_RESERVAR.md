@@ -362,7 +362,11 @@ Una vez superadas las validaciones:
 
 ---
 
-## 11. Liquidación en Terreno, Boleta PDF y Cierre de Atención ("Finalizar Atención")
+## 11. Liquidación en Terreno, Boleta PDF y Cierre de Atención (Módulo Administrativo)
+
+> [!NOTE]
+> **Ámbito de Aplicación Exclusivo:**
+> La funcionalidad de "Finalización de Atención, Boleta PDF y Liquidación de Saldo" está reservada de forma privativa para el **módulo administrativo interno con autenticación/login**, quedando excluida de la interfaz pública de cotización del cliente (`reservar.html`) para salvaguardar la simplicidad y privacidad del flujo de cara al usuario final.
 
 Para completar el ciclo del servicio una vez prestada la atención médica o traslado, el sistema incorpora el flujo de **Finalización de Atención**, emisión de **Comprobante / Boleta Digital en PDF** y notificación formal vía WhatsApp.
 
