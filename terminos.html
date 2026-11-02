@@ -274,7 +274,6 @@ footer {
 footer a { color: #8FE0C0; text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -304,7 +303,7 @@ footer a:hover { text-decoration: underline; }
         </div>
       </div>
       <div style="align-self:flex-start;padding-top:4px">
-        <a class="btn pri" id="btnDescargarPdf" href="/Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf" download="Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf" onclick="descargarTerminosPdf(event)" title="Descargar Términos y Condiciones en formato PDF">
+        <a class="btn pri" id="btnDescargarPdf" href="/terminos_condiciones.pdf" download="Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf" title="Descargar Términos y Condiciones en formato PDF">
           📥 Descargar Términos y Condiciones en PDF
         </a>
       </div>
@@ -574,7 +573,7 @@ footer a:hover { text-decoration: underline; }
       <li><b>Cancelaciones Tardías e Inasistencias (Menos de 12 horas):</b> Toda anulación con menos de 12 horas o la no presentación a la llegada del vehículo implica la pérdida total del abono (100% retenido) por concepto de lucro cesante y bloqueo de agenda no aprovechada.</li>
       <li><b>Suspensión en Terreno por Inaptitud o Incumplimiento:</b> Si al llegar al domicilio el paciente presenta descompensación médica aguda, crisis psiquiátrica violenta, si un menor no cuenta con tutor/alzador, o si existió omisión de datos clínicos críticos, el servicio se cancela de inmediato por seguridad con retención del 100% del abono.</li>
       <li><b>Liberación Anticipada de Espera:</b> Si en un servicio de ida y vuelta el cliente decide prescindir del regreso por hospitalización o demora del recinto, se cobra el kilometraje total de circuito más el tiempo exacto de espera transcurrido, liquidándose en el acto.</li>
-      <li><b>e) Política de Devolución y Respaldo Legal:</b> En caso de cancelación voluntaria, desistimiento o inasistencia imputable al cliente o familiar con menos de 12 horas de aviso previo, no se efectuarán devoluciones de dinero ni reintegros bancarios, aplicándose el abono retenido como compensación por el bloqueo exclusivo de agenda y lucro cesante. En el imprevisto caso de fuerza mayor operacional o imposibilidad técnica directamente atribuible a la empresa, se reintegrará el 100% del abono transferido o se reprogramará con carácter prioritario según la preferencia del contratante.</li>
+      <li><b>Política de Devolución y Respaldo Legal:</b> En caso de cancelación voluntaria, desistimiento o inasistencia imputable al cliente o familiar con menos de 12 horas de aviso previo, no se efectuarán devoluciones de dinero ni reintegros bancarios, aplicándose el abono retenido como compensación por el bloqueo exclusivo de agenda y lucro cesante. En el imprevisto caso de fuerza mayor operacional o imposibilidad técnica directamente atribuible a la empresa, se reintegrará el 100% del abono transferido o se reprogramará con carácter prioritario según la preferencia del contratante.</li>
     </ul>
   </section>
 
@@ -670,39 +669,6 @@ function setRateTab(col){
   document.querySelectorAll(".rate-tab").forEach(function(btn){
     btn.classList.toggle("active", btn.getAttribute("data-tab-btn") === String(col));
   });
-}
-</script>
-
-<script>
-function descargarTerminosPdf(e) {
-  if (window.location.protocol === 'file:') {
-    if (e && e.preventDefault) e.preventDefault();
-    generarTerminosPdfHtml2Pdf();
-    return false;
-  }
-  fetch('/Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf', { method: 'HEAD' })
-    .then(function(res) {
-      if (!res.ok) generarTerminosPdfHtml2Pdf();
-    })
-    .catch(function() {
-      generarTerminosPdfHtml2Pdf();
-    });
-}
-
-function generarTerminosPdfHtml2Pdf() {
-  var docElem = document.querySelector('main') || document.body;
-  if (typeof html2pdf !== 'undefined') {
-    var opt = {
-      margin: [10, 10, 10, 10],
-      filename: 'Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    html2pdf().set(opt).from(docElem).save();
-  } else {
-    window.print();
-  }
 }
 </script>
 
