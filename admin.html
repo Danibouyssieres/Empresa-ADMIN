@@ -120,10 +120,9 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
         <div style="font-size:.78rem;color:#64748b">WhatsApp Oficial: <b>+56 9 2999 0095</b> · www.movilidadysaludasistida.cl</div>
       </div>
     </div>
-    <div style="border:2px solid #0f766e;border-radius:8px;padding:10px 14px;text-align:center;min-width:215px;background:#f8fafc">
-      <div style="font-size:.78rem;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.04em">COMPROBANTE DE ATENCIÓN</div>
-      <div style="font-size:.72rem;color:#64748b;font-weight:600">BOLETA ELECTRÓNICA EXENTA</div>
-      <div style="font-size:1.05rem;font-weight:800;color:#0f766e;margin:4px 0" id="pdfFolio">FOLIO: #MSA-101</div>
+    <div style="border:2px solid #0f766e;border-radius:8px;padding:10px 14px;text-align:center;min-width:240px;background:#f8fafc">
+      <div style="font-size:.76rem;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.03em;line-height:1.3">COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN EN TERRENO</div>
+      <div style="font-size:1.05rem;font-weight:800;color:#0f766e;margin:5px 0" id="pdfFolio">FOLIO: #MSA-101</div>
       <div style="font-size:.76rem;color:#475569" id="pdfFechaEmision">Fecha Emisión: 01/11/2026</div>
     </div>
   </div>
@@ -155,24 +154,24 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     <table style="width:100%;border-collapse:collapse;font-size:.84rem;border:1px solid #cbd5e1">
       <thead>
         <tr style="background:#0f766e;color:#ffffff;text-align:left">
-          <th style="padding:7px 10px;border:1px solid #0f766e">Concepto / Ítem</th>
-          <th style="padding:7px 10px;border:1px solid #0f766e;text-align:center">Métrica</th>
-          <th style="padding:7px 10px;border:1px solid #0f766e;text-align:right">Subtotal</th>
+          <th style="padding:8px 12px;border:1px solid #0f766e;width:58%">Concepto / Ítem</th>
+          <th style="padding:8px 10px;border:1px solid #0f766e;text-align:center;width:18%">Métrica</th>
+          <th style="padding:8px 14px;border:1px solid #0f766e;text-align:right;width:24%;min-width:140px;white-space:nowrap">Subtotal</th>
         </tr>
       </thead>
       <tbody id="pdfTablaItems"></tbody>
       <tfoot style="font-weight:700">
         <tr style="background:#f8fafc;border-top:2px solid #cbd5e1">
-          <td colspan="2" style="padding:6px 10px;text-align:right">SUBTOTAL SERVICIO:</td>
-          <td style="padding:6px 10px;text-align:right" id="pdfSubtotal">$48.500</td>
+          <td colspan="2" style="padding:8px 12px;text-align:right">SUBTOTAL SERVICIO:</td>
+          <td style="padding:8px 14px;text-align:right;white-space:nowrap;min-width:140px" id="pdfSubtotal">$48.500</td>
         </tr>
         <tr style="color:#0f766e">
-          <td colspan="2" style="padding:6px 10px;text-align:right">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
-          <td style="padding:6px 10px;text-align:right" id="pdfAbono">-$24.250</td>
+          <td colspan="2" style="padding:8px 12px;text-align:right">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
+          <td style="padding:8px 14px;text-align:right;white-space:nowrap;min-width:140px" id="pdfAbono">-$24.250</td>
         </tr>
         <tr style="background:#f1f5f9;font-size:.92rem;color:#0f766e">
-          <td colspan="2" style="padding:8px 10px;text-align:right;font-weight:800">SALDO FINAL PAGADO AL CIERRE:</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:800;font-size:1.02rem" id="pdfSaldoFinal">$24.250</td>
+          <td colspan="2" style="padding:10px 12px;text-align:right;font-weight:800">SALDO FINAL PAGADO AL CIERRE:</td>
+          <td style="padding:10px 14px;text-align:right;font-weight:800;font-size:1.02rem;white-space:nowrap;min-width:140px" id="pdfSaldoFinal">$24.250</td>
         </tr>
       </tfoot>
     </table>
@@ -182,7 +181,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:12px;background:#f8fafc;font-size:.82rem;line-height:1.5">
       <div style="font-weight:800;color:#0f766e;margin-bottom:6px;text-transform:uppercase">🧾 Respaldo de Pago y Registro SII</div>
       <div><b>Medio de Pago Saldo:</b> <span id="pdfMedioPago">Transferencia Electrónica</span></div>
-      <div><b>Boleta Electrónica SII N°:</b> <span id="pdfFolioSII">B-1082</span></div>
+      <div id="pdfFolioSIIContainer"><b>Documento Tributario:</b> <span id="pdfFolioSII">Boleta Electrónica Exenta emitida vía e-Boleta SII</span></div>
       <div><b>Estado de Pago:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span></div>
       <div style="margin-top:6px;font-size:.76rem;color:#64748b">
         Atención ejecutada conforme a protocolos de seguridad clínica y traslado asistido de Movilidad y Salud Asistida SpA.
@@ -237,8 +236,9 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
       </div>
 
       <div>
-        <label for="adm_folioSII" style="font-weight:700;display:block;margin-bottom:4px">N° de Boleta Electrónica SII emitida *</label>
-        <input type="text" id="adm_folioSII" placeholder="Ej: B-1082" value="B-1082" style="width:100%;padding:9px 12px">
+        <label for="adm_folioSII" style="font-weight:700;display:block;margin-bottom:4px">N° de Boleta Electrónica SII</label>
+        <input type="text" id="adm_folioSII" placeholder="Ej: B-1082 (Opcional)" value="" style="width:100%;padding:9px 12px">
+        <small style="color:var(--mut);font-size:.78rem;display:block;margin-top:3px">(Opcional: Si aún no la emites en la app del SII, déjalo en blanco)</small>
       </div>
     </div>
 
@@ -1288,7 +1288,7 @@ function abrirModalFinalizarAtencionAdmin(svcId, options){
   if(selMedio && options && options.medioPago) selMedio.value = options.medioPago;
 
   const inpFolio = $('#adm_folioSII');
-  if(inpFolio && options && options.folioSII) inpFolio.value = options.folioSII;
+  if(inpFolio) inpFolio.value = (options && options.folioSII !== undefined) ? options.folioSII : (s.folioSII || '');
 
   modal.style.display = 'flex';
 
@@ -1309,7 +1309,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const horaCierre = (customOpts && customOpts.horaCierre) || ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || '12:00';
   const rutPaciente = (customOpts && customOpts.rutPaciente) || ($('#adm_rutPaciente') && $('#adm_rutPaciente').value.trim()) || '12.345.678-9';
   const medioPago = (customOpts && customOpts.medioPago) || ($('#adm_medioPago') && $('#adm_medioPago').value) || 'Transferencia Electrónica';
-  const folioSII = (customOpts && customOpts.folioSII) || ($('#adm_folioSII') && $('#adm_folioSII').value.trim()) || 'B-1082';
+  const folioSII = (customOpts && customOpts.folioSII !== undefined) ? customOpts.folioSII : ($('#adm_folioSII') ? $('#adm_folioSII').value.trim() : '');
 
   const s = D.svcs.find(item => item.id === currentClosingSvcId);
   if(!s){ alert('Servicio no encontrado'); return; }
@@ -1374,17 +1374,17 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if(itemsTbody){
     let itemsHtml = `
       <tr>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1">1. Servicio y Asistencia Clínica Programada</td>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center">${(durMin/60).toFixed(1)} hrs</td>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right">${$c(baseFare)}</td>
+        <td style="padding:8px 12px;border:1px solid #cbd5e1">1. Servicio y Asistencia Clínica Programada</td>
+        <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center">${(durMin/60).toFixed(1)} hrs</td>
+        <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;white-space:nowrap;min-width:140px">${$c(baseFare)}</td>
       </tr>
     `;
     if(diffMin > 0){
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
-          <td style="padding:6px 10px;border:1px solid #cbd5e1"><b>Tiempo Adicional Excedente en Terreno</b></td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">+${diffMin} min (${extraBlocks} bloques)</td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;text-align:right;font-weight:700">${$c(extraCost)}</td>
+          <td style="padding:8px 12px;border:1px solid #cbd5e1"><b>Tiempo Adicional Excedente en Terreno</b></td>
+          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">+${diffMin} min (${extraBlocks} bloques)</td>
+          <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;font-weight:700;white-space:nowrap;min-width:140px">${$c(extraCost)}</td>
         </tr>
       `;
     }
@@ -1395,7 +1395,16 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(abonoPrevio);
   if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(saldoFinal);
   if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
-  if($('#pdfFolioSII')) $('#pdfFolioSII').textContent = folioSII;
+  const folioContainer = $('#pdfFolioSIIContainer');
+  if(folioContainer){
+    if(folioSII){
+      folioContainer.innerHTML = `<b>Boleta Electrónica SII N°:</b> <span id="pdfFolioSII">${folioSII}</span>`;
+    } else {
+      folioContainer.innerHTML = `<b>Documento Tributario:</b> <span id="pdfFolioSII">Boleta Electrónica Exenta emitida vía e-Boleta SII</span>`;
+    }
+  } else if($('#pdfFolioSII')) {
+    $('#pdfFolioSII').textContent = folioSII || 'Boleta Electrónica Exenta emitida vía e-Boleta SII';
+  }
 
   // Generación y descarga con html2pdf
   const pdfElement = document.getElementById('recibo-pdf');

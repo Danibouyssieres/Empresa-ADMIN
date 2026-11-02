@@ -46,7 +46,16 @@ assert(fullAdmin.includes('78.521.776-4'), '#recibo-pdf must contain company RUT
 assert(fullAdmin.includes('id="modalFinalizarAtencionAdmin"'), 'admin must contain #modalFinalizarAtencionAdmin modal');
 assert(adminJs.includes('function abrirModalFinalizarAtencionAdmin'), 'abrirModalFinalizarAtencionAdmin() function must exist');
 assert(adminJs.includes('function ejecutarFinalizacionYDescargaPdfAdmin'), 'ejecutarFinalizacionYDescargaPdfAdmin() function must exist');
-console.log('✓ Field Closure modal, #recibo-pdf template and functions verified');
+
+// 4.1 Legal header correction & column widening & SII optional
+assert(fullAdmin.includes('COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN EN TERRENO'), 'Must have official legal header');
+const reciboPdfSection = fullAdmin.substring(fullAdmin.indexOf('id="recibo-pdf"'), fullAdmin.indexOf('id="modalFinalizarAtencionAdmin"'));
+assert(!reciboPdfSection.includes('BOLETA ELECTRÓNICA EXENTA</div>'), 'Must not have BOLETA ELECTRÓNICA EXENTA in header');
+assert(reciboPdfSection.includes('min-width:140px'), 'Subtotal column must have min-width:140px');
+assert(reciboPdfSection.includes('white-space:nowrap'), 'Subtotal column must have white-space:nowrap');
+assert(fullAdmin.includes('id="adm_folioSII" placeholder="Ej: B-1082 (Opcional)" value=""'), 'adm_folioSII must be optional with default empty value');
+assert(fullAdmin.includes('(Opcional: Si aún no la emites en la app del SII, déjalo en blanco)'), 'adm_folioSII must have helpful optional text');
+console.log('✓ Field Closure modal, legal header, widened columns and optional SII field verified');
 
 // 5. Test quotation math in VM
 const fakeDoc = {
@@ -138,25 +147,43 @@ assert.strictEqual(qStateFloor.totalFare, 50000, 'Total fare should be elevated 
 assert.strictEqual(qStateFloor.abono50, 25000, 'Abono should be $25.000');
 console.log('✓ Commensurate minimum floor logic verified ($22.000 elevated to $50.000 in Anillo 3)');
 
-// Test 5C: Test Field Closure & Boleta PDF Generation
-const resClose = vm.runInContext(`
+// Test 5C: Test Field Closure & Boleta PDF Generation with empty SII folio
+const resCloseNoSII = vm.runInContext(`
   abrirModalFinalizarAtencionAdmin(1, {
     horaCierre: '11:00',
     rutPaciente: '12.345.678-9',
     medioPago: 'Transferencia Electrónica',
-    folioSII: 'B-7788',
+    folioSII: '',
     autoConfirm: true
   });
 `, mockContext);
 
-assert(resClose && resClose.folio === 1, 'Folio must match service id 1');
-assert.strictEqual(resClose.totalConExtra, 42000 + 6000, 'Total with extra 30 min delay should be $48.000');
-assert.strictEqual(resClose.saldoFinal, 48000 - 21000, 'Saldo should be $27.000');
+assert(resCloseNoSII && resCloseNoSII.folio === 1, 'Folio must match service id 1');
+assert.strictEqual(resCloseNoSII.totalConExtra, 42000 + 6000, 'Total with extra 30 min delay should be $48.000');
+assert.strictEqual(resCloseNoSII.saldoFinal, 48000 - 21000, 'Saldo should be $27.000');
 assert(capturedPdfOpts !== null, 'html2pdf options should be configured');
 assert.strictEqual(capturedPdfOpts.filename, 'Comprobante_Atencion_1.pdf', 'Filename matches pattern');
-assert(resClose.waUrl.includes('56977778888'), 'WhatsApp phone should be correctly parsed');
-assert(resClose.waUrl.includes(encodeURIComponent('adjunto el comprobante digital de atención y respaldo de pago del servicio finalizado.')), 'WhatsApp text matches spec');
-console.log('✓ Field Closure, 30 min extra delay recalculation, PDF and WhatsApp notification verified');
+assert(resCloseNoSII.waUrl.includes('56977778888'), 'WhatsApp phone should be correctly parsed');
+assert(resCloseNoSII.waUrl.includes(encodeURIComponent('adjunto el comprobante digital de atención y respaldo de pago del servicio finalizado.')), 'WhatsApp text matches spec');
+
+const folioContainerNoSii = fakeDoc.getElementById('pdfFolioSIIContainer');
+assert(folioContainerNoSii.innerHTML.includes('Documento Tributario:</b> <span id="pdfFolioSII">Boleta Electrónica Exenta emitida vía e-Boleta SII</span>'), 'Empty SII folio must render Documento Tributario text');
+console.log('✓ Field Closure with empty SII folio renders fallback text properly');
+
+// Test 5D: Test Field Closure with provided SII folio
+vm.runInContext(`
+  abrirModalFinalizarAtencionAdmin(1, {
+    horaCierre: '11:00',
+    rutPaciente: '12.345.678-9',
+    medioPago: 'Transferencia Electrónica',
+    folioSII: 'B-9988',
+    autoConfirm: true
+  });
+`, mockContext);
+
+const folioContainerWithSii = fakeDoc.getElementById('pdfFolioSIIContainer');
+assert(folioContainerWithSii.innerHTML.includes('Boleta Electrónica SII N°:</b> <span id="pdfFolioSII">B-9988</span>'), 'Provided SII folio must render folio number');
+console.log('✓ Field Closure with explicit SII folio renders folio number properly');
 
 // 6. Test Synchronization with reservar.html
 const reservarHtml = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
