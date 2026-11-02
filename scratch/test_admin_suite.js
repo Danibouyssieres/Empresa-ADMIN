@@ -11,8 +11,73 @@ assert(loginHtml.includes('id="u_user"'), 'login.html must have #u_user input');
 assert(loginHtml.includes('id="u_pass"'), 'login.html must have #u_pass input');
 assert(loginHtml.includes('movilidadysaludasistida@gmail.com'), 'login.html must include official admin email');
 assert(loginHtml.includes('msa-admin-token'), 'login.html must store msa-admin-token');
+assert(loginHtml.includes('Iniciar Sesión en Plataforma'), 'login.html must have submit button');
+assert(!loginHtml.includes('quick-access'), 'login.html must NOT contain quick access section');
+assert(!loginHtml.includes('fillQuick'), 'login.html must NOT contain fillQuick shortcuts');
+assert(!loginHtml.includes('Accesos rápidos autorizados'), 'login.html must NOT contain quick access header');
+assert(loginHtml.includes('Superadmin'), 'login.html must configure Superadmin master role');
 assert(loginHtml.includes("window.location.replace('admin.html')") || loginHtml.includes("window.location.href = 'admin.html'"), 'login.html must redirect to admin.html on auth');
-console.log('✓ login.html structure, official user and session token setup verified');
+console.log('✓ login.html structure, single clean form, no shortcuts and Superadmin master role verified');
+
+// 1.1 Test login authentication logic in VM
+const loginDoc = {
+  elements: {
+    u_user: { value: 'movilidadysaludasistida@gmail.com' },
+    u_pass: { value: 'MSA2026Admin' },
+    errMsg: { style: { display: 'none' } },
+    themeBtn: { textContent: '' }
+  },
+  getElementById: function(id) {
+    if (!this.elements[id]) this.elements[id] = { value: '', style: {} };
+    return this.elements[id];
+  },
+  documentElement: {
+    getAttribute: () => 'light',
+    setAttribute: () => {}
+  }
+};
+let loginRedirect = null;
+const loginStorage = {};
+const loginContext = {
+  console: console,
+  document: loginDoc,
+  window: {
+    location: {
+      set href(val) { loginRedirect = val; },
+      get href() { return loginRedirect; }
+    }
+  },
+  sessionStorage: {
+    setItem: (k, v) => { loginStorage[k] = v; },
+    getItem: (k) => loginStorage[k]
+  },
+  localStorage: {
+    setItem: (k, v) => { loginStorage[k] = v; },
+    getItem: (k) => loginStorage[k]
+  }
+};
+vm.createContext(loginContext);
+const loginScript = loginHtml.substring(loginHtml.indexOf('<script>') + 8, loginHtml.indexOf('</script>', loginHtml.indexOf('<script>') + 8));
+const loginBodyScript = loginHtml.substring(loginHtml.lastIndexOf('<script>') + 8, loginHtml.lastIndexOf('</script>'));
+vm.runInContext(loginBodyScript, loginContext);
+
+// Test master login success
+vm.runInContext('handleLogin({ preventDefault: () => {} });', loginContext);
+assert.strictEqual(loginRedirect, 'admin.html', 'Master login should redirect to admin.html');
+const savedSess = JSON.parse(loginStorage['msa-session']);
+assert.strictEqual(savedSess.role, 'admin', 'Master role should be admin');
+assert.strictEqual(savedSess.roleLabel, 'Superadmin', 'Master roleLabel should be Superadmin');
+assert(Array.isArray(savedSess.permissions) && savedSess.permissions.includes('all'), 'Master role should have global permissions');
+assert(loginStorage['msa-admin-token'], 'Master login should generate and store admin token');
+console.log('✓ Master authentication (Superadmin) with unified global permissions verified');
+
+// Test invalid login
+loginRedirect = null;
+loginDoc.elements.u_pass.value = 'wrongpassword';
+vm.runInContext('handleLogin({ preventDefault: () => {} });', loginContext);
+assert.strictEqual(loginRedirect, null, 'Invalid login must not redirect');
+assert.strictEqual(loginDoc.elements.errMsg.style.display, 'block', 'Invalid login must display error message');
+console.log('✓ Invalid login security rejection verified');
 
 // 2. Verify admin Route Guard & CDN
 const adminHtml = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
@@ -95,12 +160,12 @@ const mockContext = {
   window: fakeWindow,
   html2pdf: fakeHtml2Pdf,
   sessionStorage: {
-    getItem: () => JSON.stringify({ role: 'admin', name: 'Supervisión Central', token: 'tok123' }),
+    getItem: () => JSON.stringify({ role: 'admin', roleLabel: 'Superadmin', name: 'Supervisión Central', token: 'tok123' }),
     setItem: () => {},
     removeItem: () => {}
   },
   localStorage: {
-    getItem: () => JSON.stringify({ role: 'admin', name: 'Supervisión Central', token: 'tok123' }),
+    getItem: () => JSON.stringify({ role: 'admin', roleLabel: 'Superadmin', name: 'Supervisión Central', token: 'tok123' }),
     setItem: () => {},
     removeItem: () => {}
   },

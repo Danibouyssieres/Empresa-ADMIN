@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Acceso Administrativo y TENS · Movilidad y Salud Asistida</title>
+<title>Acceso Administrativo · Movilidad y Salud Asistida</title>
 <link rel="icon" href="Logo de Movilidad y Salud Asistida.png" type="image/png">
 <script>
   // Si ya tiene sesión activa válida, redirigir directo a admin.html
@@ -58,7 +58,7 @@ body {
   background: var(--card);
   border: 1.5px solid var(--bd);
   border-radius: 16px;
-  padding: 30px 24px;
+  padding: 32px 26px;
   box-shadow: 0 10px 35px rgba(0,0,0,0.07);
 }
 .login-header {
@@ -83,14 +83,14 @@ body {
   margin: 0;
 }
 .form-group {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 label {
   display: block;
   font-size: 0.84rem;
   font-weight: 700;
   color: var(--fg);
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 input {
   width: 100%;
@@ -108,7 +108,7 @@ input:focus {
 }
 .btn-submit {
   width: 100%;
-  padding: 11px;
+  padding: 12px;
   background: var(--pri);
   color: #fff;
   border: none;
@@ -117,7 +117,7 @@ input:focus {
   font-weight: 700;
   cursor: pointer;
   transition: opacity .15s;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 .btn-submit:hover { opacity: .92; }
 .error-msg {
@@ -125,41 +125,19 @@ input:focus {
   color: #dc2626;
   border: 1px solid rgba(220, 38, 38, .3);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 0.84rem;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   display: none;
-}
-.quick-access {
-  margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px dashed var(--bd);
-}
-.quick-btn {
-  background: var(--bg);
-  border: 1px solid var(--bd);
-  border-radius: 8px;
-  padding: 9px 12px;
-  width: 100%;
-  text-align: left;
-  font-size: 0.82rem;
-  margin-bottom: 8px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--fg);
-  transition: all .15s;
-}
-.quick-btn:hover {
-  background: var(--buf);
-  border-color: var(--pri);
+  line-height: 1.4;
 }
 .footer-links {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 18px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bd);
   font-size: 0.82rem;
 }
 .footer-links a {
@@ -184,14 +162,14 @@ input:focus {
   <div class="login-header">
     <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida">
     <h1>Portal Administrativo</h1>
-    <p>Acceso Seguro para Supervisores y Conducción TENS</p>
+    <p>Acceso Seguro · Control Maestro de Operaciones</p>
   </div>
 
-  <div id="errMsg" class="error-msg">Credenciales incorrectas. Verifique sus datos o use un acceso autorizado.</div>
+  <div id="errMsg" class="error-msg">Credenciales incorrectas. Verifique el usuario oficial y la contraseña maestra.</div>
 
   <form id="loginForm" onsubmit="handleLogin(event)">
     <div class="form-group">
-      <label for="u_user">Usuario Oficial</label>
+      <label for="u_user">Usuario / Correo Oficial</label>
       <input type="text" id="u_user" value="movilidadysaludasistida@gmail.com" placeholder="movilidadysaludasistida@gmail.com" required autofocus>
     </div>
 
@@ -203,24 +181,6 @@ input:focus {
     <button type="submit" class="btn-submit">🔐 Iniciar Sesión en Plataforma</button>
   </form>
 
-  <div class="quick-access">
-    <div style="font-size:0.8rem;font-weight:700;color:var(--mut);margin-bottom:8px">⚡ Accesos rápidos autorizados:</div>
-    <button type="button" class="quick-btn" onclick="fillQuick('movilidadysaludasistida@gmail.com', 'MSA2026Admin')">
-      <div>
-        <b>Supervisor / Central de Operaciones</b>
-        <div style="font-size:0.75rem;color:var(--mut)">movilidadysaludasistida@gmail.com</div>
-      </div>
-      <span style="color:var(--pri);font-weight:700">Entrar →</span>
-    </button>
-    <button type="button" class="quick-btn" onclick="fillQuick('daniela', 'tens123')">
-      <div>
-        <b>TENS: Daniela González Bouyssieres</b>
-        <div style="font-size:0.75rem;color:var(--mut)">Registro SIS Nº 442762</div>
-      </div>
-      <span style="color:var(--pri);font-weight:700">Entrar →</span>
-    </button>
-  </div>
-
   <div class="footer-links">
     <a href="index.html">← Volver al sitio público</a>
     <button type="button" class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 Modo oscuro</button>
@@ -228,12 +188,6 @@ input:focus {
 </div>
 
 <script>
-function fillQuick(u, p){
-  document.getElementById('u_user').value = u;
-  document.getElementById('u_pass').value = p;
-  handleLogin(null);
-}
-
 function handleLogin(e){
   if(e && e.preventDefault) e.preventDefault();
   var u = (document.getElementById('u_user').value || '').trim().toLowerCase();
@@ -241,39 +195,18 @@ function handleLogin(e){
   var errMsg = document.getElementById('errMsg');
   errMsg.style.display = 'none';
 
-  // Validación de credenciales de Supervisor / Administrador
-  var isAdmin = (u === 'movilidadysaludasistida@gmail.com' || u === 'admin' || u === 'supervisor') &&
-                (p === 'msa2026admin' || p === 'MSA2026Admin' || p === 'admin123' || p === 'msa2026' || p === 'admin');
+  // Validación de credenciales maestras (Superadmin con acceso global unificado)
+  var isMaster = (u === 'movilidadysaludasistida@gmail.com' || u === 'admin' || u === 'supervisor') &&
+                 (p === 'msa2026admin' || p === 'MSA2026Admin' || p === 'admin123' || p === 'msa2026' || p === 'admin');
 
-  // Validación de credenciales TENS
-  var isTens = (u === 'daniela' || u === 'tens') &&
-               (p === 'tens123' || p === 'admin123' || p === '123456' || p === 'msa2026');
-
-  if(isAdmin){
+  if(isMaster){
     var token = 'msa-auth-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     var sess = {
       role: 'admin',
-      name: 'Supervisión Central',
+      roleLabel: 'Superadmin',
+      name: 'Supervisión Central y Operaciones',
       user: 'movilidadysaludasistida@gmail.com',
-      token: token,
-      loginAt: new Date().toISOString()
-    };
-    try {
-      sessionStorage.setItem('msa-session', JSON.stringify(sess));
-      localStorage.setItem('msa-admin-token', token);
-      localStorage.setItem('msa-admin-user', JSON.stringify(sess));
-    } catch(err){}
-    window.location.href = 'admin.html';
-    return;
-  }
-
-  if(isTens){
-    var token = 'msa-tens-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    var sess = {
-      role: 'tens',
-      name: 'Daniela González Bouyssieres',
-      user: 'daniela',
-      tensId: 't1',
+      permissions: ['all', 'gestion', 'finanzas', 'terreno', 'calendario', 'staff'],
       token: token,
       loginAt: new Date().toISOString()
     };
