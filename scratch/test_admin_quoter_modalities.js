@@ -218,8 +218,8 @@ assert.strictEqual(qState.jornada, 'nocturno');
 assert.strictEqual(qState.totalFare, 96000, 'Modality 3 6h night pack benefit must be $96.000');
 console.log('✓ Modality 3 ring minimum hours, 12h max and $96.000 night pack benefit passed');
 
-// 5. Test Modality 4: Acompañamiento en Eventos Sociales (Corrected Extra Rates: $6k/30m, $12k/1h, $18k/1.5h, $24k/2h)
-console.log('\nTesting Modality 4: Eventos Sociales (Corrected Extra Rates: $6k, $12k, $18k, $24k)...');
+// 5. Test Modality 4: Acompañamiento en Eventos Sociales (Scale: $7.500/30m, $15.000/1h, $22.500/1.5h, $30.000/2h)
+console.log('\nTesting Modality 4: Eventos Sociales (Scale: $7.5k, $15k, $22.5k, $30k)...');
 q_mode.value = '4';
 q_event_subtype.value = 'sin_traslado';
 q_event_pack.value = 'base'; // 4h: $65.000
@@ -228,36 +228,50 @@ vm.runInContext('onAdminModeChange();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
 assert.strictEqual(qState.totalFare, 65000, 'Plan Base Sin Traslado must be $65.000');
 
+// Base 4h Sin Traslado ($65.000) + 2h extras ($30.000) = $95.000 (igual al Plan Total 6h Sin Traslado)
+q_event_extra.value = '120';
+vm.runInContext('calcAdminQuote();', mockContext);
+qState = vm.runInContext('qState;', mockContext);
+assert.strictEqual(qState.totalFare, 95000, 'Plan Base Sin Traslado + 2h ($30.000) must equal Plan Total 6h ($95.000)');
+
 q_event_subtype.value = 'con_traslado';
+q_event_extra.value = '0';
 vm.runInContext('onAdminEventSubtypeChange();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
 assert.strictEqual(qState.totalFare, 95000, 'Plan Base Con Traslado must be $95.000');
 
-// +30 min -> +$6.000 (total $101.000)
+// +30 min -> +$7.500 (total $102.500)
 q_event_extra.value = '30';
 vm.runInContext('calcAdminQuote();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 101000, 'Plan Base Con Traslado + 30m must be $101.000 (+$6.000)');
+assert.strictEqual(qState.totalFare, 102500, 'Plan Base Con Traslado + 30m must be $102.500 (+$7.500)');
 
-// +1 hora -> +$12.000 (total $107.000)
+// +1 hora -> +$15.000 (total $110.000)
 q_event_extra.value = '60';
 vm.runInContext('calcAdminQuote();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 107000, 'Plan Base Con Traslado + 1h must be $107.000 (+$12.000)');
+assert.strictEqual(qState.totalFare, 110000, 'Plan Base Con Traslado + 1h must be $110.000 (+$15.000)');
 
-// +1 hora 30 min -> +$18.000 (total $113.000)
+// +1 hora 30 min -> +$22.500 (total $117.500)
 q_event_extra.value = '90';
 vm.runInContext('calcAdminQuote();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 113000, 'Plan Base Con Traslado + 1h30m must be $113.000 (+$18.000)');
+assert.strictEqual(qState.totalFare, 117500, 'Plan Base Con Traslado + 1h30m must be $117.500 (+$22.500)');
 
-// +2 horas (Tope) -> +$24.000 (total $119.000)
+// +2 horas (Tope) -> +$30.000 (total $125.000, igual a Plan Total 6h Con Traslado)
 q_event_extra.value = '120';
 vm.runInContext('calcAdminQuote();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 119000, 'Plan Base Con Traslado + 2h must be $119.000 (+$24.000)');
+assert.strictEqual(qState.totalFare, 125000, 'Plan Base Con Traslado + 2h ($30.000) must equal Plan Total 6h ($125.000)');
 assert.strictEqual(qState.durationMin, 360, 'Duration must be 240 + 120 = 360 min');
-console.log('✓ Modality 4 corrected extra rates (+$6k, +$12k, +$18k, +$24k) passed');
+
+// Plan Total (6h Con Traslado = $125.000) + 2h extras ($30.000) = $155.000 (cobertura 8h)
+q_event_pack.value = 'total';
+vm.runInContext('calcAdminQuote();', mockContext);
+qState = vm.runInContext('qState;', mockContext);
+assert.strictEqual(qState.totalFare, 155000, 'Plan Total Con Traslado 6h + 2h extras must be $155.000 (8h)');
+assert.strictEqual(qState.durationMin, 480, 'Duration must be 360 + 120 = 480 min (8h)');
+console.log('✓ Modality 4 corrected scale ($7.5k, $15k, $22.5k, $30k) and mathematical tie-in passed');
 
 // 6. Test Modality 5: Programas Interregionales (Capped at 2h: 0, 30m, 1h, 1.5h, 2h)
 console.log('\nTesting Modality 5: Programas Interregionales (Capped strictly at 2 hours)...');

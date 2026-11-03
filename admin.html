@@ -406,10 +406,10 @@ const EVENT_RATES = {
 
 const EVENT_EXTRAS = {
   '0': { fare: 0, min: 0 },
-  '30': { fare: 6000, min: 30 },
-  '60': { fare: 12000, min: 60 },
-  '90': { fare: 18000, min: 90 },
-  '120': { fare: 24000, min: 120 }
+  '30': { fare: 7500, min: 30 },
+  '60': { fare: 15000, min: 60 },
+  '90': { fare: 22500, min: 90 },
+  '120': { fare: 30000, min: 120 }
 };
 
 const INTER_PLANS = {
@@ -1164,10 +1164,10 @@ function form(){
           <label for="aq_event_extra"><b>Tiempo Adicional *</b></label>
           <select id="aq_event_extra" onchange="calcAdminQuote()">
             <option value="0" selected>Sin tiempo adicional ($0)</option>
-            <option value="30">+30 minutos (+$6.000)</option>
-            <option value="60">+1 hora (+$12.000)</option>
-            <option value="90">+1 hora 30 min (+$18.000)</option>
-            <option value="120">+2 horas (+$24.000 - Tope)</option>
+            <option value="30">+30 minutos extra (+$7.500)</option>
+            <option value="60">+1 hora extra (+$15.000)</option>
+            <option value="90">+1 hora 30 min extra (+$22.500)</option>
+            <option value="120">+2 horas extras (+$30.000 - Tope máximo)</option>
           </select>
         </div>
       </div>
