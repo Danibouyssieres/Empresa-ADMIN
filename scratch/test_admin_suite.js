@@ -305,13 +305,20 @@ const resContext = {
 };
 vm.createContext(resContext);
 
-// Extract script from reservar.html (main script tag starting at line 997)
-const startScriptTag = reservarHtml.indexOf("<script>\r\nconst K='msa-v1'") !== -1 
-  ? reservarHtml.indexOf("<script>\r\nconst K='msa-v1'")
-  : reservarHtml.indexOf("<script>\nconst K='msa-v1'");
-const initFormIndex = reservarHtml.indexOf('initForm();');
-const endScriptTag = initFormIndex !== -1 ? initFormIndex : reservarHtml.lastIndexOf('</script>');
-const resScriptBody = reservarHtml.substring(startScriptTag + 8, endScriptTag);
+// Extract script from js/reservar.js if exists, else reservar.html
+let resScriptBody = '';
+if (fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js'))) {
+  const fullJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8');
+  const idx = fullJs.indexOf('initForm();');
+  resScriptBody = idx !== -1 ? fullJs.substring(0, idx) : fullJs;
+} else {
+  const startScriptTag = reservarHtml.indexOf("<script>\r\nconst K='msa-v1'") !== -1 
+    ? reservarHtml.indexOf("<script>\r\nconst K='msa-v1'")
+    : reservarHtml.indexOf("<script>\nconst K='msa-v1'");
+  const initFormIndex = reservarHtml.indexOf('initForm();');
+  const endScriptTag = initFormIndex !== -1 ? initFormIndex : reservarHtml.lastIndexOf('</script>');
+  resScriptBody = reservarHtml.substring(startScriptTag + 8, endScriptTag);
+}
 
 // We can run the helper functions of reservar in resContext
 try {
