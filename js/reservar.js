@@ -2380,6 +2380,24 @@ function seed(){
   };
 }
 
+
+// Función para sincronizar en tiempo real bloqueos desde base de datos central (Supabase / Vercel API)
+async function syncCentralizedBlocks(targetDate){
+  if(typeof window !== 'undefined' && window.MsaBlocksService){
+    try {
+      const remoteBlocks = await window.MsaBlocksService.fetchBlocks(targetDate);
+      if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
+        window.MsaBlocksService.mergeBlocksIntoD(remoteBlocks, D);
+        save();
+        renderCalendar();
+        updateSlots(false);
+      }
+    } catch(e){
+      console.warn('Error al sincronizar bloqueos en tiempo real:', e);
+    }
+  }
+}
+
 function load(){
   try{
     const parsed = JSON.parse(localStorage.getItem(K));
@@ -2696,6 +2714,12 @@ function changeCalMonth(delta){
 }
 
 function selectCalendarDate(dateStr){
+  const dateManualBlocks = (D.blocks || []).filter(b => b.date === dateStr);
+  const isFullBlocked = dateManualBlocks.some(b => b.type === 'full') ||
+    (dateManualBlocks.some(b => b.type === 'manana') && dateManualBlocks.some(b => b.type === 'tarde') && dateManualBlocks.some(b => b.type === 'noche'));
+  if(isFullBlocked){
+    return;
+  }
   const ev = evaluateDateCapacity(dateStr);
   if(!ev.inRange) return;
   $('#b_date').value = dateStr;
@@ -2734,6 +2758,10 @@ function selectCalendarDate(dateStr){
 
 function selectShiftBlock(blockId){
   const dateStr = $('#b_date').value;
+  const shiftManualBlocked = (D.blocks || []).some(b => b.date === dateStr && (b.type === blockId || b.type === 'full'));
+  if(shiftManualBlocked){
+    return;
+  }
   const ev = evaluateDateCapacity(dateStr);
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
 
@@ -2918,12 +2946,22 @@ function renderCalendar(){
     const ev = evaluateDateCapacity(dateStr);
     const isSel = dateStr === selectedDate;
 
+    const dateManualBlocks = (D.blocks || []).filter(b => b.date === dateStr);
+    const isFullDayManualBlocked = dateManualBlocks.some(b => b.type === 'full') ||
+      (dateManualBlocks.some(b => b.type === 'manana') && dateManualBlocks.some(b => b.type === 'tarde') && dateManualBlocks.some(b => b.type === 'noche'));
+
     let stClass = 'st-off';
     let tagText = 'No disp.';
     let clickable = false;
     let titleTip = '';
 
-    if(!ev.inRange){
+    if(isFullDayManualBlocked){
+      stClass = 'st-full is-blocked-full';
+      tagText = 'Bloqueado';
+      clickable = false;
+      const fBlock = dateManualBlocks.find(b => b.type === 'full');
+      titleTip = '🔒 Fecha bloqueada por administración' + (fBlock && fBlock.reason && fBlock.reason !== 'Sin motivo especificado' ? ': ' + fBlock.reason : '');
+    } else if(!ev.inRange){
       stClass = 'st-off';
       tagText = dateStr <= todayStr ? '< 24h' : '> 30d';
       titleTip = ev.outReason;
@@ -3114,27 +3152,66 @@ function updateSlots(keepCurrentTime = false){
     }
   } else {
     // Todos los turnos disponibles según capacidad de la fecha
-    const okM = ev.inRange && ev.manana.available;
-    const okT = ev.inRange && ev.tarde.available;
-    const okN = ev.inRange && ev.noche.available;
+    const isManualM = (D.blocks || []).some(b => b.date === dateStr && (b.type === 'manana' || b.type === 'full'));
+    const blockM = (D.blocks || []).find(b => b.date === dateStr && (b.type === 'manana' || b.type === 'full'));
+    const isManualT = (D.blocks || []).some(b => b.date === dateStr && (b.type === 'tarde' || b.type === 'full'));
+    const blockT = (D.blocks || []).find(b => b.date === dateStr && (b.type === 'tarde' || b.type === 'full'));
+    const isManualN = (D.blocks || []).some(b => b.date === dateStr && (b.type === 'noche' || b.type === 'full'));
+    const blockN = (D.blocks || []).find(b => b.date === dateStr && (b.type === 'noche' || b.type === 'full'));
 
-    btnM.disabled = !okM;
-    btnM.classList.toggle('active', okM && selectedBlock === 'manana');
-    badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
-    badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : 'Agotado';
-    reasonM.style.display = okM ? 'none' : 'block';
-    reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
+    const okM = ev.inRange && ev.manana.available && !isManualM;
+    const okT = ev.inRange && ev.tarde.available && !isManualT;
+    const okN = ev.inRange && ev.noche.available && !isManualN;
 
-    btnT.disabled = !okT;
-    btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
-    badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
-    badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : 'Agotado';
-    reasonT.style.display = okT ? 'none' : 'block';
-    reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
+    if(isManualM){
+      btnM.disabled = true;
+      btnM.classList.remove('active');
+      btnM.classList.add('shift-manual-blocked');
+      badgeM.className = 'block-badge blocked';
+      badgeM.textContent = 'Bloqueado / No disponible (0 cupos)';
+      reasonM.style.display = 'block';
+      reasonM.textContent = '🔒 Bloqueado por administración' + (blockM && blockM.reason && blockM.reason !== 'Sin motivo especificado' ? ': ' + blockM.reason : '');
+    } else {
+      btnM.classList.remove('shift-manual-blocked');
+      btnM.disabled = !okM;
+      btnM.classList.toggle('active', okM && selectedBlock === 'manana');
+      badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
+      badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : 'Agotado';
+      reasonM.style.display = okM ? 'none' : 'block';
+      reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
+    }
+
+    if(isManualT){
+      btnT.disabled = true;
+      btnT.classList.remove('active');
+      btnT.classList.add('shift-manual-blocked');
+      badgeT.className = 'block-badge blocked';
+      badgeT.textContent = 'Bloqueado / No disponible (0 cupos)';
+      reasonT.style.display = 'block';
+      reasonT.textContent = '🔒 Bloqueado por administración' + (blockT && blockT.reason && blockT.reason !== 'Sin motivo especificado' ? ': ' + blockT.reason : '');
+    } else {
+      btnT.classList.remove('shift-manual-blocked');
+      btnT.disabled = !okT;
+      btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
+      badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
+      badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : 'Agotado';
+      reasonT.style.display = okT ? 'none' : 'block';
+      reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
+    }
 
     if(btnN){
-      if(!allowsNight){
+      if(isManualN){
+        btnN.disabled = true;
+        btnN.style.pointerEvents = 'none';
+        btnN.classList.remove('active');
+        btnN.classList.add('shift-manual-blocked');
+        badgeN.className = 'block-badge blocked';
+        badgeN.textContent = 'Bloqueado / No disponible (0 cupos)';
+        reasonN.style.display = 'block';
+        reasonN.textContent = '🔒 Bloqueado por administración' + (blockN && blockN.reason && blockN.reason !== 'Sin motivo especificado' ? ': ' + blockN.reason : '');
+      } else if(!allowsNight){
         // Modalidades 1 y 2: Bloquear Turno Noche para servicios con traslado vehicular
+        btnN.classList.remove('shift-manual-blocked');
         btnN.disabled = true;
         btnN.style.pointerEvents = 'none';
         btnN.classList.remove('active');
@@ -3144,6 +3221,7 @@ function updateSlots(keepCurrentTime = false){
         reasonN.textContent = '🔒 No disponible para traslados vehiculares (habilitado solo para Cuidados a Domicilio y Eventos).';
       } else {
         // Modalidades 3 y 4 (Cuidados a Domicilio y Eventos Sociales): Habilitar Turno Noche según capacidad
+        btnN.classList.remove('shift-manual-blocked');
         btnN.disabled = !okN;
         btnN.style.pointerEvents = okN ? 'auto' : 'none';
         btnN.classList.toggle('active', okN && selectedBlock === 'noche');
@@ -4455,6 +4533,7 @@ addEventListener('storage',ev=>{
 
 
 initForm();
+if(typeof syncCentralizedBlocks === "function") syncCentralizedBlocks();
 
 // DOMContentLoaded visibility initialization
 if(document.readyState === 'loading'){

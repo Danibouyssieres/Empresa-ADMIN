@@ -227,3 +227,9 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .summary-list li{display:flex;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);font-size:.95rem;flex-wrap:wrap;gap:6px}
 footer{background:#0A363F;color:#c9dcd8;font-size:.9rem;padding:28px 0;margin-top:40px;text-align:center}
 footer a{color:#fff}
+
+/* BLOQUEOS CENTRALIZADOS DE DISPONIBILIDAD */
+.block-badge.blocked{background:#64748b !important;color:#ffffff !important}
+.block-btn.shift-manual-blocked{background:var(--buf, #e2e8f0) !important;border-color:#94a3b8 !important;color:var(--mut, #64748b) !important;cursor:not-allowed !important;opacity:.75 !important}
+:root[data-theme="dark"] .block-btn.shift-manual-blocked{background:#1e293b !important;border-color:#475569 !important;color:#94a3b8 !important}
+.cal-day.is-blocked-full{opacity:.45 !important;cursor:not-allowed !important;background:var(--bg) !important;border-color:#ef4444 !important;pointer-events:none !important}

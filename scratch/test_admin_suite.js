@@ -392,4 +392,125 @@ try {
   console.warn('Note on direct reservar VM run:', err.message);
 }
 
-console.log('\nAll Admin Module tests passed successfully! 🚀');
+
+// ==========================================
+// 12. Persistencia Centralizada y Bloqueos en Tiempo Real
+// ==========================================
+console.log('--- Testing Centralized Blocks Persistence & Real-Time Sync ---');
+
+// 12.1 Verificar api/blocks.js
+const blocksApiHandler = require('../api/blocks.js');
+assert.strictEqual(typeof blocksApiHandler, 'function', 'api/blocks.js must export a handler function');
+
+async function testApiBlocks() {
+  // Mock req & res for POST
+  let postResData = null;
+  let postStatus = 0;
+  const postReq = {
+    method: 'POST',
+    body: { date: '2026-11-06', type: 'tarde', reason: 'Mantención móvil' }
+  };
+  const postRes = {
+    setHeader: () => {},
+    status: (code) => {
+      postStatus = code;
+      return {
+        json: (data) => { postResData = data; return data; },
+        end: () => {}
+      };
+    }
+  };
+  await blocksApiHandler(postReq, postRes);
+  assert.strictEqual(postStatus, 200, 'POST /api/blocks should return 200');
+  assert.strictEqual(postResData.ok, true, 'POST /api/blocks should return ok: true');
+  assert.strictEqual(postResData.data.date, '2026-11-06', 'Block date must match');
+  assert.strictEqual(postResData.data.type, 'tarde', 'Block type must match');
+
+  // Mock req & res for GET
+  let getResData = null;
+  const getReq = {
+    method: 'GET',
+    query: { date: '2026-11-06' }
+  };
+  const getRes = {
+    setHeader: () => {},
+    status: (code) => ({
+      json: (data) => { getResData = data; return data; },
+      end: () => {}
+    })
+  };
+  await blocksApiHandler(getReq, getRes);
+  assert.strictEqual(getResData.ok, true, 'GET /api/blocks should return ok: true');
+  assert(Array.isArray(getResData.data), 'GET data must be array');
+  const found = getResData.data.find(b => b.date === '2026-11-06' && b.type === 'tarde');
+  assert(found, 'GET /api/blocks must return the created block for 2026-11-06 tarde');
+
+  // Mock req & res for DELETE
+  let delResData = null;
+  const delReq = {
+    method: 'DELETE',
+    query: { date: '2026-11-06', type: 'tarde' }
+  };
+  const delRes = {
+    setHeader: () => {},
+    status: (code) => ({
+      json: (data) => { delResData = data; return data; },
+      end: () => {}
+    })
+  };
+  await blocksApiHandler(delReq, delRes);
+  assert.strictEqual(delResData.ok, true, 'DELETE /api/blocks should return ok: true');
+  console.log('✓ api/blocks.js handler verified for GET, POST and DELETE endpoints');
+}
+
+// 12.2 Verificar MsaBlocksService en js/blocks-api.js
+const MsaBlocksService = require('../js/blocks-api.js');
+assert(MsaBlocksService, 'MsaBlocksService must be defined in js/blocks-api.js');
+assert.strictEqual(typeof MsaBlocksService.fetchBlocks, 'function', 'fetchBlocks must be a function');
+assert.strictEqual(typeof MsaBlocksService.saveBlock, 'function', 'saveBlock must be a function');
+assert.strictEqual(typeof MsaBlocksService.removeBlock, 'function', 'removeBlock must be a function');
+assert.strictEqual(typeof MsaBlocksService.mergeBlocksIntoD, 'function', 'mergeBlocksIntoD must be a function');
+
+const testD = { blocks: [] };
+MsaBlocksService.mergeBlocksIntoD([{ date: '2026-11-06', type: 'tarde', reason: 'Mantención' }], testD);
+assert.strictEqual(testD.blocks.length, 1, 'mergeBlocksIntoD should add remote block to D.blocks');
+assert.strictEqual(testD.blocks[0].date, '2026-11-06');
+assert.strictEqual(testD.blocks[0].type, 'tarde');
+console.log('✓ js/blocks-api.js MsaBlocksService normalization and state merging verified');
+
+// 12.3 Verificar inclusión en reservar.html y admin.html
+const reservarContent = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
+const adminContent = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+const resCssContent = fs.existsSync(path.join(__dirname, '..', 'css', 'reservar.css'))
+  ? fs.readFileSync(path.join(__dirname, '..', 'css', 'reservar.css'), 'utf8')
+  : '';
+const resJsContent = fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js'))
+  ? fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8')
+  : '';
+const fullRes = reservarContent + '\n' + resCssContent + '\n' + resJsContent;
+
+const admJsContent = fs.existsSync(path.join(__dirname, '..', 'js', 'admin.js'))
+  ? fs.readFileSync(path.join(__dirname, '..', 'js', 'admin.js'), 'utf8')
+  : '';
+const fullAdm = adminContent + '\n' + admJsContent;
+
+assert(reservarContent.includes('js/blocks-api.js'), 'reservar.html must load js/blocks-api.js');
+assert(adminContent.includes('js/blocks-api.js'), 'admin.html must load js/blocks-api.js');
+assert(reservarContent.includes('supabase-js'), 'reservar.html must include Supabase SDK');
+assert(adminContent.includes('supabase-js'), 'admin.html must include Supabase SDK');
+
+// 12.4 Verificar estilos y etiquetas en reservar.html
+assert(fullRes.includes('shift-manual-blocked'), 'reservar.html must have shift-manual-blocked class');
+assert(fullRes.includes('Bloqueado / No disponible (0 cupos)'), 'reservar.html must render "Bloqueado / No disponible (0 cupos)" text on blocked shifts');
+assert(fullRes.includes('is-blocked-full'), 'reservar.html must have is-blocked-full calendar style');
+assert(fullRes.includes('syncCentralizedBlocks'), 'reservar.html must define syncCentralizedBlocks');
+assert(fullAdm.includes('openDbConfigModal'), 'admin.html must define openDbConfigModal for Supabase settings');
+console.log('✓ reservar.html and admin.html script tags, classes and shift badge labels verified');
+
+testApiBlocks().then(() => {
+  console.log('\nAll Admin Module tests passed successfully! 🚀');
+}).catch(e => {
+  console.error('Test error:', e);
+  process.exit(1);
+});
+
