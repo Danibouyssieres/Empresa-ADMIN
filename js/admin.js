@@ -86,19 +86,7 @@ const STAY_HOURS_OPTIONS = [
   { val: 270, label: '4 horas 30 min' },
   { val: 300, label: '5 horas de asistencia' },
   { val: 330, label: '5 horas 30 min' },
-  { val: 360, label: '6 horas de asistencia' },
-  { val: 390, label: '6 horas 30 min' },
-  { val: 420, label: '7 horas de asistencia' },
-  { val: 450, label: '7 horas 30 min' },
-  { val: 480, label: '8 horas de asistencia' },
-  { val: 510, label: '8 horas 30 min' },
-  { val: 540, label: '9 horas de asistencia' },
-  { val: 570, label: '9 horas 30 min' },
-  { val: 600, label: '10 horas de asistencia' },
-  { val: 630, label: '10 horas 30 min' },
-  { val: 660, label: '11 horas de asistencia' },
-  { val: 690, label: '11 horas 30 min' },
-  { val: 720, label: '12 horas de asistencia (Tope Máx)' }
+  { val: 360, label: '6 horas de asistencia (Tope)' }
 ];
 
 const EVENT_RATES = {
@@ -823,19 +811,7 @@ function form(){
             <option value="270">4 horas 30 min</option>
             <option value="300">5 horas de asistencia</option>
             <option value="330">5 horas 30 min</option>
-            <option value="360">6 horas de asistencia</option>
-            <option value="390">6 horas 30 min</option>
-            <option value="420">7 horas de asistencia</option>
-            <option value="450">7 horas 30 min</option>
-            <option value="480">8 horas de asistencia</option>
-            <option value="510">8 horas 30 min</option>
-            <option value="540">9 horas de asistencia</option>
-            <option value="570">9 horas 30 min</option>
-            <option value="600">10 horas de asistencia</option>
-            <option value="630">10 horas 30 min</option>
-            <option value="660">11 horas de asistencia</option>
-            <option value="690">11 horas 30 min</option>
-            <option value="720">12 horas de asistencia (Tope Máx)</option>
+            <option value="360">6 horas de asistencia (Tope)</option>
           </select>
         </div>
       </div>
@@ -886,6 +862,7 @@ function form(){
             <option value="90">+1 hora 30 min extra (+$40.000)</option>
             <option value="120">+2 horas extras (+$50.000 - Tope máximo)</option>
           </select>
+          <small id="lbl_inter_note" style="font-size:11px;color:#0369a1;display:none;margin-top:4px"></small>
         </div>
       </div>
 
@@ -1193,6 +1170,7 @@ function calcAdminQuote(){
 
   if(mode === '1' || mode === '2'){
     stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    if(stayMin > 360) stayMin = 360;
     qState.durationMin = stayMin;
     qState.kmTotal = kmTot;
     timeLabel = `${(stayMin / 60).toFixed(1)} hrs`;
@@ -1222,6 +1200,10 @@ function calcAdminQuote(){
     if(stayMin < minMin){
       stayMin = minMin;
       if($('#aq_stay_hours')) $('#aq_stay_hours').value = String(minMin);
+    }
+    if(stayMin > 360){
+      stayMin = 360;
+      if($('#aq_stay_hours')) $('#aq_stay_hours').value = '360';
     }
     qState.durationMin = stayMin;
     qState.kmTotal = 0;
@@ -1268,7 +1250,30 @@ function calcAdminQuote(){
     timeLabel = `${pack === 'base' ? 'Plan Base 4h' : 'Plan Total 6h'}${extraCfg.min > 0 ? ` (+${extraCfg.min}m)` : ''}`;
   } else if(mode === '5'){
     const planKey = ($('#aq_inter_plan') && $('#aq_inter_plan').value) || 'estandar';
-    const extraKey = ($('#aq_inter_extra') && $('#aq_inter_extra').value) || '0';
+    const extraSelect = $('#aq_inter_extra');
+    const noteEl = $('#lbl_inter_note');
+
+    if(planKey === 'cronico'){
+      if(extraSelect){
+        extraSelect.value = '0';
+        extraSelect.disabled = true;
+        extraSelect.style.opacity = '0.6';
+      }
+      if(noteEl){
+        noteEl.style.display = 'block';
+        noteEl.textContent = '🔒 Por límite estricto de seguridad vial y descanso, el Programa Crónico (6h) opera con cobertura cerrada improrrogable ($0 tiempo extra).';
+      }
+    } else {
+      if(extraSelect){
+        extraSelect.disabled = false;
+        extraSelect.style.opacity = '1';
+      }
+      if(noteEl){
+        noteEl.style.display = 'none';
+      }
+    }
+
+    const extraKey = (planKey === 'cronico') ? '0' : ((extraSelect && extraSelect.value) || '0');
 
     qState.interPlan = planKey;
 
