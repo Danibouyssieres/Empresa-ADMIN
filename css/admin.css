@@ -43,24 +43,26 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 @media(max-width:860px){.blk-layout{grid-template-columns:1fr}}
 .mcal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;margin-bottom:6px}
 .mcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.mcal-day{min-height:66px;border-radius:9px;border:1.5px solid var(--bd);background:var(--card);padding:6px 5px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:all .14s;position:relative}
+.mcal-day{min-height:64px;border-radius:9px;border:1.5px solid var(--bd);background:var(--card);padding:5px 6px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:all .14s;position:relative}
 .mcal-day:hover:not(.empty){border-color:var(--pri);transform:translateY(-1px)}
 .mcal-day.empty{background:transparent;border-color:transparent;cursor:default;min-height:0}
-.mcal-day.sel{border:2.5px solid #16a34a !important;box-shadow:0 3px 10px rgba(22,163,74,.2)}
-.mcal-day.b-full{background:rgba(220,38,38,.09);border-color:rgba(220,38,38,.45)}
-.mcal-day.b-part{background:rgba(217,119,6,.09);border-color:rgba(217,119,6,.48)}
+.mcal-day.sel{border:2px solid #16a34a !important;box-shadow:0 0 0 1px #16a34a, 0 3px 10px rgba(22,163,74,.2)}
+.mcal-day.b-full{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.35)}
+.mcal-day.b-part{background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.35)}
+.mcal-day-num{font-weight:800;font-size:13px;color:var(--fg)}
+.mcal-svc-dot{width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 0 2px rgba(16,185,129,0.25);flex-shrink:0}
 .mcal-num{font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center}
 .mcal-tags{display:flex;flex-direction:column;gap:2px;margin-top:3px}
-.mtag{font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mtag.full{background:#dc2626;color:#fff}
-.mtag.part{background:#d97706;color:#fff}
-.mtag.svc{background:#0f766e;color:#fff}
-.mtag.free{background:var(--buf);color:var(--mut);font-weight:600}
+.mtag{font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%}
+.mtag.full{background:rgba(239,68,68,0.14);color:#EF4444;border:1px solid rgba(239,68,68,0.3)}
+.mtag.part{background:rgba(245,158,11,0.14);color:#F59E0B;border:1px solid rgba(245,158,11,0.3)}
+.mtag.svc{background:rgba(16,185,129,0.14);color:#10B981;border:1px solid rgba(16,185,129,0.3)}
+.mtag.free{background:transparent;color:var(--mut);font-weight:600;font-size:9.5px}
 .blk-opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1.5px solid var(--bd);border-radius:9px;margin-bottom:8px;cursor:pointer;background:var(--bg)}
 .blk-opt.on{border-color:var(--pri);background:rgba(15,118,110,.08)}
 .blk-opt input{margin-top:3px}
-.unlock-btn{background:#dc2626;color:#fff;border-color:#dc2626;font-weight:700;padding:6px 11px;font-size:12px;border-radius:7px}
-.unlock-btn:hover{background:#b91c1c}
+.unlock-btn{background:transparent;color:#EF4444;border:1px solid #EF4444;font-weight:700;padding:5px 10px;font-size:12px;border-radius:7px;cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:4px}
+.unlock-btn:hover{background:#EF4444;color:#fff;border-color:#EF4444;box-shadow:0 2px 8px rgba(239,68,68,0.25)}
 
 /* Cotizador Administrativo Automático */
 .quote-box{background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;padding:16px;margin:12px 0}

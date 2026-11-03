@@ -359,24 +359,29 @@ function blocksView(){
 
     let tags = '';
     if(hasFull){
-      tags += `<span class="mtag full">🔒 Día cerrado</span>`;
+      tags = `<span class="mtag full">🔴 Cerrado</span>`;
+    } else if(dayBlocks.length > 0){
+      let blockLabel = '';
+      if(dayBlocks.length === 1){
+        blockLabel = hasManana ? '☀️ Mañana' : hasTarde ? '⛅ Tarde' : '🌙 Noche';
+      } else {
+        blockLabel = (hasTarde && hasNoche) ? '⛅ Tarde / 🌙 Noche' : (hasManana && hasTarde) ? '☀️ Mañ. / ⛅ Tarde' : `${dayBlocks.length} bloq.`;
+      }
+      tags = `<span class="mtag part" title="${dayBlocks.map(b => BLOCK_LABELS[b.type] || b.type).join(', ')}">${blockLabel}</span>`;
+    } else if(daySvcs.length > 0){
+      tags = `<span class="mtag svc">📅 ${daySvcs.length} res.</span>`;
     } else {
-      if(hasManana) tags += `<span class="mtag part">🔒 Mañana</span>`;
-      if(hasTarde)  tags += `<span class="mtag part">🔒 Tarde</span>`;
-      if(hasNoche)  tags += `<span class="mtag part" style="background:#4338ca">🔒 Noche</span>`;
-    }
-    if(daySvcs.length > 0){
-      tags += `<span class="mtag svc">📅 ${daySvcs.length} res.</span>`;
-    }
-    if(!tags){
       tags = `<span class="mtag free">Libre</span>`;
     }
 
     cells += `
       <div class="mcal-day ${cls} ${isSel ? 'sel' : ''}" onclick="pickAdminCalDate('${dateStr}')">
         <div class="mcal-num">
-          <span>${d}</span>
-          ${dateStr === TODAY ? '<span style="font-size:9px;color:var(--pri)">HOY</span>' : ''}
+          <span class="mcal-day-num">${d}</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            ${daySvcs.length > 0 ? `<span class="mcal-svc-dot" title="${daySvcs.length} reserva(s) agendada(s)"></span>` : ''}
+            ${dateStr === TODAY ? '<span style="font-size:9px;color:var(--pri);font-weight:700">HOY</span>' : ''}
+          </div>
         </div>
         <div class="mcal-tags">${tags}</div>
       </div>
@@ -415,10 +420,10 @@ function blocksView(){
             <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
           </div>
           <div class="mcal-grid">${cells}</div>
-          <div class="row" style="margin-top:10px;font-size:12px;color:var(--mut);justify-content:center;gap:14px">
-            <span><span class="dot" style="background:#dc2626"></span>Día completo cerrado</span>
-            <span><span class="dot" style="background:#d97706"></span>Turno Mañana / Tarde / Noche bloqueado</span>
-            <span><span class="dot" style="background:#0f766e"></span>Con reservas agendadas</span>
+          <div class="row" style="margin-top:12px;font-size:12px;color:var(--mut);justify-content:center;gap:16px">
+            <span style="display:inline-flex;align-items:center;gap:5px"><span class="dot" style="background:#EF4444"></span>🔴 Día completo cerrado</span>
+            <span style="display:inline-flex;align-items:center;gap:5px"><span class="dot" style="background:#F59E0B"></span>🟠 Turno específico bloqueado (Mañana / Tarde / Noche)</span>
+            <span style="display:inline-flex;align-items:center;gap:5px"><span class="dot" style="background:#10B981"></span>🟢 Día con reservas agendadas</span>
           </div>
         </div>
 
@@ -480,7 +485,9 @@ function blocksView(){
             ` : selDateBlocks.map(b => `
               <div class="row" style="justify-content:space-between;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;background:var(--bg)">
                 <div>
-                  <strong style="color:#dc2626">🔒 ${e(BLOCK_LABELS[b.type] || b.type)}</strong>
+                  <strong style="color:${b.type==='full'?'#EF4444':'#F59E0B'}">
+                    ${b.type==='full'?'🔴 Día completo cerrado':b.type==='manana'?'☀️ Solo Turno Mañana':b.type==='tarde'?'⛅ Solo Turno Tarde':'🌙 Solo Turno Noche'}
+                  </strong>
                   <div style="font-size:12px;color:var(--mut)">Motivo: <b>${e(b.reason || 'Sin motivo')}</b></div>
                 </div>
                 <button type="button" class="unlock-btn" onclick="removeManualBlock(${b.id})">🔓 Desbloquear</button>
@@ -501,7 +508,7 @@ function blocksView(){
           ${allSortedBlocks.map(b => `
             <tr>
               <td><b>${e(b.date)}</b></td>
-              <td><span class="badge" style="background:${b.type==='full'?'#dc2626':(b.type==='noche'?'#4338ca':'#d97706')}">${e(BLOCK_LABELS[b.type] || b.type)}</span></td>
+              <td><span class="badge" style="background:${b.type==='full'?'#EF4444':'#F59E0B'}">${b.type==='manana'?'☀️ Mañana':b.type==='tarde'?'⛅ Tarde':b.type==='noche'?'🌙 Noche':'🔴 Día completo'}</span></td>
               <td>${e(b.reason || '—')}</td>
               <td style="font-size:12px;color:var(--mut)">Inhabilita selección en reservar.html</td>
               <td><button type="button" class="unlock-btn" onclick="removeManualBlock(${b.id})">🔓 Desbloquear</button></td>
