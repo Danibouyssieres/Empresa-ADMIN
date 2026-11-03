@@ -2401,14 +2401,32 @@ async function syncCentralizedBlocks(targetDate){
 function load(){
   try{
     const parsed = JSON.parse(localStorage.getItem(K));
-    if(parsed && parsed.seedVersion === 3){
+    if(parsed && (parsed.seedVersion === 3 || parsed.seedVersion === 2)){
       if(!Array.isArray(parsed.blocks)) parsed.blocks = [];
+      try {
+        const dedicated = JSON.parse(localStorage.getItem('msa_blocks'));
+        if(Array.isArray(dedicated)){
+          dedicated.forEach(db => {
+            if(!parsed.blocks.some(b => b.date === db.date && b.type === db.type)){
+              parsed.blocks.push(db);
+            }
+          });
+        }
+      } catch(e){}
       return parsed;
     }
     return null;
   }catch(x){return null}
 }
-function save(){try{localStorage.setItem(K,JSON.stringify(D))}catch(x){}}
+function save(){
+  try{
+    localStorage.setItem(K, JSON.stringify(D));
+    if(Array.isArray(D.blocks)){
+      localStorage.setItem('msa_blocks', JSON.stringify(D.blocks));
+    }
+    localStorage.setItem('msa-last-block-update', Date.now().toString());
+  }catch(x){}
+}
 let D=load()||seed();
 save();
 
@@ -2471,7 +2489,19 @@ function evaluateDateCapacity(dateStr){
   const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && s.st !== 'Cancelado');
   const prevDaySvcs = (D.svcs || []).filter(s => s.date === prevDateStr && s.st !== 'Cancelado');
   const nextDaySvcs = (D.svcs || []).filter(s => s.date === nextDateStr && s.st !== 'Cancelado');
-  const dayManualBlocks = (D.blocks || []).filter(b => b.date === dateStr);
+  // Fusionar bloques de memoria con msa_blocks dedicados
+  let mergedActiveBlocks = Array.isArray(D.blocks) ? [...D.blocks] : [];
+  try {
+    const ded = JSON.parse(localStorage.getItem('msa_blocks'));
+    if(Array.isArray(ded)){
+      ded.forEach(db => {
+        if(!mergedActiveBlocks.some(b => b.date === db.date && b.type === db.type)){
+          mergedActiveBlocks.push(db);
+        }
+      });
+    }
+  } catch(e){}
+  const dayManualBlocks = mergedActiveBlocks.filter(b => b.date === dateStr);
 
   // Revisar qué horas dentro de cada bloque cumplen las 24 horas de anticipación
   const validHoursManana = BLOCK_HOURS.manana.filter(h => isSlotAtLeast24hAhead(dateStr, h));
@@ -2711,10 +2741,35 @@ function changeCalMonth(delta){
   if(calViewMonth > 11){ calViewMonth = 0; calViewYear++; }
   if(calViewMonth < 0){ calViewMonth = 11; calViewYear--; }
   renderCalendar();
+  if(typeof syncCentralizedBlocks === "function") syncCentralizedBlocks();
 }
 
 function selectCalendarDate(dateStr){
-  const dateManualBlocks = (D.blocks || []).filter(b => b.date === dateStr);
+  // Sincronizar simultáneamente con el backend centralizado de bloqueos (/api/blocks)
+  if(window.MsaBlocksService && typeof window.MsaBlocksService.fetchBlocks === 'function'){
+    window.MsaBlocksService.fetchBlocks(dateStr).then(remoteBlocks => {
+      if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
+        window.MsaBlocksService.mergeBlocksIntoD(remoteBlocks, D);
+        save();
+        updateSlots(false);
+      }
+    }).catch(e => console.warn('Sync blocks on date select error:', e));
+  }
+
+  // Fusionar bloques actuales de memoria y almacenamiento local
+  let currentActiveBlocks = Array.isArray(D.blocks) ? [...D.blocks] : [];
+  try {
+    const ded = JSON.parse(localStorage.getItem('msa_blocks'));
+    if(Array.isArray(ded)){
+      ded.forEach(db => {
+        if(!currentActiveBlocks.some(b => b.date === db.date && b.type === db.type)){
+          currentActiveBlocks.push(db);
+        }
+      });
+    }
+  } catch(e){}
+
+  const dateManualBlocks = currentActiveBlocks.filter(b => b.date === dateStr);
   const isFullBlocked = dateManualBlocks.some(b => b.type === 'full') ||
     (dateManualBlocks.some(b => b.type === 'manana') && dateManualBlocks.some(b => b.type === 'tarde') && dateManualBlocks.some(b => b.type === 'noche'));
   if(isFullBlocked){
@@ -2946,7 +3001,18 @@ function renderCalendar(){
     const ev = evaluateDateCapacity(dateStr);
     const isSel = dateStr === selectedDate;
 
-    const dateManualBlocks = (D.blocks || []).filter(b => b.date === dateStr);
+    let calBlocks = Array.isArray(D.blocks) ? [...D.blocks] : [];
+    try {
+      const ded = JSON.parse(localStorage.getItem('msa_blocks'));
+      if(Array.isArray(ded)){
+        ded.forEach(db => {
+          if(!calBlocks.some(b => b.date === db.date && b.type === db.type)){
+            calBlocks.push(db);
+          }
+        });
+      }
+    } catch(e){}
+    const dateManualBlocks = calBlocks.filter(b => b.date === dateStr);
     const isFullDayManualBlocked = dateManualBlocks.some(b => b.type === 'full') ||
       (dateManualBlocks.some(b => b.type === 'manana') && dateManualBlocks.some(b => b.type === 'tarde') && dateManualBlocks.some(b => b.type === 'noche'));
 
@@ -3152,12 +3218,24 @@ function updateSlots(keepCurrentTime = false){
     }
   } else {
     // Todos los turnos disponibles según capacidad de la fecha
-    const isManualM = (D.blocks || []).some(b => b.date === dateStr && (b.type === 'manana' || b.type === 'full'));
-    const blockM = (D.blocks || []).find(b => b.date === dateStr && (b.type === 'manana' || b.type === 'full'));
-    const isManualT = (D.blocks || []).some(b => b.date === dateStr && (b.type === 'tarde' || b.type === 'full'));
-    const blockT = (D.blocks || []).find(b => b.date === dateStr && (b.type === 'tarde' || b.type === 'full'));
-    const isManualN = (D.blocks || []).some(b => b.date === dateStr && (b.type === 'noche' || b.type === 'full'));
-    const blockN = (D.blocks || []).find(b => b.date === dateStr && (b.type === 'noche' || b.type === 'full'));
+    let slotBlocks = Array.isArray(D.blocks) ? [...D.blocks] : [];
+    try {
+      const ded = JSON.parse(localStorage.getItem('msa_blocks'));
+      if(Array.isArray(ded)){
+        ded.forEach(db => {
+          if(!slotBlocks.some(b => b.date === db.date && b.type === db.type)){
+            slotBlocks.push(db);
+          }
+        });
+      }
+    } catch(e){}
+
+    const isManualM = slotBlocks.some(b => b.date === dateStr && (b.type === 'manana' || b.type === 'full'));
+    const blockM = slotBlocks.find(b => b.date === dateStr && (b.type === 'manana' || b.type === 'full'));
+    const isManualT = slotBlocks.some(b => b.date === dateStr && (b.type === 'tarde' || b.type === 'full'));
+    const blockT = slotBlocks.find(b => b.date === dateStr && (b.type === 'tarde' || b.type === 'full'));
+    const isManualN = slotBlocks.some(b => b.date === dateStr && (b.type === 'noche' || b.type === 'full'));
+    const blockN = slotBlocks.find(b => b.date === dateStr && (b.type === 'noche' || b.type === 'full'));
 
     const okM = ev.inRange && ev.manana.available && !isManualM;
     const okT = ev.inRange && ev.tarde.available && !isManualT;
@@ -4532,6 +4610,14 @@ addEventListener('storage',ev=>{
 
 
 
+
+if(typeof window !== 'undefined' && typeof window.addEventListener === 'function'){
+  window.addEventListener('msa-blocks-updated', () => {
+    D = load() || D;
+    updateSlots();
+    if (typeof renderCalendar === 'function') renderCalendar();
+  });
+}
 initForm();
 if(typeof syncCentralizedBlocks === "function") syncCentralizedBlocks();
 

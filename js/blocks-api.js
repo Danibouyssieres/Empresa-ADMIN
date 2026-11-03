@@ -1,14 +1,15 @@
 /**
  * js/blocks-api.js
  * Capa de persistencia centralizada en tiempo real para bloqueos de agenda y disponibilidad.
- * Conecta directamente con Supabase (REST / SDK oficial vía navegador)
- * con fallback bidireccional a localStorage y resiliencia sin dependencias de servidor.
+ * Conecta bidireccionalmente con el endpoint Edge API (/api/blocks) y Supabase
+ * con respaldo inmediato en localStorage (claves 'msa_blocks' y 'msa-v1').
  */
 
 (function(global) {
   'use strict';
 
-  var LS_STATE_KEY = 'msa-state-v3';
+  var LS_STATE_KEY = 'msa-v1';
+  var LS_BLOCKS_KEY = 'msa_blocks';
   var LS_SB_URL = 'msa_supabase_url';
   var LS_SB_KEY = 'msa_supabase_key';
   var LS_LAST_UPDATE = 'msa-last-block-update';
@@ -70,51 +71,79 @@
       };
     },
 
-    // 1. Consultar bloqueos activos desde backend centralizado (Supabase)
+    // 1. Consultar bloqueos activos desde backend centralizado (/api/blocks y Supabase)
     fetchBlocks: async function(dateFilter) {
       var blocks = [];
       var fetchedSuccess = false;
 
-      // Intento A: Supabase Client Directo (si está configurado)
-      var sb = this.getSupabaseClient();
-      if (sb) {
+      // Intento A: Endpoint Edge API /api/blocks (Servidor centralizado Vercel)
+      if (typeof fetch === 'function') {
         try {
-          var query = sb.from('bloqueos').select('*');
-          if (dateFilter) {
-            query = query.eq('date', dateFilter);
+          var apiUrl = '/api/blocks' + (dateFilter ? '?date=' + encodeURIComponent(dateFilter) : '');
+          var apiRes = await fetch(apiUrl, {
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+          });
+          if (apiRes.ok) {
+            var resData = await apiRes.json();
+            if (resData && resData.ok && Array.isArray(resData.data)) {
+              blocks = resData.data.map(this.normalizeBlock).filter(Boolean);
+              fetchedSuccess = true;
+            }
           }
-          var resSb = await query;
-          if (!resSb.error && Array.isArray(resSb.data)) {
-            blocks = resSb.data.map(this.normalizeBlock).filter(Boolean);
-            fetchedSuccess = true;
-          }
-        } catch (errSb) {
-          console.warn('[MsaBlocksService] Supabase query falló:', errSb);
+        } catch (errApi) {
+          // Servidor no disponible o entorno offline/file://
         }
       }
 
-      // Intento B: Fallback a localStorage local si no hubo respuesta remota
+      // Intento B: Supabase Client Directo (si está configurado y el intento A no respondió)
       if (!fetchedSuccess) {
-        try {
-          if (typeof localStorage !== 'undefined') {
-            var localState = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
-            var localArr = Array.isArray(localState.blocks) ? localState.blocks : [];
+        var sb = this.getSupabaseClient();
+        if (sb) {
+          try {
+            var query = sb.from('bloqueos').select('*');
             if (dateFilter) {
-              blocks = localArr.filter(function(b) { return b.date === dateFilter; });
-            } else {
-              blocks = localArr;
+              query = query.eq('date', dateFilter);
             }
+            var resSb = await query;
+            if (!resSb.error && Array.isArray(resSb.data)) {
+              blocks = resSb.data.map(this.normalizeBlock).filter(Boolean);
+              fetchedSuccess = true;
+            }
+          } catch (errSb) {
+            console.warn('[MsaBlocksService] Supabase query falló:', errSb);
           }
-        } catch (e) {}
-      } else {
-        // Si obtuvimos datos del backend remoto, sincronizamos el localStorage local
-        this._mergeIntoLocalCache(blocks, dateFilter);
+        }
       }
+
+      // Intento C: Fusión con almacenamiento local (localStorage msa_blocks y msa-v1)
+      try {
+        if (typeof localStorage !== 'undefined') {
+          var dedArr = JSON.parse(localStorage.getItem(LS_BLOCKS_KEY)) || [];
+          var localState = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
+          var localArr = Array.isArray(localState.blocks) ? localState.blocks : [];
+
+          var map = {};
+          blocks.forEach(function(b) { map[b.date + '_' + b.type] = b; });
+          dedArr.forEach(function(b) { if (!map[b.date + '_' + b.type]) map[b.date + '_' + b.type] = b; });
+          localArr.forEach(function(b) { if (!map[b.date + '_' + b.type]) map[b.date + '_' + b.type] = b; });
+
+          var combined = Object.values(map);
+          if (dateFilter) {
+            blocks = combined.filter(function(b) { return b.date === dateFilter; });
+          } else {
+            blocks = combined;
+          }
+        }
+      } catch (e) {}
+
+      // Sincronizar caché local
+      this._mergeIntoLocalCache(blocks, dateFilter);
 
       return blocks;
     },
 
-    // 2. Persistir nuevo bloqueo en la base de datos central (Supabase)
+    // 2. Persistir nuevo bloqueo en la base de datos central y local
     saveBlock: async function(block) {
       var norm = this.normalizeBlock(block);
       if (!norm) return { ok: false, error: 'Bloqueo inválido' };
@@ -124,11 +153,22 @@
 
       var remoteSuccess = false;
 
-      // Intento A: Supabase Client
+      // Persistir vía /api/blocks
+      if (typeof fetch === 'function') {
+        try {
+          var apiRes = await fetch('/api/blocks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(norm)
+          });
+          if (apiRes.ok) remoteSuccess = true;
+        } catch (eApi) {}
+      }
+
+      // Persistir vía Supabase Client directo si existe
       var sb = this.getSupabaseClient();
       if (sb) {
         try {
-          // Si es día completo, eliminamos turnos individuales
           if (norm.type === 'full') {
             await sb.from('bloqueos').delete().eq('date', norm.date);
           } else {
@@ -142,9 +182,7 @@
             created_at: new Date().toISOString()
           }]).select();
 
-          if (!insRes.error) {
-            remoteSuccess = true;
-          }
+          if (!insRes.error) remoteSuccess = true;
         } catch (errSb) {
           console.warn('[MsaBlocksService] Error al guardar en Supabase:', errSb);
         }
@@ -154,14 +192,30 @@
       return { ok: true, remote: remoteSuccess };
     },
 
-    // 3. Eliminar bloqueo en la base de datos central (Supabase)
+    // 3. Eliminar bloqueo en la base de datos central y local
     removeBlock: async function(idOrDate, type) {
       // Eliminar de localStorage inmediatamente
       this._removeLocalBlock(idOrDate, type);
 
       var remoteSuccess = false;
 
-      // Intento A: Supabase Client
+      // Eliminar vía /api/blocks
+      if (typeof fetch === 'function') {
+        try {
+          var delUrl = '/api/blocks?';
+          if (typeof idOrDate === 'number' || (typeof idOrDate === 'string' && /^\d+$/.test(idOrDate))) {
+            delUrl += 'id=' + encodeURIComponent(idOrDate);
+          } else if (type) {
+            delUrl += 'date=' + encodeURIComponent(idOrDate) + '&type=' + encodeURIComponent(type);
+          } else {
+            delUrl += 'date=' + encodeURIComponent(idOrDate);
+          }
+          var delRes = await fetch(delUrl, { method: 'DELETE' });
+          if (delRes.ok) remoteSuccess = true;
+        } catch (eDel) {}
+      }
+
+      // Eliminar vía Supabase Client directo
       var sb = this.getSupabaseClient();
       if (sb) {
         try {
@@ -173,8 +227,8 @@
           } else {
             delQ = delQ.eq('date', idOrDate);
           }
-          var delRes = await delQ;
-          if (!delRes.error) remoteSuccess = true;
+          var resSbDel = await delQ;
+          if (!resSbDel.error) remoteSuccess = true;
         } catch (errSb) {
           console.warn('[MsaBlocksService] Error al eliminar en Supabase:', errSb);
         }
@@ -206,55 +260,80 @@
     _mergeIntoLocalCache: function(remoteBlocks, dateFilter) {
       try {
         if (typeof localStorage === 'undefined') return;
-        var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
-        if (!Array.isArray(state.blocks)) state.blocks = [];
 
-        if (dateFilter) {
-          state.blocks = state.blocks.filter(function(b) { return b.date !== dateFilter; });
-          remoteBlocks.forEach(function(b) { state.blocks.push(b); });
-        } else {
-          var map = {};
-          remoteBlocks.forEach(function(b) {
-            map[b.date + '_' + b.type] = b;
-          });
-          state.blocks = Object.values(map);
+        // Actualizar msa_blocks
+        var dedArr = JSON.parse(localStorage.getItem(LS_BLOCKS_KEY)) || [];
+        var map = {};
+        dedArr.forEach(function(b) { map[b.date + '_' + b.type] = b; });
+        remoteBlocks.forEach(function(b) { map[b.date + '_' + b.type] = b; });
+        localStorage.setItem(LS_BLOCKS_KEY, JSON.stringify(Object.values(map)));
+
+        // Actualizar msa-v1
+        var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
+        if (Array.isArray(state.blocks)) {
+          var stateMap = {};
+          state.blocks.forEach(function(b) { stateMap[b.date + '_' + b.type] = b; });
+          remoteBlocks.forEach(function(b) { stateMap[b.date + '_' + b.type] = b; });
+          state.blocks = Object.values(stateMap);
+          localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
         }
-        localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
       } catch (e) {}
     },
 
     _updateLocalBlock: function(block) {
       try {
         if (typeof localStorage === 'undefined') return;
-        var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
-        if (!Array.isArray(state.blocks)) state.blocks = [];
 
+        // Actualizar msa_blocks
+        var dedArr = JSON.parse(localStorage.getItem(LS_BLOCKS_KEY)) || [];
         if (block.type === 'full') {
-          state.blocks = state.blocks.filter(function(b) { return b.date !== block.date; });
+          dedArr = dedArr.filter(function(b) { return b.date !== block.date; });
         } else {
-          state.blocks = state.blocks.filter(function(b) {
+          dedArr = dedArr.filter(function(b) {
             return !(b.date === block.date && (b.type === block.type || b.type === 'full'));
           });
         }
-        state.blocks.push(block);
-        localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
+        dedArr.push(block);
+        localStorage.setItem(LS_BLOCKS_KEY, JSON.stringify(dedArr));
+
+        // Actualizar msa-v1
+        var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
+        if (Array.isArray(state.blocks)) {
+          if (block.type === 'full') {
+            state.blocks = state.blocks.filter(function(b) { return b.date !== block.date; });
+          } else {
+            state.blocks = state.blocks.filter(function(b) {
+              return !(b.date === block.date && (b.type === block.type || b.type === 'full'));
+            });
+          }
+          state.blocks.push(block);
+          localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
+        }
       } catch (e) {}
     },
 
     _removeLocalBlock: function(idOrDate, type) {
       try {
         if (typeof localStorage === 'undefined') return;
-        var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
-        if (!Array.isArray(state.blocks)) return;
 
-        if (typeof idOrDate === 'number' || (typeof idOrDate === 'string' && /^\d+$/.test(idOrDate))) {
-          state.blocks = state.blocks.filter(function(b) { return String(b.id) !== String(idOrDate); });
-        } else if (type) {
-          state.blocks = state.blocks.filter(function(b) { return !(b.date === idOrDate && b.type === type); });
-        } else {
-          state.blocks = state.blocks.filter(function(b) { return b.date !== idOrDate; });
+        var filterFn = function(b) {
+          if (typeof idOrDate === 'number' || (typeof idOrDate === 'string' && /^\d+$/.test(idOrDate))) {
+            return String(b.id) !== String(idOrDate);
+          } else if (type) {
+            return !(b.date === idOrDate && b.type === type);
+          } else {
+            return b.date !== idOrDate;
+          }
+        };
+
+        var dedArr = JSON.parse(localStorage.getItem(LS_BLOCKS_KEY)) || [];
+        localStorage.setItem(LS_BLOCKS_KEY, JSON.stringify(dedArr.filter(filterFn)));
+
+        var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
+        if (Array.isArray(state.blocks)) {
+          state.blocks = state.blocks.filter(filterFn);
+          localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
         }
-        localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
       } catch (e) {}
     },
 

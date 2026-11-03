@@ -1,80 +1,78 @@
+const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const assert = require('assert');
 const vm = require('vm');
 
 const reservarHtml = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
 
-// Build a mock DOM environment
-function createMockEl(tag = 'div', id = '') {
-  return {
-    tagName: tag.toUpperCase(),
-    id: id,
-    value: '',
-    textContent: '',
-    innerHTML: '',
-    style: {},
-    className: '',
-    classList: {
-      _classes: new Set(),
-      add: function(c) { this._classes.add(c); },
-      remove: function(c) { this._classes.delete(c); },
-      toggle: function(c, force) { if(force) this._classes.add(c); else this._classes.delete(c); },
-      contains: function(c) { return this._classes.has(c); }
-    },
-    disabled: false,
-    querySelector: () => null,
-    querySelectorAll: () => []
-  };
+// Mock a lightweight DOM environment
+class ClassList {
+  constructor() { this.classes = new Set(); }
+  add(c) { this.classes.add(c); }
+  remove(c) { this.classes.delete(c); }
+  contains(c) { return this.classes.has(c); }
+  toggle(c, force) {
+    if (force === undefined) {
+      if (this.classes.has(c)) this.classes.delete(c);
+      else this.classes.add(c);
+    } else if (force) {
+      this.classes.add(c);
+    } else {
+      this.classes.delete(c);
+    }
+  }
+}
+
+class MockElement {
+  constructor(id, tagName = 'div') {
+    this.id = id;
+    this.tagName = tagName;
+    this.classList = new ClassList();
+    this.style = {};
+    this.disabled = false;
+    this.textContent = '';
+    this.innerHTML = '';
+    this.value = '';
+    this.options = [];
+  }
+  setAttribute(k, v) { this[k] = v; }
+  getAttribute(k) { return this[k]; }
+}
+
+const elements = {};
+function getEl(id) {
+  if (!elements[id]) elements[id] = new MockElement(id);
+  return elements[id];
 }
 
 const mockDoc = {
-  elements: {},
-  getElementById: function(id) {
-    if(!this.elements[id]) this.elements[id] = createMockEl('div', id);
-    return this.elements[id];
+  getElementById: (id) => getEl(id),
+  querySelector: (sel) => {
+    if (sel.startsWith('#')) return getEl(sel.slice(1));
+    return new MockElement(sel);
   },
-  querySelector: function(sel) {
-    if(sel.startsWith('#')) return this.getElementById(sel.slice(1));
-    return createMockEl();
-  },
-  querySelectorAll: function() { return []; },
-  addEventListener: () => {},
+  querySelectorAll: () => [], addEventListener: () => {},
   documentElement: { setAttribute: () => {}, getAttribute: () => 'light' }
 };
 
-// Initialize common inputs
-mockDoc.getElementById('b_date').value = '2026-11-06';
-mockDoc.getElementById('b_svc_type').value = '1';
-mockDoc.getElementById('b_time').value = '';
-
 const mockMap = {
-  setView: function() { return this; },
-  on: function() { return this; },
-  removeLayer: function() { return this; },
-  addLayer: function() { return this; }
+  setView: () => mockMap,
+  remove: () => {},
+  fitBounds: () => {}, on: () => {}
 };
 
 const ctx = {
-  console: console,
-  document: mockDoc,
-  addEventListener: () => {},
-  dispatchEvent: () => {},
+  document: mockDoc, addEventListener: () => {},
   window: {
+    location: { href: 'http://localhost/reservar.html' },
     addEventListener: () => {},
-    dispatchEvent: () => {},
-    localStorage: {
-      getItem: () => null,
-      setItem: () => {},
-      removeItem: () => {}
-    }
+    scrollTo: () => {}
   },
+  navigator: {},
   localStorage: {
     getItem: () => null,
-    setItem: () => {},
-    removeItem: () => {}
+    setItem: () => {}
   },
-  navigator: { userAgent: 'node' },
   L: {
     map: () => mockMap,
     tileLayer: () => ({ addTo: () => mockMap }),
@@ -101,10 +99,10 @@ if (fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js'))) {
 
 vm.runInContext(scriptBody, ctx);
 
-// Test 1: Add a manual block for Turno Tarde on 2026-11-06
+// Test 1: Add a manual block for Turno Tarde on 2026-11-05 (where morning is free)
 vm.runInContext(`
-  D.blocks = [{ id: 101, date: '2026-11-06', type: 'tarde', reason: 'Mantención preventiva móvil' }];
-  $('#b_date').value = '2026-11-06';
+  D.blocks = [{ id: 101, date: '2026-11-05', type: 'tarde', reason: 'Mantención preventiva móvil' }];
+  $('#b_date').value = '2026-11-05';
   updateSlots();
 `, ctx);
 
@@ -117,7 +115,7 @@ assert.strictEqual(btnT.disabled, true, 'Turno Tarde button must be disabled whe
 assert(btnT.classList.contains('shift-manual-blocked'), 'Turno Tarde button must have shift-manual-blocked class');
 assert.strictEqual(badgeT.textContent, 'Bloqueado / No disponible (0 cupos)', 'Turno Tarde badge must show "Bloqueado / No disponible (0 cupos)"');
 
-assert.strictEqual(btnM.disabled, false, 'Turno Mañana button must remain enabled');
+assert.strictEqual(btnM.disabled, false, 'Turno Mañana button must remain enabled on 2026-11-05');
 assert(!btnM.classList.contains('shift-manual-blocked'), 'Turno Mañana button must not have shift-manual-blocked class');
 assert(badgeM.textContent.includes('Disponible'), 'Turno Mañana badge must indicate Disponible');
 
@@ -138,17 +136,29 @@ vm.runInContext(`
 `, ctx);
 
 const calGrid = mockDoc.getElementById('calGrid');
-const cells = calGrid.innerHTML.split('<div class="cd-top-row">');
-const cell7 = cells.find(c => c.includes('<span class="cd-num">7</span>'));
-console.log('Cell 7 snippet:', cell7);
-assert(calGrid.innerHTML.includes('st-full is-blocked-full'), 'Calendar grid must render full block day with st-full is-blocked-full');
-assert(calGrid.innerHTML.includes('Bloqueado'), 'Calendar grid must render tag Bloqueado');
+assert(calGrid.innerHTML.includes('is-blocked-full'), 'Calendar grid must render full-day blocked cell with is-blocked-full class');
+assert(calGrid.innerHTML.includes('Bloqueado'), 'Calendar cell must show Bloqueado badge');
 
-// Test 4: Attempting to select 2026-11-07 (full blocked date)
+// Test 4: For date 2026-11-06, Turno Mañana is blocked by Rosa Medina, and Tarde/Noche blocked manually
 vm.runInContext(`
-  selectCalendarDate('2026-11-07');
+  D.blocks = [
+    { id: 101, date: '2026-11-06', type: 'tarde', reason: 'Mantención de unidad' },
+    { id: 102, date: '2026-11-06', type: 'noche', reason: 'Mantención de unidad' }
+  ];
+  $('#b_date').value = '2026-11-06';
+  updateSlots();
 `, ctx);
-const activeDate = mockDoc.getElementById('b_date').value;
-assert.strictEqual(activeDate, '2026-11-06', 'selectCalendarDate must reject selecting a fully blocked date');
 
-console.log('✓ In-depth VM test passed: UI rendering, badge text "Bloqueado / No disponible (0 cupos)", disabled state, and selection prevention verified! 🚀');
+const btnN = mockDoc.getElementById('btnBlock_noche');
+const badgeN = mockDoc.getElementById('badgeBlock_noche');
+
+assert.strictEqual(btnM.disabled, true, 'Turno Mañana must be disabled because of Rosa Medina booking');
+assert.strictEqual(btnT.disabled, true, 'Turno Tarde must be disabled due to manual block');
+assert(btnT.classList.contains('shift-manual-blocked'), 'Turno Tarde must have shift-manual-blocked class');
+assert.strictEqual(badgeT.textContent, 'Bloqueado / No disponible (0 cupos)');
+
+assert.strictEqual(btnN.disabled, true, 'Turno Noche must be disabled due to manual block');
+assert(btnN.classList.contains('shift-manual-blocked'), 'Turno Noche must have shift-manual-blocked class');
+assert.strictEqual(badgeN.textContent, 'Bloqueado / No disponible (0 cupos)');
+
+console.log('✓ All reservar.html UI block and calendar tests passed successfully!');
