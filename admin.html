@@ -359,7 +359,7 @@ function seed(){
   const dEventoNocturno = addDaysYMD(TODAY, 8);
   const sv=(id,tid,date,start,dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,extra={})=>({id,tid,date,start:tm(start),dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,...extra});
   return{
-    seedVersion:2,
+    seedVersion: 3,
     nid:14,
     techs:[
       {id:'t1',nom:'Daniela González Bouyssieres',rut:'Registro SIS Nº 442762',tel:'+56929990095',veh:'Unidad 1 · Vehículo Acondicionado Clase A2',col:'#0f766e',act:true},
@@ -376,9 +376,19 @@ function seed(){
 
 function load(){
   try{
-    const parsed=JSON.parse(localStorage.getItem(K));
-    if(parsed && parsed.seedVersion===2){
-      if(!Array.isArray(parsed.blocks)) parsed.blocks=[];
+    const parsed = JSON.parse(localStorage.getItem(K));
+    if(parsed && (parsed.seedVersion === 3 || parsed.seedVersion === 2)){
+      if(!Array.isArray(parsed.blocks)) parsed.blocks = [];
+      try {
+        const dedicated = JSON.parse(localStorage.getItem('msa_blocks'));
+        if(Array.isArray(dedicated)){
+          dedicated.forEach(db => {
+            if(!parsed.blocks.some(b => b.date === db.date && b.type === db.type)){
+              parsed.blocks.push(db);
+            }
+          });
+        }
+      } catch(e){}
       return parsed;
     }
     return null;
@@ -387,7 +397,10 @@ function load(){
 
 function save(){
   try{
-    localStorage.setItem(K,JSON.stringify(D));
+    localStorage.setItem(K, JSON.stringify(D));
+    if(Array.isArray(D.blocks)){
+      localStorage.setItem('msa_blocks', JSON.stringify(D.blocks));
+    }
     // Notificación cruzada para sincronizar reservar.html inmediatamente
     localStorage.setItem('msa-last-block-update', Date.now().toString());
   }catch(x){}
@@ -424,6 +437,13 @@ addEventListener('storage',ev=>{
   }
 });
 
+
+if(typeof window !== 'undefined' && typeof window.addEventListener === 'function'){
+  window.addEventListener('msa-blocks-updated', () => {
+    D = load() || D;
+    render();
+  });
+}
 const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
 
 /* REGLA DE BUFFER: nuevo.inicio < previo.fin + 180 (y simétrica: previo.inicio < nuevo.fin + 180) */
