@@ -384,7 +384,19 @@ const STAY_HOURS_OPTIONS = [
   { val: 270, label: '4 horas 30 min' },
   { val: 300, label: '5 horas de asistencia' },
   { val: 330, label: '5 horas 30 min' },
-  { val: 360, label: '6 horas de asistencia (Tope)' }
+  { val: 360, label: '6 horas de asistencia' },
+  { val: 390, label: '6 horas 30 min' },
+  { val: 420, label: '7 horas de asistencia' },
+  { val: 450, label: '7 horas 30 min' },
+  { val: 480, label: '8 horas de asistencia' },
+  { val: 510, label: '8 horas 30 min' },
+  { val: 540, label: '9 horas de asistencia' },
+  { val: 570, label: '9 horas 30 min' },
+  { val: 600, label: '10 horas de asistencia' },
+  { val: 630, label: '10 horas 30 min' },
+  { val: 660, label: '11 horas de asistencia' },
+  { val: 690, label: '11 horas 30 min' },
+  { val: 720, label: '12 horas de asistencia (Tope Máx)' }
 ];
 
 const EVENT_RATES = {
@@ -394,10 +406,10 @@ const EVENT_RATES = {
 
 const EVENT_EXTRAS = {
   '0': { fare: 0, min: 0 },
-  '30': { fare: 10000, min: 30 },
-  '60': { fare: 20000, min: 60 },
-  '90': { fare: 30000, min: 90 },
-  '120': { fare: 40000, min: 120 }
+  '30': { fare: 6000, min: 30 },
+  '60': { fare: 12000, min: 60 },
+  '90': { fare: 18000, min: 90 },
+  '120': { fare: 24000, min: 120 }
 };
 
 const INTER_PLANS = {
@@ -410,9 +422,7 @@ const INTER_EXTRAS = {
   '30': { fare: 15000, min: 30 },
   '60': { fare: 25000, min: 60 },
   '90': { fare: 40000, min: 90 },
-  '120': { fare: 50000, min: 120 },
-  '150': { fare: 65000, min: 150 },
-  '180': { fare: 75000, min: 180 }
+  '120': { fare: 50000, min: 120 }
 };
 
 
@@ -1117,7 +1127,19 @@ function form(){
             <option value="270">4 horas 30 min</option>
             <option value="300">5 horas de asistencia</option>
             <option value="330">5 horas 30 min</option>
-            <option value="360">6 horas de asistencia (Tope)</option>
+            <option value="360">6 horas de asistencia</option>
+            <option value="390">6 horas 30 min</option>
+            <option value="420">7 horas de asistencia</option>
+            <option value="450">7 horas 30 min</option>
+            <option value="480">8 horas de asistencia</option>
+            <option value="510">8 horas 30 min</option>
+            <option value="540">9 horas de asistencia</option>
+            <option value="570">9 horas 30 min</option>
+            <option value="600">10 horas de asistencia</option>
+            <option value="630">10 horas 30 min</option>
+            <option value="660">11 horas de asistencia</option>
+            <option value="690">11 horas 30 min</option>
+            <option value="720">12 horas de asistencia (Tope Máx)</option>
           </select>
         </div>
       </div>
@@ -1142,10 +1164,10 @@ function form(){
           <label for="aq_event_extra"><b>Tiempo Adicional *</b></label>
           <select id="aq_event_extra" onchange="calcAdminQuote()">
             <option value="0" selected>Sin tiempo adicional ($0)</option>
-            <option value="30">+30 minutos (+$10.000)</option>
-            <option value="60">+1 hora (+$20.000)</option>
-            <option value="90">+1 hora 30 min (+$30.000)</option>
-            <option value="120">+2 horas (+$40.000)</option>
+            <option value="30">+30 minutos (+$6.000)</option>
+            <option value="60">+1 hora (+$12.000)</option>
+            <option value="90">+1 hora 30 min (+$18.000)</option>
+            <option value="120">+2 horas (+$24.000 - Tope)</option>
           </select>
         </div>
       </div>
@@ -1163,12 +1185,10 @@ function form(){
           <label for="aq_inter_extra"><b>Tiempo Adicional *</b></label>
           <select id="aq_inter_extra" onchange="calcAdminQuote()">
             <option value="0" selected>Sin tiempo adicional ($0)</option>
-            <option value="30">+30 minutos (+$15.000)</option>
-            <option value="60">+1 hora (+$25.000)</option>
-            <option value="90">+1 hora 30 min (+$40.000)</option>
-            <option value="120">+2 horas (+$50.000)</option>
-            <option value="150">+2 horas 30 min (+$65.000)</option>
-            <option value="180">+3 horas (+$75.000)</option>
+            <option value="30">+30 minutos extra (+$15.000)</option>
+            <option value="60">+1 hora extra (+$25.000)</option>
+            <option value="90">+1 hora 30 min extra (+$40.000)</option>
+            <option value="120">+2 horas extras (+$50.000 - Tope máximo)</option>
           </select>
         </div>
       </div>
