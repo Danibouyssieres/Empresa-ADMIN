@@ -1,8 +1,8 @@
 /**
  * js/blocks-api.js
  * Capa de persistencia centralizada en tiempo real para bloqueos de agenda y disponibilidad.
- * Conecta con Supabase (REST / SDK) y con la API Serverless /api/blocks en Vercel,
- * con fallback bidireccional y resiliencia sin dependencias bloqueantes.
+ * Conecta directamente con Supabase (REST / SDK oficial vía navegador)
+ * con fallback bidireccional a localStorage y resiliencia sin dependencias de servidor.
  */
 
 (function(global) {
@@ -70,7 +70,7 @@
       };
     },
 
-    // 1. Consultar bloqueos activos desde backend centralizado
+    // 1. Consultar bloqueos activos desde backend centralizado (Supabase)
     fetchBlocks: async function(dateFilter) {
       var blocks = [];
       var fetchedSuccess = false;
@@ -89,31 +89,11 @@
             fetchedSuccess = true;
           }
         } catch (errSb) {
-          console.warn('[MsaBlocksService] Supabase query falló, probando API:', errSb);
+          console.warn('[MsaBlocksService] Supabase query falló:', errSb);
         }
       }
 
-      // Intento B: Endpoint API Serverless de Vercel (/api/blocks)
-      if (!fetchedSuccess && typeof fetch === 'function') {
-        try {
-          var url = '/api/blocks';
-          if (dateFilter) {
-            url += '?date=' + encodeURIComponent(dateFilter);
-          }
-          var resApi = await fetch(url, { method: 'GET' });
-          if (resApi.ok) {
-            var json = await resApi.json();
-            if (json && json.ok && Array.isArray(json.data)) {
-              blocks = json.data.map(this.normalizeBlock).filter(Boolean);
-              fetchedSuccess = true;
-            }
-          }
-        } catch (errApi) {
-          // Servidor local o entorno estático sin backend API
-        }
-      }
-
-      // Intento C: Fallback a localStorage local si no hubo respuesta remota
+      // Intento B: Fallback a localStorage local si no hubo respuesta remota
       if (!fetchedSuccess) {
         try {
           if (typeof localStorage !== 'undefined') {
@@ -134,7 +114,7 @@
       return blocks;
     },
 
-    // 2. Persistir nuevo bloqueo en la base de datos central
+    // 2. Persistir nuevo bloqueo en la base de datos central (Supabase)
     saveBlock: async function(block) {
       var norm = this.normalizeBlock(block);
       if (!norm) return { ok: false, error: 'Bloqueo inválido' };
@@ -170,28 +150,11 @@
         }
       }
 
-      // Intento B: Vercel API /api/blocks
-      if (!remoteSuccess && typeof fetch === 'function') {
-        try {
-          var resApi = await fetch('/api/blocks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(norm)
-          });
-          if (resApi.ok) {
-            var json = await resApi.json();
-            if (json && json.ok) {
-              remoteSuccess = true;
-            }
-          }
-        } catch (errApi) {}
-      }
-
       this._notifyUpdate();
       return { ok: true, remote: remoteSuccess };
     },
 
-    // 3. Eliminar bloqueo en la base de datos central
+    // 3. Eliminar bloqueo en la base de datos central (Supabase)
     removeBlock: async function(idOrDate, type) {
       // Eliminar de localStorage inmediatamente
       this._removeLocalBlock(idOrDate, type);
@@ -217,22 +180,6 @@
         }
       }
 
-      // Intento B: Vercel API
-      if (!remoteSuccess && typeof fetch === 'function') {
-        try {
-          var query = '';
-          if (typeof idOrDate === 'number' || (typeof idOrDate === 'string' && /^\d+$/.test(idOrDate))) {
-            query = 'id=' + encodeURIComponent(idOrDate);
-          } else if (type) {
-            query = 'date=' + encodeURIComponent(idOrDate) + '&type=' + encodeURIComponent(type);
-          } else {
-            query = 'date=' + encodeURIComponent(idOrDate);
-          }
-          var resApi = await fetch('/api/blocks?' + query, { method: 'DELETE' });
-          if (resApi.ok) remoteSuccess = true;
-        } catch (errApi) {}
-      }
-
       this._notifyUpdate();
       return { ok: true, remote: remoteSuccess };
     },
@@ -252,7 +199,6 @@
           current.push(rb);
         }
       });
-      // Asegurar que si hay un 'full', prevalezca
       D.blocks = current;
     },
 
@@ -264,11 +210,9 @@
         if (!Array.isArray(state.blocks)) state.blocks = [];
 
         if (dateFilter) {
-          // Reemplazar los de esta fecha con la verdad del servidor
           state.blocks = state.blocks.filter(function(b) { return b.date !== dateFilter; });
           remoteBlocks.forEach(function(b) { state.blocks.push(b); });
         } else {
-          // Si es lista global, usamos la lista remota como fuente oficial manteniendo cualquier campo adicional
           var map = {};
           remoteBlocks.forEach(function(b) {
             map[b.date + '_' + b.type] = b;
