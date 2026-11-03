@@ -51,7 +51,8 @@ function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x
 function applyTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem(TM_K,t)}catch(x){}}
 function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme')||getTheme();applyTheme(cur==='dark'?'light':'dark');render()}
 const ST=['Pendiente','Confirmado','En Ruta','En Atención','Finalizado','Cancelado'];
-const COL={'Pendiente':'#b45309','Confirmado':'#2563eb','En Ruta':'#7c3aed','En Atención':'#0d9488','Finalizado':'#15803d','Cancelado':'#6b7280'};
+const COL={'Pendiente':'#F59E0B','Confirmado':'#3B82F6','En Ruta':'#14B8A6','En Atención':'#06B6D4','Finalizado':'#10B981','Cancelado':'#64748B'};
+const COL_BG={'Pendiente':'rgba(245, 158, 11, 0.12)','Confirmado':'rgba(59, 130, 246, 0.12)','En Ruta':'rgba(20, 184, 166, 0.12)','En Atención':'rgba(6, 182, 212, 0.12)','Finalizado':'rgba(16, 185, 129, 0.12)','Cancelado':'rgba(100, 116, 139, 0.12)'};
 const MOB=['Autovalente','Bastón / andador','Silla de ruedas','Dependencia Severa'];
 const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
 const NEXT={'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
@@ -524,7 +525,10 @@ function cal(){
     return `<div class=col><div class=ch style="border-color:${t.col}">${e(t.nom)}</div><div class=cb style="height:${H}px;cursor:pointer" onclick="onCalGridClick(event, '${t.id}', '${U.date}')" title="Clic en cualquier espacio vacío para agendar a esta hora">${prevUnitOvernight.map(blkOvernightRem).join('')}${unitSvcs.map(blk).join('')}</div></div>`;
   }).join('');
   return dateNav()+`<div class=met><div><b>${live.length}</b><span>Servicios del día</span></div><div><b>${$c(cob)}</b><span>Abonado</span></div><div><b>${$c(sal)}</b><span>Saldo pendiente</span></div><div><b>${act.length}</b><span>TENS operativos</span></div></div>
-  <div class=row style="margin-bottom:8px;font-size:12px">${ST.map(s=>`<span><span class=dot style="background:${COL[s]}"></span>${s}</span>`).join('')}<span><span class=dot style="background:var(--buf);border:1px dashed var(--mut)"></span>Buffer 2 h</span></div>
+  <div class=row style="margin-bottom:8px;font-size:12px;gap:12px">${ST.map(s=>{
+    const icon = s==='En Ruta'?'🚗 ':s==='En Atención'?'🩺 ':'';
+    return `<span style="display:inline-flex;align-items:center;gap:5px"><span class=dot style="background:${COL[s]}"></span>${icon}${s}</span>`;
+  }).join('')}<span><span class=dot style="background:var(--buf);border:1px dashed var(--mut)"></span>Buffer 2 h</span></div>
   <div class=cal><div class=tc><div style="height:38px;border:0"></div>${hrs}</div>${cols||'<p style="padding:12px">No hay TENS activos.</p>'}</div>${detail()}`;
 }
 
@@ -537,8 +541,20 @@ function blk(s){
   const bh=Math.max(0,Math.min(BUF*PX/60,(S1-S0)*PX/60-bt));
   const c=s.st=='Cancelado';
   const isOvernight = s.start + s.dur > 1440;
+  const stColor = COL[s.st] || '#64748B';
+  const stBg = COL_BG[s.st] || 'rgba(100, 116, 139, 0.12)';
+  const stIcon = s.st === 'En Ruta' ? '🚗 ' : s.st === 'En Atención' ? '🩺 ' : '';
+  const timeText = `${fm(s.start)}–${fm((s.start+s.dur)%1440)}`;
+
   return (c?'':`<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`)+
-    `<div class="sv ${c?'c':''}" style="top:${top}px;height:${h}px;background:${COL[s.st]}" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Clic para ver ficha clínica y acciones rápidas"><b>${fm(s.start)}–${fm((s.start+s.dur)%1440)}</b> ${isOvernight?'🌙 ':''}${e(s.pat)}<br>${s.st}</div>`;
+    `<div class="sv ${c?'c':''}" style="top:${top}px;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor}" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Clic para ver ficha clínica y acciones rápidas">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">#MSA-${s.id}</span>
+        <b style="color:#ffffff">${timeText}</b>
+      </div>
+      <div style="font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${isOvernight?'🌙 ':''}${e(s.pat)}</div>
+      ${h >= 52 ? `<div style="font-size:11px;color:${stColor};font-weight:700;margin-top:2px">${stIcon}${s.st}</div>` : ''}
+    </div>`;
 }
 
 function blkOvernightRem(s){
@@ -548,8 +564,19 @@ function blkOvernightRem(s){
   const bt = h;
   const bh = Math.max(0, Math.min(BUF*PX/60, (S1-S0)*PX/60 - bt));
   const c = s.st == 'Cancelado';
+  const stColor = COL[s.st] || '#64748B';
+  const stBg = COL_BG[s.st] || 'rgba(100, 116, 139, 0.12)';
+  const stIcon = s.st === 'En Ruta' ? '🚗 ' : s.st === 'En Atención' ? '🩺 ' : '';
+
   return (c ? '' : `<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`) +
-    `<div class="sv ${c?'c':''}" style="top:0;height:${h}px;background:${COL[s.st]};opacity:.88" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Continuación de atención nocturna iniciada el día anterior"><b>00:00–${fm(remDur)}</b> 🌙 (Cont. noche) ${e(s.pat)}<br>${s.st}</div>`;
+    `<div class="sv ${c?'c':''}" style="top:0;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor};opacity:.88" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Continuación de atención nocturna iniciada el día anterior">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">#MSA-${s.id}</span>
+        <b style="color:#ffffff">00:00–${fm(remDur)}</b>
+      </div>
+      <div style="font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🌙 (Cont. noche) ${e(s.pat)}</div>
+      ${h >= 52 ? `<div style="font-size:11px;color:${stColor};font-weight:700;margin-top:2px">${stIcon}${s.st}</div>` : ''}
+    </div>`;
 }
 
 function onCalGridClick(event, tid, date){
