@@ -132,6 +132,43 @@ try {
 <!-- =========================================================================
      MODAL DE CIERRE EN TERRENO Y BOLETA PDF (VISTA TERRENO)
      ========================================================================= -->
+<!-- =========================================================================
+     MODAL DE ADVERTENCIA PREVENTIVA DE BUFFER (2 HORAS)
+     ========================================================================= -->
+<div id="modalWarningBufferAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);max-width:500px;width:100%;border-radius:14px;border:1.5px solid #d97706;box-shadow:0 10px 35px rgba(0,0,0,.25);padding:24px;box-sizing:border-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <span style="font-size:1.6rem">⚠️</span>
+      <h3 style="margin:0;font-size:1.15rem;color:#d97706">Advertencia Preventiva de Buffer</h3>
+    </div>
+    <p style="font-size:.92rem;line-height:1.5;margin:0 0 14px;color:var(--fg)" id="modalWarningBufferText">
+      Atención: Este horario cuenta con un margen menor al buffer estándar de 2 horas. ¿Deseas confirmar la reserva de todas formas?
+    </p>
+    <div style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:12px;font-size:.84rem;color:var(--fg);margin-bottom:18px;line-height:1.45" id="modalWarningBufferDetails">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" onclick="cerrarModalWarningBufferAdmin()" style="padding:9px 16px">Modificar horario</button>
+      <button type="button" class="p" onclick="confirmarGuardarConConflictoAdmin()" style="background:#d97706;border-color:#d97706;padding:9px 18px;font-weight:700">Confirmar y Guardar de todas formas</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     MODAL CONTEXTUAL RÁPIDO DE SERVICIO AGENDADO (CALENDARIO DIARIO)
+     ========================================================================= -->
+<div id="modalContextualServicioAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);max-width:560px;width:100%;border-radius:14px;border:1.5px solid var(--bd);box-shadow:0 10px 35px rgba(0,0,0,.25);padding:22px 24px;box-sizing:border-box;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0;font-size:1.12rem;color:var(--pri);display:flex;align-items:center;gap:8px" id="ctxTitle">
+        <span>📋</span> Ficha de Servicio y Acciones Rápidas
+      </h3>
+      <button type="button" onclick="cerrarModalContextualServicioAdmin()" style="background:transparent;border:0;font-size:1.2rem;cursor:pointer;color:var(--mut)">✕</button>
+    </div>
+    <div id="ctxContent" style="font-size:.88rem;line-height:1.5;margin-bottom:18px"></div>
+    <div id="ctxActions" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;border-top:1px solid var(--bd);padding-top:14px"></div>
+  </div>
+</div>
+
 <div id="modalFinalizarAtencionAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);max-width:500px;width:100%;border-radius:14px;border:1.5px solid var(--bd);box-shadow:0 10px 35px rgba(0,0,0,.25);padding:22px 24px;box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">

@@ -133,7 +133,18 @@ assert(fullAdmin.includes('d) Solo Turno Noche (20:00 a 06:00 hrs)'), 'Form must
 assert(fullAdmin.includes('buffer operativo/almuerzo no disponible para inicio de atenciones regulares'), 'Form must clarify 12:00 a 14:00 buffer');
 console.log('✓ Turno Noche block option and 12:00-14:00 buffer clarification verified');
 
-// 5. Test quotation math in VM
+// 4.4 Verify 24-Hour Calendar, Buffer 2h, and Modals
+assert(adminJs.includes('S0=0') && adminJs.includes('S1=1440'), 'Calendar constants must be S0=0 and S1=1440 (24h)');
+assert(adminJs.includes('Buffer 2 h'), 'Calendar legend must state "Buffer 2 h"');
+assert(!adminJs.includes('Buffer 3 h'), 'Calendar legend must NOT state "Buffer 3 h"');
+assert(adminJs.includes('Buffer operativo 2h'), 'Block buffer text must be "Buffer operativo 2h"');
+assert(fullAdmin.includes('id="modalWarningBufferAdmin"'), 'admin must contain #modalWarningBufferAdmin');
+assert(fullAdmin.includes('id="modalContextualServicioAdmin"'), 'admin must contain #modalContextualServicioAdmin');
+assert(adminJs.includes('function onCalGridClick'), 'onCalGridClick function must exist');
+assert(adminJs.includes('function abrirMenuContextualServicio'), 'abrirMenuContextualServicio function must exist');
+console.log('✓ 24-Hour Calendar constants, Buffer 2h, and Warning/Contextual modals verified');
+
+// 5. Test quotation math & daily calendar in VM
 const fakeDoc = {
   documentElement: { getAttribute: () => 'light', setAttribute: () => {} },
   elements: {},
@@ -260,6 +271,48 @@ vm.runInContext(`
 const folioContainerWithSii = fakeDoc.getElementById('pdfFolioSIIContainer');
 assert(folioContainerWithSii.innerHTML.includes('Boleta Electrónica SII N°:</b> <span id="pdfFolioSII">B-9988</span>'), 'Provided SII folio must render folio number');
 console.log('✓ Field Closure with explicit SII folio renders folio number properly');
+
+// Test 5E: Test 24-Hour Calendar and Click-to-Schedule
+const calHtml = vm.runInContext('cal();', mockContext);
+assert(calHtml.includes('00:00'), '24-hour calendar must render 00:00');
+assert(calHtml.includes('12:00'), '24-hour calendar must render 12:00');
+assert(calHtml.includes('23:00'), '24-hour calendar must render 23:00');
+assert(calHtml.includes('Buffer 2 h'), 'Calendar must display Buffer 2 h in legend');
+assert(calHtml.includes('onCalGridClick'), 'Calendar columns must have onCalGridClick handler');
+console.log('✓ 24-Hour Calendar grid (00:00-23:00) and click-to-schedule verified');
+
+// Test 5F: Test Quick Contextual Menu on service click
+vm.runInContext('abrirMenuContextualServicio(1);', mockContext);
+const ctxActions = fakeDoc.getElementById('ctxActions');
+assert(ctxActions.innerHTML.includes('WhatsApp Contratante'), 'Contextual menu must have WhatsApp action');
+assert(ctxActions.innerHTML.includes('Waze Destino'), 'Contextual menu must have Waze action');
+assert(ctxActions.innerHTML.includes('Google Maps'), 'Contextual menu must have Google Maps action');
+assert(ctxActions.innerHTML.includes('Liquidar / Finalizar Atención'), 'Contextual menu must have Liquidar Atención action');
+console.log('✓ Quick contextual menu with Patient data, WhatsApp, Waze, Google Maps and Liquidar action verified');
+
+// Test 5G: Test Preventive Warning Modal on < 2h buffer and Admin Confirmation
+// Existing service 1 is at dMananaOcupada with start 08:30 (dur 120, ends 10:30).
+// Trying to book at 11:00 (only 30 min margin from 10:30, less than 120 min buffer)
+const svc1 = vm.runInContext('D.svcs.find(s => s.id === 1);', mockContext);
+fakeDoc.getElementById('aq_date').value = svc1.date;
+fakeDoc.getElementById('aq_time').value = '11:00';
+fakeDoc.getElementById('aq_tens').value = svc1.tid;
+fakeDoc.getElementById('aq_pat').value = 'Paciente En Conflicto';
+
+const conflictResult = vm.runInContext('saveAdminBooking(null, false);', mockContext);
+assert(conflictResult && conflictResult.conflict === true, 'Booking within < 2h buffer must trigger conflict warning');
+const warningModal = fakeDoc.getElementById('modalWarningBufferAdmin');
+assert.strictEqual(warningModal.style.display, 'flex', 'Warning modal must be displayed on conflict');
+console.log('✓ Preventive buffer warning modal triggers when margin is less than 2 hours');
+
+// Now confirm and save anyway
+const confirmResult = vm.runInContext('confirmarGuardarConConflictoAdmin();', mockContext);
+assert(confirmResult && confirmResult.success === true, 'Admin force confirmation must save reservation');
+const savedConflictSvc = vm.runInContext('D.svcs.find(s => s.pat === "Paciente En Conflicto");', mockContext);
+assert(savedConflictSvc, 'Overlapping service must be stored in D.svcs');
+assert.strictEqual(savedConflictSvc.date, svc1.date, 'Date matches');
+assert.strictEqual(savedConflictSvc.start, 11 * 60, 'Start time is 11:00');
+console.log('✓ Admin can confirm and save multiple services within the same shift/date');
 
 // 6. Test Synchronization with reservar.html
 const reservarHtml = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');

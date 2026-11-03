@@ -1,4 +1,4 @@
-const PX=44,S0=360,S1=1320,BUF=180,K='msa-v1',TM_K='msa-theme',SESS_K='msa-session';
+const PX=44,S0=0,S1=1440,BUF=120,K='msa-v1',TM_K='msa-theme',SESS_K='msa-session';
 const PRICE_PER_KM = 1000;
 const pad=n=>String(n).padStart(2,'0'),fm=m=>pad(Math.floor(m/60))+':'+pad(m%60),tm=t=>{if(!t)return 0;const[a,b]=t.split(':');return +a*60+ +b};
 const toYMD=dt=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
@@ -435,18 +435,65 @@ function blocksView(){
 
 function cal(){
   const ss=D.svcs.filter(s=>s.date==U.date),act=D.techs.filter(t=>t.act),live=ss.filter(s=>s.st!='Cancelado');
+  const prevDate = addDaysYMD(U.date, -1);
+  const prevOvernightSvcs = D.svcs.filter(s => s.date == prevDate && s.st != 'Cancelado' && (s.start + s.dur > 1440));
   const cob=live.reduce((a,s)=>a+s.paid,0),sal=live.reduce((a,s)=>a+s.fare-s.paid,0);
   const H=(S1-S0)*PX/60;let hrs='';for(let m=S0;m<S1;m+=60)hrs+=`<div>${fm(m)}</div>`;
-  const cols=act.map(t=>`<div class=col><div class=ch style="border-color:${t.col}">${e(t.nom)}</div><div class=cb style="height:${H}px">${ss.filter(s=>s.tid==t.id).map(blk).join('')}</div></div>`).join('');
+  const cols=act.map(t=>{
+    const unitSvcs = ss.filter(s=>s.tid==t.id);
+    const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id);
+    return `<div class=col><div class=ch style="border-color:${t.col}">${e(t.nom)}</div><div class=cb style="height:${H}px;cursor:pointer" onclick="onCalGridClick(event, '${t.id}', '${U.date}')" title="Clic en cualquier espacio vacío para agendar a esta hora">${prevUnitOvernight.map(blkOvernightRem).join('')}${unitSvcs.map(blk).join('')}</div></div>`;
+  }).join('');
   return dateNav()+`<div class=met><div><b>${live.length}</b><span>Servicios del día</span></div><div><b>${$c(cob)}</b><span>Abonado</span></div><div><b>${$c(sal)}</b><span>Saldo pendiente</span></div><div><b>${act.length}</b><span>TENS operativos</span></div></div>
-  <div class=row style="margin-bottom:8px;font-size:12px">${ST.map(s=>`<span><span class=dot style="background:${COL[s]}"></span>${s}</span>`).join('')}<span><span class=dot style="background:var(--buf);border:1px dashed var(--mut)"></span>Buffer 3 h</span></div>
+  <div class=row style="margin-bottom:8px;font-size:12px">${ST.map(s=>`<span><span class=dot style="background:${COL[s]}"></span>${s}</span>`).join('')}<span><span class=dot style="background:var(--buf);border:1px dashed var(--mut)"></span>Buffer 2 h</span></div>
   <div class=cal><div class=tc><div style="height:38px;border:0"></div>${hrs}</div>${cols||'<p style="padding:12px">No hay TENS activos.</p>'}</div>${detail()}`;
 }
 
 function blk(s){
-  const top=(s.start-S0)*PX/60,h=s.dur*PX/60,bt=top+h,bh=Math.max(0,Math.min(BUF*PX/60,(S1-S0)*PX/60-bt)),c=s.st=='Cancelado';
-  return (c?'':`<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 3h</div>`)+`<div class="sv ${c?'c':''}" style="top:${top}px;height:${h}px;background:${COL[s.st]}" onclick="sel(${s.id})"><b>${fm(s.start)}–${fm(s.start+s.dur)}</b> ${e(s.pat)}<br>${s.st}</div>`;
+  const top=(s.start-S0)*PX/60;
+  const rawH=s.dur*PX/60;
+  const maxH=(S1-S0)*PX/60 - top;
+  const h=Math.min(rawH, maxH);
+  const bt=top+rawH;
+  const bh=Math.max(0,Math.min(BUF*PX/60,(S1-S0)*PX/60-bt));
+  const c=s.st=='Cancelado';
+  const isOvernight = s.start + s.dur > 1440;
+  return (c?'':`<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`)+
+    `<div class="sv ${c?'c':''}" style="top:${top}px;height:${h}px;background:${COL[s.st]}" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Clic para ver ficha clínica y acciones rápidas"><b>${fm(s.start)}–${fm((s.start+s.dur)%1440)}</b> ${isOvernight?'🌙 ':''}${e(s.pat)}<br>${s.st}</div>`;
 }
+
+function blkOvernightRem(s){
+  const remDur = (s.start + s.dur) - 1440;
+  const top = 0;
+  const h = remDur * PX / 60;
+  const bt = h;
+  const bh = Math.max(0, Math.min(BUF*PX/60, (S1-S0)*PX/60 - bt));
+  const c = s.st == 'Cancelado';
+  return (c ? '' : `<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`) +
+    `<div class="sv ${c?'c':''}" style="top:0;height:${h}px;background:${COL[s.st]};opacity:.88" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Continuación de atención nocturna iniciada el día anterior"><b>00:00–${fm(remDur)}</b> 🌙 (Cont. noche) ${e(s.pat)}<br>${s.st}</div>`;
+}
+
+function onCalGridClick(event, tid, date){
+  const rect = event.currentTarget.getBoundingClientRect();
+  const offsetY = event.clientY - rect.top;
+  const slotHour = Math.floor(offsetY / PX);
+  const clampedHour = Math.max(0, Math.min(23, slotHour));
+  const timeStr = `${pad(clampedHour)}:00`;
+
+  U.tab = 'new';
+  U.date = date;
+  qState.date = date;
+  qState.time = timeStr;
+  render();
+
+  setTimeout(() => {
+    if($('#aq_date')) $('#aq_date').value = date;
+    if($('#aq_time')) $('#aq_time').value = timeStr;
+    if($('#aq_tens')) $('#aq_tens').value = tid;
+    calcAdminQuote();
+  }, 50);
+}
+window.onCalGridClick = onCalGridClick;
 
 function sel(id){U.sel=id;render();$('#det')&&$('#det').scrollIntoView({behavior:'smooth'})}
 function detail(){
@@ -868,26 +915,46 @@ Quedamos atentos para reservar su cupo exclusivo!`;
   window.open(url, '_blank');
 }
 
-function saveAdminBooking(ev){
-  ev.preventDefault();
+let pendingAdminBooking = null;
+
+function saveAdminBooking(ev, forceConfirm = false){
+  if(ev && ev.preventDefault) ev.preventDefault();
   calcAdminQuote();
 
-  const tid = $('#aq_tens').value;
-  const date = $('#aq_date').value;
-  const time = $('#aq_time').value;
+  const tid = ($('#aq_tens') && $('#aq_tens').value) || (D.techs[0] && D.techs[0].id) || 't1';
+  const date = ($('#aq_date') && $('#aq_date').value) || U.date;
+  const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
   const start = tm(time);
-  const dur = qState.durationMin;
+  const dur = qState.durationMin || 120;
 
-  const pat = $('#aq_pat').value.trim();
-  const age = +$('#aq_age').value || 75;
-  const dx = $('#aq_dx').value.trim();
-  const coord = $('#aq_coord').value.trim();
-  const ph = $('#aq_ph').value.trim();
-  const from = $('#aq_from').value.trim();
-  const to = (qState.mode === '3') ? from : ($('#aq_to').value.trim() || 'Centro Médico');
-  const mob = $('#aq_mob').value;
-  const req = [...document.querySelectorAll('.aq_rq:checked')].map(x => x.value);
+  const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
+  const age = (+$('#aq_age') && +$('#aq_age').value) || 75;
+  const dx = ($('#aq_dx') && $('#aq_dx').value.trim()) || 'Atención clínica';
+  const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Coordinador';
+  const ph = ($('#aq_ph') && $('#aq_ph').value.trim()) || '+56900000000';
+  const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Domicilio Origen';
+  const to = (qState.mode === '3') ? from : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
+  const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
+  const req = typeof document !== 'undefined' && document.querySelectorAll
+    ? [...document.querySelectorAll('.aq_rq:checked')].map(x => x.value)
+    : [];
   const alergias = ($('#aq_alergias') && $('#aq_alergias').value.trim()) || 'No registra alergias';
+
+  const bookingData = { tid, date, time, start, dur, pat, age, dx, coord, ph, from, to, mob, req, alergias };
+
+  // Verificación de advertencia preventiva de buffer de 2 horas (120 minutos)
+  if(!forceConfirm){
+    const conflictSvc = D.svcs.find(s => {
+      if(s.tid !== tid || s.date !== date || s.st === 'Cancelado') return false;
+      return (start < s.start + s.dur + 120) && (s.start < start + dur + 120);
+    });
+
+    if(conflictSvc){
+      pendingAdminBooking = bookingData;
+      abrirModalWarningBufferAdmin(conflictSvc, bookingData);
+      return { conflict: true, conflictSvc, bookingData };
+    }
+  }
 
   const newId = D.nid++;
   const newSvc = {
@@ -918,12 +985,119 @@ function saveAdminBooking(ev){
   D.svcs.push(newSvc);
   save();
 
-  alert(`✅ ¡Reserva Folio #MSA-${newId} creada y guardada exitosamente en la agenda!`);
+  cerrarModalWarningBufferAdmin();
+  if(typeof alert !== 'undefined') alert(`✅ ¡Reserva Folio #MSA-${newId} creada y guardada exitosamente en la agenda!`);
   U.date = date;
   U.tab = 'cal';
   U.sel = newId;
   render();
+  return { success: true, service: newSvc };
 }
+window.saveAdminBooking = saveAdminBooking;
+
+function abrirModalWarningBufferAdmin(conflictSvc, bookingData){
+  const modal = $('#modalWarningBufferAdmin');
+  const details = $('#modalWarningBufferDetails');
+  if(details){
+    details.innerHTML = `
+      <div><b>Servicio preexistente:</b> Folio #MSA-${conflictSvc.id} (${fm(conflictSvc.start)} a ${fm((conflictSvc.start+conflictSvc.dur)%1440)} hrs) — <i>${e(conflictSvc.pat)}</i></div>
+      <div style="margin-top:4px"><b>Nueva reserva proyectada:</b> ${bookingData.time} a ${fm((bookingData.start+bookingData.dur)%1440)} hrs — <i>${e(bookingData.pat)}</i></div>
+      <div style="margin-top:4px;color:#b45309"><b>TENS asignado:</b> ${tn(bookingData.tid)} · Fecha: ${bookingData.date}</div>
+    `;
+  }
+  if(modal) modal.style.display = 'flex';
+}
+window.abrirModalWarningBufferAdmin = abrirModalWarningBufferAdmin;
+
+function cerrarModalWarningBufferAdmin(){
+  const modal = $('#modalWarningBufferAdmin');
+  if(modal) modal.style.display = 'none';
+  pendingAdminBooking = null;
+}
+window.cerrarModalWarningBufferAdmin = cerrarModalWarningBufferAdmin;
+
+function confirmarGuardarConConflictoAdmin(){
+  if(!pendingAdminBooking) return;
+  const b = pendingAdminBooking;
+  return saveAdminBooking(null, true);
+}
+window.confirmarGuardarConConflictoAdmin = confirmarGuardarConConflictoAdmin;
+
+function abrirMenuContextualServicio(svcId){
+  U.sel = svcId;
+  const s = D.svcs.find(x => x.id === svcId);
+  if(!s) return;
+
+  const modal = $('#modalContextualServicioAdmin');
+  const phoneRaw = s.ph || '';
+  const digits = phoneRaw.replace(/\D/g, '');
+  const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
+  const clientName = s.coord || s.pat || 'Estimado(a)';
+  const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA respecto a su servicio Folio #MSA-${s.id} programado para el ${s.date} a las ${fm(s.start)} hrs.`;
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+
+  const wazeDestUrl = `https://waze.com/ul?q=${encodeURIComponent(s.to)}`;
+  const mapsDestUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.to)}`;
+
+  const ctxTitle = $('#ctxTitle');
+  if(ctxTitle){
+    ctxTitle.innerHTML = `<span>Folio #MSA-${s.id}</span> · <span class="badge" style="background:${COL[s.st]}">${s.st}</span>`;
+  }
+
+  const ctxContent = $('#ctxContent');
+  if(ctxContent){
+    ctxContent.innerHTML = `
+      <div style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-weight:800;color:var(--pri);font-size:1.05rem;margin-bottom:4px">
+          ${e(s.pat)} (${s.age} años)
+        </div>
+        <div><b>Diagnóstico / Motivo:</b> ${e(s.dx)}</div>
+        <div><b>Movilidad:</b> ${e(s.mob)} ${s.compDesc ? '· ' + e(s.compDesc) : (s.comp ? '(Con acompañante)' : '')}</div>
+        <div><b>Requerimientos Clínicos:</b> ${Array.isArray(s.req) && s.req.length ? s.req.join(' · ') : 'Signos vitales y asistencia TENS'}</div>
+        <div><b>Alergias:</b> <span style="${s.alergias && s.alergias.startsWith('Sí') ? 'color:#dc2626;font-weight:700' : ''}">${e(s.alergias || 'No registra')}</span> · <b>Conciencia:</b> ${e(s.conciencia || 'Lúcido / Orientado')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:.84rem;margin-bottom:12px">
+        <div><b>Horario:</b> ${fm(s.start)} a ${fm((s.start+s.dur)%1440)} hrs</div>
+        <div><b>TENS Asignado:</b> ${e(tn(s.tid))}</div>
+        <div><b>Origen:</b> ${e(s.from)}</div>
+        <div><b>Destino:</b> ${e(s.to)}</div>
+        <div><b>Contratante:</b> ${e(s.coord)} (${e(s.ph)})</div>
+        <div><b>Tarifa / Saldo:</b> ${$c(s.fare)} (Saldo: ${$c(s.fare - (s.paid||0))})</div>
+      </div>
+    `;
+  }
+
+  const ctxActions = $('#ctxActions');
+  if(ctxActions){
+    ctxActions.innerHTML = `
+      <a href="${waUrl}" target="_blank" rel="noopener" style="background:#25D366;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+        💬 WhatsApp Contratante
+      </a>
+      <a href="${wazeDestUrl}" target="_blank" rel="noopener" style="background:#0284c7;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+        🚙 Waze Destino
+      </a>
+      <a href="${mapsDestUrl}" target="_blank" rel="noopener" style="background:#475569;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+        🗺️ Google Maps
+      </a>
+      <button type="button" class="p" onclick="cerrarModalContextualServicioAdmin(); abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#0f766e;border-color:#0f766e;padding:8px 14px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+        🏁 Liquidar / Finalizar Atención
+      </button>
+      <button type="button" onclick="cerrarModalContextualServicioAdmin()" style="padding:8px 14px;font-size:.84rem">
+        Cerrar
+      </button>
+    `;
+  }
+
+  if(modal) modal.style.display = 'flex';
+  render();
+}
+window.abrirMenuContextualServicio = abrirMenuContextualServicio;
+
+function cerrarModalContextualServicioAdmin(){
+  const modal = $('#modalContextualServicioAdmin');
+  if(modal) modal.style.display = 'none';
+}
+window.cerrarModalContextualServicioAdmin = cerrarModalContextualServicioAdmin;
 
 function staff(){
   const t=D.techs.find(x=>x.id==U.edit)||{nom:'',rut:'',tel:'',veh:'',col:'#2563eb'},v=(k)=>e(t[k]);
