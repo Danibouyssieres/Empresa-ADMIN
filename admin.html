@@ -23,6 +23,9 @@
 
 <!-- MOTOR DE GENERACIÓN PDF (html2pdf) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- MOTOR DE PERSISTENCIA CENTRALIZADA (Supabase JS SDK & MSA Blocks API) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/blocks-api.js"></script>
 
 <script>
 try {
@@ -520,24 +523,40 @@ function saveManualBlock(ev){
     D.blocks = D.blocks.filter(b => !(b.date === dateStr && (b.type === type || b.type === 'full')));
   }
 
-  D.blocks.push({
+  const newBlock = {
     id: D.nid++,
     date: dateStr,
     type,
     reason: reason || 'Sin motivo especificado',
     tid: 'all',
     createdAt: new Date().toISOString()
-  });
+  };
+
+  D.blocks.push(newBlock);
   save();
   U.date = dateStr;
   render();
+
+  // Persistir en backend centralizado (Supabase / Vercel API)
+  if(window.MsaBlocksService){
+    MsaBlocksService.saveBlock(newBlock).catch(err => {
+      console.warn('Error al persistir bloqueo centralizado:', err);
+    });
+  }
 }
 
 function removeManualBlock(blockId){
   if(!Array.isArray(D.blocks)) return;
+  const target = D.blocks.find(b => b.id === blockId);
   D.blocks = D.blocks.filter(b => b.id !== blockId);
   save();
   render();
+
+  if(window.MsaBlocksService && target){
+    MsaBlocksService.removeBlock(target.id || target.date, target.type).catch(err => {
+      console.warn('Error al eliminar bloqueo centralizado:', err);
+    });
+  }
 }
 
 function removeAllBlocksForDate(dateStr){
@@ -545,6 +564,42 @@ function removeAllBlocksForDate(dateStr){
   D.blocks = D.blocks.filter(b => b.date !== dateStr);
   save();
   render();
+
+  if(window.MsaBlocksService){
+    MsaBlocksService.removeBlock(dateStr).catch(err => {
+      console.warn('Error al eliminar bloqueos centralizados de la fecha:', err);
+    });
+  }
+}
+
+async function syncCentralizedBlocksAdmin(){
+  if(window.MsaBlocksService){
+    try {
+      const remoteBlocks = await MsaBlocksService.fetchBlocks();
+      if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
+        MsaBlocksService.mergeBlocksIntoD(remoteBlocks, D);
+        save();
+        render();
+      }
+    } catch(e){
+      console.warn('Error sincronizando bloqueos en admin:', e);
+    }
+  }
+}
+
+function openDbConfigModal(){
+  const conf = (window.MsaBlocksService && window.MsaBlocksService.getConfig()) || { url: '', key: '' };
+  const currentUrl = conf.url || '';
+  const currentKey = conf.key || '';
+  const newUrl = prompt('Ingrese URL de Proyecto Supabase (ej: https://xyzcompany.supabase.co):', currentUrl);
+  if(newUrl === null) return;
+  const newKey = prompt('Ingrese Supabase Anon Key (o Service Role Key):', currentKey);
+  if(newKey === null) return;
+  if(window.MsaBlocksService){
+    window.MsaBlocksService.setConfig(newUrl, newKey);
+    alert('Configuración de base de datos Supabase guardada exitosamente.');
+    syncCentralizedBlocksAdmin();
+  }
 }
 
 function blocksView(){
@@ -615,6 +670,13 @@ function blocksView(){
         </div>
       </div>
 
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin:8px 0 12px;font-size:13px">
+        <div>
+          <b>Persistencia Centralizada:</b>
+          <span id="admDbStatus" style="color:#16a34a;font-weight:700">🟢 En línea (Supabase &amp; Vercel API sincronizados)</span>
+        </div>
+        <button type="button" class="b" style="margin:0;padding:4px 10px;font-size:12px" onclick="openDbConfigModal()">⚙️ Configurar Supabase</button>
+      </div>
       <div class="blk-layout" style="margin-top:12px">
         <div class="card" style="margin:0">
           <div class="row" style="justify-content:space-between;margin-bottom:10px">
