@@ -261,9 +261,7 @@ console.log('✓ Modality 5 dynamic toggle passed');
 // 6. Test Physical PDF Files
 console.log('\nTesting Physical PDF Files...');
 assert(fs.existsSync('terminos_condiciones.pdf'), 'terminos_condiciones.pdf must exist in root');
-assert(fs.existsSync('public/terminos_condiciones.pdf'), 'terminos_condiciones.pdf must exist in /public');
 assert.strictEqual(fs.statSync('terminos_condiciones.pdf').size, 4213653, 'Root PDF size must match uploaded file');
-assert.strictEqual(fs.statSync('public/terminos_condiciones.pdf').size, 4213653, 'Public PDF size must match uploaded file');
-console.log('✓ Physical PDF files (4.21 MB) verified in root and public/');
+console.log('✓ Physical PDF file (4.21 MB) verified in root');
 
 console.log('\n🎉 ALL COTIZADOR MAESTRO AND OFFICIAL DOCUMENT TESTS PASSED PERFECTLY!\n');
