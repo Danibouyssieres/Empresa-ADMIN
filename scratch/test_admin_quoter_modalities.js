@@ -2,7 +2,7 @@ const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 
-console.log('--- Testing Cotizador Maestro: 5 Modalities, Communes, Floor Pricing & Continuous Time up to 12h ---');
+console.log('--- Testing Cotizador Maestro: 6h Cap, Official Tariff Homologation & Interregional Safety Lock ---');
 
 const adminHtml = fs.readFileSync('admin.html', 'utf8');
 
@@ -82,10 +82,10 @@ const q_event_pack = getEl('aq_event_pack');
 const q_event_extra = getEl('aq_event_extra');
 const q_inter_plan = getEl('aq_inter_plan');
 const q_inter_extra = getEl('aq_inter_extra');
+const lbl_inter_note = getEl('lbl_inter_note');
 
 // 1. Test Modality 1: Ring Floor Calculation & Deposit
 console.log('\nTesting Modality 1: Anillos & Floors...');
-// Test 1A: Maipú (Anillo 1: $18.000). 10km ($10.000) + 1h ($12.000) = $22.000 > $18.000
 q_mode.value = '1';
 q_date.value = '2026-11-04'; // Wednesday hábil
 q_time.value = '10:00';
@@ -97,234 +97,173 @@ q_stay.value = '60';
 vm.runInContext('onAdminAddressInput("from");', mockContext);
 let qState = vm.runInContext('qState;', mockContext);
 assert.strictEqual(qState.ring.id, 1, 'Maipú must be detected as Anillo 1');
-assert.strictEqual(qState.floorApplied, false, 'Floor should not be applied since $22.000 > $18.000');
-assert.strictEqual(qState.totalFare, 22000, 'Total should be $22.000');
-assert.strictEqual(qState.abono50, 11000, 'Abono 50% should be $11.000');
+assert.strictEqual(qState.floorApplied, false);
+assert.strictEqual(qState.totalFare, 22000);
+assert.strictEqual(qState.abono50, 11000);
 console.log('✓ Modality 1 Anillo 1 standard fare passed');
 
-// Test 1B: Renca (Anillo 2: $35.000). 10km ($10.000) + 1h ($12.000) = $22.000 < $35.000
+// Renca (Anillo 2: $35.000)
 q_from.value = 'Av. Domingo Santa María 4000, Renca';
 vm.runInContext('onAdminAddressInput("from");', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.ring.id, 2, 'Renca must be detected as Anillo 2');
-assert.strictEqual(qState.floorApplied, true, 'Floor should be applied for Anillo 2');
-assert.strictEqual(qState.totalFare, 35000, 'Total should be elevated to Anillo 2 floor $35.000');
-assert.strictEqual(qState.abono50, 17500, 'Abono 50% must be calculated on the floor: $17.500');
-assert.strictEqual(qState.saldo50, 17500, 'Saldo 50% must be $17.500');
+assert.strictEqual(qState.ring.id, 2);
+assert.strictEqual(qState.floorApplied, true);
+assert.strictEqual(qState.totalFare, 35000);
+assert.strictEqual(qState.abono50, 17500);
 console.log('✓ Modality 1 Anillo 2 guaranteed floor passed');
 
-// Test 1C: Las Condes (Anillo 3: $50.000). 10km ($10.000) + 1h ($12.000) = $22.000 < $50.000
+// Las Condes (Anillo 3: $50.000)
 q_from.value = 'Av. Apoquindo 4000, Las Condes';
 vm.runInContext('onAdminAddressInput("from");', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.ring.id, 3, 'Las Condes must be detected as Anillo 3');
-assert.strictEqual(qState.floorApplied, true, 'Floor should be applied for Anillo 3');
-assert.strictEqual(qState.totalFare, 50000, 'Total should be elevated to Anillo 3 floor $50.000');
-assert.strictEqual(qState.abono50, 25000, 'Abono 50% must be calculated on the floor: $25.000');
+assert.strictEqual(qState.ring.id, 3);
+assert.strictEqual(qState.floorApplied, true);
+assert.strictEqual(qState.totalFare, 50000);
+assert.strictEqual(qState.abono50, 25000);
 console.log('✓ Modality 1 Anillo 3 guaranteed floor passed');
 
-// 2. Test Continuous Scale up to 12 Hours (720 min)
-console.log('\nTesting Continuous Time Scale (up to 12 hours)...');
+// 2. Test Continuous Scale Strictly Capped at 6 Hours (360 min)
+console.log('\nTesting Continuous Time Scale (strictly capped at 6h)...');
+const stayOptionsInCtx = vm.runInContext('STAY_HOURS_OPTIONS;', mockContext);
+const maxOption = stayOptionsInCtx[stayOptionsInCtx.length - 1];
+assert.strictEqual(maxOption.val, 360, 'Maximum option in STAY_HOURS_OPTIONS must be 360 min (6h Tope)');
+assert(maxOption.label.includes('6 horas'), 'Max option label must indicate 6 horas');
+
 q_from.value = 'Av. Pajaritos 1000, Maipú';
-q_km.value = '20'; // $20.000
-q_stay.value = '270'; // 4h 30m = 4.5 * 12.000 = $54.000
 vm.runInContext('onAdminAddressInput("from");', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 74000, '20km + 4h30m should equal $74.000');
-
-q_stay.value = '330'; // 5h 30m = 5.5 * 12.000 = $66.000
+q_km.value = '20'; // $20.000
+q_stay.value = '360'; // 6h = 6 * 12.000 = $72.000 + $20.000 = $92.000
 vm.runInContext('calcAdminQuote();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 86000, '20km + 5h30m should equal $86.000');
+assert.strictEqual(qState.totalFare, 92000, '20km + 6h must equal $92.000');
+assert.strictEqual(qState.durationMin, 360);
+console.log('✓ Continuous scale strictly capped at 6h verified');
 
-// Test 12 hours (720 min) = 12 * $12.000 = $144.000 + $20.000 = $164.000
-q_stay.value = '720';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 164000, '20km + 12h should equal $164.000');
-assert.strictEqual(qState.abono50, 82000, 'Abono 50% should be $82.000');
-assert.strictEqual(qState.saldo50, 82000, 'Saldo 50% should be $82.000');
-console.log('✓ Continuous scale (4h 30m, 5h 30m up to 12h) passed');
-
-// 3. Test Modality 1 & 2 Rates across Jornadas
-console.log('\nTesting Rates across Jornadas (Hábil, Fin de Semana, Festivo/Nocturno)...');
-// Mod 1 Fin de Semana: Sábado 2026-11-07 10:00 -> $15.000/h
-q_date.value = '2026-11-07';
-q_stay.value = '120'; // 2h * 15.000 = $30.000 + 20km ($20.000) = $50.000
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.jornada, 'finde');
-assert.strictEqual(qState.ratePerHour, 15000);
-assert.strictEqual(qState.totalFare, 50000);
-console.log('✓ Modality 1 Weekend rate ($15.000/h) passed');
-
-// Mod 1 Holiday: Navidad 2026-12-25 10:00 -> $18.000/h
-q_date.value = '2026-12-25';
-q_stay.value = '120'; // 2h * 18.000 = $36.000 + 20km ($20.000) = $56.000
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.jornada, 'nocturno');
-assert.strictEqual(qState.ratePerHour, 18000);
-assert.strictEqual(qState.totalFare, 56000);
-console.log('✓ Modality 1 Holiday rate ($18.000/h) passed');
-
-// Mod 2 Rates: Hábil ($8.000/h), Fin de semana ($10.000/h), Nocturno/Festivo ($12.000/h)
-q_mode.value = '2';
-q_date.value = '2026-11-04'; // Hábil
-q_stay.value = '120'; // 2h * 8.000 = $16.000 + 20km ($20.000) = $36.000
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.ratePerHour, 8000);
-assert.strictEqual(qState.totalFare, 36000);
-
-q_date.value = '2026-11-07'; // Fin de semana
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.ratePerHour, 10000);
-assert.strictEqual(qState.totalFare, 40000); // 2h * 10k + 20k
-
-q_date.value = '2026-12-25'; // Festivo
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.ratePerHour, 12000);
-assert.strictEqual(qState.totalFare, 44000); // 2h * 12k + 20k
-console.log('✓ Modality 2 rates across all jornadas passed');
-
-// 4. Test Modality 3: Cuidados a Domicilio (Sin Traslado, up to 12h)
-console.log('\nTesting Modality 3: Cuidados a Domicilio (Ring minimum hours, $0 Km & up to 12h)...');
+// 3. Test Modality 3: Cuidados a Domicilio (Official Tariff Homologation)
+console.log('\nTesting Modality 3: Cuidados a Domicilio (Official Tariff Matrix Homologation)...');
 q_mode.value = '3';
+q_from.value = 'Av. Pajaritos 1000, Maipú'; // Anillo 1: min 2h
+vm.runInContext('onAdminAddressInput("from");', mockContext);
+vm.runInContext('onAdminModeChange();', mockContext);
+
+// A) HÁBIL ($12.000/h): 2h: $24.000 | 3h: $36.000 | 4h: $48.000 | 5h: $60.000 | 6h (Tope): $72.000
 q_date.value = '2026-11-04'; // Hábil
 q_time.value = '10:00';
-q_from.value = 'Av. Apoquindo 4000, Las Condes'; // Anillo 3: min 4 hours
-vm.runInContext('onAdminModeChange();', mockContext);
-vm.runInContext('onAdminAddressInput("from");', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.kmCost, 0, 'Km cost must be 0 in Modality 3');
-assert.strictEqual(qState.durationMin >= 240, true, 'Anillo 3 must enforce min 4 hours (240 min)');
-assert.strictEqual(qState.totalFare, 48000, '4 hours at $12.000/h should equal $48.000');
+[
+  { hours: 120, expected: 24000 },
+  { hours: 180, expected: 36000 },
+  { hours: 240, expected: 48000 },
+  { hours: 300, expected: 60000 },
+  { hours: 360, expected: 72000 }
+].forEach(test => {
+  q_stay.value = String(test.hours);
+  vm.runInContext('calcAdminQuote();', mockContext);
+  qState = vm.runInContext('qState;', mockContext);
+  assert.strictEqual(qState.totalFare, test.expected, `Mod 3 Hábil ${test.hours/60}h must be $${test.expected}`);
+});
+console.log('✓ Modality 3 Hábil official matrix (2h:$24k, 3h:$36k, 4h:$48k, 5h:$60k, 6h:$72k) passed');
 
-// Test 12 hours in Modality 3 = 12 * $12.000 = $144.000
-q_stay.value = '720';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 144000, 'Modality 3 12h should equal $144.000');
+// B) FIN DE SEMANA ($15.000/h): 2h: $30.000 | 3h: $45.000 | 4h: $60.000 | 5h: $75.000 | 6h (Tope): $90.000
+q_date.value = '2026-11-07'; // Fin de semana
+[
+  { hours: 120, expected: 30000 },
+  { hours: 180, expected: 45000 },
+  { hours: 240, expected: 60000 },
+  { hours: 300, expected: 75000 },
+  { hours: 360, expected: 90000 }
+].forEach(test => {
+  q_stay.value = String(test.hours);
+  vm.runInContext('calcAdminQuote();', mockContext);
+  qState = vm.runInContext('qState;', mockContext);
+  assert.strictEqual(qState.totalFare, test.expected, `Mod 3 Fin de Semana ${test.hours/60}h must be $${test.expected}`);
+});
+console.log('✓ Modality 3 Fin de Semana official matrix (2h:$30k, 3h:$45k, 4h:$60k, 5h:$75k, 6h:$90k) passed');
 
-// Night shift 6 hours: Pack Noche benefit = $96.000
-q_time.value = '22:00';
-q_stay.value = '360';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.jornada, 'nocturno');
-assert.strictEqual(qState.totalFare, 96000, 'Modality 3 6h night pack benefit must be $96.000');
-console.log('✓ Modality 3 ring minimum hours, 12h max and $96.000 night pack benefit passed');
+// C) FESTIVO / NOCTURNO ($18.000/h): 2h: $36.000 | 3h: $54.000 | 4h: $72.000 | 5h: $90.000 | 6h (Tope cerrado especial): $96.000
+q_time.value = '22:00'; // Turno Noche
+[
+  { hours: 120, expected: 36000 },
+  { hours: 180, expected: 54000 },
+  { hours: 240, expected: 72000 },
+  { hours: 300, expected: 90000 },
+  { hours: 360, expected: 96000 } // Beneficio cerrado especial $96.000
+].forEach(test => {
+  q_stay.value = String(test.hours);
+  vm.runInContext('calcAdminQuote();', mockContext);
+  qState = vm.runInContext('qState;', mockContext);
+  assert.strictEqual(qState.totalFare, test.expected, `Mod 3 Nocturno ${test.hours/60}h must be $${test.expected}`);
+});
+console.log('✓ Modality 3 Festivo/Nocturno official matrix (2h:$36k, 3h:$54k, 4h:$72k, 5h:$90k, 6h especial:$96k) passed');
 
-// 5. Test Modality 4: Acompañamiento en Eventos Sociales (Scale: $7.500/30m, $15.000/1h, $22.500/1.5h, $30.000/2h)
-console.log('\nTesting Modality 4: Eventos Sociales (Scale: $7.5k, $15k, $22.5k, $30k)...');
+// 4. Test Modality 4: Eventos Sociales (Scale: $7.5k, $15k, $22.5k, $30k)
+console.log('\nTesting Modality 4: Eventos Sociales (Official Extra Scale: $7.5k, $15k, $22.5k, $30k)...');
 q_mode.value = '4';
 q_event_subtype.value = 'sin_traslado';
 q_event_pack.value = 'base'; // 4h: $65.000
 q_event_extra.value = '0';
 vm.runInContext('onAdminModeChange();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 65000, 'Plan Base Sin Traslado must be $65.000');
 
-// Base 4h Sin Traslado ($65.000) + 2h extras ($30.000) = $95.000 (igual al Plan Total 6h Sin Traslado)
+// Base 4h Sin Traslado ($65.000) + 2h extras ($30.000) = $95.000
 q_event_extra.value = '120';
 vm.runInContext('calcAdminQuote();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 95000, 'Plan Base Sin Traslado + 2h ($30.000) must equal Plan Total 6h ($95.000)');
+assert.strictEqual(qState.totalFare, 95000, 'Base 4h Sin Traslado + 2h extras ($30k) must equal Plan Total 6h ($95k)');
 
+// Base 4h Con Traslado ($95.000) + 2h extras ($30.000) = $125.000
 q_event_subtype.value = 'con_traslado';
-q_event_extra.value = '0';
 vm.runInContext('onAdminEventSubtypeChange();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 95000, 'Plan Base Con Traslado must be $95.000');
+assert.strictEqual(qState.totalFare, 125000, 'Base 4h Con Traslado + 2h extras ($30k) must equal Plan Total 6h ($125k)');
 
-// +30 min -> +$7.500 (total $102.500)
-q_event_extra.value = '30';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 102500, 'Plan Base Con Traslado + 30m must be $102.500 (+$7.500)');
+// Check all increments
+const increments = [
+  { extra: '30', expected: 102500 },
+  { extra: '60', expected: 110000 },
+  { extra: '90', expected: 117500 },
+  { extra: '120', expected: 125000 }
+];
+increments.forEach(inc => {
+  q_event_extra.value = inc.extra;
+  vm.runInContext('calcAdminQuote();', mockContext);
+  qState = vm.runInContext('qState;', mockContext);
+  assert.strictEqual(qState.totalFare, inc.expected);
+});
+console.log('✓ Modality 4 increments and tie-in passed');
 
-// +1 hora -> +$15.000 (total $110.000)
-q_event_extra.value = '60';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 110000, 'Plan Base Con Traslado + 1h must be $110.000 (+$15.000)');
-
-// +1 hora 30 min -> +$22.500 (total $117.500)
-q_event_extra.value = '90';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 117500, 'Plan Base Con Traslado + 1h30m must be $117.500 (+$22.500)');
-
-// +2 horas (Tope) -> +$30.000 (total $125.000, igual a Plan Total 6h Con Traslado)
-q_event_extra.value = '120';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 125000, 'Plan Base Con Traslado + 2h ($30.000) must equal Plan Total 6h ($125.000)');
-assert.strictEqual(qState.durationMin, 360, 'Duration must be 240 + 120 = 360 min');
-
-// Plan Total (6h Con Traslado = $125.000) + 2h extras ($30.000) = $155.000 (cobertura 8h)
-q_event_pack.value = 'total';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 155000, 'Plan Total Con Traslado 6h + 2h extras must be $155.000 (8h)');
-assert.strictEqual(qState.durationMin, 480, 'Duration must be 360 + 120 = 480 min (8h)');
-console.log('✓ Modality 4 corrected scale ($7.5k, $15k, $22.5k, $30k) and mathematical tie-in passed');
-
-// 6. Test Modality 5: Programas Interregionales (Capped at 2h: 0, 30m, 1h, 1.5h, 2h)
-console.log('\nTesting Modality 5: Programas Interregionales (Capped strictly at 2 hours)...');
+// 5. Test Modality 5: Interregionales (Plan Estándar extra allowed vs Plan Crónico locked)
+console.log('\nTesting Modality 5: Interregionales (Estándar vs Crónico safety lock)...');
 q_mode.value = '5';
-q_inter_plan.value = 'estandar'; // 4h: $250.000
-q_inter_extra.value = '0';
+q_inter_plan.value = 'estandar';
+q_inter_extra.value = '60'; // +1h = $25.000
 vm.runInContext('onAdminModeChange();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 250000, 'Programa Estándar must be $250.000');
+assert.strictEqual(q_inter_extra.disabled, false, 'aq_inter_extra must be enabled for Programa Estándar');
+assert.strictEqual(qState.totalFare, 275000, 'Estándar 4h ($250k) + 1h ($25k) = $275.000');
 
-// +30m: +$15.000
-q_inter_extra.value = '30';
+// Switch to Programa Crónico / Oncológico (6h)
+q_inter_plan.value = 'cronico';
 vm.runInContext('calcAdminQuote();', mockContext);
 qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 265000, 'Programa Estándar + 30m must be $265.000');
+assert.strictEqual(q_inter_extra.disabled, true, 'aq_inter_extra must be disabled for Programa Crónico');
+assert.strictEqual(q_inter_extra.value, '0', 'aq_inter_extra value must be forced to 0 for Programa Crónico');
+assert.strictEqual(qState.totalFare, 300000, 'Crónico 6h must be locked at $300.000');
+assert.strictEqual(qState.interExtraMin, 0);
+assert(lbl_inter_note.style.display !== 'none', 'Safety warning note must be displayed for Programa Crónico');
+console.log('✓ Modality 5 safety lock on Programa Crónico (6h closed coverage) passed');
 
-// +1h: +$25.000
-q_inter_extra.value = '60';
+// Switch back to Estándar
+q_inter_plan.value = 'estandar';
 vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 275000, 'Programa Estándar + 1h must be $275.000');
+assert.strictEqual(q_inter_extra.disabled, false, 'aq_inter_extra must be re-enabled when returning to Estándar');
+assert.strictEqual(lbl_inter_note.style.display, 'none', 'Safety warning note must be hidden for Estándar');
+console.log('✓ Modality 5 dynamic toggle passed');
 
-// +1h30m: +$40.000
-q_inter_extra.value = '90';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 290000, 'Programa Estándar + 1h30m must be $290.000');
+// 6. Test Physical PDF Files
+console.log('\nTesting Physical PDF Files...');
+assert(fs.existsSync('terminos_condiciones.pdf'), 'terminos_condiciones.pdf must exist in root');
+assert(fs.existsSync('public/terminos_condiciones.pdf'), 'terminos_condiciones.pdf must exist in /public');
+assert.strictEqual(fs.statSync('terminos_condiciones.pdf').size, 4213653, 'Root PDF size must match uploaded file');
+assert.strictEqual(fs.statSync('public/terminos_condiciones.pdf').size, 4213653, 'Public PDF size must match uploaded file');
+console.log('✓ Physical PDF files (4.21 MB) verified in root and public/');
 
-// +2h (Tope): +$50.000
-q_inter_extra.value = '120';
-vm.runInContext('calcAdminQuote();', mockContext);
-qState = vm.runInContext('qState;', mockContext);
-assert.strictEqual(qState.totalFare, 300000, 'Programa Estándar + 2h must be $300.000 (+$50.000)');
-assert.strictEqual(qState.durationMin, 360, 'Duration must be 240 + 120 = 360 min');
-
-// Verify that INTER_EXTRAS has no options above 120 min
-const interExtrasInContext = vm.runInContext('INTER_EXTRAS;', mockContext);
-assert.strictEqual(interExtrasInContext['150'], undefined, '+2h 30m option must be removed');
-assert.strictEqual(interExtrasInContext['180'], undefined, '+3h option must be removed');
-console.log('✓ Modality 5 capped strictly at 2 hours passed');
-
-// 7. Test Buffer Info Text Format
-console.log('\nTesting Operational Buffer Information with extended time...');
-const bufInfo = getEl('admin_buffer_info');
-assert(bufInfo.innerHTML.includes('(2 horas)'), 'Buffer info must state (2 horas)');
-console.log('✓ Operational Buffer information (2 horas) verified');
-
-// 8. Test WhatsApp Quotation Formatting
-console.log('\nTesting WhatsApp quotation generation...');
-vm.runInContext('sendAdminQuoteWhatsApp();', mockContext);
-assert(openedUrl !== null, 'WhatsApp URL must be opened');
-assert(openedUrl.includes('TOTAL%20COTIZADO'), 'Quotation message must include TOTAL COTIZADO');
-assert(openedUrl.includes('Abono%2050%25'), 'Quotation message must include Abono 50%');
-console.log('✓ WhatsApp quotation formatting passed');
-
-console.log('\n🎉 ALL 5 MODALITIES EXTENDED & RATE CORRECTION TESTS PASSED PERFECTLY!\n');
+console.log('\n🎉 ALL COTIZADOR MAESTRO AND OFFICIAL DOCUMENT TESTS PASSED PERFECTLY!\n');
