@@ -86,11 +86,18 @@ const ctx = {
 vm.createContext(ctx);
 
 // Run reservar.html script in ctx
-const startTag = reservarHtml.indexOf("<script>\nconst K='msa-v1'") !== -1 
-  ? reservarHtml.indexOf("<script>\nconst K='msa-v1'")
-  : reservarHtml.indexOf("<script>\r\nconst K='msa-v1'");
-const initTag = reservarHtml.indexOf('initForm();');
-const scriptBody = reservarHtml.substring(startTag + 8, initTag);
+let scriptBody = '';
+if (fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js'))) {
+  const fullJs = fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8');
+  const idx = fullJs.indexOf('initForm();');
+  scriptBody = idx !== -1 ? fullJs.substring(0, idx) : fullJs;
+} else {
+  const startTag = reservarHtml.indexOf("<script>\nconst K='msa-v1'") !== -1 
+    ? reservarHtml.indexOf("<script>\nconst K='msa-v1'")
+    : reservarHtml.indexOf("<script>\r\nconst K='msa-v1'");
+  const initTag = reservarHtml.indexOf('initForm();');
+  scriptBody = reservarHtml.substring(startTag + 8, initTag);
+}
 
 vm.runInContext(scriptBody, ctx);
 

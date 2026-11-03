@@ -421,9 +421,20 @@ assert.strictEqual(testD.blocks[0].date, '2026-11-06');
 assert.strictEqual(testD.blocks[0].type, 'tarde');
 console.log('✓ js/blocks-api.js MsaBlocksService normalization and state merging verified');
 
-// 12.3 Verificar inclusión en reservar.html y admin.html
 const reservarContent = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
 const adminContent = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+const resCssContent = fs.existsSync(path.join(__dirname, '..', 'css', 'reservar.css'))
+  ? fs.readFileSync(path.join(__dirname, '..', 'css', 'reservar.css'), 'utf8')
+  : '';
+const resJsContent = fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js'))
+  ? fs.readFileSync(path.join(__dirname, '..', 'js', 'reservar.js'), 'utf8')
+  : '';
+const fullRes = reservarContent + '\n' + resCssContent + '\n' + resJsContent;
+
+const admJsContent = fs.existsSync(path.join(__dirname, '..', 'js', 'admin.js'))
+  ? fs.readFileSync(path.join(__dirname, '..', 'js', 'admin.js'), 'utf8')
+  : '';
+const fullAdm = adminContent + '\n' + admJsContent;
 
 assert(reservarContent.includes('js/blocks-api.js'), 'reservar.html must load js/blocks-api.js');
 assert(adminContent.includes('js/blocks-api.js'), 'admin.html must load js/blocks-api.js');
@@ -431,11 +442,11 @@ assert(reservarContent.includes('supabase-js'), 'reservar.html must include Supa
 assert(adminContent.includes('supabase-js'), 'admin.html must include Supabase SDK');
 
 // 12.4 Verificar estilos y etiquetas en reservar.html
-assert(reservarContent.includes('shift-manual-blocked'), 'reservar.html must have shift-manual-blocked class');
-assert(reservarContent.includes('Bloqueado / No disponible (0 cupos)'), 'reservar.html must render "Bloqueado / No disponible (0 cupos)" text on blocked shifts');
-assert(reservarContent.includes('is-blocked-full'), 'reservar.html must have is-blocked-full calendar style');
-assert(reservarContent.includes('syncCentralizedBlocks'), 'reservar.html must define syncCentralizedBlocks');
-assert(adminContent.includes('openDbConfigModal'), 'admin.html must define openDbConfigModal for Supabase settings');
+assert(fullRes.includes('shift-manual-blocked'), 'reservar.html/css must have shift-manual-blocked class');
+assert(fullRes.includes('Bloqueado / No disponible (0 cupos)'), 'reservar.html/js must render "Bloqueado / No disponible (0 cupos)" text on blocked shifts');
+assert(fullRes.includes('is-blocked-full'), 'reservar.html/css must have is-blocked-full calendar style');
+assert(fullRes.includes('syncCentralizedBlocks'), 'reservar.html/js must define syncCentralizedBlocks');
+assert(fullAdm.includes('openDbConfigModal'), 'admin.html/js must define openDbConfigModal for Supabase settings');
 console.log('✓ reservar.html and admin.html script tags, classes and shift badge labels verified');
 
 testMsaBlocks().then(() => {
