@@ -97,10 +97,34 @@ header {
   color: var(--text);
 }
 .btn:hover { background: var(--mist); }
-.btn.pri {
+.btn.pri, .btn-descarga-pdf {
   background: #0E4A55;
   color: #fff;
   border-color: #0E4A55;
+}
+.btn-descarga-pdf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid #0E4A55;
+  transition: all .15s ease;
+  box-shadow: 0 2px 6px rgba(14,74,85,.18);
+}
+.btn-descarga-pdf:hover {
+  opacity: .92;
+  transform: translateY(-1px);
+}
+:root[data-theme="dark"] .btn-descarga-pdf {
+  background: #8FE0C0;
+  color: #07252B;
+  border-color: #8FE0C0;
 }
 :root[data-theme="dark"] .btn.pri {
   background: #8FE0C0;
@@ -303,7 +327,7 @@ footer a:hover { text-decoration: underline; }
         </div>
       </div>
       <div style="align-self:flex-start;padding-top:4px">
-        <a class="btn pri" id="btnDescargarPdf" href="/terminos_condiciones.pdf" download="Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf" title="Descargar Términos y Condiciones en formato PDF">
+        <a href="/terminos_condiciones.pdf" download="Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf" class="btn-descarga-pdf" id="btnDescargarPdf">
           📥 Descargar Términos y Condiciones en PDF
         </a>
       </div>

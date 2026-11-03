@@ -12,7 +12,7 @@ assert(!content.includes('html2pdf.bundle.min.js'), 'html2pdf.bundle.min.js CDN 
 console.log('✓ html2pdf.js CDN tag confirmed removed');
 
 // 2. Check download button
-assert(content.includes('id="btnDescargarPdf"'), 'Button #btnDescargarPdf must exist');
+assert(content.includes('class="btn-descarga-pdf"'), 'Button must have class="btn-descarga-pdf"');
 assert(content.includes('href="/terminos_condiciones.pdf"'), 'Button href must point directly to /terminos_condiciones.pdf');
 assert(content.includes('download="Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf"'), 'Button download attribute must be Terminos_y_Condiciones_Movilidad_y_Salud_SpA.pdf');
 assert(!content.includes('onclick="descargarTerminosPdf'), 'Button must not have html2pdf onclick handler');
@@ -39,11 +39,16 @@ assert(!content.includes('function descargarTerminosPdf'), 'Inline descargarTerm
 assert(!content.includes('function generarTerminosPdfHtml2Pdf'), 'Inline generarTerminosPdfHtml2Pdf script must be removed from terminos.html');
 console.log('✓ Script cleanup confirmed in terminos.html');
 
-// 7. Verify physical PDF files in root
+// 7. Verify physical PDF files in root and in public/
 const pdfPath = path.join(__dirname, '..', 'terminos_condiciones.pdf');
 assert(fs.existsSync(pdfPath), 'terminos_condiciones.pdf must exist in root directory');
 const stats = fs.statSync(pdfPath);
 assert(stats.size > 100000, `PDF file size should be > 100KB, got: ${stats.size} bytes`);
-console.log(`✓ Physical PDF file terminos_condiciones.pdf verified (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+
+const publicPdfPath = path.join(__dirname, '..', 'public', 'terminos_condiciones.pdf');
+assert(fs.existsSync(publicPdfPath), 'terminos_condiciones.pdf must also exist in /public directory');
+const publicStats = fs.statSync(publicPdfPath);
+assert.strictEqual(publicStats.size, stats.size, 'Root and /public PDF file sizes must match');
+console.log(`✓ Physical PDF file terminos_condiciones.pdf verified in root and /public (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
 
 console.log('\nAll terminos.html tests passed successfully! 🚀');
