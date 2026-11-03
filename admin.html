@@ -262,7 +262,8 @@ const MONTH_NAMES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Ago
 const BLOCK_LABELS={
   full:'Día completo cerrado',
   manana:'Solo Turno Mañana (06:00 a 12:00)',
-  tarde:'Solo Turno Tarde (14:00 a 20:00)'
+  tarde:'Solo Turno Tarde (14:00 a 20:00)',
+  noche:'Solo Turno Noche (20:00 a 06:00 hrs)'
 };
 
 const RINGS_DATA = [
@@ -429,8 +430,7 @@ function hdr(sess){
       `}
       <button onclick="toggleTheme()" title="Cambiar tema">${d?'☀️ Claro':'🌙 Oscuro'}</button>
       <button onclick="logout()" title="Cerrar sesión actual">Cerrar sesión</button>
-      <a class="b" href="reservar.html" target="_blank" title="Ver formulario público de reservas">📅 Ver Agendamiento</a>
-      <a class="b" href="index.html" target="_blank" title="Ir a la web de clientes">← Web Clientes</a>
+      <a class="b" href="index.html" target="_blank" title="Abrir sitio web oficial de clientes">🌐 Ver Sitio Público</a>
     </div>
   </div>`;
 }
@@ -529,13 +529,14 @@ function blocksView(){
     const dayBlocks = D.blocks.filter(b => b.date === dateStr);
     const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && s.st !== 'Cancelado');
 
-    const hasFull = dayBlocks.some(b => b.type === 'full') || (dayBlocks.some(b => b.type === 'manana') && dayBlocks.some(b => b.type === 'tarde'));
+    const hasFull = dayBlocks.some(b => b.type === 'full') || (dayBlocks.some(b => b.type === 'manana') && dayBlocks.some(b => b.type === 'tarde') && dayBlocks.some(b => b.type === 'noche'));
     const hasManana = !hasFull && dayBlocks.some(b => b.type === 'manana');
     const hasTarde  = !hasFull && dayBlocks.some(b => b.type === 'tarde');
+    const hasNoche  = !hasFull && dayBlocks.some(b => b.type === 'noche');
 
     let cls = '';
     if(hasFull) cls = 'b-full';
-    else if(hasManana || hasTarde) cls = 'b-part';
+    else if(hasManana || hasTarde || hasNoche) cls = 'b-part';
 
     let tags = '';
     if(hasFull){
@@ -543,6 +544,7 @@ function blocksView(){
     } else {
       if(hasManana) tags += `<span class="mtag part">🔒 Mañana</span>`;
       if(hasTarde)  tags += `<span class="mtag part">🔒 Tarde</span>`;
+      if(hasNoche)  tags += `<span class="mtag part" style="background:#4338ca">🔒 Noche</span>`;
     }
     if(daySvcs.length > 0){
       tags += `<span class="mtag svc">📅 ${daySvcs.length} res.</span>`;
@@ -589,7 +591,7 @@ function blocksView(){
           <div class="mcal-grid">${cells}</div>
           <div class="row" style="margin-top:10px;font-size:12px;color:var(--mut);justify-content:center;gap:14px">
             <span><span class="dot" style="background:#dc2626"></span>Día completo cerrado</span>
-            <span><span class="dot" style="background:#d97706"></span>Turno Mañana / Tarde bloqueado</span>
+            <span><span class="dot" style="background:#d97706"></span>Turno Mañana / Tarde / Noche bloqueado</span>
             <span><span class="dot" style="background:#0f766e"></span>Con reservas agendadas</span>
           </div>
         </div>
@@ -615,14 +617,21 @@ function blocksView(){
                 <input type="radio" name="blk_t" value="manana" ${U.blkType==='manana'?'checked':''}>
                 <div>
                   <b>b) Solo Turno Mañana (06:00 a 12:00)</b>
-                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Turno Mañana y mantiene habilitado el Turno Tarde.</div>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Turno Mañana y mantiene habilitado el Turno Tarde. (El intervalo de 12:00 a 14:00 hrs corresponde al buffer operativo/almuerzo no disponible para inicio de atenciones regulares).</div>
                 </div>
               </label>
               <label class="blk-opt ${U.blkType==='tarde'?'on':''}" onclick="setBlkType('tarde')">
                 <input type="radio" name="blk_t" value="tarde" ${U.blkType==='tarde'?'checked':''}>
                 <div>
                   <b>c) Solo Turno Tarde (14:00 a 20:00)</b>
-                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Turno Tarde y mantiene habilitado el Turno Mañana.</div>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Turno Tarde y mantiene habilitado el Turno Mañana. (El intervalo de 12:00 a 14:00 hrs corresponde al buffer operativo/almuerzo no disponible para inicio de atenciones regulares).</div>
+                </div>
+              </label>
+              <label class="blk-opt ${U.blkType==='noche'?'on':''}" onclick="setBlkType('noche')">
+                <input type="radio" name="blk_t" value="noche" ${U.blkType==='noche'?'checked':''}>
+                <div>
+                  <b>d) Solo Turno Noche (20:00 a 06:00 hrs)</b>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita el agendamiento nocturno (Cuidados a Domicilio y Eventos) y mantiene habilitados los turnos diurnos de Mañana y Tarde.</div>
                 </div>
               </label>
             </div>
@@ -666,7 +675,7 @@ function blocksView(){
           ${allSortedBlocks.map(b => `
             <tr>
               <td><b>${e(b.date)}</b></td>
-              <td><span class="badge" style="background:${b.type==='full'?'#dc2626':'#d97706'}">${e(BLOCK_LABELS[b.type] || b.type)}</span></td>
+              <td><span class="badge" style="background:${b.type==='full'?'#dc2626':(b.type==='noche'?'#4338ca':'#d97706')}">${e(BLOCK_LABELS[b.type] || b.type)}</span></td>
               <td>${e(b.reason || '—')}</td>
               <td style="font-size:12px;color:var(--mut)">Inhabilita selección en reservar.html</td>
               <td><button type="button" class="unlock-btn" onclick="removeManualBlock(${b.id})">🔓 Desbloquear</button></td>
