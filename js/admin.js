@@ -12,6 +12,112 @@ const BLOCK_LABELS={
   noche:'Solo Turno Noche (20:00 a 06:00 hrs)'
 };
 
+function parseYMD(str){
+  if(!str) return new Date();
+  const parts = String(str).split('-').map(Number);
+  return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+}
+
+const CHILE_FERIADOS = {
+  '2026-01-01': 'Año Nuevo',
+  '2026-04-03': 'Viernes Santo',
+  '2026-04-04': 'Sábado Santo',
+  '2026-05-01': 'Día del Trabajo',
+  '2026-05-21': 'Glorias Navales',
+  '2026-06-21': 'Pueblos Indígenas',
+  '2026-06-29': 'San Pedro y San Pablo',
+  '2026-07-16': 'Virgen del Carmen',
+  '2026-08-15': 'Asunción de la Virgen',
+  '2026-09-18': 'Fiestas Patrias',
+  '2026-09-19': 'Glorias del Ejército',
+  '2026-09-20': 'Fiestas Patrias',
+  '2026-10-12': 'Encuentro de Dos Mundos',
+  '2026-10-31': 'Iglesias Evangélicas',
+  '2026-11-01': 'Todos los Santos',
+  '2026-12-08': 'Inmaculada Concepción',
+  '2026-12-25': 'Navidad',
+  '2027-01-01': 'Año Nuevo',
+  '2027-03-26': 'Viernes Santo',
+  '2027-03-27': 'Sábado Santo',
+  '2027-05-01': 'Día del Trabajo',
+  '2027-05-21': 'Glorias Navales'
+};
+
+function isChileHoliday(dateStr){
+  return Boolean(CHILE_FERIADOS[dateStr]);
+}
+
+function getChileHolidayName(dateStr){
+  return CHILE_FERIADOS[dateStr] || '';
+}
+
+function getAdminJornada(dateStr, timeStr){
+  if(!dateStr && !timeStr) return 'habil';
+  const time = timeStr || '10:00';
+  const tMin = tm(time);
+  const isNight = (tMin >= 1200 || tMin < 360); // 20:00 a 06:00
+  if(isNight) return 'nocturno';
+
+  if(dateStr){
+    if(isChileHoliday(dateStr)) return 'nocturno';
+    const dt = parseYMD(dateStr);
+    if(dt && !isNaN(dt.getTime())){
+      const day = dt.getDay(); // 0 = Domingo, 6 = Sábado
+      if(day === 0 || day === 6) return 'finde';
+    }
+  }
+  return 'habil';
+}
+
+const ADMIN_RATES = {
+  '1': { habil: 12000, finde: 15000, nocturno: 18000 },
+  '2': { habil: 8000,  finde: 10000, nocturno: 12000 },
+  '3': { habil: 12000, finde: 15000, nocturno: 18000 }
+};
+
+const STAY_HOURS_OPTIONS = [
+  { val: 60, label: '1 hora de asistencia' },
+  { val: 90, label: '1 hora 30 min' },
+  { val: 120, label: '2 horas de asistencia' },
+  { val: 150, label: '2 horas 30 min' },
+  { val: 180, label: '3 horas de asistencia' },
+  { val: 210, label: '3 horas 30 min' },
+  { val: 240, label: '4 horas de asistencia' },
+  { val: 270, label: '4 horas 30 min' },
+  { val: 300, label: '5 horas de asistencia' },
+  { val: 330, label: '5 horas 30 min' },
+  { val: 360, label: '6 horas de asistencia (Tope)' }
+];
+
+const EVENT_RATES = {
+  base: { sin_traslado: 65000, con_traslado: 95000, dur: 240 },
+  total: { sin_traslado: 95000, con_traslado: 125000, dur: 360 }
+};
+
+const EVENT_EXTRAS = {
+  '0': { fare: 0, min: 0 },
+  '30': { fare: 10000, min: 30 },
+  '60': { fare: 20000, min: 60 },
+  '90': { fare: 30000, min: 90 },
+  '120': { fare: 40000, min: 120 }
+};
+
+const INTER_PLANS = {
+  estandar: { fare: 250000, dur: 240, label: 'Programa Estándar (hasta 4 hrs)' },
+  cronico: { fare: 300000, dur: 360, label: 'Programa Crónico / Oncológico (hasta 6 hrs)' }
+};
+
+const INTER_EXTRAS = {
+  '0': { fare: 0, min: 0 },
+  '30': { fare: 15000, min: 30 },
+  '60': { fare: 25000, min: 60 },
+  '90': { fare: 40000, min: 90 },
+  '120': { fare: 50000, min: 120 },
+  '150': { fare: 65000, min: 150 },
+  '180': { fare: 75000, min: 180 }
+};
+
+
 const RINGS_DATA = [
   { id: 1, name: 'Anillo 1 (Maipú y alrededores)', minFare: 18000, comunas: ['Cerrillos', 'Lo Espejo', 'Lo Prado', 'Maipú', 'Padre Hurtado', 'Pedro Aguirre Cerda', 'Quinta Normal'] },
   { id: 2, name: 'Anillo 2 (Santiago Centro, Sur y Poniente)', minFare: 35000, comunas: ['Calera de Tango', 'Cerro Navia', 'Conchalí', 'El Bosque', 'Estación Central', 'Huechuraba', 'Independencia', 'La Cisterna', 'La Florida', 'La Granja', 'La Pintana', 'Macul', 'Ñuñoa', 'Peñaflor', 'Peñalolén', 'Providencia', 'Pudahuel', 'Quilicura', 'Recoleta', 'Renca', 'San Bernardo', 'San Joaquín', 'San Miguel', 'San Ramón', 'Talagante', 'Santiago Centro'] },
@@ -634,6 +740,7 @@ function setSt(id,v){D.svcs.find(x=>x.id==id).st=v;save();render()}
 function setPay(id,k,v){const s=D.svcs.find(x=>x.id==id);if(s){s[k]=+v||0;save();render()}}
 
 // =========================================================================
+// =========================================================================
 // COTIZADOR AUTOMÁTICO ADMINISTRATIVO (NUEVA RESERVA)
 // =========================================================================
 let qState = {
@@ -650,7 +757,14 @@ let qState = {
   floorApplied: false,
   totalFare: 48000,
   abono50: 24000,
-  saldo50: 24000
+  saldo50: 24000,
+  jornada: 'habil',
+  ratePerHour: 12000,
+  eventSubtype: 'sin_traslado',
+  eventPack: 'base',
+  eventExtraMin: 0,
+  interPlan: 'estandar',
+  interExtraMin: 0
 };
 
 function form(){
@@ -659,7 +773,7 @@ function form(){
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:14px">
         <div>
           <h2 style="margin:0;color:var(--pri)">➕ Nueva Reserva y Cotizador Maestro</h2>
-          <div style="font-size:13px;color:var(--mut);margin-top:2px">Cálculo tarifario instantáneo con tarifas oficiales, pisos comunales y privilegios de Administrador.</div>
+          <div style="font-size:13px;color:var(--mut);margin-top:2px">Cálculo tarifario instantáneo con tarifas oficiales, 5 modalidades, pisos comunales y privilegios de Administrador.</div>
         </div>
       </div>
 
@@ -667,7 +781,7 @@ function form(){
       <div class="g" style="margin-bottom:14px">
         <div>
           <label for="aq_mode"><b>Modalidad de Servicio *</b></label>
-          <select id="aq_mode" onchange="calcAdminQuote()" style="font-weight:700">
+          <select id="aq_mode" onchange="onAdminModeChange()" style="font-weight:700">
             <option value="1" selected>1. Servicio Integral (Asistencia TENS + Traslado)</option>
             <option value="2">2. Traslado Exclusivo con Espera</option>
             <option value="3">3. Cuidados a Domicilio (Sin Traslado)</option>
@@ -687,7 +801,7 @@ function form(){
         </div>
 
         <div id="row_stay_time">
-          <label for="aq_stay_hours"><b>Tiempo de Asistencia / Espera *</b></label>
+          <label for="aq_stay_hours"><b id="lbl_stay_hours">Tiempo de Asistencia / Espera *</b></label>
           <select id="aq_stay_hours" onchange="calcAdminQuote()">
             <option value="60">1 hora de asistencia</option>
             <option value="90">1 hora 30 min</option>
@@ -696,26 +810,79 @@ function form(){
             <option value="180">3 horas de asistencia</option>
             <option value="210">3 horas 30 min</option>
             <option value="240">4 horas de asistencia</option>
+            <option value="270">4 horas 30 min</option>
             <option value="300">5 horas de asistencia</option>
+            <option value="330">5 horas 30 min</option>
             <option value="360">6 horas de asistencia (Tope)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- SECCIÓN DINÁMICA: OPCIONES MODALIDAD 4 (EVENTOS SOCIALES) -->
+      <div class="g" style="margin-bottom:14px;display:none;background:rgba(217,119,6,0.06);border:1px solid rgba(217,119,6,0.25);border-radius:10px;padding:12px" id="row_event_options">
+        <div>
+          <label for="aq_event_subtype"><b>Subtipo de Contratación (Eventos) *</b></label>
+          <select id="aq_event_subtype" onchange="onAdminEventSubtypeChange()" style="font-weight:700">
+            <option value="sin_traslado" selected>Sin Traslado (Asistencia exclusiva en recinto)</option>
+            <option value="con_traslado">Con Traslado (Pack Integral Puerta a Puerta)</option>
+          </select>
+        </div>
+        <div>
+          <label for="aq_event_pack"><b>Paquete Base de Cobertura *</b></label>
+          <select id="aq_event_pack" onchange="calcAdminQuote()">
+            <option value="base" selected>Plan Base (4 horas continuas)</option>
+            <option value="total">Plan Total (6 horas continuas)</option>
+          </select>
+        </div>
+        <div>
+          <label for="aq_event_extra"><b>Tiempo Adicional *</b></label>
+          <select id="aq_event_extra" onchange="calcAdminQuote()">
+            <option value="0" selected>Sin tiempo adicional ($0)</option>
+            <option value="30">+30 minutos (+$10.000)</option>
+            <option value="60">+1 hora (+$20.000)</option>
+            <option value="90">+1 hora 30 min (+$30.000)</option>
+            <option value="120">+2 horas (+$40.000)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- SECCIÓN DINÁMICA: OPCIONES MODALIDAD 5 (PROGRAMAS INTERREGIONALES) -->
+      <div class="g" style="margin-bottom:14px;display:none;background:rgba(14,116,144,0.06);border:1px solid rgba(14,116,144,0.25);border-radius:10px;padding:12px" id="row_inter_options">
+        <div>
+          <label for="aq_inter_plan"><b>Plan Interregional *</b></label>
+          <select id="aq_inter_plan" onchange="calcAdminQuote()" style="font-weight:700">
+            <option value="estandar" selected>Programa Estándar (hasta 4 hrs) - $250.000</option>
+            <option value="cronico">Programa Crónico / Oncológico (hasta 6 hrs) - $300.000</option>
+          </select>
+        </div>
+        <div>
+          <label for="aq_inter_extra"><b>Tiempo Adicional *</b></label>
+          <select id="aq_inter_extra" onchange="calcAdminQuote()">
+            <option value="0" selected>Sin tiempo adicional ($0)</option>
+            <option value="30">+30 minutos (+$15.000)</option>
+            <option value="60">+1 hora (+$25.000)</option>
+            <option value="90">+1 hora 30 min (+$40.000)</option>
+            <option value="120">+2 horas (+$50.000)</option>
+            <option value="150">+2 horas 30 min (+$65.000)</option>
+            <option value="180">+3 horas (+$75.000)</option>
           </select>
         </div>
       </div>
 
       <!-- SECCIÓN 2: DIRECCIONES Y KILOMETRAJE -->
       <div class="g" style="margin-bottom:14px" id="row_addresses">
-        <div style="position:relative">
-          <label for="aq_from"><b>Dirección Origen (A) *</b></label>
+        <div style="position:relative" id="col_origen">
+          <label for="aq_from"><b id="lbl_aq_from">Dirección Origen (A) *</b></label>
           <input type="text" id="aq_from" placeholder="Ej: Av. Pajaritos 1450, Maipú" value="Av. Los Pajaritos 1450, Maipú" oninput="onAdminAddressInput('from')" required>
           <div id="suggest_from" class="suggest-list"></div>
           <small id="aq_ring_badge" style="font-size:11px;color:var(--pri);font-weight:700;display:block;margin-top:2px">Anillo 1 detectado (Piso legal: $18.000)</small>
         </div>
 
         <div style="position:relative" id="col_destino">
-          <label for="aq_to"><b>Dirección Destino (B) *</b></label>
+          <label for="aq_to"><b id="lbl_aq_to">Dirección Destino (B) *</b></label>
           <input type="text" id="aq_to" placeholder="Ej: Clínica Santa María, Providencia" value="Clínica Santa María, Providencia" oninput="onAdminAddressInput('to')">
           <div id="suggest_to" class="suggest-list"></div>
-          <div style="margin-top:4px">
+          <div id="quick_dest_wrap" style="margin-top:4px">
             <label style="font-size:11px;color:var(--mut)">O elija un destino frecuente:</label>
             <select id="aq_quick_dest" onchange="onQuickDestSelect(this.value)" style="font-size:12px;padding:4px 8px">
               <option value="">-- Centros Médicos Frecuentes --</option>
@@ -725,12 +892,12 @@ function form(){
         </div>
 
         <div id="col_km">
-          <label for="aq_km"><b>Kilometraje Total Ida y Vuelta (km) *</b></label>
-          <div class="row" style="flex-wrap:nowrap">
+          <label for="aq_km"><b id="lbl_aq_km">Kilometraje Total Ida y Vuelta (km) *</b></label>
+          <div class="row" style="flex-wrap:nowrap" id="km_input_wrap">
             <input type="number" id="aq_km" min="1" step="0.5" value="24" oninput="calcAdminQuote()" style="font-weight:700">
-            <button type="button" onclick="autoCalcAdminKm()" title="Estimar km automáticos">📍 Recalcular</button>
+            <button type="button" id="btn_calc_km" onclick="autoCalcAdminKm()" title="Estimar km automáticos">📍 Recalcular</button>
           </div>
-          <small style="font-size:11px;color:var(--mut)">$1.000 por km en circuito de ida y vuelta.</small>
+          <small id="lbl_km_note" style="font-size:11px;color:var(--mut)">$1.000 por km en circuito de ida y vuelta.</small>
         </div>
       </div>
 
@@ -747,7 +914,7 @@ function form(){
             <div class="quote-num" id="q_km_cost">$24.000</div>
           </div>
           <div>
-            <span style="font-size:12px;color:var(--mut)">Tiempo / Asistencia (<span id="q_lbl_time">2 hrs</span>):</span>
+            <span style="font-size:12px;color:var(--mut)">Tiempo / Cobertura (<span id="q_lbl_time">2.0 hrs</span>):</span>
             <div class="quote-num" id="q_time_cost">$24.000</div>
           </div>
           <div>
@@ -765,7 +932,7 @@ function form(){
         </div>
 
         <div id="q_floor_alert" style="margin-top:10px;font-size:12px;color:var(--pri);display:none">
-          ℹ️ Se aplicó la <b>tarifa mínima legal comunal</b> para el sector.
+          ℹ️ Se aplicó la <b>tarifa mínima legal comunal garantizada</b> para el sector.
         </div>
       </div>
 
@@ -828,8 +995,120 @@ function form(){
 }
 
 function initAdminQuoter(){
-  calcAdminQuote();
+  onAdminModeChange();
   populateAdminTechs();
+}
+
+function updateStayHoursSelector(mode, ringId){
+  const sel = $('#aq_stay_hours');
+  if(!sel) return;
+  const curVal = +sel.value || 120;
+  let minMin = 60;
+  if(mode === '3'){
+    // Pisos mínimos de permanencia para Cuidados a Domicilio según Anillo:
+    // Anillo 1: mín 2h (120 min), Anillo 2: mín 3h (180 min), Anillo 3: mín 4h (240 min)
+    if(ringId === 2) minMin = 180;
+    else if(ringId === 3) minMin = 240;
+    else minMin = 120;
+  }
+  const filtered = STAY_HOURS_OPTIONS.filter(o => o.val >= minMin);
+  sel.innerHTML = filtered.map(o => {
+    const isSelected = (curVal >= minMin && o.val === curVal) || (curVal < minMin && o.val === minMin);
+    return `<option value="${o.val}" ${isSelected ? 'selected' : ''}>${o.label}</option>`;
+  }).join('');
+  if(curVal < minMin){
+    sel.value = String(minMin);
+  }
+}
+
+function onAdminModeChange(){
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+  qState.mode = mode;
+
+  const rowStay = $('#row_stay_time');
+  const rowEvt = $('#row_event_options');
+  const rowInter = $('#row_inter_options');
+  const colDest = $('#col_destino');
+  const colKm = $('#col_km');
+  const badge = $('#aq_ring_badge');
+  const quickDestWrap = $('#quick_dest_wrap');
+  const btnKm = $('#btn_calc_km');
+  const kmInput = $('#aq_km');
+  const lblKmNote = $('#lbl_km_note');
+  const ringId = (qState.ring && qState.ring.id) || 1;
+
+  if(mode === '1' || mode === '2'){
+    if(rowStay) rowStay.style.display = 'block';
+    if(rowEvt) rowEvt.style.display = 'none';
+    if(rowInter) rowInter.style.display = 'none';
+    if(colDest) colDest.style.display = 'block';
+    if(quickDestWrap) quickDestWrap.style.display = 'block';
+    if(colKm) colKm.style.display = 'block';
+    if(kmInput) { kmInput.disabled = false; kmInput.style.opacity = '1'; }
+    if(btnKm) btnKm.style.display = 'inline-block';
+    if(lblKmNote) lblKmNote.textContent = '$1.000 por km en circuito de ida y vuelta.';
+    if(badge){
+      badge.style.display = 'block';
+      badge.textContent = `${qState.ring.name} detectado (Piso legal: ${$c(qState.ring.minFare)})`;
+    }
+    updateStayHoursSelector(mode, ringId);
+  } else if(mode === '3'){
+    if(rowStay) rowStay.style.display = 'block';
+    if(rowEvt) rowEvt.style.display = 'none';
+    if(rowInter) rowInter.style.display = 'none';
+    if(colDest) colDest.style.display = 'none';
+    if(colKm) colKm.style.display = 'none';
+    updateStayHoursSelector(mode, ringId);
+    if(badge){
+      badge.style.display = 'block';
+      const minHours = ringId === 3 ? 4 : (ringId === 2 ? 3 : 2);
+      badge.textContent = `${qState.ring.name} detectado (Mínimo ${minHours} horas de cuidado)`;
+    }
+  } else if(mode === '4'){
+    if(rowStay) rowStay.style.display = 'none';
+    if(rowEvt) rowEvt.style.display = 'grid';
+    if(rowInter) rowInter.style.display = 'none';
+    if(badge) badge.style.display = 'none';
+    onAdminEventSubtypeChange();
+    return;
+  } else if(mode === '5'){
+    if(rowStay) rowStay.style.display = 'none';
+    if(rowEvt) rowEvt.style.display = 'none';
+    if(rowInter) rowInter.style.display = 'grid';
+    if(badge) badge.style.display = 'none';
+    if(colDest) colDest.style.display = 'block';
+    if(quickDestWrap) quickDestWrap.style.display = 'none';
+    if(colKm) colKm.style.display = 'block';
+    if(kmInput) { kmInput.disabled = true; kmInput.style.opacity = '0.7'; kmInput.value = '250'; }
+    if(btnKm) btnKm.style.display = 'none';
+    if(lblKmNote) lblKmNote.textContent = 'Kilometraje interregional incluido en tarifa plana.';
+  }
+
+  calcAdminQuote();
+}
+
+function onAdminEventSubtypeChange(){
+  const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
+  qState.eventSubtype = subtype;
+  const colDest = $('#col_destino');
+  const colKm = $('#col_km');
+  const quickDestWrap = $('#quick_dest_wrap');
+  const btnKm = $('#btn_calc_km');
+  const kmInput = $('#aq_km');
+  const lblKmNote = $('#lbl_km_note');
+
+  if(subtype === 'sin_traslado'){
+    if(colDest) colDest.style.display = 'none';
+    if(colKm) colKm.style.display = 'none';
+  } else {
+    if(colDest) colDest.style.display = 'block';
+    if(quickDestWrap) quickDestWrap.style.display = 'none';
+    if(colKm) colKm.style.display = 'block';
+    if(kmInput) { kmInput.disabled = true; kmInput.style.opacity = '0.7'; kmInput.value = '40'; }
+    if(btnKm) btnKm.style.display = 'none';
+    if(lblKmNote) lblKmNote.textContent = 'Kilometraje incluido en Pack Integral Puerta a Puerta.';
+  }
+  calcAdminQuote();
 }
 
 function onQuickDestSelect(idx){
@@ -841,14 +1120,24 @@ function onQuickDestSelect(idx){
 }
 
 function onAdminAddressInput(type){
-  const text = (type === 'from' ? $('#aq_from').value : $('#aq_to').value) || '';
+  const text = (type === 'from' ? ($('#aq_from') && $('#aq_from').value) : ($('#aq_to') && $('#aq_to').value)) || '';
   if(type === 'from'){
     const det = detectRing(text);
     qState.ring = det.ring;
     qState.comuna = det.comuna;
     const badge = $('#aq_ring_badge');
+    const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+
     if(badge){
-      badge.textContent = `${det.ring.name} detectado (Piso legal: ${$c(det.ring.minFare)})`;
+      if(mode === '3'){
+        const minHours = det.ring.id === 3 ? 4 : (det.ring.id === 2 ? 3 : 2);
+        badge.textContent = `${det.ring.name} detectado (Mínimo ${minHours} horas de cuidado)`;
+      } else {
+        badge.textContent = `${det.ring.name} detectado (Piso legal: ${$c(det.ring.minFare)})`;
+      }
+    }
+    if(mode === '3'){
+      updateStayHoursSelector('3', det.ring.id);
     }
     calcAdminQuote();
   }
@@ -859,7 +1148,6 @@ function autoCalcAdminKm(){
   if(destIdx !== '' && MEDICAL_PLACES[destIdx]){
     $('#aq_km').value = (MEDICAL_PLACES[destIdx].km * 2).toFixed(1);
   } else {
-    // Estimación predeterminada razonable de circuito RM si no hay centro seleccionado
     $('#aq_km').value = '25.0';
   }
   calcAdminQuote();
@@ -869,64 +1157,118 @@ function calcAdminQuote(){
   const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
   qState.mode = mode;
 
-  // Visibilidad según modalidad
-  const rowStay = $('#row_stay_time');
-  const colDest = $('#col_destino');
-  const colKm = $('#col_km');
-  const badge = $('#aq_ring_badge');
+  const dateVal = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
+  const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
+  const jornada = getAdminJornada(dateVal, timeVal);
+  qState.jornada = jornada;
 
-  if(mode === '3'){ // Domicilio
-    if(colDest) colDest.style.display = 'none';
-    if(colKm) colKm.style.display = 'none';
-    if(badge) badge.style.display = 'block';
-  } else {
-    if(colDest) colDest.style.display = 'block';
-    if(colKm) colKm.style.display = 'block';
-    if(badge) badge.style.display = (mode === '1' || mode === '2') ? 'block' : 'none';
-  }
-
-  const stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
-  qState.durationMin = stayMin;
-  const kmTot = +($('#aq_km') && $('#aq_km').value) || 24;
-  qState.kmTotal = kmTot;
-
+  let kmTot = +($('#aq_km') && $('#aq_km').value) || 24;
   let kmCost = 0;
   let timeCost = 0;
   let totalFare = 0;
   let floorApplied = false;
+  let stayMin = 120;
+  let timeLabel = '';
+  let kmLabel = `${kmTot} km`;
 
-  if(mode === '1'){
+  if(mode === '1' || mode === '2'){
+    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    qState.durationMin = stayMin;
+    qState.kmTotal = kmTot;
+    timeLabel = `${(stayMin / 60).toFixed(1)} hrs`;
+    kmLabel = `${kmTot} km`;
+
+    const rates = ADMIN_RATES[mode] || ADMIN_RATES['1'];
+    const hourlyRate = rates[jornada] || rates.habil;
+    qState.ratePerHour = hourlyRate;
+
     kmCost = Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
-    timeCost = Math.round((stayMin / 60) * 12000);
-    const sum = kmCost + timeCost;
-    if(qState.ring && qState.ring.minFare && sum < qState.ring.minFare){
-      totalFare = qState.ring.minFare;
+    timeCost = Math.round((stayMin / 60) * hourlyRate);
+
+    const calculatedSum = kmCost + timeCost;
+    const ringFloor = (qState.ring && qState.ring.minFare) || 18000;
+
+    if(calculatedSum < ringFloor){
+      totalFare = ringFloor;
       floorApplied = true;
     } else {
-      totalFare = sum;
-    }
-  } else if(mode === '2'){
-    kmCost = Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
-    timeCost = Math.round((stayMin / 60) * 8000);
-    const sum = kmCost + timeCost;
-    if(qState.ring && qState.ring.minFare && sum < qState.ring.minFare){
-      totalFare = qState.ring.minFare;
-      floorApplied = true;
-    } else {
-      totalFare = sum;
+      totalFare = calculatedSum;
+      floorApplied = false;
     }
   } else if(mode === '3'){
+    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    const rId = (qState.ring && qState.ring.id) || 1;
+    const minMin = rId === 3 ? 240 : (rId === 2 ? 180 : 120);
+    if(stayMin < minMin){
+      stayMin = minMin;
+      if($('#aq_stay_hours')) $('#aq_stay_hours').value = String(minMin);
+    }
+    qState.durationMin = stayMin;
+    qState.kmTotal = 0;
     kmCost = 0;
-    timeCost = Math.round((stayMin / 60) * 12000);
+    timeLabel = `${(stayMin / 60).toFixed(1)} hrs`;
+    kmLabel = '$0 (Sin traslado)';
+
+    const rates = ADMIN_RATES['3'];
+    const hourlyRate = rates[jornada] || rates.habil;
+    qState.ratePerHour = hourlyRate;
+
+    // Beneficio especial: si es turno nocturno y 6 horas (360 min), pack noche cerrada = $96.000
+    if(jornada === 'nocturno' && stayMin >= 360){
+      timeCost = 96000;
+    } else {
+      timeCost = Math.round((stayMin / 60) * hourlyRate);
+    }
     totalFare = timeCost;
+    floorApplied = false;
   } else if(mode === '4'){
+    const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
+    const pack = ($('#aq_event_pack') && $('#aq_event_pack').value) || 'base';
+    const extraKey = ($('#aq_event_extra') && $('#aq_event_extra').value) || '0';
+
+    qState.eventSubtype = subtype;
+    qState.eventPack = pack;
+
+    const packCfg = EVENT_RATES[pack] || EVENT_RATES.base;
+    const extraCfg = EVENT_EXTRAS[extraKey] || EVENT_EXTRAS['0'];
+
+    const baseFare = packCfg[subtype] || 65000;
+    const extraFare = extraCfg.fare;
+
+    stayMin = packCfg.dur + extraCfg.min;
+    qState.durationMin = stayMin;
+    qState.eventExtraMin = extraCfg.min;
+
     kmCost = 0;
-    timeCost = stayMin >= 300 ? 125000 : 95000;
+    timeCost = baseFare + extraFare;
     totalFare = timeCost;
+    floorApplied = false;
+
+    kmLabel = subtype === 'sin_traslado' ? 'No aplica' : 'Incluido';
+    timeLabel = `${pack === 'base' ? 'Plan Base 4h' : 'Plan Total 6h'}${extraCfg.min > 0 ? ` (+${extraCfg.min}m)` : ''}`;
   } else if(mode === '5'){
+    const planKey = ($('#aq_inter_plan') && $('#aq_inter_plan').value) || 'estandar';
+    const extraKey = ($('#aq_inter_extra') && $('#aq_inter_extra').value) || '0';
+
+    qState.interPlan = planKey;
+
+    const planCfg = INTER_PLANS[planKey] || INTER_PLANS.estandar;
+    const extraCfg = INTER_EXTRAS[extraKey] || INTER_EXTRAS['0'];
+
+    const baseFare = planCfg.fare;
+    const extraFare = extraCfg.fare;
+
+    stayMin = planCfg.dur + extraCfg.min;
+    qState.durationMin = stayMin;
+    qState.interExtraMin = extraCfg.min;
+
     kmCost = 0;
-    timeCost = stayMin >= 300 ? 300000 : 250000;
+    timeCost = baseFare + extraFare;
     totalFare = timeCost;
+    floorApplied = false;
+
+    kmLabel = 'Incluido';
+    timeLabel = `${planKey === 'estandar' ? 'Estándar 4h' : 'Crónico 6h'}${extraCfg.min > 0 ? ` (+${extraCfg.min}m)` : ''}`;
   }
 
   qState.kmCost = kmCost;
@@ -937,20 +1279,33 @@ function calcAdminQuote(){
   qState.floorApplied = floorApplied;
 
   // Actualizar textos en pantalla
-  if($('#q_lbl_km')) $('#q_lbl_km').textContent = `${kmTot} km`;
-  if($('#q_km_cost')) $('#q_km_cost').textContent = (mode === '4' || mode === '5') ? 'Incluido' : (mode === '3' ? '$0' : $c(kmCost));
-  if($('#q_lbl_time')) $('#q_lbl_time').textContent = `${(stayMin/60).toFixed(1)} hrs`;
+  if($('#q_lbl_km')) $('#q_lbl_km').textContent = kmLabel;
+  if($('#q_km_cost')) {
+    if(mode === '4' || mode === '5'){
+      $('#q_km_cost').textContent = (mode === '4' && qState.eventSubtype === 'sin_traslado') ? '$0' : 'Incluido';
+    } else if(mode === '3'){
+      $('#q_km_cost').textContent = '$0';
+    } else {
+      $('#q_km_cost').textContent = $c(kmCost);
+    }
+  }
+  if($('#q_lbl_time')) $('#q_lbl_time').textContent = timeLabel;
   if($('#q_time_cost')) $('#q_time_cost').textContent = $c(timeCost);
   if($('#q_total')) $('#q_total').textContent = $c(totalFare);
   if($('#q_abono')) $('#q_abono').textContent = $c(qState.abono50);
   if($('#q_saldo')) $('#q_saldo').textContent = $c(qState.saldo50);
-  if($('#q_floor_alert')) $('#q_floor_alert').style.display = floorApplied ? 'block' : 'none';
+  if($('#q_floor_alert')){
+    $('#q_floor_alert').style.display = floorApplied ? 'block' : 'none';
+    if(floorApplied && qState.ring){
+      $('#q_floor_alert').innerHTML = `ℹ️ Se aplicó la <b>tarifa mínima legal comunal garantizada</b> para ${qState.ring.name} (${$c(qState.ring.minFare)}).`;
+    }
+  }
 
   populateAdminTechs();
 }
 
 function populateAdminTechs(){
-  const dateVal = ($('#aq_date') && $('#aq_date').value) || U.date;
+  const dateVal = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
   const durVal = qState.durationMin || 120;
   const startMin = tm(timeVal);
@@ -963,12 +1318,12 @@ function populateAdminTechs(){
 
   select.innerHTML = activeTechs.map(t => {
     const isAvail = okTechs.some(x => x.id === t.id);
-    return `<option value="${t.id}" ${!isAvail ? 'style="color:#dc2626"' : ''}>${e(t.nom)} ${!isAvail ? '(⚠️ Conflicto buffer 3h)' : '✅ Disponible'}</option>`;
+    return `<option value="${t.id}" ${!isAvail ? 'style="color:#dc2626"' : ''}>${e(t.nom)} ${!isAvail ? '(⚠️ Conflicto buffer 2h)' : '✅ Disponible'}</option>`;
   }).join('');
 
   const bufInfo = $('#admin_buffer_info');
   if(bufInfo){
-    bufInfo.innerHTML = `ℹ️ Término proyectado: <b>${fm(startMin + durVal)} hrs</b> · Buffer de seguridad liberado a las <b>${fm(startMin + durVal + BUF)} hrs</b> (${okTechs.length} TENS sin conflicto).`;
+    bufInfo.innerHTML = `ℹ️ Término proyectado: <b>${fm(startMin + durVal)} hrs</b> · Buffer de seguridad liberado a las <b>${fm(startMin + durVal + BUF)} hrs (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
   }
 }
 
@@ -978,7 +1333,7 @@ function sendAdminQuoteWhatsApp(){
   const cleanPhone = phone.startsWith('56') ? phone : ('56' + (phone || '929990095'));
 
   const modeNames = {
-    '1': '1. Servicio Integral (Asistencia + Traslado)',
+    '1': '1. Servicio Integral (Asistencia TENS + Traslado)',
     '2': '2. Traslado Exclusivo con Espera',
     '3': '3. Cuidados a Domicilio (Sin Traslado)',
     '4': '4. Acompañamiento en Eventos Sociales',
@@ -987,23 +1342,49 @@ function sendAdminQuoteWhatsApp(){
 
   const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
   const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Estimado(a)';
-  const date = ($('#aq_date') && $('#aq_date').value) || U.date;
+  const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
   const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Origen';
   const to = ($('#aq_to') && $('#aq_to').value.trim()) || 'Destino';
   const durMin = qState.durationMin || 120;
 
   let breakdown = '';
+  let trayectoLine = `• *Trayecto:* ${from} ➔ ${to}\n`;
+
   if(qState.mode === '1' || qState.mode === '2'){
     breakdown += `• *Kilometraje (${qState.kmTotal} km ida/vuelta):* ${$c(qState.kmCost)}\n`;
     breakdown += `• *Tiempo de asistencia/espera (${(durMin/60).toFixed(1)} hrs):* ${$c(qState.timeCost)}\n`;
     if(qState.floorApplied){
-      breakdown += `• *Tarifa base comunal aplicada:* ${$c(qState.ring.minFare)}\n`;
+      breakdown += `• *Tarifa mínima legal garantizada aplicada:* ${$c(qState.ring.minFare)} (${qState.ring.name})\n`;
     }
   } else if(qState.mode === '3'){
-    breakdown += `• *Horas de cuidado continuo (${(durMin/60).toFixed(1)} hrs):* ${$c(qState.totalFare)}\n`;
-  } else {
-    breakdown += `• *Plan base contratado:* ${modeNames[qState.mode]} (${$c(qState.totalFare)})\n`;
+    trayectoLine = `• *Domicilio de atención:* ${from}\n`;
+    if(qState.jornada === 'nocturno' && durMin >= 360){
+      breakdown += `• *Cuidado continuo nocturno (Pack 6 hrs):* ${$c(qState.totalFare)}\n`;
+    } else {
+      breakdown += `• *Horas de cuidado continuo (${(durMin/60).toFixed(1)} hrs):* ${$c(qState.totalFare)}\n`;
+    }
+  } else if(qState.mode === '4'){
+    const isSinTraslado = qState.eventSubtype === 'sin_traslado';
+    if(isSinTraslado){
+      trayectoLine = `• *Recinto del evento:* ${from}\n`;
+    }
+    const packLabel = qState.eventPack === 'base' ? 'Plan Base (4 horas)' : 'Plan Total (6 horas)';
+    const subLabel = isSinTraslado ? 'Asistencia en Recinto' : 'Pack Integral Puerta a Puerta';
+    breakdown += `• *Cobertura Evento:* ${packLabel} - ${subLabel}\n`;
+    if(qState.eventExtraMin > 0){
+      const extraCost = EVENT_EXTRAS[String(qState.eventExtraMin)] ? EVENT_EXTRAS[String(qState.eventExtraMin)].fare : 0;
+      breakdown += `• *Tiempo adicional:* +${qState.eventExtraMin} min (${$c(extraCost)})\n`;
+    }
+    breakdown += `• *Subtotal Cobertura:* ${$c(qState.totalFare)}\n`;
+  } else if(qState.mode === '5'){
+    const planLabel = qState.interPlan === 'estandar' ? 'Programa Estándar (hasta 4 hrs)' : 'Programa Crónico / Oncológico (hasta 6 hrs)';
+    breakdown += `• *Plan Interregional:* ${planLabel} (Todo Incluido)\n`;
+    if(qState.interExtraMin > 0){
+      const extraCost = INTER_EXTRAS[String(qState.interExtraMin)] ? INTER_EXTRAS[String(qState.interExtraMin)].fare : 0;
+      breakdown += `• *Tiempo adicional:* +${qState.interExtraMin} min (${$c(extraCost)})\n`;
+    }
+    breakdown += `• *Subtotal Programa:* ${$c(qState.totalFare)}\n`;
   }
 
   const msg = `Hola ${coord}! Le escribimos de Movilidad y Salud Asistida SpA. Le compartimos el detalle oficial de su cotización requerida:
@@ -1012,8 +1393,7 @@ function sendAdminQuoteWhatsApp(){
 • *Paciente:* ${pat}
 • *Servicio:* ${modeNames[qState.mode]}
 • *Fecha y Hora:* ${date} - ${time} hrs
-• *Trayecto:* ${from} ➔ ${to}
-• *Permanencia estimada:* ${(durMin/60).toFixed(1)} hrs
+${trayectoLine}• *Permanencia estimada:* ${(durMin/60).toFixed(1)} hrs
 
 💰 *DESGLOSE ECONÓMICO:*
 ${breakdown}• *TOTAL COTIZADO:* ${$c(qState.totalFare)}
@@ -1035,7 +1415,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   calcAdminQuote();
 
   const tid = ($('#aq_tens') && $('#aq_tens').value) || (D.techs[0] && D.techs[0].id) || 't1';
-  const date = ($('#aq_date') && $('#aq_date').value) || U.date;
+  const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
   const start = tm(time);
   const dur = qState.durationMin || 120;
@@ -1046,7 +1426,8 @@ function saveAdminBooking(ev, forceConfirm = false){
   const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Coordinador';
   const ph = ($('#aq_ph') && $('#aq_ph').value.trim()) || '+56900000000';
   const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Domicilio Origen';
-  const to = (qState.mode === '3') ? from : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
+  const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
+  const to = isSinTraslado ? from : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
   const req = typeof document !== 'undefined' && document.querySelectorAll
     ? [...document.querySelectorAll('.aq_rq:checked')].map(x => x.value)
@@ -1092,6 +1473,8 @@ function saveAdminBooking(ev, forceConfirm = false){
     svcType: qState.mode,
     alergias,
     conciencia: 'Lúcido / Orientado',
+    patologias: [dx],
+    obs: `Agendado vía Cotizador Maestro (${qState.mode === '1' ? 'Mod 1 Integral' : qState.mode === '2' ? 'Mod 2 Exclusivo' : qState.mode === '3' ? 'Mod 3 Domicilio' : qState.mode === '4' ? 'Mod 4 Eventos' : 'Mod 5 Interregional'})`,
     createdAt: new Date().toISOString()
   };
 
@@ -1107,6 +1490,13 @@ function saveAdminBooking(ev, forceConfirm = false){
   return { success: true, service: newSvc };
 }
 window.saveAdminBooking = saveAdminBooking;
+window.onAdminModeChange = onAdminModeChange;
+window.onAdminEventSubtypeChange = onAdminEventSubtypeChange;
+window.calcAdminQuote = calcAdminQuote;
+window.updateStayHoursSelector = updateStayHoursSelector;
+window.sendAdminQuoteWhatsApp = sendAdminQuoteWhatsApp;
+window.onAdminAddressInput = onAdminAddressInput;
+window.autoCalcAdminKm = autoCalcAdminKm;
 
 function abrirModalWarningBufferAdmin(conflictSvc, bookingData){
   const modal = $('#modalWarningBufferAdmin');
