@@ -1087,7 +1087,39 @@ function detail(){
 }
 
 function reasg(id,tid){const s=D.svcs.find(x=>x.id==id);if(!avail(tid,s.date,s.start,s.dur,id)){if(!confirm('⚠️ Ese TENS cuenta con un margen menor al buffer estándar de 2 horas. ¿Deseas reasignar de todas formas?')){return}}s.tid=tid;save();render()}
-function setSt(id,v){D.svcs.find(x=>x.id==id).st=v;save();render()}
+function setSt(id,v){
+  const s = D.svcs.find(x => x.id == id);
+  if(!s) return;
+  s.st = v;
+  const nowIso = new Date().toISOString();
+  const nowFm = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  if(v === 'En Ruta' && !s.enRutaAt){
+    s.enRutaAt = nowIso;
+  } else if(v === 'En Atención' && !s.startedAt){
+    s.startedAt = nowIso;
+    s.startActualTime = nowFm;
+  } else if(v === 'Finalizado' && !s.endedAt){
+    s.endedAt = nowIso;
+    s.endActualTime = nowFm;
+  }
+  save();
+  render();
+}
+
+function iniciarAtencionTerreno(id){
+  const s = D.svcs.find(x => x.id == id);
+  if(!s) return;
+  s.st = 'En Atención';
+  s.startedAt = new Date().toISOString();
+  s.startActualTime = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+  save();
+  render();
+  if(typeof alert !== 'undefined'){
+    alert('🩺 ¡Atención iniciada con ' + s.pat + '! Se registró hora de inicio oficial: ' + s.startActualTime + ' hrs.');
+  }
+}
+window.iniciarAtencionTerreno = iniciarAtencionTerreno;
 function setPay(id,k,v){const s=D.svcs.find(x=>x.id==id);if(s){s[k]=+v||0;save();render()}}
 
 // =========================================================================
@@ -2488,14 +2520,29 @@ function card(s){
         <span style="color:#b45309;font-weight:800">Saldo Pendiente: ${$c(saldoFinal)}</span>
       </div>
 
-      <!-- BOTÓN DESTACADO DE CIERRE EN TERRENO Y BOLETA PDF -->
+      <!-- ACCIONES DINÁMICAS SEGÚN ESTADO OPERATIVO -->
       <div style="margin-top:10px">
-        <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#0f766e;border-color:#0f766e;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
-          🏁 Finalizar Atención y Emitir Boleta PDF
-        </button>
+        ${s.st === 'En Atención' ? `
+          <div style="background:rgba(15,118,110,0.1);border:1px solid #0f766e;border-radius:6px;padding:6px 10px;font-size:12px;color:#0f766e;font-weight:700;margin-bottom:8px">
+            ⏱️ Atención en curso iniciada a las ${s.startActualTime || fm(s.start || 540)} hrs
+          </div>
+          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#15803d;border-color:#15803d;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+            🏁 Finalizar Servicio y Cobro en Terreno
+          </button>
+        ` : s.st === 'En Ruta' ? `
+          <button type="button" class="p" onclick="iniciarAtencionTerreno(${s.id})" style="background:#0f766e;border-color:#0f766e;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+            🩺 Iniciar Atención / En Domicilio
+          </button>
+        ` : s.st === 'Finalizado' ? `
+          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#475569;border-color:#475569;width:100%;padding:9px 14px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+            📄 Ver Comprobante y Liquidación
+          </button>
+        ` : `
+          <button type="button" class="p" onclick="setSt(${s.id},'En Ruta')" style="background:#0284c7;border-color:#0284c7;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+            🚗 Salir a Terreno / En Ruta
+          </button>
+        `}
       </div>
-
-      ${n ? `<button class="p" style="width:100%;margin-top:8px;padding:9px;background:var(--card);color:var(--fg);border-color:var(--bd)" onclick="setSt(${s.id},'${n[0]}')">Avanzar a: [${n[1]}]</button>` : ''}
     </div>
   `;
 }
@@ -2504,6 +2551,173 @@ function card(s){
 // FUNCIONES DE CIERRE EN TERRENO Y EMISIÓN DE BOLETA PDF
 // =========================================================================
 let currentClosingSvcId = null;
+let currentCheckoutCalc = null;
+
+function calculateFieldLiquidation(s, elapsedMin, parkingAmount){
+  const mode = s.svcType || '1';
+  const dateVal = s.date || TODAY;
+  const startMin = s.start || 540;
+  const jornada = getAdminJornada(dateVal, fm(startMin));
+
+  const rates = ADMIN_RATES[mode] || ADMIN_RATES['1'];
+  const hourlyRate = rates[jornada] || rates.habil;
+
+  const kmTot = s.kmTotal || (s.km ? s.km * 2 : 24);
+  const kmCost = (mode === '4' && s.eventSubtype === 'sin_traslado') || mode === '3' ? 0 : Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
+
+  const pactadaMin = s.dur || 120;
+  const diffMin = elapsedMin > pactadaMin ? (elapsedMin - pactadaMin) : 0;
+  const extraBlocks = diffMin > 0 ? Math.ceil(diffMin / 30) : 0;
+
+  let extraBlockRate = 6000;
+  if(mode === '2') extraBlockRate = 4000;
+  else if(mode === '4') extraBlockRate = 7500;
+  else if(mode === '5') extraBlockRate = 15000;
+
+  const extraCost = extraBlocks * extraBlockRate;
+  let billedMin = pactadaMin + (extraBlocks * 30);
+  let timeCost = 0;
+  let subtotalReal = 0;
+
+  if(s.fare && s.fare > 0){
+    subtotalReal = s.fare + extraCost;
+    timeCost = subtotalReal - (kmCost || 0);
+  } else if(mode === '1'){
+    const idaMin = s.idaMin || adminRouteIdaMin || Math.max(15, Math.round((kmTot / 2) * 1.3));
+    const retornoMin = s.vueltaMin || adminRouteVueltaMin || idaMin;
+    const rawTotalMin = 10 + idaMin + elapsedMin + retornoMin;
+    billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
+    timeCost = Math.round((billedMin / 60) * hourlyRate);
+    subtotalReal = kmCost + timeCost;
+  } else if(mode === '2'){
+    billedMin = Math.min(360, Math.max(30, Math.ceil(elapsedMin / 30) * 30));
+    timeCost = Math.round((billedMin / 60) * hourlyRate);
+    subtotalReal = kmCost + timeCost;
+  } else if(mode === '3'){
+    const ringDet = detectRingFromText(s.from || '', null, null);
+    const ringId = ringDet ? ringDet.ring.id : 1;
+    const minH = ringId === 3 ? 4 : (ringId === 2 ? 3 : 2);
+    billedMin = Math.min(360, Math.max(minH * 60, Math.ceil(elapsedMin / 30) * 30));
+    timeCost = (jornada === 'nocturno' && billedMin >= 360) ? 96000 : Math.round((billedMin / 60) * hourlyRate);
+    subtotalReal = timeCost;
+  } else {
+    subtotalReal = (s.fare || 65000) + extraCost;
+    timeCost = subtotalReal;
+  }
+
+  // Regla de piso mínimo garantizado (Anillo 1: $18k, Anillo 2: $35k, Anillo 3: $50k)
+  const ringDet = detectRingFromText(s.from || '', null, null);
+  const ring = ringDet ? ringDet.ring : RINGS_DATA[0];
+  const ringFloor = (mode === '4' || mode === '5' || mode === '3') ? 0 : ring.minFare;
+
+  let cobroTotal = subtotalReal;
+  let floorApplied = false;
+
+  if(ringFloor > 0 && subtotalReal < ringFloor){
+    cobroTotal = ringFloor;
+    floorApplied = true;
+  }
+
+  const abono = (s.paid !== undefined && s.paid !== null) ? s.paid : (s.fare ? Math.round(s.fare * 0.5) : Math.round((cobroTotal * 0.5) / 50) * 50);
+  const parking = Math.max(0, parseInt(parkingAmount || 0, 10) || 0);
+  const saldoFinal = Math.max(0, cobroTotal - abono + parking);
+
+  return {
+    mode,
+    jornada,
+    hourlyRate,
+    kmTot,
+    kmCost,
+    elapsedMin,
+    billedMin,
+    diffMin,
+    extraBlocks,
+    extraCost,
+    timeCost,
+    subtotalReal,
+    ringName: ring.name,
+    ringFloor,
+    cobroTotal,
+    floorApplied,
+    abono,
+    parking,
+    saldoFinal
+  };
+}
+
+function renderFieldCheckoutSummary(s){
+  const sumEl = $('#adm_co_service_summary');
+  if(!sumEl) return;
+
+  const modeNames = {
+    '1': 'Modalidad 1: Servicio Integral',
+    '2': 'Modalidad 2: Traslado Exclusivo con Espera',
+    '3': 'Modalidad 3: Cuidados a Domicilio',
+    '4': 'Modalidad 4: Acompañamiento en Eventos',
+    '5': 'Modalidad 5: Programa Interregional'
+  };
+
+  const ringDet = detectRingFromText(s.from || '', null, null);
+  const ringName = ringDet ? ringDet.ring.name : 'Anillo 1';
+
+  sumEl.innerHTML = `
+    <div style="font-weight:700;color:var(--pri);font-size:.92rem">${e(s.pat)} (${s.age} años) · ${modeNames[s.svcType || '1']}</div>
+    <div style="color:var(--mut)"><b>Origen:</b> ${e(s.from)} (${ringName})</div>
+    ${s.to && s.to !== s.from ? `<div style="color:var(--mut)"><b>Destino:</b> ${e(s.to)}</div>` : ''}
+    <div><b>Diagnóstico / Motivo:</b> ${e(s.dx)}</div>
+  `;
+
+  const taxEl = $('#adm_co_tax_info');
+  if(taxEl){
+    const tax = s.taxDoc || { type: 'boleta', label: 'Boleta Electrónica Exenta' };
+    if(tax.type === 'factura'){
+      taxEl.innerHTML = `📄 <b>Factura Electrónica Exenta</b> · ${e(tax.razonSocial || 'Empresa')} · RUT: ${e(tax.rut || 'No registra')} · Giro: ${e(tax.giro || 'Salud')}`;
+    } else {
+      taxEl.innerHTML = '📄 <b>Boleta Electrónica Exenta</b> (Consumidor final / Reembolsos de salud)';
+    }
+  }
+}
+
+function onFieldCheckoutRecalc(){
+  const s = D.svcs.find(item => item.id === currentClosingSvcId);
+  if(!s) return;
+
+  const hInicio = ($('#adm_horaInicioReal') && $('#adm_horaInicioReal').value) || s.startActualTime || fm(s.start || 540);
+  const hCierre = ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || s.endActualTime || '12:00';
+  const parkingAmount = ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0;
+
+  const startMin = s.start || 540;
+  const durMin = s.dur || 120;
+  const endPactadoMin = (startMin + durMin) % 1440;
+
+  const cierreMin = tm(hCierre);
+  let elapsedMin = durMin;
+  if(cierreMin > startMin){
+    elapsedMin = cierreMin - startMin;
+  } else if(cierreMin < startMin && cierreMin < 6 * 60 && startMin > 18 * 60){
+    elapsedMin = (cierreMin + 1440) - startMin;
+  }
+
+  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount);
+  currentCheckoutCalc = calc;
+
+  if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').textContent = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${calc.elapsedMin}m en lugar)`;
+  if($('#adm_co_total_servicio')) $('#adm_co_total_servicio').textContent = $c(calc.cobroTotal);
+  if($('#adm_co_abono_previo')) $('#adm_co_abono_previo').textContent = '-' + $c(calc.abono);
+  if($('#adm_co_saldo_final')) $('#adm_co_saldo_final').textContent = $c(calc.saldoFinal);
+
+  const badgePiso = $('#adm_co_badge_piso');
+  const floorNote = $('#adm_co_floor_note');
+  if(badgePiso) badgePiso.style.display = calc.floorApplied ? 'inline-block' : 'none';
+  if(floorNote){
+    if(calc.floorApplied){
+      floorNote.style.display = 'block';
+      floorNote.innerHTML = `ℹ️ El subtotal real (${$c(calc.subtotalReal)}) fue inferior al <b>Piso Mínimo Legal</b> de ${calc.ringName} (${$c(calc.ringFloor)}). Se aplicó la tarifa mínima garantizada.`;
+    } else {
+      floorNote.style.display = 'none';
+    }
+  }
+}
 
 function abrirModalFinalizarAtencionAdmin(svcId, options){
   currentClosingSvcId = svcId;
@@ -2513,22 +2727,29 @@ function abrirModalFinalizarAtencionAdmin(svcId, options){
   const s = D.svcs.find(item => item.id === svcId);
   if(!s) return;
 
+  if(!s.endedAt){
+    s.endedAt = new Date().toISOString();
+    s.endActualTime = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
   const startMin = s.start || 540;
   const durMin = s.dur || 120;
   const endPactadoMin = (startMin + durMin) % 1440;
   const endPactadoStr = fm(endPactadoMin);
 
-  const inpCierre = $('#adm_horaCierreReal');
-  if(inpCierre) inpCierre.value = (options && options.horaCierre) || endPactadoStr;
+  const startStr = s.startActualTime || fm(startMin);
+  const endStr = (options && options.horaCierre) || s.endActualTime || endPactadoStr;
 
-  const inpRut = $('#adm_rutPaciente');
-  if(inpRut) inpRut.value = (options && options.rutPaciente) || s.patRut || '12.345.678-9';
+  if($('#adm_horaInicioReal')) $('#adm_horaInicioReal').value = startStr;
+  if($('#adm_horaCierreReal')) $('#adm_horaCierreReal').value = endStr;
+  if($('#adm_parking_expense')) $('#adm_parking_expense').value = (options && options.parking !== undefined) ? options.parking : (s.parkingExpense || 0);
 
-  const selMedio = $('#adm_medioPago');
-  if(selMedio && options && options.medioPago) selMedio.value = options.medioPago;
+  if($('#adm_rutPaciente')) $('#adm_rutPaciente').value = (options && options.rutPaciente) || s.patRut || '12.345.678-9';
+  if($('#adm_medioPago') && options && options.medioPago) $('#adm_medioPago').value = options.medioPago;
+  if($('#adm_folioSII')) $('#adm_folioSII').value = (options && options.folioSII !== undefined) ? options.folioSII : (s.folioSII || '');
 
-  const inpFolio = $('#adm_folioSII');
-  if(inpFolio) inpFolio.value = (options && options.folioSII !== undefined) ? options.folioSII : (s.folioSII || '');
+  renderFieldCheckoutSummary(s);
+  onFieldCheckoutRecalc();
 
   modal.style.display = 'flex';
 
@@ -2550,6 +2771,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const rutPaciente = (customOpts && customOpts.rutPaciente) || ($('#adm_rutPaciente') && $('#adm_rutPaciente').value.trim()) || '12.345.678-9';
   const medioPago = (customOpts && customOpts.medioPago) || ($('#adm_medioPago') && $('#adm_medioPago').value) || 'Transferencia Electrónica';
   const folioSII = (customOpts && customOpts.folioSII !== undefined) ? customOpts.folioSII : ($('#adm_folioSII') ? $('#adm_folioSII').value.trim() : '');
+  const parkingAmount = (customOpts && customOpts.parking !== undefined) ? customOpts.parking : (($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0);
 
   const s = D.svcs.find(item => item.id === currentClosingSvcId);
   if(!s){ alert('Servicio no encontrado'); return; }
@@ -2565,30 +2787,46 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const endPactadoMin = (startMin + durMin) % 1440;
   const endPactadoStr = fm(endPactadoMin);
 
-  // Evaluar tiempo extra
   const cierreMin = tm(horaCierre);
-  let diffMin = 0;
-  if(cierreMin > endPactadoMin){
-    diffMin = cierreMin - endPactadoMin;
-  } else if(cierreMin < endPactadoMin && cierreMin < 6 * 60 && endPactadoMin > 18 * 60){
-    diffMin = (cierreMin + 1440) - endPactadoMin;
+  let elapsedMin = durMin;
+  if(cierreMin > startMin){
+    elapsedMin = cierreMin - startMin;
+  } else if(cierreMin < startMin && cierreMin < 6 * 60 && startMin > 18 * 60){
+    elapsedMin = (cierreMin + 1440) - startMin;
   }
 
-  let extraBlocks = 0;
-  let extraCost = 0;
-  if(diffMin > 0){
-    extraBlocks = Math.ceil(diffMin / 30);
-    let blockRate = 6000;
-    if(mode === '2') blockRate = 4000;
-    else if(mode === '3') blockRate = 7500;
-    else if(mode === '4' || mode === '5') blockRate = 15000;
-    extraCost = extraBlocks * blockRate;
-  }
+  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount);
+  currentCheckoutCalc = calc;
 
+  // Actualizar servicio con liquidación
+  s.st = 'Finalizado';
+  s.patRut = rutPaciente;
+  s.endedAt = s.endedAt || new Date().toISOString();
+  s.endActualTime = horaCierre;
+  s.parkingExpense = calc.parking;
+  s.folioSII = folioSII;
+  s.liquidation = {
+    subtotalReal: calc.subtotalReal,
+    cobroTotal: calc.cobroTotal,
+    ringFloor: calc.ringFloor,
+    floorApplied: calc.floorApplied,
+    billedMin: calc.billedMin,
+    elapsedMin: calc.elapsedMin,
+    parking: calc.parking,
+    abono: calc.abono,
+    saldoFinal: calc.saldoFinal,
+    medioPago,
+    folioSII,
+    settledAt: new Date().toISOString()
+  };
+
+  const diffMin = calc.diffMin;
+  const extraBlocks = calc.extraBlocks;
+  const extraCost = calc.extraCost;
   const baseFare = s.fare || 48000;
-  const totalConExtra = baseFare + extraCost;
-  const abonoPrevio = (s.paid && s.paid > 0) ? s.paid : Math.round((baseFare * 0.5) / 50) * 50;
-  const saldoFinal = totalConExtra - abonoPrevio;
+  const totalConExtra = calc.cobroTotal;
+  const abonoPrevio = calc.abono;
+  const saldoFinal = calc.saldoFinal;
 
   // Llenar datos de la boleta PDF
   if($('#pdfFolio')) $('#pdfFolio').textContent = `FOLIO: #MSA-${folio}`;
@@ -2625,6 +2863,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
           <td style="padding:8px 12px;border:1px solid #cbd5e1"><b>Tiempo Adicional Excedente en Terreno</b></td>
           <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">+${diffMin} min (${extraBlocks} bloques)</td>
           <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;font-weight:700;white-space:nowrap;min-width:140px">${$c(extraCost)}</td>
+        </tr>
+      `;
+    }
+    if(calc.parking > 0){
+      itemsHtml += `
+        <tr style="background:#f8fafc;color:#0f766e">
+          <td style="padding:8px 12px;border:1px solid #cbd5e1"><b>Gastos de Estacionamiento a rendir</b></td>
+          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">Terreno</td>
+          <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;font-weight:700;white-space:nowrap;min-width:140px">${$c(calc.parking)}</td>
         </tr>
       `;
     }
