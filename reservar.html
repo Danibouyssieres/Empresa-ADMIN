@@ -656,7 +656,7 @@ footer a{color:#fff}
                 <label for="selStayDestino" id="lblStayDestino" style="font-weight:700;color:var(--ink);font-size:.88rem;margin-bottom:6px;display:block">
                   ¿Cuánto estimas que durará tu atención, trámite o actividad en el lugar? *
                 </label>
-                <select id="selStayDestino" name="duracion-atencion" class="duracion-atencion" onchange="onStayDestinoChange()" style="padding:10px 14px;font-size:.92rem;background:var(--mist);border-radius:10px;border:1.5px solid var(--line);width:100%">
+                <select id="selStayDestino" name="duracion-atencion" class="duracion-atencion" data-stay-mode="1" onchange="onStayDestinoChange()" style="padding:10px 14px;font-size:.92rem;background:var(--mist);border-radius:10px;border:1.5px solid var(--line);width:100%">
                   <option value="60" selected>1 hora (Consulta estándar / Trámite breve / Compras - Base mínima)</option>
                   <option value="90">1 hora 30 min (Notaría / Trámites bancarios / Consulta con exámenes)</option>
                   <option value="120">2 horas (Procedimiento ambulatorio / Diligencias públicas extensas)</option>
@@ -1099,6 +1099,47 @@ const JORNADA_LABELS = {
   tarde: 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)',
   nocturno: 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)'
 };
+
+const STAY_OPTIONS_MOD1 = [
+  { val: 60, text: '1 hora (Consulta estándar / Trámite breve / Compras - Base mínima)' },
+  { val: 90, text: '1 hora 30 min (Notaría / Trámites bancarios / Consulta con exámenes)' },
+  { val: 120, text: '2 horas (Procedimiento ambulatorio / Diligencias públicas extensas)' },
+  { val: 150, text: '2 horas 30 min (Gestiones combinadas)' },
+  { val: 180, text: '3 horas (Tratamientos médicos prolongados / Jornadas extensas)' },
+  { val: 210, text: '3 horas 30 min (Atención médica de alta complejidad)' },
+  { val: 240, text: '4 horas (Procedimiento clínico quirúrgico ambulatorio extenso)' },
+  { val: 270, text: '4 horas 30 min (Tratamientos y recuperaciones prolongadas)' },
+  { val: 300, text: '5 horas (Procedimientos de media jornada)' },
+  { val: 330, text: '5 horas 30 min (Atención clínica continuada)' },
+  { val: 360, text: '6 horas (Tope máximo de cobertura ambulatoria)' }
+];
+
+const STAY_OPTIONS_MOD2 = [
+  { val: 60, text: '1 hora (Consulta estándar / Trámite breve / Compras - Base mínima)' },
+  { val: 90, text: '1 hora 30 min (Notaría / Trámites bancarios / Consulta con exámenes)' },
+  { val: 120, text: '2 horas (Procedimiento ambulatorio / Diligencias públicas extensas)' },
+  { val: 150, text: '2 horas 30 min (Gestiones combinadas)' },
+  { val: 180, text: '3 horas (Tratamientos médicos prolongados / Jornadas extensas)' },
+  { val: 210, text: '3 horas 30 min (Atención médica de alta complejidad / Trámites múltiples)' },
+  { val: 240, text: '4 horas (Procedimiento clínico quirúrgico ambulatorio extenso)' },
+  { val: 270, text: '4 horas 30 min (Tratamientos y esperas prolongadas)' },
+  { val: 300, text: '5 horas (Jornadas médicas de media jornada)' },
+  { val: 330, text: '5 horas 30 min (Trámites o procedimientos extensos)' },
+  { val: 360, text: '6 horas (Tope máximo de espera vehicular)' }
+];
+
+function updateStayDestinoOptions(mode){
+  const selStay = $('#selStayDestino');
+  if(!selStay) return;
+  const targetMode = (mode === '2') ? '2' : '1';
+  if(selStay.getAttribute('data-stay-mode') === targetMode) return;
+  const currentVal = selStay.value || '60';
+  const list = (targetMode === '2') ? STAY_OPTIONS_MOD2 : STAY_OPTIONS_MOD1;
+  selStay.innerHTML = list.map(opt => `<option value="${opt.val}">${opt.text}</option>`).join('');
+  selStay.setAttribute('data-stay-mode', targetMode);
+  selStay.value = currentVal;
+  if(!selStay.value && list.length > 0) selStay.value = String(list[0].val);
+}
 
 function getJornadaLabel(jornada, mode){
   if((mode === '1' || mode === '2') && jornada === 'nocturno'){
@@ -1577,6 +1618,7 @@ function applyModalityVisibility(){
       if($('#lblStayDestino')) $('#lblStayDestino').textContent = '¿Cuánto tiempo de espera requerirá en destino? *';
       if($('#tlBadge')) $('#tlBadge').textContent = 'Ida + Espera en Destino + Retorno';
     }
+    updateStayDestinoOptions(mode);
   } else {
     $('#durationBox12').style.display = 'none';
     $('#durationBox34').style.display = 'grid';
