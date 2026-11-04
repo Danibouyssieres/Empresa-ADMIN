@@ -831,7 +831,10 @@ footer a{color:#fff}
         </div>
         <div>
           <label for="b_age">Edad del paciente (años) *</label>
-          <input id="b_age" type="number" min="0" max="120" placeholder="Ej: 80" required>
+          <input id="b_age" type="number" min="0" max="120" placeholder="Ej: 80" required oninput="onAgeChange()" onchange="onAgeChange()">
+          <div id="minorNotice" style="display:none;margin-top:8px;padding:10px 12px;background:#fef2f2;border:1.5px solid #ef4444;border-radius:8px;color:#991b1b;font-size:.85rem;line-height:1.4">
+            ⚠️ <b>Paciente menor de edad:</b> Por normativa legal y términos del servicio, es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal. El tutor debe proveer el Sistema de Retención Infantil (SRI) correspondiente.
+          </div>
         </div>
         <div>
           <label for="b_dx">Motivo de atención *</label>
@@ -1813,6 +1816,31 @@ window.updateHomeSpecialWaLink = updateHomeSpecialWaLink;
 function renderRequirements(mode){
   // Bloque de requerimientos asistenciales eliminado para simplificar la Sección 3
 }
+
+function onAgeChange(){
+  const ageVal = ($('#b_age') && $('#b_age').value.trim()) || '';
+  const age = ageVal !== '' ? parseInt(ageVal, 10) : NaN;
+  const isMinor = !isNaN(age) && age >= 0 && age < 18;
+  const notice = $('#minorNotice');
+  const compSel = $('#b_comp');
+
+  if(notice){
+    notice.style.display = isMinor ? 'block' : 'none';
+  }
+  if(compSel){
+    const soloOpt = compSel.querySelector('option[value*="solo"]') || compSel.options[0];
+    if(isMinor){
+      if(soloOpt) soloOpt.disabled = true;
+      if(compSel.value.toLowerCase().includes('solo') || !compSel.value){
+        compSel.value = 'No, viaja con 1 acompañante';
+      }
+    } else {
+      if(soloOpt) soloOpt.disabled = false;
+    }
+  }
+  onMobilityOrCompanionChange();
+}
+window.onAgeChange = onAgeChange;
 
 function onMobilityOrCompanionChange(){
   checkCompanionRecommendation();
@@ -5484,6 +5512,17 @@ async function submitBooking(ev){
   if(!$('#b_age').value || age < 0){
     $('#b_age').scrollIntoView({ behavior: 'smooth', block: 'center' });
     $('#b_age').focus();
+    return;
+  }
+  const compValCheck = ($('#b_comp') && $('#b_comp').value) || '';
+  if(age < 18 && compValCheck.toLowerCase().includes('solo')){
+    $('#b_comp').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#b_comp').focus();
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      submitAlert.innerHTML = '<span>⚠️ <b>Acompañante obligatorio para menor de edad:</b> Por normativa legal y términos del servicio, el paciente menor de 18 años debe viajar obligatoriamente acompañado de manera continua por su padre, madre o tutor legal provisto del SRI correspondiente.</span>';
+    }
     return;
   }
   const dxInput = $('#b_dx').value.trim();

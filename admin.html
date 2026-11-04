@@ -421,32 +421,81 @@ const RINGS_DATA = [
 ];
 
 const MEDICAL_PLACES = [
-  {name:'Hospital El Carmen', addr:'Av. Camino a Rinconada 1201, Maipú', km: 6.5},
-  {name:'Clínica Santa María', addr:'Av. Santa María 0500, Providencia', km: 18.5},
-  {name:'Clínica Indisa (Providencia)', addr:'Av. Santa María 1810, Providencia', km: 19.0},
-  {name:'Hospital San Juan de Dios', addr:'Huérfanos 3255, Santiago Centro', km: 12.0},
-  {name:'Hospital Clínico UC Christus (Marcoleta)', addr:'Marcoleta 367, Santiago Centro', km: 14.5},
-  {name:'Hospital Clínico Universidad de Chile (J.J. Aguirre)', addr:'Dr. Carlos Lorca Tobar 999, Independencia', km: 16.0},
-  {name:'Hospital del Salvador', addr:'Av. Salvador 364, Providencia', km: 17.5},
-  {name:'Instituto Nacional del Cáncer', addr:'Av. Profesor Zañartu 1010, Independencia', km: 16.5},
-  {name:'Hospital Barros Luco', addr:'Gran Avenida 3204, San Miguel', km: 14.0},
-  {name:'Hospital Sótero del Río', addr:'Av. Concha y Toro 3459, Puente Alto', km: 26.0},
-  {name:'Clínica Alemana (Vitacura)', addr:'Av. Vitacura 5951, Vitacura', km: 25.0},
-  {name:'Clínica Las Condes', addr:'Estoril 450, Las Condes', km: 28.0}
+  {name:'Hospital El Carmen (Dr. Luis Valentín Ferrada)', addr:'Av. Camino a Rinconada 1201, Maipú', lat:-33.5048, lon:-70.7712, km:6.5},
+  {name:'Hospital San José', addr:'San José 1053, Independencia, Santiago', lat:-33.4163, lon:-70.6531, km:16.0},
+  {name:'Hospital Clínico Universidad de Chile (J.J. Aguirre)', addr:'Dr. Carlos Lorca Tobar 999, Independencia, Santiago', lat:-33.4192, lon:-70.6535, km:16.0},
+  {name:'Hospital San Juan de Dios', addr:'Huérfanos 3255, Santiago Centro', lat:-33.4426, lon:-70.6791, km:12.0},
+  {name:'Hospital Clínico Félix Bulnes', addr:'Av. Mapocho Sur 7432, Cerro Navia, Santiago', lat:-33.4231, lon:-70.7429, km:11.5},
+  {name:'Hospital del Salvador', addr:'Av. Salvador 364, Providencia, Santiago', lat:-33.4375, lon:-70.6236, km:17.5},
+  {name:'Hospital Barros Luco Trudeau', addr:'Gran Avenida José Miguel Carrera 3204, San Miguel, Santiago', lat:-33.4858, lon:-70.6495, km:14.0},
+  {name:'Hospital Dr. Sótero del Río', addr:'Av. Concha y Toro 3459, Puente Alto, Santiago', lat:-33.5769, lon:-70.5811, km:26.0},
+  {name:'Hospital Clínico UC Christus (Marcoleta)', addr:'Marcoleta 367, Santiago Centro', lat:-33.4418, lon:-70.6406, km:14.5},
+  {name:'Hospital Militar de Santiago', addr:'Av. Alcalde Fernando Castillo Velasco 9100, La Reina', lat:-33.4519, lon:-70.5403, km:24.0},
+  {name:'Hospital Clínico de la Fuerza Aérea (FACh)', addr:'Av. Las Condes 8631, Las Condes, Santiago', lat:-33.3948, lon:-70.5453, km:27.0},
+  {name:'Instituto Nacional del Cáncer', addr:'Av. Profesor Zañartu 1010, Independencia, Santiago', lat:-33.4178, lon:-70.6524, km:16.5},
+  {name:'Instituto Traumatológico', addr:'San Martín 771, Santiago Centro', lat:-33.4357, lon:-70.6584, km:13.0},
+  {name:'Instituto Teletón Santiago', addr:'Av. Libertador Bernardo O\'Higgins 4620, Estación Central', lat:-33.4557, lon:-70.6978, km:9.5},
+  {name:'Clínica Indisa (Providencia)', addr:'Av. Santa María 1810, Providencia, Santiago', lat:-33.4248, lon:-70.6186, km:19.0},
+  {name:'Clínica Indisa (Maipú)', addr:'Av. Américo Vespucio 1077, Maipú, Santiago', lat:-33.4812, lon:-70.7518, km:4.5},
+  {name:'Clínica Santa María', addr:'Av. Santa María 0500, Providencia, Santiago', lat:-33.4316, lon:-70.6279, km:18.5},
+  {name:'Clínica Dávila (Recoleta)', addr:'Av. Recoleta 464, Recoleta, Santiago', lat:-33.4256, lon:-70.6458, km:15.5},
+  {name:'Clínica Dávila Vespucio', addr:'Av. Serafín Zamora 190, La Florida, Santiago', lat:-33.5194, lon:-70.5968, km:20.0},
+  {name:'Clínica RedSalud Santiago (Ex Bicentenario)', addr:'Av. Libertador Bernardo O\'Higgins 4850, Estación Central', lat:-33.4563, lon:-70.7012, km:9.0},
+  {name:'Clínica Alemana (Vitacura)', addr:'Av. Vitacura 5951, Vitacura, Santiago', lat:-33.3905, lon:-70.5734, km:25.0},
+  {name:'Clínica Las Condes', addr:'Estoril 450, Las Condes, Santiago', lat:-33.3827, lon:-70.5305, km:28.0},
+  {name:'Clínica Bupa Santiago', addr:'Av. Departamental 1455, La Florida, Santiago', lat:-33.5122, lon:-70.5897, km:18.0}
+];
+
+const CLINICAL_PATHOLOGIES = [
+  'HTA (Hipertensión arterial)',
+  'Insulino Dependiente (Diabetes)',
+  'Demencia / Alzheimer',
+  'Oxígeno dependiente',
+  'Asma / Uso de Inhalador',
+  'Trastorno del Espectro Autista (TEA)',
+  'Epilepsia',
+  'Artritis'
 ];
 
 function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()}
 
-function detectRing(addrText){
-  const n = norm(addrText);
-  for(const r of RINGS_DATA){
-    for(const c of r.comunas){
-      if(c === 'Santiago Centro') continue;
-      if(new RegExp('\\b' + norm(c) + '\\b', 'i').test(n)) return { ring: r, comuna: c };
+function haversineKm(lat1, lon1, lat2, lon2){
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function detectRingFromText(addrText, lat, lon){
+  const nText = norm(addrText);
+  for(const ring of RINGS_DATA){
+    for(const com of ring.comunas){
+      if(com === 'Santiago Centro') continue;
+      const nCom = norm(com);
+      const regex = new RegExp('\\b' + nCom + '\\b', 'i');
+      if(regex.test(nText)){
+        return { ring, comuna: com };
+      }
     }
   }
-  if(/\bsantiago centro\b/i.test(n) || /\bsantiago\b/i.test(n)) return { ring: RINGS_DATA[1], comuna: 'Santiago Centro' };
+  if(/\bsantiago centro\b/i.test(nText) || /\bsantiago\b/i.test(nText)){
+    return { ring: RINGS_DATA[1], comuna: 'Santiago Centro' };
+  }
+  if(lat && lon){
+    const dMaipu = haversineKm(-33.505, -70.76, lat, lon);
+    if(dMaipu <= 8.5) return { ring: RINGS_DATA[0], comuna: 'Sector Anillo 1' };
+    if(dMaipu <= 18.5) return { ring: RINGS_DATA[1], comuna: 'Sector Anillo 2' };
+    return { ring: RINGS_DATA[2], comuna: 'Sector Anillo 3' };
+  }
   return { ring: RINGS_DATA[0], comuna: 'Maipú (por defecto)' };
+}
+
+function detectRing(addrText, lat, lon){
+  return detectRingFromText(addrText, lat, lon);
 }
 
 function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x){}return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}
@@ -1244,8 +1293,18 @@ function form(){
           <input type="text" id="aq_pat" placeholder="Ej: Rosa Medina" required>
         </div>
         <div>
-          <label for="aq_age">Edad</label>
-          <input type="number" id="aq_age" min="0" max="120" value="78">
+          <label for="aq_age">Edad del Paciente (años) *</label>
+          <input type="number" id="aq_age" min="0" max="120" value="78" oninput="onAdminAgeChange()" onchange="onAdminAgeChange()" required>
+          <div id="aq_minor_notice" style="display:none;margin-top:6px;padding:8px 10px;background:#fef2f2;border:1.5px solid #ef4444;border-radius:6px;color:#991b1b;font-size:11.5px;line-height:1.35">
+            ⚠️ <b>Paciente menor de edad:</b> Por normativa legal y términos del servicio, es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal. El tutor debe proveer el Sistema de Retención Infantil (SRI) correspondiente.
+          </div>
+        </div>
+        <div>
+          <label for="aq_comp">¿El paciente viaja solo o acompañado? *</label>
+          <select id="aq_comp" onchange="onAdminCompChange()">
+            <option value="Acompañado por tutor legal / familiar" selected>Acompañado por tutor legal / familiar</option>
+            <option value="Viaja solo">Viaja solo</option>
+          </select>
         </div>
         <div>
           <label for="aq_dx">Diagnóstico / Motivo de Atención *</label>
@@ -1275,9 +1334,58 @@ function form(){
         </div>
       </div>
 
+      <!-- PATOLOGÍAS CRÓNICAS HOMOLOGADAS CON RESERVAR.HTML -->
+      <div style="margin-top:14px">
+        <label style="font-weight:700;display:block;margin-bottom:6px">Patologías Crónicas o Condiciones de Base:</label>
+        <div class="rqs" style="margin-top:4px">
+          ${CLINICAL_PATHOLOGIES.map(p => `<label><input type="checkbox" class="aq_pat_cb" value="${p}" onchange="onAdminPathologyChange(this)">${p}</label>`).join('')}
+          <label><input type="checkbox" class="aq_pat_cb" id="aq_pat_ninguna" value="Ninguna" onchange="onAdminPathologyNingunaChange(this)">Ninguna</label>
+          <label><input type="checkbox" class="aq_pat_cb" id="aq_pat_otra" value="Otra patología" onchange="onAdminPathologyOtraChange(this)">Otra patología</label>
+        </div>
+        <div id="aq_pat_other_wrap" style="display:none;margin-top:6px">
+          <input type="text" id="aq_pat_other" placeholder="Especifique otra patología o condición médica..." style="font-size:12px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--bd)">
+        </div>
+      </div>
+
       <div class="rqs" style="margin-top:12px">
         <label><b>Tareas y Protocolos Asistenciales:</b></label>
         ${REQ.map(r=>`<label><input type="checkbox" class="aq_rq" value="${r}" ${r==='Control de signos vitales'||r==='Acompañamiento en box médico'?'checked':''}>${r}</label>`).join('')}
+      </div>
+
+      <!-- SECCIÓN 4: DOCUMENTO TRIBUTARIO HOMOLOGADO -->
+      <div style="margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px">
+        <label style="font-weight:700;color:var(--pri);margin-bottom:8px;display:block;font-size:0.9rem">Documento Tributario Requerido *</label>
+        <div style="display:flex;gap:18px;margin-bottom:8px;font-size:12.5px">
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="aq_tax_doc" value="boleta" checked onchange="toggleAdminTaxDoc(this.value)">
+            <b>Boleta Electrónica Exenta</b> (Consumidor final / Reembolsos)
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="aq_tax_doc" value="factura" onchange="toggleAdminTaxDoc(this.value)">
+            <b>Factura Electrónica Exenta</b> (Empresas, Fundaciones o ELEAM)
+          </label>
+        </div>
+        <div id="aq_tax_factura_wrap" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd)">
+          <div style="font-size:11.5px;color:var(--mut);margin-bottom:8px">Antecedentes requeridos para la emisión de Factura Exenta:</div>
+          <div class="g" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px">
+            <div>
+              <label for="aq_tax_rs" style="font-size:11.5px">Razón Social *</label>
+              <input type="text" id="aq_tax_rs" placeholder="Ej: Fundación Las Rosas SpA" style="font-size:12px">
+            </div>
+            <div>
+              <label for="aq_tax_rut" style="font-size:11.5px">RUT Empresa *</label>
+              <input type="text" id="aq_tax_rut" placeholder="Ej: 76.123.456-7" style="font-size:12px">
+            </div>
+            <div>
+              <label for="aq_tax_giro" style="font-size:11.5px">Giro Comercial *</label>
+              <input type="text" id="aq_tax_giro" placeholder="Ej: Servicios de salud / Cuidados" style="font-size:12px">
+            </div>
+            <div>
+              <label for="aq_tax_dir" style="font-size:11.5px">Dirección Tributaria *</label>
+              <input type="text" id="aq_tax_dir" placeholder="Ej: Av. Providencia 1234, Providencia" style="font-size:12px">
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="admin_buffer_info" class="msg" style="margin-top:12px"></div>
@@ -1412,34 +1520,204 @@ function onAdminEventSubtypeChange(){
   calcAdminQuote();
 }
 
+let adminAddrTimers = {};
+let adminPtFrom = { lat: -33.5090, lon: -70.7570, label: 'Av. Los Pajaritos 1450, Maipú' };
+let adminPtTo = { lat: -33.4316, lon: -70.6279, label: 'Clínica Santa María, Providencia' };
+let adminRouteIdaMin = 30;
+let adminRouteVueltaMin = 30;
+
+function updateAdminRingBadge(){
+  const badge = $('#aq_ring_badge');
+  if(!badge || !qState.ring) return;
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+  if(mode === '3'){
+    const minHours = qState.ring.id === 3 ? 4 : (qState.ring.id === 2 ? 3 : 2);
+    badge.textContent = `${qState.ring.name} detectado · ${qState.comuna || 'Comuna'} (Mínimo ${minHours} horas de cuidado)`;
+  } else {
+    badge.textContent = `${qState.ring.name} detectado · ${qState.comuna || 'Comuna'} (Piso legal: ${$c(qState.ring.minFare)})`;
+  }
+}
+
+function onAdminAddressInput(type){
+  if(typeof clearTimeout === 'function') clearTimeout(adminAddrTimers[type]);
+  const text = (type === 'from' ? ($('#aq_from') && $('#aq_from').value) : ($('#aq_to') && $('#aq_to').value)) || '';
+
+  if(type === 'from'){
+    const det = detectRingFromText(text, adminPtFrom ? adminPtFrom.lat : null, adminPtFrom ? adminPtFrom.lon : null);
+    if(det){
+      qState.ring = det.ring;
+      qState.comuna = det.comuna;
+      updateAdminRingBadge();
+    }
+    const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+    if(mode === '3'){
+      updateStayHoursSelector('3', qState.ring.id);
+    }
+    calcAdminQuote();
+  }
+
+  if(typeof setTimeout === 'function'){
+    adminAddrTimers[type] = setTimeout(() => {
+      searchAdminAddr(type);
+    }, 260);
+  }
+}
+
+async function searchAdminAddr(type){
+  const inp = type === 'from' ? $('#aq_from') : $('#aq_to');
+  const sugBox = type === 'from' ? $('#suggest_from') : $('#suggest_to');
+  if(!inp || !sugBox) return;
+  const q = inp.value.trim();
+  if(!q || q.length < 3){
+    sugBox.style.display = 'none';
+    return;
+  }
+
+  const qLow = q.toLowerCase();
+  const medMatches = MEDICAL_PLACES.filter(m =>
+    m.name.toLowerCase().includes(qLow) || m.addr.toLowerCase().includes(qLow)
+  ).map(m => ({
+    title: m.name,
+    subtitle: m.addr,
+    fullLabel: `${m.name} (${m.addr})`,
+    rawFull: `${m.name}, ${m.addr}, Santiago, Región Metropolitana`,
+    lat: m.lat,
+    lon: m.lon
+  }));
+
+  let geoResults = [];
+  try {
+    const arcUrl = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(q)}&countryCode=CHL&maxLocations=6&outFields=PlaceName,Match_addr,Place_addr,City,Subregion,District,Nbrhd,Region`;
+    const r = await fetch(arcUrl);
+    const data = await r.json();
+    if(data && data.candidates && data.candidates.length > 0){
+      geoResults = data.candidates.map(c => {
+        const attr = c.attributes || {};
+        const mainAddr = (c.address || attr.Match_addr || '').replace(/, CHL$/i, '');
+        const subAddr = (attr.Place_addr || '').replace(/, CHL$/i, '');
+        const title = attr.PlaceName && !mainAddr.startsWith(attr.PlaceName)
+          ? `${attr.PlaceName} · ${mainAddr}`
+          : mainAddr;
+        const muni = attr.District || attr.City || attr.Nbrhd || '';
+        return {
+          title: title,
+          subtitle: subAddr || muni || 'Chile',
+          fullLabel: title,
+          rawFull: `${title}, ${subAddr}, ${muni}`,
+          lat: c.location.y,
+          lon: c.location.x
+        };
+      });
+    }
+  } catch(eArc){
+    console.warn('Geocoding error in admin:', eArc);
+  }
+
+  const combined = [...medMatches, ...geoResults].slice(0, 6);
+  if(combined.length === 0){
+    sugBox.innerHTML = '<div style="padding:8px 12px;font-size:11.5px;color:var(--mut)">No se encontraron direcciones sugeridas.</div>';
+    sugBox.style.display = 'block';
+    return;
+  }
+
+  window['__adminSugs_' + type] = combined;
+  sugBox.innerHTML = combined.map((item, idx) => `
+    <div style="padding:7px 10px;border-bottom:1px solid var(--bd);cursor:pointer;font-size:12px;line-height:1.3"
+         onmousedown="pickAdminSug('${type}', ${idx})"
+         onmouseover="this.style.background='rgba(15,118,110,0.1)'"
+         onmouseout="this.style.background=''">
+      <div style="font-weight:700;color:var(--pri)">${e(item.title)}</div>
+      <div style="font-size:10.5px;color:var(--mut)">${e(item.subtitle)}</div>
+    </div>
+  `).join('');
+  sugBox.style.display = 'block';
+}
+
+function pickAdminSug(type, idx){
+  const item = (window['__adminSugs_' + type] || [])[idx];
+  const inp = type === 'from' ? $('#aq_from') : $('#aq_to');
+  const sugBox = type === 'from' ? $('#suggest_from') : $('#suggest_to');
+  if(sugBox) sugBox.style.display = 'none';
+  if(!item || !inp) return;
+
+  inp.value = item.fullLabel || item.title;
+  if(type === 'from'){
+    adminPtFrom = { lat: item.lat, lon: item.lon, label: inp.value };
+    const det = detectRingFromText(item.rawFull || item.fullLabel || item.title, item.lat, item.lon);
+    if(det){
+      qState.ring = det.ring;
+      qState.comuna = det.comuna;
+    }
+    updateAdminRingBadge();
+    const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+    if(mode === '3'){
+      updateStayHoursSelector('3', qState.ring.id);
+    }
+  } else {
+    adminPtTo = { lat: item.lat, lon: item.lon, label: inp.value };
+  }
+
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+  if(mode === '1' || mode === '2' || (mode === '4' && qState.eventSubtype === 'con_traslado')){
+    computeAdminRoute();
+  } else {
+    calcAdminQuote();
+  }
+}
+
+async function computeAdminRoute(){
+  if(!adminPtFrom || !adminPtTo) return;
+  const btnKm = $('#btn_calc_km');
+  const lblNote = $('#lbl_km_note');
+  if(btnKm) btnKm.textContent = '⏳ Calculando...';
+  if(lblNote) lblNote.textContent = 'Calculando ruta vehicular exacta con OSRM...';
+
+  try {
+    const coords = `${adminPtFrom.lon},${adminPtFrom.lat};${adminPtTo.lon},${adminPtTo.lat};${adminPtFrom.lon},${adminPtFrom.lat}`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`;
+    const r = await fetch(url);
+    const data = await r.json();
+
+    if(data && data.routes && data.routes.length > 0){
+      const route = data.routes[0];
+      const legs = route.legs || [];
+      const totalKm = Math.round((route.distance / 1000) * 10) / 10;
+      const idaMin = legs[0] ? Math.max(1, Math.round(legs[0].duration / 60)) : Math.max(1, Math.round(route.duration / 120));
+      const vueltaMin = legs[1] ? Math.max(1, Math.round(legs[1].duration / 60)) : idaMin;
+
+      adminRouteIdaMin = idaMin;
+      adminRouteVueltaMin = vueltaMin;
+
+      if($('#aq_km')) $('#aq_km').value = totalKm.toFixed(1);
+      if(lblNote) lblNote.textContent = `✅ Ruta exacta: ${totalKm.toFixed(1)} km ida y vuelta (${idaMin} min ida / ${vueltaMin} min retorno).`;
+    } else {
+      throw new Error('Sin rutas disponibles');
+    }
+  } catch(eRoute){
+    console.warn('OSRM fallback to Haversine in admin:', eRoute);
+    const dKm = Math.round(haversineKm(adminPtFrom.lat, adminPtFrom.lon, adminPtTo.lat, adminPtTo.lon) * 1.3 * 10) / 10;
+    const totalKm = Math.round(dKm * 2 * 10) / 10;
+    const estMin = Math.max(15, Math.round(dKm * 1.3));
+    adminRouteIdaMin = estMin;
+    adminRouteVueltaMin = estMin;
+    if($('#aq_km')) $('#aq_km').value = totalKm.toFixed(1);
+    if(lblNote) lblNote.textContent = `✅ Distancia calculada: ${totalKm.toFixed(1)} km ida y vuelta (~${estMin} min viaje).`;
+  } finally {
+    if(btnKm) btnKm.textContent = '📍 Recalcular';
+    calcAdminQuote();
+  }
+}
+
 function onQuickDestSelect(idx){
   if(idx === '' || !MEDICAL_PLACES[idx]) return;
   const p = MEDICAL_PLACES[idx];
   $('#aq_to').value = p.name + ' (' + p.addr + ')';
-  $('#aq_km').value = (p.km * 2).toFixed(1);
-  calcAdminQuote();
-}
-
-function onAdminAddressInput(type){
-  const text = (type === 'from' ? ($('#aq_from') && $('#aq_from').value) : ($('#aq_to') && $('#aq_to').value)) || '';
-  if(type === 'from'){
-    const det = detectRing(text);
-    qState.ring = det.ring;
-    qState.comuna = det.comuna;
-    const badge = $('#aq_ring_badge');
-    const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
-
-    if(badge){
-      if(mode === '3'){
-        const minHours = det.ring.id === 3 ? 4 : (det.ring.id === 2 ? 3 : 2);
-        badge.textContent = `${det.ring.name} detectado (Mínimo ${minHours} horas de cuidado)`;
-      } else {
-        badge.textContent = `${det.ring.name} detectado (Piso legal: ${$c(det.ring.minFare)})`;
-      }
-    }
-    if(mode === '3'){
-      updateStayHoursSelector('3', det.ring.id);
-    }
+  adminPtTo = { lat: p.lat, lon: p.lon, label: $('#aq_to').value };
+  if(adminPtFrom){
+    computeAdminRoute();
+  } else {
+    const dKm = p.km || 12;
+    $('#aq_km').value = (dKm * 2).toFixed(1);
     calcAdminQuote();
   }
 }
@@ -1447,11 +1725,104 @@ function onAdminAddressInput(type){
 function autoCalcAdminKm(){
   const destIdx = $('#aq_quick_dest') ? $('#aq_quick_dest').value : '';
   if(destIdx !== '' && MEDICAL_PLACES[destIdx]){
-    $('#aq_km').value = (MEDICAL_PLACES[destIdx].km * 2).toFixed(1);
+    const p = MEDICAL_PLACES[destIdx];
+    adminPtTo = { lat: p.lat, lon: p.lon, label: p.name + ' (' + p.addr + ')' };
+    $('#aq_to').value = adminPtTo.label;
+    if(adminPtFrom){
+      computeAdminRoute();
+      return;
+    }
+    const dKm = p.km || 12;
+    $('#aq_km').value = (dKm * 2).toFixed(1);
   } else {
+    if(adminPtFrom && adminPtTo){
+      computeAdminRoute();
+      return;
+    }
     $('#aq_km').value = '25.0';
   }
   calcAdminQuote();
+}
+
+// Menores de edad, patologías y facturación
+function onAdminAgeChange(){
+  const ageVal = ($('#aq_age') && $('#aq_age').value.trim()) || '';
+  const age = ageVal !== '' ? parseInt(ageVal, 10) : NaN;
+  const isMinor = !isNaN(age) && age >= 0 && age < 18;
+  const notice = $('#aq_minor_notice');
+  const compSel = $('#aq_comp');
+
+  if(notice){
+    notice.style.display = isMinor ? 'block' : 'none';
+  }
+  if(compSel){
+    const soloOpt = compSel.querySelector('option[value*="solo"]') || compSel.querySelector('option[value="Viaja solo"]');
+    if(isMinor){
+      if(soloOpt) soloOpt.disabled = true;
+      compSel.value = 'Acompañado por tutor legal / familiar';
+    } else {
+      if(soloOpt) soloOpt.disabled = false;
+    }
+  }
+}
+
+function onAdminCompChange(){
+  const ageVal = ($('#aq_age') && $('#aq_age').value.trim()) || '';
+  const age = ageVal !== '' ? parseInt(ageVal, 10) : NaN;
+  const isMinor = !isNaN(age) && age >= 0 && age < 18;
+  const compSel = $('#aq_comp');
+  if(isMinor && compSel && compSel.value.toLowerCase().includes('solo')){
+    compSel.value = 'Acompañado por tutor legal / familiar';
+    alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de 18 años debe viajar obligatoriamente acompañado por su madre, padre o tutor legal.');
+  }
+}
+
+function onAdminPathologyChange(cb){
+  if(cb && cb.checked){
+    const ning = $('#aq_pat_ninguna');
+    if(ning) ning.checked = false;
+  }
+}
+
+function onAdminPathologyNingunaChange(cb){
+  if(cb && cb.checked){
+    document.querySelectorAll('.aq_pat_cb').forEach(c => {
+      if(c !== cb) c.checked = false;
+    });
+    const wrap = $('#aq_pat_other_wrap');
+    if(wrap) wrap.style.display = 'none';
+    const inp = $('#aq_pat_other');
+    if(inp) inp.value = '';
+  }
+}
+
+function onAdminPathologyOtraChange(cb){
+  const wrap = $('#aq_pat_other_wrap');
+  if(wrap) wrap.style.display = cb.checked ? 'block' : 'none';
+  if(cb.checked){
+    const ning = $('#aq_pat_ninguna');
+    if(ning) ning.checked = false;
+    const inp = $('#aq_pat_other');
+    if(inp) inp.focus();
+  }
+}
+
+function toggleAdminTaxDoc(val){
+  const wrap = $('#aq_tax_factura_wrap');
+  if(wrap) wrap.style.display = val === 'factura' ? 'block' : 'none';
+}
+
+if(typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
+  document.addEventListener('click', function(ev){
+    if(!ev.target.closest('#col_origen')){
+      const sf = $('#suggest_from');
+      if(sf) sf.style.display = 'none';
+    }
+    if(!ev.target.closest('#col_destino')){
+      const st = $('#suggest_to');
+      if(st) st.style.display = 'none';
+    }
+  });
 }
 
 function calcAdminQuote(){
@@ -1475,6 +1846,7 @@ function calcAdminQuote(){
   if(mode === '1' || mode === '2'){
     stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
     if(stayMin > 360) stayMin = 360;
+    qState.stayMin = stayMin;
     qState.durationMin = stayMin;
     qState.kmTotal = kmTot;
     timeLabel = `${(stayMin / 60).toFixed(1)} hrs`;
@@ -1729,6 +2101,8 @@ ${breakdown}• *TOTAL COTIZADO:* ${$c(qState.totalFare)}
 • *Abono 50% para reserva:* ${$c(qState.abono50)}
 • *Saldo restante al finalizar el servicio:* ${$c(qState.saldo50)}
 
+📄 *DOCUMENTO TRIBUTARIO:* ${(document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value === 'factura') ? ('Factura Electrónica Exenta (' + (($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || 'Empresa') + ' - RUT ' + (($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '') + ')') : 'Boleta Electrónica Exenta'}
+
 🏥 *INCLUYE:* Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, vehículo climatizado y habilitado para ayudas técnicas.
 
 Quedamos atentos para reservar su cupo exclusivo!`;
@@ -1751,6 +2125,45 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
   const age = (+$('#aq_age') && +$('#aq_age').value) || 75;
+  const compDesc = ($('#aq_comp') && $('#aq_comp').value) || 'Acompañado por tutor legal / familiar';
+  const isSolo = compDesc.toLowerCase().includes('solo');
+
+  // Validación obligatoria para menores de edad (< 18 años)
+  if(age < 18 && isSolo){
+    if(typeof alert !== 'undefined'){
+      alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de edad (< 18 años) debe viajar obligatoriamente acompañado de manera continua por su madre, padre o tutor legal.');
+    }
+    const compSel = $('#aq_comp');
+    if(compSel) compSel.focus();
+    return { error: 'Minor must be accompanied' };
+  }
+
+  // Validación de Documento Tributario (Factura)
+  const taxRadio = document.querySelector('input[name="aq_tax_doc"]:checked');
+  const isFactura = taxRadio ? taxRadio.value === 'factura' : false;
+  const taxRS = ($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || '';
+  const taxRUT = ($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '';
+  const taxGiro = ($('#aq_tax_giro') && $('#aq_tax_giro').value.trim()) || '';
+  const taxDir = ($('#aq_tax_dir') && $('#aq_tax_dir').value.trim()) || '';
+
+  if(isFactura && (!taxRS || !taxRUT || !taxGiro || !taxDir)){
+    if(typeof alert !== 'undefined'){
+      alert('⚠️ Por favor complete los antecedentes de facturación requeridos (Razón Social, RUT, Giro y Dirección Tributaria) antes de guardar.');
+    }
+    const inpRS = $('#aq_tax_rs');
+    if(inpRS) inpRS.focus();
+    return { error: 'Factura fields required' };
+  }
+
+  const taxDoc = {
+    type: isFactura ? 'factura' : 'boleta',
+    label: isFactura ? 'Factura Electrónica Exenta' : 'Boleta Electrónica Exenta',
+    razonSocial: isFactura ? taxRS : '',
+    rut: isFactura ? taxRUT : '',
+    giro: isFactura ? taxGiro : '',
+    direccion: isFactura ? taxDir : ''
+  };
+
   const dx = ($('#aq_dx') && $('#aq_dx').value.trim()) || 'Atención clínica';
   const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Coordinador';
   const ph = ($('#aq_ph') && $('#aq_ph').value.trim()) || '+56900000000';
@@ -1761,9 +2174,18 @@ function saveAdminBooking(ev, forceConfirm = false){
   const req = typeof document !== 'undefined' && document.querySelectorAll
     ? [...document.querySelectorAll('.aq_rq:checked')].map(x => x.value)
     : [];
+
+  const selectedPats = typeof document !== 'undefined' && document.querySelectorAll
+    ? [...document.querySelectorAll('.aq_pat_cb:checked')].map(x => x.value)
+    : [];
+  if($('#aq_pat_otra') && $('#aq_pat_otra').checked && $('#aq_pat_other') && $('#aq_pat_other').value.trim()){
+    selectedPats.push($('#aq_pat_other').value.trim());
+  }
+  const patologias = selectedPats.length > 0 ? selectedPats : [dx];
+
   const alergias = ($('#aq_alergias') && $('#aq_alergias').value.trim()) || 'No registra alergias';
 
-  const bookingData = { tid, date, time, start, dur, pat, age, dx, coord, ph, from, to, mob, req, alergias };
+  const bookingData = { tid, date, time, start, dur, pat, age, dx, coord, ph, from, to, mob, req, alergias, compDesc, taxDoc, patologias };
 
   // Verificación de advertencia preventiva de buffer de 2 horas (120 minutos)
   if(!forceConfirm){
@@ -1795,14 +2217,16 @@ function saveAdminBooking(ev, forceConfirm = false){
     to,
     mob,
     req,
-    comp: true,
+    comp: !isSolo,
+    compDesc,
+    taxDoc,
+    patologias,
     fare: qState.totalFare,
     paid: qState.abono50,
     st: 'Confirmado',
     svcType: qState.mode,
     alergias,
     conciencia: 'Lúcido / Orientado',
-    patologias: [dx],
     obs: `Agendado vía Cotizador Maestro (${qState.mode === '1' ? 'Mod 1 Integral' : qState.mode === '2' ? 'Mod 2 Exclusivo' : qState.mode === '3' ? 'Mod 3 Domicilio' : qState.mode === '4' ? 'Mod 4 Eventos' : 'Mod 5 Interregional'})`,
     createdAt: new Date().toISOString()
   };
