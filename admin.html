@@ -374,7 +374,7 @@ const ADMIN_RATES = {
 };
 
 const STAY_HOURS_OPTIONS = [
-  { val: 60, label: '1 hora de asistencia' },
+  { val: 60, label: '1 hora de asistencia (Base mínima)' },
   { val: 90, label: '1 hora 30 min' },
   { val: 120, label: '2 horas de asistencia' },
   { val: 150, label: '2 horas 30 min' },
@@ -648,7 +648,7 @@ function hdr(sess){
       `}
       <button onclick="toggleTheme()" title="Cambiar tema">${d?'☀️ Claro':'🌙 Oscuro'}</button>
       <button onclick="logout()" title="Cerrar sesión actual">Cerrar sesión</button>
-      <a class="b" href="index.html" target="_blank" title="Abrir sitio web oficial de clientes">🌐 Ver Sitio Público</a>
+      <a class="b" href="index.html" target="_blank" rel="noopener noreferrer" title="Abrir sitio web oficial de clientes">🌐 Ver Sitio Público</a>
     </div>
   </div>`;
 }
@@ -1186,9 +1186,9 @@ function form(){
         <div id="row_stay_time">
           <label for="aq_stay_hours"><b id="lbl_stay_hours">Tiempo de Asistencia / Espera *</b></label>
           <select id="aq_stay_hours" onchange="calcAdminQuote()">
-            <option value="60">1 hora de asistencia</option>
+            <option value="60" selected>1 hora de asistencia (Base mínima)</option>
             <option value="90">1 hora 30 min</option>
-            <option value="120" selected>2 horas de asistencia</option>
+            <option value="120">2 horas de asistencia</option>
             <option value="150">2 horas 30 min</option>
             <option value="180">3 horas de asistencia</option>
             <option value="210">3 horas 30 min</option>
@@ -1423,27 +1423,220 @@ function form(){
       <div id="admin_buffer_info" class="msg" style="margin-top:12px"></div>
 
       <!-- BOTONES DE ACCIÓN ADMINISTRATIVA -->
-      <div class="row" style="justify-content:flex-end;gap:12px;margin-top:18px;border-top:1px solid var(--bd);padding-top:14px">
-        <button type="button" class="btn" onclick="sendAdminQuoteWhatsApp()" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px">
-          💬 Enviar Cotización por WhatsApp
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:18px;border-top:1px solid var(--bd);padding-top:14px">
+        <button type="button" class="btn" onclick="resetAdminQuoterForm()" style="background:var(--bg);color:var(--mut);border:1px solid var(--bd);font-size:12.5px" title="Limpiar formulario y borrador">
+          🧹 Limpiar Formulario
         </button>
-        <button type="submit" class="p" style="padding:10px 20px;font-size:15px;display:inline-flex;align-items:center;gap:6px">
-          💾 Guardar en Agenda
-        </button>
+        <div style="display:flex;gap:12px;align-items:center">
+          <button type="button" class="btn" onclick="sendAdminQuoteWhatsApp()" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+            💬 Enviar Cotización por WhatsApp
+          </button>
+          <button type="submit" class="p" style="padding:10px 20px;font-size:15px;display:inline-flex;align-items:center;gap:6px">
+            💾 Guardar en Agenda
+          </button>
+        </div>
       </div>
     </form>
   `;
 }
 
-function initAdminQuoter(){
+function saveAdminQuoterDraft(){
+  try {
+    if(typeof localStorage === 'undefined') return;
+    const draft = {
+      mode: ($('#aq_mode') && $('#aq_mode').value) || '1',
+      date: ($('#aq_date') && $('#aq_date').value) || '',
+      time: ($('#aq_time') && $('#aq_time').value) || '10:00',
+      stayHours: ($('#aq_stay_hours') && $('#aq_stay_hours').value) || '60',
+      eventSubtype: ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado',
+      eventPack: ($('#aq_event_pack') && $('#aq_event_pack').value) || 'base',
+      eventExtra: ($('#aq_event_extra') && $('#aq_event_extra').value) || '0',
+      interPlan: ($('#aq_inter_plan') && $('#aq_inter_plan').value) || 'estandar',
+      interExtra: ($('#aq_inter_extra') && $('#aq_inter_extra').value) || '0',
+      from: ($('#aq_from') && $('#aq_from').value) || '',
+      to: ($('#aq_to') && $('#aq_to').value) || '',
+      km: ($('#aq_km') && $('#aq_km').value) || '',
+      pat: ($('#aq_pat') && $('#aq_pat').value) || '',
+      age: ($('#aq_age') && $('#aq_age').value) || '',
+      comp: ($('#aq_comp') && $('#aq_comp').value) || '',
+      dx: ($('#aq_dx') && $('#aq_dx').value) || '',
+      coord: ($('#aq_coord') && $('#aq_coord').value) || '',
+      ph: ($('#aq_ph') && $('#aq_ph').value) || '',
+      mob: ($('#aq_mob') && $('#aq_mob').value) || '',
+      tens: ($('#aq_tens') && $('#aq_tens').value) || '',
+      alergias: ($('#aq_alergias') && $('#aq_alergias').value) || '',
+      pats: typeof document !== 'undefined' && document.querySelectorAll ? [...document.querySelectorAll('.aq_pat_cb:checked')].map(x => x.value) : [],
+      patOther: ($('#aq_pat_other') && $('#aq_pat_other').value) || '',
+      reqs: typeof document !== 'undefined' && document.querySelectorAll ? [...document.querySelectorAll('.aq_rq:checked')].map(x => x.value) : [],
+      taxDoc: (document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value) || 'boleta',
+      taxRS: ($('#aq_tax_rs') && $('#aq_tax_rs').value) || '',
+      taxRUT: ($('#aq_tax_rut') && $('#aq_tax_rut').value) || '',
+      taxGiro: ($('#aq_tax_giro') && $('#aq_tax_giro').value) || '',
+      taxDir: ($('#aq_tax_dir') && $('#aq_tax_dir').value) || '',
+      adminPtFrom,
+      adminPtTo,
+      adminRouteIdaMin,
+      adminRouteVueltaMin,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('msa_admin_quoter_draft', JSON.stringify(draft));
+  } catch(e) {
+    console.warn('Could not save quoter draft:', e);
+  }
+}
+window.saveAdminQuoterDraft = saveAdminQuoterDraft;
+
+function loadAdminQuoterDraft(){
+  try {
+    if(typeof localStorage === 'undefined') return false;
+    const raw = localStorage.getItem('msa_admin_quoter_draft');
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(!d) return false;
+
+    if(d.mode && $('#aq_mode')) $('#aq_mode').value = d.mode;
+    onAdminModeChange();
+
+    if(d.date && $('#aq_date')) $('#aq_date').value = d.date;
+    if(d.time && $('#aq_time')) $('#aq_time').value = d.time;
+    if(d.stayHours && $('#aq_stay_hours')) $('#aq_stay_hours').value = d.stayHours;
+    if(d.eventSubtype && $('#aq_event_subtype')) $('#aq_event_subtype').value = d.eventSubtype;
+    if(d.eventPack && $('#aq_event_pack')) $('#aq_event_pack').value = d.eventPack;
+    if(d.eventExtra && $('#aq_event_extra')) $('#aq_event_extra').value = d.eventExtra;
+    if(d.interPlan && $('#aq_inter_plan')) $('#aq_inter_plan').value = d.interPlan;
+    if(d.interExtra && $('#aq_inter_extra')) $('#aq_inter_extra').value = d.interExtra;
+
+    if(d.from && $('#aq_from')){
+      $('#aq_from').value = d.from;
+      onAdminAddressInput('from');
+    }
+    if(d.to && $('#aq_to')) $('#aq_to').value = d.to;
+    if(d.km && $('#aq_km')) $('#aq_km').value = d.km;
+
+    if(d.adminPtFrom) adminPtFrom = d.adminPtFrom;
+    if(d.adminPtTo) adminPtTo = d.adminPtTo;
+    if(d.adminRouteIdaMin) adminRouteIdaMin = d.adminRouteIdaMin;
+    if(d.adminRouteVueltaMin) adminRouteVueltaMin = d.adminRouteVueltaMin;
+
+    if(d.pat && $('#aq_pat')) $('#aq_pat').value = d.pat;
+    if(d.age !== undefined && d.age !== '' && $('#aq_age')){
+      $('#aq_age').value = d.age;
+      onAdminAgeChange();
+    }
+    if(d.comp && $('#aq_comp')) $('#aq_comp').value = d.comp;
+    if(d.dx && $('#aq_dx')) $('#aq_dx').value = d.dx;
+    if(d.coord && $('#aq_coord')) $('#aq_coord').value = d.coord;
+    if(d.ph && $('#aq_ph')) $('#aq_ph').value = d.ph;
+    if(d.mob && $('#aq_mob')) $('#aq_mob').value = d.mob;
+    if(d.tens && $('#aq_tens')) $('#aq_tens').value = d.tens;
+    if(d.alergias && $('#aq_alergias')) $('#aq_alergias').value = d.alergias;
+
+    if(Array.isArray(d.pats) && typeof document !== 'undefined' && document.querySelectorAll){
+      document.querySelectorAll('.aq_pat_cb').forEach(cb => {
+        cb.checked = d.pats.includes(cb.value);
+      });
+    }
+    if(d.patOther && $('#aq_pat_other')){
+      $('#aq_pat_other').value = d.patOther;
+      if($('#aq_pat_other_wrap')) $('#aq_pat_other_wrap').style.display = 'block';
+      if($('#aq_pat_otra')) $('#aq_pat_otra').checked = true;
+    }
+
+    if(Array.isArray(d.reqs) && typeof document !== 'undefined' && document.querySelectorAll){
+      document.querySelectorAll('.aq_rq').forEach(cb => {
+        cb.checked = d.reqs.includes(cb.value);
+      });
+    }
+
+    if(d.taxDoc && typeof document !== 'undefined'){
+      const r = document.querySelector(`input[name="aq_tax_doc"][value="${d.taxDoc}"]`);
+      if(r){
+        r.checked = true;
+        toggleAdminTaxDoc(d.taxDoc);
+      }
+    }
+    if(d.taxRS && $('#aq_tax_rs')) $('#aq_tax_rs').value = d.taxRS;
+    if(d.taxRUT && $('#aq_tax_rut')) $('#aq_tax_rut').value = d.taxRUT;
+    if(d.taxGiro && $('#aq_tax_giro')) $('#aq_tax_giro').value = d.taxGiro;
+    if(d.taxDir && $('#aq_tax_dir')) $('#aq_tax_dir').value = d.taxDir;
+
+    calcAdminQuote();
+    return true;
+  } catch(e) {
+    console.warn('Could not load quoter draft:', e);
+    return false;
+  }
+}
+window.loadAdminQuoterDraft = loadAdminQuoterDraft;
+
+function clearAdminQuoterDraft(){
+  try {
+    if(typeof localStorage !== 'undefined') localStorage.removeItem('msa_admin_quoter_draft');
+  } catch(e){}
+}
+window.clearAdminQuoterDraft = clearAdminQuoterDraft;
+
+function resetAdminQuoterForm(){
+  clearAdminQuoterDraft();
+  if($('#form_admin_quoter')) $('#form_admin_quoter').reset();
+  if($('#aq_mode')) $('#aq_mode').value = '1';
+  if($('#aq_date')) $('#aq_date').value = U.date || TODAY;
+  if($('#aq_time')) $('#aq_time').value = '10:00';
+  if($('#aq_stay_hours')) $('#aq_stay_hours').value = '60';
+  if($('#aq_from')) $('#aq_from').value = 'Av. Los Pajaritos 1450, Maipú';
+  if($('#aq_to')) $('#aq_to').value = 'Clínica Santa María, Providencia';
+  if($('#aq_km')) $('#aq_km').value = '24';
+  if($('#aq_age')) $('#aq_age').value = '78';
+  if($('#aq_comp')) $('#aq_comp').value = 'Acompañado por tutor legal / familiar';
+  if($('#aq_pat')) $('#aq_pat').value = '';
+  if($('#aq_dx')) $('#aq_dx').value = '';
+  if($('#aq_coord')) $('#aq_coord').value = '';
+  if($('#aq_ph')) $('#aq_ph').value = '+56 9 ';
+  if($('#aq_alergias')) $('#aq_alergias').value = '';
+  if($('#aq_pat_other')) $('#aq_pat_other').value = '';
+  if($('#aq_pat_other_wrap')) $('#aq_pat_other_wrap').style.display = 'none';
+
+  if(typeof document !== 'undefined' && document.querySelectorAll){
+    document.querySelectorAll('.aq_pat_cb').forEach(c => c.checked = false);
+  }
+  const ning = $('#aq_pat_ninguna');
+  if(ning) ning.checked = true;
+
+  if(typeof document !== 'undefined'){
+    const boletaR = document.querySelector('input[name="aq_tax_doc"][value="boleta"]');
+    if(boletaR) boletaR.checked = true;
+    toggleAdminTaxDoc('boleta');
+  }
+
+  adminPtFrom = { lat: -33.5090, lon: -70.7570, label: 'Av. Los Pajaritos 1450, Maipú' };
+  adminPtTo = { lat: -33.4316, lon: -70.6279, label: 'Clínica Santa María, Providencia' };
+  adminRouteIdaMin = 30;
+  adminRouteVueltaMin = 30;
+
   onAdminModeChange();
+  onAdminAgeChange();
+  onAdminAddressInput('from');
+  calcAdminQuote();
+
+  if(typeof alert !== 'undefined') alert('🧹 Formulario del Cotizador Maestro restablecido con valores iniciales limpios.');
+}
+window.resetAdminQuoterForm = resetAdminQuoterForm;
+
+function initAdminQuoter(){
   populateAdminTechs();
+  const restored = loadAdminQuoterDraft();
+  if(!restored){
+    if($('#aq_stay_hours')) $('#aq_stay_hours').value = '60';
+    onAdminModeChange();
+    onAdminAddressInput('from');
+    calcAdminQuote();
+  }
 }
 
 function updateStayHoursSelector(mode, ringId){
   const sel = $('#aq_stay_hours');
   if(!sel) return;
-  const curVal = +sel.value || 120;
+  const curVal = +sel.value || 60;
   let minMin = 60;
   if(mode === '3'){
     // Pisos mínimos de permanencia para Cuidados a Domicilio según Anillo:
@@ -1457,9 +1650,7 @@ function updateStayHoursSelector(mode, ringId){
     const isSelected = (curVal >= minMin && o.val === curVal) || (curVal < minMin && o.val === minMin);
     return `<option value="${o.val}" ${isSelected ? 'selected' : ''}>${o.label}</option>`;
   }).join('');
-  if(curVal < minMin){
-    sel.value = String(minMin);
-  }
+  sel.value = String(curVal >= minMin ? curVal : minMin);
 }
 
 function onAdminModeChange(){
@@ -1889,7 +2080,7 @@ function calcAdminQuote(){
   let kmLabel = `${kmTot} km`;
 
   if(mode === '1'){
-    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 60;
     qState.stayMin = stayMin;
     qState.kmTotal = kmTot;
 
@@ -1921,7 +2112,7 @@ function calcAdminQuote(){
       floorApplied = false;
     }
   } else if(mode === '2'){
-    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 60;
     if(stayMin > 360) stayMin = 360;
     qState.stayMin = stayMin;
     qState.durationMin = stayMin;
@@ -1949,7 +2140,7 @@ function calcAdminQuote(){
       floorApplied = false;
     }
   } else if(mode === '3'){
-    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 60;
     const rId = (qState.ring && qState.ring.id) || 1;
     const minMin = rId === 3 ? 240 : (rId === 2 ? 180 : 120);
     if(stayMin < minMin){
@@ -2320,6 +2511,7 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   D.svcs.push(newSvc);
   save();
+  clearAdminQuoterDraft();
 
   cerrarModalWarningBufferAdmin();
   if(typeof alert !== 'undefined') alert(`✅ ¡Reserva Folio #MSA-${newId} creada y guardada exitosamente en la agenda!`);
