@@ -1395,11 +1395,17 @@ function refreshDuration34Options(resetSelection = false){
     `;
     $('#selHours34').value = (!resetSelection && prevH === '6') ? '6' : '4';
 
-    $('#lblMins34').textContent = 'Minutos adicionales (cerrado en planes de evento)';
-    $('#selMins34').innerHTML = `<option value="0">+ 0 min (incluido en paquete)</option>`;
-    $('#selMins34').value = '0';
-    $('#selMins34').disabled = true;
-    $('#selMins34').title = 'Los eventos sociales se contratan en paquetes de tarifa plana cerrada.';
+    $('#lblMins34').textContent = 'Tiempo Adicional en Recinto (Opcional)';
+    $('#selMins34').innerHTML = `
+      <option value="0">+ 0 minutos adicionales ($0)</option>
+      <option value="30">+ 30 minutos extra (+$7.500)</option>
+      <option value="60">+ 1 hora extra (+$15.000)</option>
+      <option value="90">+ 1 hora 30 min extra (+$22.500)</option>
+      <option value="120">+ 2 horas extras (+$30.000 - Tope máximo)</option>
+    `;
+    $('#selMins34').disabled = false;
+    $('#selMins34').removeAttribute('title');
+    $('#selMins34').value = (!resetSelection && ['0','30','60','90','120'].includes(prevM)) ? prevM : '0';
   } else if(mode === '5'){
     $('#lblMins34').textContent = 'Tiempo adicional no programado (en destino)';
     $('#selMins34').innerHTML = `
@@ -1645,7 +1651,7 @@ function applyModalityVisibility(){
     } else if(mode === '4'){
       $('#eventStartCol').style.display = 'none';
       $('#hours34Col').style.display = 'block';
-      $('#mins34Col').style.display = 'none';
+      $('#mins34Col').style.display = 'block';
       if($('#lblHours34')) $('#lblHours34').textContent = 'Plan de Asistencia y Cobertura *';
       $('#durationBox34').style.gridTemplateColumns = '1fr';
       const isCon = selectedEventSubMode === 'con_traslado';
@@ -1762,7 +1768,13 @@ function updateHomeSpecialWaLink(){
       const planName = isCon
         ? (h === 6 ? 'Pack Total (6 hrs continuas + Traslados)' : 'Pack Base (4 hrs continuas + Traslados)')
         : (h === 6 ? 'Plan Total (6 hrs continuas en recinto)' : 'Plan Base (4 hrs continuas en recinto)');
-      breakdownLines.push(`• Plan base contratado: ${planName} (${$c(finalTotalNum)})`);
+      const extraM = (+$('#selMins34').value) || 0;
+      const extraVal = (extraM === 30 ? 7500 : extraM === 60 ? 15000 : extraM === 90 ? 22500 : extraM === 120 ? 30000 : 0);
+      const baseVal = isCon ? (h === 6 ? 125000 : 95000) : (h === 6 ? 95000 : 65000);
+      breakdownLines.push(`• Plan base contratado: ${planName} (${$c(baseVal)})`);
+      if(extraM > 0){
+        breakdownLines.push(`• Tiempo adicional en recinto: +${extraM} min (${$c(extraVal)})`);
+      }
     }
 
     const lines = [
@@ -1982,9 +1994,8 @@ function applyMaxDurationRule(){
     }
   } else if(mode === '4'){
     if(selM34){
-      selM34.value = '0';
-      selM34.disabled = true;
-      selM34.title = 'Los eventos sociales se contratan en paquetes de tarifa plana cerrada.';
+      selM34.disabled = false;
+      selM34.removeAttribute('title');
     }
   } else if(mode === '5'){
     if(selM34){
@@ -2161,7 +2172,8 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
     if(h >= 6) h = 6;
     else h = 4;
-    const eventStayMin = h * 60;
+    const extraM = (+$('#selMins34').value) || 0;
+    const eventStayMin = h * 60 + extraM;
     const effIdaMin = (typeof idaMin === 'number' && idaMin > 0) ? idaMin : (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30);
     const effRetornoMin = (typeof retornoMin === 'number' && retornoMin > 0) ? retornoMin : (lastRouteVueltaMin > 0 ? lastRouteVueltaMin : effIdaMin);
 
@@ -2176,13 +2188,15 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Llegada estimada al recinto:';
     if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fm(llegadaRecintoMin % 1440)} hrs`;
     if($('#tlTiempoDestinoLabel')) $('#tlTiempoDestinoLabel').textContent = 'Tiempo de permanencia contratado:';
-    if($('#tlTiempoDestino')) $('#tlTiempoDestino').textContent = `${h} hrs continuas`;
+    if($('#tlTiempoDestino')) $('#tlTiempoDestino').textContent = extraM > 0
+      ? `${h} hrs + ${extraM} min extra (${fmtHoursClean(eventStayMin)})`
+      : `${h} hrs continuas`;
     if($('#tlHoraRetornoLabel')) $('#tlHoraRetornoLabel').textContent = 'Hora estimada de regreso al hogar:';
     if($('#tlHoraRetorno')) $('#tlHoraRetorno').textContent = `${fm(retornoHogarMin % 1440)} hrs`;
     if($('#tlHorasEfectivasLabel')) $('#tlHorasEfectivasLabel').textContent = 'Duración total del compromiso:';
     if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)`;
 
-    const formulaDesc = `Circuito completo del servicio: ${effIdaMin} min viaje de ida + ${h} hrs de permanencia continua en el evento + ${effRetornoMin} min viaje de regreso = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados de dedicación exclusiva.<br><span style="display:inline-block;margin-top:6px;color:var(--ink);font-weight:600">Nota: Las 4 o 6 horas contratadas corresponden a permanencia continua y efectiva en el evento. Los traslados de ida y regreso se suman como tiempo de viaje adicional, garantizando que el paciente disfrute su fiesta completa.</span>`;
+    const formulaDesc = `Circuito completo del servicio: ${effIdaMin} min viaje de ida + ${fmtHoursClean(eventStayMin)} de permanencia en el evento${extraM > 0 ? ` (${h}h base + ${extraM}m extra)` : ''} + ${effRetornoMin} min viaje de regreso = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados de dedicación exclusiva.<br><span style="display:inline-block;margin-top:6px;color:var(--ink);font-weight:600">Nota: Las ${h} horas base contratadas${extraM > 0 ? ` más ${extraM} min adicionales` : ''} corresponden a permanencia continua y efectiva en el evento. Los traslados de ida y regreso se suman como tiempo de viaje adicional, garantizando que el paciente disfrute su fiesta completa.</span>`;
     if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
     return;
   }
@@ -2251,7 +2265,16 @@ function getSelectedTotalMinutes(){
     totalMin = h * 60 + m;
   } else if(mode === '4'){
     const h = +$('#selHours34').value || 4;
-    totalMin = (h >= 6 ? 6 : 4) * 60;
+    const extraM = (+$('#selMins34').value) || 0;
+    const isCon = selectedEventSubMode === 'con_traslado';
+    if(isCon){
+      const effIdaMin = (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30);
+      const effRetornoMin = (lastRouteVueltaMin > 0 ? lastRouteVueltaMin : effIdaMin);
+      totalMin = effIdaMin + ((h >= 6 ? 6 : 4) * 60 + extraM) + effRetornoMin;
+    } else {
+      totalMin = (h >= 6 ? 6 : 4) * 60 + extraM;
+    }
+    return totalMin;
   } else {
     // Mode 3
     let minH = 2;
@@ -2358,6 +2381,9 @@ function recalcAll(){
     if(h >= 6) h = 6;
     else h = 4;
     const isCon = (selectedEventSubMode === 'con_traslado');
+    const extraM = +($('#selMins34') ? $('#selMins34').value : 0) || 0;
+    const extraCost = (extraM === 30 ? 7500 : extraM === 60 ? 15000 : extraM === 90 ? 22500 : extraM === 120 ? 30000 : 0);
+
     let planName = '';
     let basePkgCost = 0;
     if(isCon){
@@ -2380,8 +2406,17 @@ function recalcAll(){
       const tlBox = $('#serviceTimelineBox');
       if(tlBox) tlBox.style.display = 'none';
     }
-    timeCost = basePkgCost;
-    durationText = `Plan Seleccionado: ${planName} — Tarifa Plana Cerrada`;
+    timeCost = basePkgCost + extraCost;
+
+    let extraPart = '';
+    if(extraM === 30) extraPart = ` + 30 min extra (${$c(extraCost)})`;
+    else if(extraM === 60) extraPart = ` + 1 hora extra (${$c(extraCost)})`;
+    else if(extraM === 90) extraPart = ` + 1h 30m extra (${$c(extraCost)})`;
+    else if(extraM === 120) extraPart = ` + 2 horas extras (${$c(extraCost)})`;
+
+    durationText = extraM > 0
+      ? `${planName} (${$c(basePkgCost)})${extraPart} = Total: ${$c(timeCost)}`
+      : `Plan Seleccionado: ${planName} — Tarifa Plana Cerrada`;
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
     let m = +$('#selMins34').value || 0;
@@ -2473,17 +2508,40 @@ function recalcAll(){
       if(h >= 6) h = 6;
       else h = 4;
       const isCon = (selectedEventSubMode === 'con_traslado');
+      const extraM = +($('#selMins34') ? $('#selMins34').value : 0) || 0;
+      const extraCost = (extraM === 30 ? 7500 : extraM === 60 ? 15000 : extraM === 90 ? 22500 : extraM === 120 ? 30000 : 0);
       let planName = '';
+      let basePkgCost = 0;
       if(isCon){
-        planName = h === 6 ? 'Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta)' : 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)';
+        if(h === 6){
+          planName = 'Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta)';
+          basePkgCost = 125000;
+        } else {
+          planName = 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)';
+          basePkgCost = 95000;
+        }
       } else {
-        planName = h === 6 ? 'Plan Total (6 hrs continuas en recinto)' : 'Plan Base (4 hrs continuas en recinto)';
+        if(h === 6){
+          planName = 'Plan Total (6 hrs continuas en recinto)';
+          basePkgCost = 95000;
+        } else {
+          planName = 'Plan Base (4 hrs continuas en recinto)';
+          basePkgCost = 65000;
+        }
       }
+      let extraPart = '';
+      if(extraM === 30) extraPart = ` + 30 min extra (${$c(extraCost)})`;
+      else if(extraM === 60) extraPart = ` + 1 hora extra (${$c(extraCost)})`;
+      else if(extraM === 90) extraPart = ` + 1h 30m extra (${$c(extraCost)})`;
+      else if(extraM === 120) extraPart = ` + 2 horas extras (${$c(extraCost)})`;
+
       if($('#dirSvcLbl')) $('#dirSvcLbl').textContent = '';
       $('#dirSvcName').textContent = 'Modalidad: 4. Acompañamiento en Eventos Sociales';
       $('#dirRegionRow').style.display = 'none';
       if($('#dirTimeLbl')) $('#dirTimeLbl').textContent = '';
-      $('#dirTimeDesc').textContent = `Plan Seleccionado: ${planName} — Tarifa Plana Cerrada`;
+      $('#dirTimeDesc').textContent = extraM > 0
+        ? `${planName} (${$c(basePkgCost)})${extraPart}`
+        : `Plan Seleccionado: ${planName} — Tarifa Plana Cerrada`;
     } else {
       if($('#dirSvcLbl')) $('#dirSvcLbl').textContent = 'Modalidad seleccionada:';
       $('#dirSvcName').textContent = SVC_NAMES[mode];
@@ -4725,11 +4783,13 @@ function getSemaforoRedWaText(semaforo){
     tiempoTotalDesc = `${fmtHoursClean(totalCircuitoMin)} (${fmtHoursClean(stayClinicalMin)} de atención clínica)`;
   } else if(mode === '4'){
     const h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+    const extraM = (+$('#selMins34').value) || 0;
+    const stayMin = (h >= 6 ? 6 : 4) * 60 + extraM;
     if(selectedEventSubMode === 'con_traslado'){
-      const totalCircuitoMin = routeMin + (h * 60) + routeMin;
-      tiempoTotalDesc = `${fmtHoursClean(totalCircuitoMin)} (${h} hrs de permanencia en el evento)`;
+      const totalCircuitoMin = routeMin + stayMin + routeMin;
+      tiempoTotalDesc = `${fmtHoursClean(totalCircuitoMin)} (${fmtHoursClean(stayMin)} de permanencia en el evento)`;
     } else {
-      tiempoTotalDesc = `${h} hrs (${h} hrs de atención en evento)`;
+      tiempoTotalDesc = `${fmtHoursClean(stayMin)} (${fmtHoursClean(stayMin)} de atención en evento)`;
     }
   } else {
     // Mode 3
@@ -4778,6 +4838,8 @@ function getSemaforoRedWaText(semaforo){
     let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
     if(h >= 6) h = 6; else h = 4;
     const isCon = (selectedEventSubMode === 'con_traslado');
+    const extraM = (+$('#selMins34').value) || 0;
+    const extraVal = (extraM === 30 ? 7500 : extraM === 60 ? 15000 : extraM === 90 ? 22500 : extraM === 120 ? 30000 : 0);
     let planName = '';
     let baseVal = 0;
     if(isCon){
@@ -4788,6 +4850,9 @@ function getSemaforoRedWaText(semaforo){
       else { planName = 'Plan Base (4 hrs continuas en recinto)'; baseVal = 65000; }
     }
     breakdownLines.push(`• Plan base contratado: ${planName} (${$c(baseVal)})`);
+    if(extraM > 0){
+      breakdownLines.push(`• Horas/tiempo adicional: +${extraM} min (${$c(extraVal)})`);
+    }
   } else if(mode === '5'){
     const h = selectedInterProgram || 4;
     const m = +($('#selMins34') ? $('#selMins34').value : 0) || 0;

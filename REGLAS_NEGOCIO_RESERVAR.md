@@ -67,6 +67,12 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
   2. **Con Traslado (Pack Integral Puerta a Puerta):** Incluye búsqueda en domicilio, acompañamiento en viaje de ida, permanencia durante el evento y retorno al hogar.
      * **Pack Base (4 horas de permanencia + traslados):** \$95.000 (tarifa plana cerrada para toda la RM).
      * **Pack Total (6 horas de permanencia + traslados):** \$125.000 (tarifa plana cerrada para toda la RM).
+* **Tiempo Adicional en Recinto (Opcional):**
+  * Sin tiempo adicional (\$0) [Por defecto]
+  * +30 minutos extra: +\$7.500
+  * +1 hora extra: +\$15.000
+  * +1 hora 30 min extra: +\$22.500
+  * +2 horas extras: +\$30.000 (Tope máximo)
 * **Regla Tarifaria Especial:** Precios planos cerrados que absorben horario hábil, tarde, festivos y nocturno sin recargos adicionales.
 
 ### 2.5. Modalidad 5: Programas Interregionales
