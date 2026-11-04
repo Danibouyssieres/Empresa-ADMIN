@@ -212,19 +212,23 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 .lg-off{background:#94a3b8}
 
 .blocks-panel{display:flex;flex-direction:column;gap:12px}
-.block-btn{position:relative;width:100%;text-align:left;padding:10px 14px;border-radius:10px;border:2px solid var(--line);background:var(--card);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:2px}
-.block-btn:hover:not(:disabled){border-color:var(--sage)}
-.block-btn.active{border:2px solid #168F4A;background:rgba(22,143,74,.08);box-shadow:0 3px 10px rgba(22,143,74,.12)}
-:root[data-theme="dark"] .block-btn.active{border-color:#22c55e;background:rgba(34,197,94,.14)}
-.block-btn:disabled{opacity:.6;cursor:not-allowed;background:var(--bg)}
+.block-btn{position:relative;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card);cursor:pointer;transition:border-color .2s ease,background-color .2s ease,box-shadow .2s ease,opacity .2s ease;display:flex;flex-direction:column;gap:3px}
+.block-btn:hover:not(:disabled){border-color:var(--teal);opacity:1 !important}
+.block-btn.active{border:2px solid #0E4A55 !important;background:rgba(14,74,85,.08) !important;box-shadow:0 4px 14px rgba(14,74,85,.16) !important;opacity:1 !important}
+:root[data-theme="dark"] .block-btn.active{border-color:#2dd4bf !important;background:rgba(45,212,191,.15) !important;box-shadow:0 4px 14px rgba(45,212,191,.22) !important;opacity:1 !important}
+.block-btn.unselected{opacity:.6}
+.block-btn.unselected:hover:not(:disabled){opacity:.9;border-color:var(--sage)}
+.block-btn:disabled{opacity:.45;cursor:not-allowed;background:var(--bg)}
 .block-btn-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .block-btn-title{font-weight:800;font-size:1rem;color:var(--teal);display:flex;align-items:center;gap:6px}
-.block-badge{font-size:.75rem;font-weight:800;padding:3px 10px;border-radius:999px}
+.block-badge{font-size:.75rem;font-weight:800;padding:3px 10px;border-radius:999px;transition:background-color .2s ease,color .2s ease}
 .block-badge.ok{background:rgba(22,143,74,.14);color:#12783E}
 :root[data-theme="dark"] .block-badge.ok{color:#4ade80}
-.block-badge. occ{background:var(--warn);color:var(--warnb)}
 .block-badge.occ{background:var(--warn);color:var(--warnb)}
 .block-badge.blocked{background:#64748b !important;color:#ffffff !important}
+.block-badge.selected{background:#0E4A55 !important;color:#ffffff !important;font-weight:800;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(14,74,85,.25)}
+:root[data-theme="dark"] .block-badge.selected{background:#2dd4bf !important;color:#0a363f !important;box-shadow:0 2px 6px rgba(45,212,191,.25)}
+#secModalidad{scroll-margin-top:76px}
 .block-btn.shift-manual-blocked{background:var(--buf, #e2e8f0) !important;border-color:#94a3b8 !important;color:var(--mut, #64748b) !important;cursor:not-allowed !important;opacity:.75 !important}
 :root[data-theme="dark"] .block-btn.shift-manual-blocked{background:#1e293b !important;border-color:#475569 !important;color:#94a3b8 !important}
 .cal-day.is-blocked-full{opacity:.45 !important;cursor:not-allowed !important;background:var(--bg) !important;border-color:#ef4444 !important;pointer-events:none !important}
@@ -4036,6 +4040,14 @@ function selectShiftBlock(blockId){
 
   updateSlots(false);
   actualizarTarifaSegunAgenda();
+
+  // Desplazamiento Suave (Auto-scroll) hacia el inicio de la Sección 2
+  setTimeout(() => {
+    const sec2 = document.getElementById('secModalidad');
+    if(sec2){
+      sec2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 60);
 }
 
 function onPickupTimeChange(){
@@ -4383,14 +4395,16 @@ function updateSlots(keepCurrentTime = false){
     // a) Turno Mañana: Fijado automáticamente en la Sección 1
     btnM.disabled = !okInter;
     btnM.classList.toggle('active', okInter);
-    badgeM.className = 'block-badge ' + (okInter ? 'ok' : 'occ');
-    badgeM.textContent = okInter ? `Disponible (${ev.interregional.free} cupo)` : 'Agotado';
+    btnM.classList.remove('unselected');
+    badgeM.className = 'block-badge ' + (okInter ? 'selected' : 'occ');
+    badgeM.textContent = okInter ? '✔ Seleccionado' : 'Agotado';
     reasonM.style.display = okInter ? 'none' : 'block';
     reasonM.textContent = okInter ? '' : `🔒 ${ev.interregional.reason}`;
 
     // b) Turno Tarde: Marcar como NO DISPONIBLE informando al usuario que la reserva adquiere y bloquea la jornada completa
     btnT.disabled = true;
     btnT.classList.remove('active');
+    btnT.classList.add('unselected');
     badgeT.className = 'block-badge occ';
     badgeT.textContent = 'Agotado';
     reasonT.style.display = 'block';
@@ -4399,6 +4413,7 @@ function updateSlots(keepCurrentTime = false){
     if(btnN){
       btnN.disabled = true;
       btnN.classList.remove('active');
+      btnN.classList.add('unselected');
       badgeN.className = 'block-badge occ';
       badgeN.textContent = 'Exclusivo Cuidados y Eventos';
       reasonN.style.display = 'block';
@@ -4433,6 +4448,7 @@ function updateSlots(keepCurrentTime = false){
       btnM.disabled = true;
       btnM.classList.remove('active');
       btnM.classList.add('shift-manual-blocked');
+      btnM.classList.toggle('unselected', Boolean(selectedBlock));
       badgeM.className = 'block-badge blocked';
       badgeM.textContent = 'Bloqueado / No disponible (0 cupos)';
       reasonM.style.display = 'block';
@@ -4440,9 +4456,16 @@ function updateSlots(keepCurrentTime = false){
     } else {
       btnM.classList.remove('shift-manual-blocked');
       btnM.disabled = !okM;
-      btnM.classList.toggle('active', okM && selectedBlock === 'manana');
-      badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
-      badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : 'Agotado';
+      const isSelM = okM && selectedBlock === 'manana';
+      btnM.classList.toggle('active', isSelM);
+      btnM.classList.toggle('unselected', Boolean(selectedBlock) && !isSelM);
+      if(isSelM){
+        badgeM.className = 'block-badge selected';
+        badgeM.textContent = '✔ Seleccionado';
+      } else {
+        badgeM.className = 'block-badge ' + (okM ? 'ok' : 'occ');
+        badgeM.textContent = okM ? `Disponible (${ev.manana.free} ${ev.manana.free===1?'cupo':'cupos'})` : 'Agotado';
+      }
       reasonM.style.display = okM ? 'none' : 'block';
       reasonM.textContent = okM ? '' : `🔒 ${ev.manana.reason}`;
     }
@@ -4451,6 +4474,7 @@ function updateSlots(keepCurrentTime = false){
       btnT.disabled = true;
       btnT.classList.remove('active');
       btnT.classList.add('shift-manual-blocked');
+      btnT.classList.toggle('unselected', Boolean(selectedBlock));
       badgeT.className = 'block-badge blocked';
       badgeT.textContent = 'Bloqueado / No disponible (0 cupos)';
       reasonT.style.display = 'block';
@@ -4458,9 +4482,16 @@ function updateSlots(keepCurrentTime = false){
     } else {
       btnT.classList.remove('shift-manual-blocked');
       btnT.disabled = !okT;
-      btnT.classList.toggle('active', okT && selectedBlock === 'tarde');
-      badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
-      badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : 'Agotado';
+      const isSelT = okT && selectedBlock === 'tarde';
+      btnT.classList.toggle('active', isSelT);
+      btnT.classList.toggle('unselected', Boolean(selectedBlock) && !isSelT);
+      if(isSelT){
+        badgeT.className = 'block-badge selected';
+        badgeT.textContent = '✔ Seleccionado';
+      } else {
+        badgeT.className = 'block-badge ' + (okT ? 'ok' : 'occ');
+        badgeT.textContent = okT ? `Disponible (${ev.tarde.free} ${ev.tarde.free===1?'cupo':'cupos'})` : 'Agotado';
+      }
       reasonT.style.display = okT ? 'none' : 'block';
       reasonT.textContent = okT ? '' : `🔒 ${ev.tarde.reason}`;
     }
@@ -4471,6 +4502,7 @@ function updateSlots(keepCurrentTime = false){
         btnN.style.pointerEvents = 'none';
         btnN.classList.remove('active');
         btnN.classList.add('shift-manual-blocked');
+        btnN.classList.toggle('unselected', Boolean(selectedBlock));
         badgeN.className = 'block-badge blocked';
         badgeN.textContent = 'Bloqueado / No disponible (0 cupos)';
         reasonN.style.display = 'block';
@@ -4481,6 +4513,7 @@ function updateSlots(keepCurrentTime = false){
         btnN.disabled = true;
         btnN.style.pointerEvents = 'none';
         btnN.classList.remove('active');
+        btnN.classList.toggle('unselected', Boolean(selectedBlock));
         badgeN.className = 'block-badge occ';
         badgeN.textContent = 'No disponible';
         reasonN.style.display = 'block';
@@ -4490,9 +4523,16 @@ function updateSlots(keepCurrentTime = false){
         btnN.classList.remove('shift-manual-blocked');
         btnN.disabled = !okN;
         btnN.style.pointerEvents = okN ? 'auto' : 'none';
-        btnN.classList.toggle('active', okN && selectedBlock === 'noche');
-        badgeN.className = 'block-badge ' + (okN ? 'ok' : 'occ');
-        badgeN.textContent = okN ? `Disponible (${ev.noche.free} ${ev.noche.free===1?'cupo':'cupos'})` : 'Agotado';
+        const isSelN = okN && selectedBlock === 'noche';
+        btnN.classList.toggle('active', isSelN);
+        btnN.classList.toggle('unselected', Boolean(selectedBlock) && !isSelN);
+        if(isSelN){
+          badgeN.className = 'block-badge selected';
+          badgeN.textContent = '✔ Seleccionado';
+        } else {
+          badgeN.className = 'block-badge ' + (okN ? 'ok' : 'occ');
+          badgeN.textContent = okN ? `Disponible (${ev.noche.free} ${ev.noche.free===1?'cupo':'cupos'})` : 'Agotado';
+        }
         reasonN.style.display = okN ? 'none' : 'block';
         reasonN.textContent = okN ? '' : `🔒 ${ev.noche.reason}`;
       }
