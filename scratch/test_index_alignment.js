@@ -24,6 +24,16 @@ assert(html.includes('Extensiones de tiempo en recinto: $7.500 los 30 min / $15.
   'Tabla de tarifas note must specify event time extensions');
 console.log('✓ Tabla de Tarifas explanatory note verified');
 
+// 4.1 Event rows d.1 and d.2 with colspan="3"
+assert(html.includes('d.1) Asistencia en Eventos (Sin Traslado)'), 'Must contain d.1 row');
+assert(html.includes('d.2) Asistencia en Eventos (Con Traslado)'), 'Must contain d.2 row');
+assert(html.includes('<td colspan="3" style="text-align:center">'), 'Must contain colspan="3" centered cells');
+assert(html.includes('Tarifa Plana Especial única para cualquier día y horario (Incluye nocturno y festivos)'), 'Must contain flat rate header');
+assert(html.includes('Plan Base 4 hrs: $65.000 &nbsp;|&nbsp; Plan Total 6 hrs: $95.000'), 'Must contain d.1 prices');
+assert(html.includes('Pack Base 4 hrs: $95.000 &nbsp;|&nbsp; Pack Total 6 hrs: $125.000'), 'Must contain d.2 prices');
+assert(html.includes('Tiempo adicional: 30 min $7.500 / 1 hora $15.000 / 1 hr 30 min $22.500 / 2 hrs $30.000 (Tope máx.)'), 'Must contain additional time scale in event rows');
+console.log('✓ Event rows d.1 and d.2 colspan="3" merged layout verified');
+
 // 5. Sección Preventiva (Rango pediátrico 2 a 13 años)
 assert(html.includes('En niños de 2 a 13 años'), 'Pediatric age range must be 2 to 13 years');
 console.log('✓ Sección Preventiva (2 a 13 años) verified');
