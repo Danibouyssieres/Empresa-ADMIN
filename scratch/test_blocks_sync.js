@@ -23,7 +23,7 @@ global.CustomEvent = class { constructor(type) { this.type = type; } };
 const MsaBlocksService = require('../js/blocks-api.js');
 
 // 2. Simular bloqueos manuales en admin.html para 2026-11-06
-console.log('1. Probando persistencia desde admin:');
+console.log('1. Probando persistencia desde admin.html:');
 const blockTarde = {
   id: 201,
   date: '2026-11-06',
@@ -46,17 +46,15 @@ assert(Array.isArray(savedDedBlocks), 'msa_blocks debe ser un array');
 assert.strictEqual(savedDedBlocks.length, 2, 'Deben existir 2 bloqueos en msa_blocks');
 console.log('  -> Bloqueos guardados correctamente en clave msa_blocks: 2 registros encontrados.');
 
-// 3. Evaluar lógica de reservar con extracto de código
-const reservarCode = fs.existsSync('js/reservar.js')
-  ? fs.readFileSync('js/reservar.js', 'utf8')
-  : fs.readFileSync('reservar.html', 'utf8');
+// 3. Evaluar lógica de reservar.html con extracto de código
+const reservarHtml = fs.readFileSync('reservar.html', 'utf8');
 
-// Comprobar que contiene las funciones clave modificadas
-assert(reservarCode.includes('msa_blocks'), 'reservar debe consultar msa_blocks');
-assert(reservarCode.includes('parsed.seedVersion === 3 || parsed.seedVersion === 2'), 'reservar debe aceptar seedVersion 2 o 3');
-assert(reservarCode.includes('shift-manual-blocked'), 'reservar debe tener la clase shift-manual-blocked');
-assert(reservarCode.includes('Bloqueado / No disponible (0 cupos)'), 'reservar debe incluir el texto oficial de bloqueo');
-console.log('  -> Verificación estática de reservar (js/html): OK (claves dedicadas y clases presentes).');
+// Comprobar que reservar.html contiene las funciones clave modificadas
+assert(reservarHtml.includes('msa_blocks'), 'reservar.html debe consultar msa_blocks');
+assert(reservarHtml.includes('parsed.seedVersion === 3 || parsed.seedVersion === 2'), 'reservar.html debe aceptar seedVersion 2 o 3');
+assert(reservarHtml.includes('shift-manual-blocked'), 'reservar.html debe tener la clase shift-manual-blocked');
+assert(reservarHtml.includes('Bloqueado / No disponible (0 cupos)'), 'reservar.html debe incluir el texto oficial de bloqueo');
+console.log('  -> Verificación estática de reservar.html: OK (claves dedicadas y clases presentes).');
 
 // 4. Probar evaluación de capacidad simulada
 const D = {
@@ -77,7 +75,7 @@ const D = {
   ]
 };
 
-// Fusionar msa_blocks en D como hace reservar
+// Fusionar msa_blocks en D como hace reservar.html
 let mergedActiveBlocks = Array.isArray(D.blocks) ? [...D.blocks] : [];
 const ded = JSON.parse(localStorage.getItem('msa_blocks'));
 if (Array.isArray(ded)) {
@@ -106,7 +104,7 @@ assert.strictEqual(isManualM, false, 'Turno Mañana no tiene bloqueo manual (est
 assert.strictEqual(isManualT, true, 'Turno Tarde DEBE tener bloqueo manual');
 assert.strictEqual(isManualN, true, 'Turno Noche DEBE tener bloqueo manual');
 
-// Simular el renderizado de botones en reservar
+// Simular el renderizado de botones en reservar.html
 let btnTDisabled = false;
 let badgeTText = '';
 let btnTClass = '';

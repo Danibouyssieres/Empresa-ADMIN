@@ -23,6 +23,9 @@
 
 <!-- MOTOR DE GENERACIÓN PDF (html2pdf) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- MOTOR DE PERSISTENCIA CENTRALIZADA (Supabase JS SDK & MSA Blocks API) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/blocks-api.js"></script>
 
 <script>
 try {
@@ -31,7 +34,81 @@ try {
 } catch(e){}
 </script>
 
-<link rel="stylesheet" href="css/admin.css">
+<style>
+:root{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e;--teal:#0f766e;--pri-light:#e6f4f2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf;--teal:#2dd4bf;--pri-light:#152a2e}}
+:root[data-theme="dark"]{--bg:#10161d;--fg:#e8edf2;--card:#1a232d;--bd:#2d3945;--mut:#97a3b0;--buf:#2a3541;--pri:#2dd4bf;--teal:#2dd4bf;--pri-light:#152a2e}
+:root[data-theme="light"]{--bg:#f4f6f8;--fg:#1b2430;--card:#fff;--bd:#d9dfe6;--mut:#667085;--buf:#e3e7ec;--pri:#0f766e;--teal:#0f766e;--pri-light:#e6f4f2}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:1120px;margin:0 auto;padding:12px}
+h1{font-size:18px;margin:0}h2{font-size:16px;margin:0 0 8px}
+.top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px}
+button,select,input,textarea{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
+button{cursor:pointer;transition:all .14s ease}
+button.p{background:var(--pri);color:#fff;border-color:var(--pri);font-weight:600}
+button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.met{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.met div{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px}.met b{display:block;font-size:20px}.met span{color:var(--mut);font-size:12px}
+.cal{display:flex;overflow-x:auto;border:1px solid var(--bd);border-radius:10px;background:var(--card)}
+.tc{width:46px;flex:none;font-size:11px;color:var(--mut)}.tc div{height:44px;padding:2px 4px;border-top:1px solid var(--bd)}
+.col{min-width:170px;flex:1;border-left:1px solid var(--bd)}
+.ch{padding:8px;font-weight:600;border-bottom:3px solid;height:38px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb{position:relative;overflow:hidden;background:repeating-linear-gradient(to bottom,transparent 0,transparent 43px,var(--bd) 43px,var(--bd) 44px)}
+.buf{position:absolute;left:3px;right:3px;background:var(--buf);border:1px dashed var(--bd);border-radius:6px;font-size:11px;color:var(--mut);padding:3px 5px;overflow:hidden}
+.sv{position:absolute;left:3px;right:3px;border-radius:6px;color:#f1f5f9;font-size:11.5px;line-height:1.35;padding:4px 8px;overflow:hidden;cursor:pointer;z-index:2;box-sizing:border-box;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.08);border-left:4px solid;box-shadow:0 2px 6px rgba(0,0,0,0.28);transition:transform .12s ease,box-shadow .12s ease}
+.sv:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:6}
+.sv.c{opacity:.5;color:#94a3b8!important;text-decoration:line-through}
+.sv.c *{color:#94a3b8!important}
+.badge{display:inline-block;color:#fff;border-radius:99px;padding:1px 9px;font-size:12px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:2px}.g input,.g select{width:100%}
+.rqs label{display:inline-flex;gap:4px;align-items:center;color:var(--fg);font-size:13.5px;margin-right:12px}
+.al{background:rgba(217,119,6,.15);border:1px solid #d97706;border-radius:8px;padding:6px 8px;margin:6px 0;font-size:13px}
+.msg{font-size:13px;color:var(--mut);margin-top:6px}
+a.b{display:inline-block;text-decoration:none;border:1px solid var(--bd);border-radius:8px;padding:7px 10px;color:var(--fg);margin:2px 4px 2px 0;font-size:14px}
+a.b:hover{background:var(--buf)}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;border-bottom:1px solid var(--bd);font-size:14px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px}
+
+/* Módulo Gestión de Disponibilidad y Bloqueos */
+.blk-layout{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;align-items:start}
+@media(max-width:860px){.blk-layout{grid-template-columns:1fr}}
+.mcal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;margin-bottom:6px}
+.mcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.mcal-day{min-height:64px;border-radius:9px;border:1.5px solid var(--bd);background:var(--card);padding:5px 6px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:all .14s;position:relative}
+.mcal-day:hover:not(.empty){border-color:var(--pri);transform:translateY(-1px)}
+.mcal-day.empty{background:transparent;border-color:transparent;cursor:default;min-height:0}
+.mcal-day.sel{border:2px solid #16a34a !important;box-shadow:0 0 0 1px #16a34a, 0 3px 10px rgba(22,163,74,.2)}
+.mcal-day.b-full{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.35)}
+.mcal-day.b-part{background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.35)}
+.mcal-day-num{font-weight:800;font-size:13px;color:var(--fg)}
+.mcal-svc-dot{width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 0 2px rgba(16,185,129,0.25);flex-shrink:0}
+.mcal-num{font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.mcal-tags{display:flex;flex-direction:column;gap:2px;margin-top:3px}
+.mtag{font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%}
+.mtag.full{background:rgba(239,68,68,0.14);color:#EF4444;border:1px solid rgba(239,68,68,0.3)}
+.mtag.part{background:rgba(245,158,11,0.14);color:#F59E0B;border:1px solid rgba(245,158,11,0.3)}
+.mtag.svc{background:rgba(16,185,129,0.14);color:#10B981;border:1px solid rgba(16,185,129,0.3)}
+.mtag.free{background:transparent;color:var(--mut);font-weight:600;font-size:9.5px}
+.blk-opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1.5px solid var(--bd);border-radius:9px;margin-bottom:8px;cursor:pointer;background:var(--bg)}
+.blk-opt.on{border-color:var(--pri);background:rgba(15,118,110,.08)}
+.blk-opt input{margin-top:3px}
+.unlock-btn{background:transparent;color:#EF4444;border:1px solid #EF4444;font-weight:700;padding:5px 10px;font-size:12px;border-radius:7px;cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:4px}
+.unlock-btn:hover{background:#EF4444;color:#fff;border-color:#EF4444;box-shadow:0 2px 8px rgba(239,68,68,0.25)}
+
+/* Cotizador Administrativo Automático */
+.quote-box{background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;padding:16px;margin:12px 0}
+.quote-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.quote-num{font-size:1.25rem;font-weight:800;color:var(--pri);margin-top:2px}
+.suggest-list{position:absolute;z-index:99;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);max-height:200px;overflow-y:auto;display:none}
+.suggest-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--bd);font-size:13px}
+.suggest-item:hover{background:var(--buf)}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -218,9 +295,2351 @@ try {
   </div>
 </div>
 
-<!-- MOTOR DE PERSISTENCIA CENTRALIZADA (Supabase JS SDK & MSA Blocks API) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/blocks-api.js"></script>
-<script src="js/admin.js"></script>
+<script>
+const PX=44,S0=0,S1=1440,BUF=120,K='msa-v1',TM_K='msa-theme',SESS_K='msa-session';
+const PRICE_PER_KM = 1000;
+const pad=n=>String(n).padStart(2,'0'),fm=m=>pad(Math.floor(m/60))+':'+pad(m%60),tm=t=>{if(!t)return 0;const[a,b]=t.split(':');return +a*60+ +b};
+const toYMD=dt=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+const addDaysYMD=(str,days)=>{const[y,m,d]=str.split('-').map(Number);const dt=new Date(y,m-1,d);dt.setDate(dt.getDate()+days);return toYMD(dt)};
+const TODAY=toYMD(new Date());
+const MONTH_NAMES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const BLOCK_LABELS={
+  full:'Día completo cerrado',
+  manana:'Solo Turno Mañana (06:00 a 12:00)',
+  tarde:'Solo Turno Tarde (14:00 a 20:00)',
+  noche:'Solo Turno Noche (20:00 a 06:00 hrs)'
+};
+
+function parseYMD(str){
+  if(!str) return new Date();
+  const parts = String(str).split('-').map(Number);
+  return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+}
+
+const CHILE_FERIADOS = {
+  '2026-01-01': 'Año Nuevo',
+  '2026-04-03': 'Viernes Santo',
+  '2026-04-04': 'Sábado Santo',
+  '2026-05-01': 'Día del Trabajo',
+  '2026-05-21': 'Glorias Navales',
+  '2026-06-21': 'Pueblos Indígenas',
+  '2026-06-29': 'San Pedro y San Pablo',
+  '2026-07-16': 'Virgen del Carmen',
+  '2026-08-15': 'Asunción de la Virgen',
+  '2026-09-18': 'Fiestas Patrias',
+  '2026-09-19': 'Glorias del Ejército',
+  '2026-09-20': 'Fiestas Patrias',
+  '2026-10-12': 'Encuentro de Dos Mundos',
+  '2026-10-31': 'Iglesias Evangélicas',
+  '2026-11-01': 'Todos los Santos',
+  '2026-12-08': 'Inmaculada Concepción',
+  '2026-12-25': 'Navidad',
+  '2027-01-01': 'Año Nuevo',
+  '2027-03-26': 'Viernes Santo',
+  '2027-03-27': 'Sábado Santo',
+  '2027-05-01': 'Día del Trabajo',
+  '2027-05-21': 'Glorias Navales'
+};
+
+function isChileHoliday(dateStr){
+  return Boolean(CHILE_FERIADOS[dateStr]);
+}
+
+function getChileHolidayName(dateStr){
+  return CHILE_FERIADOS[dateStr] || '';
+}
+
+function getAdminJornada(dateStr, timeStr){
+  if(!dateStr && !timeStr) return 'habil';
+  const time = timeStr || '10:00';
+  const tMin = tm(time);
+  const isNight = (tMin >= 1200 || tMin < 360); // 20:00 a 06:00
+  if(isNight) return 'nocturno';
+
+  if(dateStr){
+    if(isChileHoliday(dateStr)) return 'nocturno';
+    const dt = parseYMD(dateStr);
+    if(dt && !isNaN(dt.getTime())){
+      const day = dt.getDay(); // 0 = Domingo, 6 = Sábado
+      if(day === 0 || day === 6) return 'finde';
+    }
+  }
+  return 'habil';
+}
+
+const ADMIN_RATES = {
+  '1': { habil: 12000, finde: 15000, nocturno: 18000 },
+  '2': { habil: 8000,  finde: 10000, nocturno: 12000 },
+  '3': { habil: 12000, finde: 15000, nocturno: 18000 }
+};
+
+const STAY_HOURS_OPTIONS = [
+  { val: 60, label: '1 hora de asistencia' },
+  { val: 90, label: '1 hora 30 min' },
+  { val: 120, label: '2 horas de asistencia' },
+  { val: 150, label: '2 horas 30 min' },
+  { val: 180, label: '3 horas de asistencia' },
+  { val: 210, label: '3 horas 30 min' },
+  { val: 240, label: '4 horas de asistencia' },
+  { val: 270, label: '4 horas 30 min' },
+  { val: 300, label: '5 horas de asistencia' },
+  { val: 330, label: '5 horas 30 min' },
+  { val: 360, label: '6 horas de asistencia (Tope)' }
+];
+
+const EVENT_RATES = {
+  base: { sin_traslado: 65000, con_traslado: 95000, dur: 240 },
+  total: { sin_traslado: 95000, con_traslado: 125000, dur: 360 }
+};
+
+const EVENT_EXTRAS = {
+  '0': { fare: 0, min: 0 },
+  '30': { fare: 7500, min: 30 },
+  '60': { fare: 15000, min: 60 },
+  '90': { fare: 22500, min: 90 },
+  '120': { fare: 30000, min: 120 }
+};
+
+const INTER_PLANS = {
+  estandar: { fare: 250000, dur: 240, label: 'Programa Estándar (hasta 4 hrs)' },
+  cronico: { fare: 300000, dur: 360, label: 'Programa Crónico / Oncológico (hasta 6 hrs)' }
+};
+
+const INTER_EXTRAS = {
+  '0': { fare: 0, min: 0 },
+  '30': { fare: 15000, min: 30 },
+  '60': { fare: 25000, min: 60 },
+  '90': { fare: 40000, min: 90 },
+  '120': { fare: 50000, min: 120 }
+};
+
+
+const RINGS_DATA = [
+  { id: 1, name: 'Anillo 1 (Maipú y alrededores)', minFare: 18000, comunas: ['Cerrillos', 'Lo Espejo', 'Lo Prado', 'Maipú', 'Padre Hurtado', 'Pedro Aguirre Cerda', 'Quinta Normal'] },
+  { id: 2, name: 'Anillo 2 (Santiago Centro, Sur y Poniente)', minFare: 35000, comunas: ['Calera de Tango', 'Cerro Navia', 'Conchalí', 'El Bosque', 'Estación Central', 'Huechuraba', 'Independencia', 'La Cisterna', 'La Florida', 'La Granja', 'La Pintana', 'Macul', 'Ñuñoa', 'Peñaflor', 'Peñalolén', 'Providencia', 'Pudahuel', 'Quilicura', 'Recoleta', 'Renca', 'San Bernardo', 'San Joaquín', 'San Miguel', 'San Ramón', 'Talagante', 'Santiago Centro'] },
+  { id: 3, name: 'Anillo 3 (Sector Oriente y extremos)', minFare: 50000, comunas: ['Alhué', 'Buin', 'Colina', 'Curacaví', 'El Monte', 'Isla de Maipo', 'La Reina', 'Lampa', 'Las Condes', 'Lo Barnechea', 'María Pinto', 'Melipilla', 'Paine', 'Pirque', 'Puente Alto', 'San José de Maipo', 'San Pedro', 'Tiltil', 'Vitacura'] }
+];
+
+const MEDICAL_PLACES = [
+  {name:'Hospital El Carmen (Dr. Luis Valentín Ferrada)', addr:'Av. Camino a Rinconada 1201, Maipú', lat:-33.5048, lon:-70.7712, km:6.5},
+  {name:'Hospital San José', addr:'San José 1053, Independencia, Santiago', lat:-33.4163, lon:-70.6531, km:16.0},
+  {name:'Hospital Clínico Universidad de Chile (J.J. Aguirre)', addr:'Dr. Carlos Lorca Tobar 999, Independencia, Santiago', lat:-33.4192, lon:-70.6535, km:16.0},
+  {name:'Hospital San Juan de Dios', addr:'Huérfanos 3255, Santiago Centro', lat:-33.4426, lon:-70.6791, km:12.0},
+  {name:'Hospital Clínico Félix Bulnes', addr:'Av. Mapocho Sur 7432, Cerro Navia, Santiago', lat:-33.4231, lon:-70.7429, km:11.5},
+  {name:'Hospital del Salvador', addr:'Av. Salvador 364, Providencia, Santiago', lat:-33.4375, lon:-70.6236, km:17.5},
+  {name:'Hospital Barros Luco Trudeau', addr:'Gran Avenida José Miguel Carrera 3204, San Miguel, Santiago', lat:-33.4858, lon:-70.6495, km:14.0},
+  {name:'Hospital Dr. Sótero del Río', addr:'Av. Concha y Toro 3459, Puente Alto, Santiago', lat:-33.5769, lon:-70.5811, km:26.0},
+  {name:'Hospital Clínico UC Christus (Marcoleta)', addr:'Marcoleta 367, Santiago Centro', lat:-33.4418, lon:-70.6406, km:14.5},
+  {name:'Hospital Militar de Santiago', addr:'Av. Alcalde Fernando Castillo Velasco 9100, La Reina', lat:-33.4519, lon:-70.5403, km:24.0},
+  {name:'Hospital Clínico de la Fuerza Aérea (FACh)', addr:'Av. Las Condes 8631, Las Condes, Santiago', lat:-33.3948, lon:-70.5453, km:27.0},
+  {name:'Instituto Nacional del Cáncer', addr:'Av. Profesor Zañartu 1010, Independencia, Santiago', lat:-33.4178, lon:-70.6524, km:16.5},
+  {name:'Instituto Traumatológico', addr:'San Martín 771, Santiago Centro', lat:-33.4357, lon:-70.6584, km:13.0},
+  {name:'Instituto Teletón Santiago', addr:'Av. Libertador Bernardo O\'Higgins 4620, Estación Central', lat:-33.4557, lon:-70.6978, km:9.5},
+  {name:'Clínica Indisa (Providencia)', addr:'Av. Santa María 1810, Providencia, Santiago', lat:-33.4248, lon:-70.6186, km:19.0},
+  {name:'Clínica Indisa (Maipú)', addr:'Av. Américo Vespucio 1077, Maipú, Santiago', lat:-33.4812, lon:-70.7518, km:4.5},
+  {name:'Clínica Santa María', addr:'Av. Santa María 0500, Providencia, Santiago', lat:-33.4316, lon:-70.6279, km:18.5},
+  {name:'Clínica Dávila (Recoleta)', addr:'Av. Recoleta 464, Recoleta, Santiago', lat:-33.4256, lon:-70.6458, km:15.5},
+  {name:'Clínica Dávila Vespucio', addr:'Av. Serafín Zamora 190, La Florida, Santiago', lat:-33.5194, lon:-70.5968, km:20.0},
+  {name:'Clínica RedSalud Santiago (Ex Bicentenario)', addr:'Av. Libertador Bernardo O\'Higgins 4850, Estación Central', lat:-33.4563, lon:-70.7012, km:9.0},
+  {name:'Clínica Alemana (Vitacura)', addr:'Av. Vitacura 5951, Vitacura, Santiago', lat:-33.3905, lon:-70.5734, km:25.0},
+  {name:'Clínica Las Condes', addr:'Estoril 450, Las Condes, Santiago', lat:-33.3827, lon:-70.5305, km:28.0},
+  {name:'Clínica Bupa Santiago', addr:'Av. Departamental 1455, La Florida, Santiago', lat:-33.5122, lon:-70.5897, km:18.0}
+];
+
+const CLINICAL_PATHOLOGIES = [
+  'HTA (Hipertensión arterial)',
+  'Insulino Dependiente (Diabetes)',
+  'Demencia / Alzheimer',
+  'Oxígeno dependiente',
+  'Asma / Uso de Inhalador',
+  'Trastorno del Espectro Autista (TEA)',
+  'Epilepsia',
+  'Artritis'
+];
+
+function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()}
+
+function haversineKm(lat1, lon1, lat2, lon2){
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function detectRingFromText(addrText, lat, lon){
+  const nText = norm(addrText);
+  for(const ring of RINGS_DATA){
+    for(const com of ring.comunas){
+      if(com === 'Santiago Centro') continue;
+      const nCom = norm(com);
+      const regex = new RegExp('\\b' + nCom + '\\b', 'i');
+      if(regex.test(nText)){
+        return { ring, comuna: com };
+      }
+    }
+  }
+  if(/\bsantiago centro\b/i.test(nText) || /\bsantiago\b/i.test(nText)){
+    return { ring: RINGS_DATA[1], comuna: 'Santiago Centro' };
+  }
+  if(lat && lon){
+    const dMaipu = haversineKm(-33.505, -70.76, lat, lon);
+    if(dMaipu <= 8.5) return { ring: RINGS_DATA[0], comuna: 'Sector Anillo 1' };
+    if(dMaipu <= 18.5) return { ring: RINGS_DATA[1], comuna: 'Sector Anillo 2' };
+    return { ring: RINGS_DATA[2], comuna: 'Sector Anillo 3' };
+  }
+  return { ring: RINGS_DATA[0], comuna: 'Maipú (por defecto)' };
+}
+
+function detectRing(addrText, lat, lon){
+  return detectRingFromText(addrText, lat, lon);
+}
+
+function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x){}return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem(TM_K,t)}catch(x){}}
+function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme')||getTheme();applyTheme(cur==='dark'?'light':'dark');render()}
+const ST=['Pendiente','Confirmado','En Ruta','En Atención','Finalizado','Cancelado'];
+const COL={'Pendiente':'#F59E0B','Confirmado':'#3B82F6','En Ruta':'#14B8A6','En Atención':'#06B6D4','Finalizado':'#10B981','Cancelado':'#64748B'};
+const COL_BG={'Pendiente':'rgba(245, 158, 11, 0.12)','Confirmado':'rgba(59, 130, 246, 0.12)','En Ruta':'rgba(20, 184, 166, 0.12)','En Atención':'rgba(6, 182, 212, 0.12)','Finalizado':'rgba(16, 185, 129, 0.12)','Cancelado':'rgba(100, 116, 139, 0.12)'};
+const MOB=['Autovalente','Bastón / andador','Silla de ruedas','Dependencia Severa'];
+const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
+const NEXT={'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
+const $=s=>document.querySelector(s);
+const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $c=n=>'$'+Math.round(n).toLocaleString('es-CL');
+
+function seed(){
+  const dMananaOcupada = addDaysYMD(TODAY, 3);
+  const dInterregional = addDaysYMD(TODAY, 5);
+  const dEventoNocturno = addDaysYMD(TODAY, 8);
+  const sv=(id,tid,date,start,dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,extra={})=>({id,tid,date,start:tm(start),dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,...extra});
+  return{
+    seedVersion: 3,
+    nid:14,
+    techs:[
+      {id:'t1',nom:'Daniela González Bouyssieres',rut:'Registro SIS Nº 442762',tel:'+56929990095',veh:'Unidad 1 · Vehículo Acondicionado Clase A2',col:'#0f766e',act:true},
+      {id:'t2',nom:'Unidad TENS 2 (Respaldo)',rut:'15.987.654-3',tel:'+56933334444',veh:'Unidad 2',col:'#c2410c',act:false}
+    ],
+    svcs:[
+      sv(1,'t1',dMananaOcupada,'08:30',120,'Rosa Medina',82,'1. Servicio Integral · Control cardiológico','Andrea Medina','+56977778888','Maipú, Av. Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
+      sv(2,'t1',dInterregional,'08:00',360,'Jorge Salas',76,'5. Programas Interregionales (Región de Valparaíso) · Control Oncológico','Luis Salas','+56966665555','Viña del Mar, Av. Libertad 450','Instituto Nacional del Cáncer, Santiago','Camina con asistencia/bastón',['Acompañamiento en box médico','Control de signos vitales'],true,300000,150000,'Confirmado',{block:'full',fullDay:true,svcType:'5'}),
+      sv(3,'t1',dEventoNocturno,'16:30',360,'María Opazo',84,'4. Acompañamiento a Eventos Sociales · Matrimonio familiar','Pía Opazo','+56944443333','Maipú, Camino a Rinconada 800','Centro de Eventos, Calera de Tango','Silla de ruedas plegable',['Control de signos vitales','Asistencia de higiene/confort'],true,80000,40000,'Confirmado',{block:'tarde',svcType:'4',blocksNextMorning:true})
+    ],
+    blocks:[]
+  };
+}
+
+function load(){
+  try{
+    const parsed = JSON.parse(localStorage.getItem(K));
+    if(parsed && (parsed.seedVersion === 3 || parsed.seedVersion === 2)){
+      if(!Array.isArray(parsed.blocks)) parsed.blocks = [];
+      try {
+        const dedicated = JSON.parse(localStorage.getItem('msa_blocks'));
+        if(Array.isArray(dedicated)){
+          dedicated.forEach(db => {
+            if(!parsed.blocks.some(b => b.date === db.date && b.type === db.type)){
+              parsed.blocks.push(db);
+            }
+          });
+        }
+      } catch(e){}
+      return parsed;
+    }
+    return null;
+  }catch(x){return null}
+}
+
+function save(){
+  try{
+    localStorage.setItem(K, JSON.stringify(D));
+    if(Array.isArray(D.blocks)){
+      localStorage.setItem('msa_blocks', JSON.stringify(D.blocks));
+    }
+    // Notificación cruzada para sincronizar reservar.html inmediatamente
+    localStorage.setItem('msa-last-block-update', Date.now().toString());
+  }catch(x){}
+}
+
+function getSession(){
+  try {
+    return JSON.parse(sessionStorage.getItem(SESS_K)) || JSON.parse(localStorage.getItem('msa-admin-user'));
+  } catch(e){ return null; }
+}
+
+function logout(){
+  try {
+    sessionStorage.removeItem(SESS_K);
+    localStorage.removeItem('msa-admin-token');
+    localStorage.removeItem('msa-admin-user');
+  } catch(e){}
+  window.location.replace('login.html');
+}
+
+const nowInit=new Date();
+let D=load()||seed();
+let U={view:'admin',tab:'blocks',date:addDaysYMD(TODAY,1),calYear:nowInit.getFullYear(),calMonth:nowInit.getMonth(),blkType:'full',tens:'t1',sel:null,edit:null};
+save();
+
+addEventListener('storage',ev=>{
+  if(ev.key===K || ev.key==='msa-last-block-update'){
+    D=load()||D;
+    render();
+  }
+  if(ev.key===TM_K){
+    document.documentElement.setAttribute('data-theme',ev.newValue);
+    render();
+  }
+});
+
+
+if(typeof window !== 'undefined' && typeof window.addEventListener === 'function'){
+  window.addEventListener('msa-blocks-updated', () => {
+    D = load() || D;
+    render();
+  });
+}
+const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
+
+/* REGLA DE BUFFER: nuevo.inicio < previo.fin + 180 (y simétrica: previo.inicio < nuevo.fin + 180) */
+function avail(tid,date,start,dur,ign){
+  return !D.svcs.some(s=>s.tid==tid&&s.date==date&&s.st!='Cancelado'&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF);
+}
+
+function render(){
+  const sess = getSession();
+  if(!sess){
+    window.location.replace('login.html');
+    return;
+  }
+  if(sess.role === 'tens'){
+    if(U.view !== 'blocks_tens') U.view = 'tens';
+    U.tens = sess.tensId || 't1';
+    $('#app').innerHTML = hdr(sess) + (U.view === 'blocks_tens' ? blocksView() : tens());
+  } else {
+    $('#app').innerHTML = hdr(sess) + (U.view=='admin'?admin():tens());
+    if(U.view=='admin'&&U.tab=='new') initAdminQuoter();
+  }
+}
+
+function hdr(sess){
+  const d=document.documentElement.getAttribute('data-theme')=='dark';
+  const isAdmin = sess.role === 'admin';
+  return `<div class="top">
+    <div style="display:flex;align-items:center;gap:10px">
+      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo" style="height:38px;width:auto">
+      <div>
+        <h1>Movilidad y Salud Asistida</h1>
+        <div style="font-size:12px;color:var(--mut)">
+          ${isAdmin ? '👑 <b>' + (sess.roleLabel ? e(sess.roleLabel) : 'Superadmin / Operaciones') + '</b>' : '🩺 TENS: <b>'+e(sess.name)+'</b>'}
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      ${isAdmin ? `
+        <button class="${U.view=='admin'?'on':''}" onclick="U.view='admin';render()">Gestión y Finanzas</button>
+        <button class="${U.view=='tens'?'on':''}" onclick="U.view='tens';render()">Vista Terreno</button>
+      ` : `
+        <button class="${U.view=='tens'?'on':''}" onclick="U.view='tens';render()">Mis Servicios</button>
+        <button class="${U.view=='blocks_tens'?'on':''}" onclick="U.view='blocks_tens';render()">🔒 Disponibilidad y Bloqueos</button>
+      `}
+      <button onclick="toggleTheme()" title="Cambiar tema">${d?'☀️ Claro':'🌙 Oscuro'}</button>
+      <button onclick="logout()" title="Cerrar sesión actual">Cerrar sesión</button>
+      <a class="b" href="index.html" target="_blank" title="Abrir sitio web oficial de clientes">🌐 Ver Sitio Público</a>
+    </div>
+  </div>`;
+}
+
+function dateNav(){return `<div class=row style="margin-bottom:10px"><button onclick="mv(-1)">‹</button><input type=date value="${U.date}" onchange="U.date=this.value;render()"><button onclick="mv(1)">›</button></div>`}
+function mv(n){const d=new Date(U.date+'T12:00:00');d.setDate(d.getDate()+n);U.date=d.toISOString().slice(0,10);render()}
+
+function admin(){
+  const tabs=[
+    ['blocks','🔒 Gestión de Disponibilidad y Bloqueos'],
+    ['cal','Calendario diario'],
+    ['new','➕ Nueva reserva (Cotizador Auto)'],
+    ['staff','Personal TENS']
+  ];
+  return `<div class=row style="margin-bottom:10px">${tabs.map(t=>`<button class="${U.tab==t[0]?'on':''}" onclick="U.tab='${t[0]}';U.sel=null;render()">${t[1]}</button>`).join('')}</div>`+
+         (U.tab=='blocks'?blocksView():U.tab=='cal'?cal():U.tab=='new'?form():staff());
+}
+
+function changeAdminCalMonth(delta){
+  U.calMonth += delta;
+  if(U.calMonth > 11){ U.calMonth = 0; U.calYear++; }
+  if(U.calMonth < 0){ U.calMonth = 11; U.calYear--; }
+  render();
+}
+
+function pickAdminCalDate(dateStr){
+  U.date = dateStr;
+  const [y,m] = dateStr.split('-').map(Number);
+  U.calYear = y;
+  U.calMonth = m - 1;
+  render();
+}
+
+function setBlkType(t){
+  U.blkType = t;
+  render();
+}
+
+function saveManualBlock(ev){
+  ev.preventDefault();
+  const dateStr = ($('#mb_date') && $('#mb_date').value) || U.date;
+  const type = U.blkType || 'full';
+  const reason = (($('#mb_reason') && $('#mb_reason').value) || '').trim();
+  if(!dateStr){ alert('Seleccione una fecha válida.'); return; }
+  if(!Array.isArray(D.blocks)) D.blocks = [];
+
+  if(type === 'full'){
+    D.blocks = D.blocks.filter(b => b.date !== dateStr);
+  } else {
+    D.blocks = D.blocks.filter(b => !(b.date === dateStr && (b.type === type || b.type === 'full')));
+  }
+
+  const newBlock = {
+    id: D.nid++,
+    date: dateStr,
+    type,
+    reason: reason || 'Sin motivo especificado',
+    tid: 'all',
+    createdAt: new Date().toISOString()
+  };
+
+  D.blocks.push(newBlock);
+  save();
+  U.date = dateStr;
+  render();
+
+  // Persistir en backend centralizado (Supabase / Vercel API)
+  if(window.MsaBlocksService){
+    MsaBlocksService.saveBlock(newBlock).catch(err => {
+      console.warn('Error al persistir bloqueo centralizado:', err);
+    });
+  }
+}
+
+function removeManualBlock(blockId){
+  if(!Array.isArray(D.blocks)) return;
+  const target = D.blocks.find(b => b.id === blockId);
+  D.blocks = D.blocks.filter(b => b.id !== blockId);
+  save();
+  render();
+
+  if(window.MsaBlocksService && target){
+    MsaBlocksService.removeBlock(target.id || target.date, target.type).catch(err => {
+      console.warn('Error al eliminar bloqueo centralizado:', err);
+    });
+  }
+}
+
+function removeAllBlocksForDate(dateStr){
+  if(!Array.isArray(D.blocks)) return;
+  D.blocks = D.blocks.filter(b => b.date !== dateStr);
+  save();
+  render();
+
+  if(window.MsaBlocksService){
+    MsaBlocksService.removeBlock(dateStr).catch(err => {
+      console.warn('Error al eliminar bloqueos centralizados de la fecha:', err);
+    });
+  }
+}
+
+async function syncCentralizedBlocksAdmin(){
+  if(window.MsaBlocksService){
+    try {
+      const remoteBlocks = await MsaBlocksService.fetchBlocks();
+      if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
+        MsaBlocksService.mergeBlocksIntoD(remoteBlocks, D);
+        save();
+        render();
+      }
+    } catch(e){
+      console.warn('Error sincronizando bloqueos en admin:', e);
+    }
+  }
+}
+
+function openDbConfigModal(){
+  const conf = (window.MsaBlocksService && window.MsaBlocksService.getConfig()) || { url: '', key: '' };
+  const currentUrl = conf.url || '';
+  const currentKey = conf.key || '';
+  const newUrl = prompt('Ingrese URL de Proyecto Supabase (ej: https://xyzcompany.supabase.co):', currentUrl);
+  if(newUrl === null) return;
+  const newKey = prompt('Ingrese Supabase Anon Key (o Service Role Key):', currentKey);
+  if(newKey === null) return;
+  if(window.MsaBlocksService){
+    window.MsaBlocksService.setConfig(newUrl, newKey);
+    alert('Configuración de base de datos Supabase guardada exitosamente.');
+    syncCentralizedBlocksAdmin();
+  }
+}
+
+function blocksView(){
+  if(!Array.isArray(D.blocks)) D.blocks = [];
+  const y = U.calYear;
+  const m = U.calMonth;
+  const firstDay = new Date(y, m, 1);
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const startOffset = (firstDay.getDay() + 6) % 7;
+
+  let cells = '';
+  for(let i = 0; i < startOffset; i++){
+    cells += `<div class="mcal-day empty"></div>`;
+  }
+
+  for(let d = 1; d <= daysInMonth; d++){
+    const dateStr = `${y}-${pad(m+1)}-${pad(d)}`;
+    const isSel = dateStr === U.date;
+    const dayBlocks = D.blocks.filter(b => b.date === dateStr);
+    const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && s.st !== 'Cancelado');
+
+    const hasFull = dayBlocks.some(b => b.type === 'full') || (dayBlocks.some(b => b.type === 'manana') && dayBlocks.some(b => b.type === 'tarde') && dayBlocks.some(b => b.type === 'noche'));
+    const hasManana = !hasFull && dayBlocks.some(b => b.type === 'manana');
+    const hasTarde  = !hasFull && dayBlocks.some(b => b.type === 'tarde');
+    const hasNoche  = !hasFull && dayBlocks.some(b => b.type === 'noche');
+
+    let cls = '';
+    if(hasFull) cls = 'b-full';
+    else if(hasManana || hasTarde || hasNoche) cls = 'b-part';
+
+    let tags = '';
+    if(hasFull){
+      tags = `<span class="mtag full">🔴 Cerrado</span>`;
+    } else if(dayBlocks.length > 0){
+      let blockLabel = '';
+      if(dayBlocks.length === 1){
+        blockLabel = hasManana ? '☀️ Mañana' : hasTarde ? '⛅ Tarde' : '🌙 Noche';
+      } else {
+        blockLabel = (hasTarde && hasNoche) ? '⛅ Tarde / 🌙 Noche' : (hasManana && hasTarde) ? '☀️ Mañ. / ⛅ Tarde' : `${dayBlocks.length} bloq.`;
+      }
+      tags = `<span class="mtag part" title="${dayBlocks.map(b => BLOCK_LABELS[b.type] || b.type).join(', ')}">${blockLabel}</span>`;
+    } else if(daySvcs.length > 0){
+      tags = `<span class="mtag svc">📅 ${daySvcs.length} res.</span>`;
+    } else {
+      tags = `<span class="mtag free">Libre</span>`;
+    }
+
+    cells += `
+      <div class="mcal-day ${cls} ${isSel ? 'sel' : ''}" onclick="pickAdminCalDate('${dateStr}')">
+        <div class="mcal-num">
+          <span class="mcal-day-num">${d}</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            ${daySvcs.length > 0 ? `<span class="mcal-svc-dot" title="${daySvcs.length} reserva(s) agendada(s)"></span>` : ''}
+            ${dateStr === TODAY ? '<span style="font-size:9px;color:var(--pri);font-weight:700">HOY</span>' : ''}
+          </div>
+        </div>
+        <div class="mcal-tags">${tags}</div>
+      </div>
+    `;
+  }
+
+  const selDateBlocks = D.blocks.filter(b => b.date === U.date);
+  const allSortedBlocks = [...D.blocks].sort((a,b) => a.date.localeCompare(b.date));
+
+  return `
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <div>
+          <h2 style="margin:0">🔒 Gestión de Disponibilidad y Bloqueos Manuales</h2>
+          <div style="font-size:13px;color:var(--mut);margin-top:2px">
+            Bloquee días completos o turnos específicos (días libres, mantención de móvil o trámites). Sincroniza en tiempo real con <b>reservar.html</b>.
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin:8px 0 12px;font-size:13px">
+        <div>
+          <b>Persistencia Centralizada:</b>
+          <span id="admDbStatus" style="color:#16a34a;font-weight:700">🟢 En línea (Supabase &amp; Vercel API sincronizados)</span>
+        </div>
+        <button type="button" class="b" style="margin:0;padding:4px 10px;font-size:12px" onclick="openDbConfigModal()">⚙️ Configurar Supabase</button>
+      </div>
+      <div class="blk-layout" style="margin-top:12px">
+        <div class="card" style="margin:0">
+          <div class="row" style="justify-content:space-between;margin-bottom:10px">
+            <button type="button" onclick="changeAdminCalMonth(-1)">◀ Mes anterior</button>
+            <strong style="font-size:15px">${MONTH_NAMES[m]} ${y}</strong>
+            <button type="button" onclick="changeAdminCalMonth(1)">Mes siguiente ▶</button>
+          </div>
+          <div class="mcal-dow">
+            <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+          </div>
+          <div class="mcal-grid">${cells}</div>
+          <div class="row" style="margin-top:12px;font-size:12px;color:var(--mut);justify-content:center;gap:16px">
+            <span style="display:inline-flex;align-items:center;gap:5px">🔴 Día completo cerrado</span>
+            <span style="display:inline-flex;align-items:center;gap:5px">🟠 Turno específico bloqueado (Mañana / Tarde / Noche)</span>
+            <span style="display:inline-flex;align-items:center;gap:5px">🟢 Día con reservas agendadas</span>
+          </div>
+        </div>
+
+        <div>
+          <form class="card" style="margin:0 0 12px" onsubmit="saveManualBlock(event)">
+            <h2>Bloquear fecha o turno</h2>
+            <div style="margin-bottom:10px">
+              <label>1. Fecha seleccionada</label>
+              <input id="mb_date" type="date" value="${U.date}" required onchange="pickAdminCalDate(this.value)" style="width:100%">
+            </div>
+
+            <div style="margin-bottom:10px">
+              <label>2. Tipo de bloqueo a aplicar</label>
+              <label class="blk-opt ${U.blkType==='full'?'on':''}" onclick="setBlkType('full')">
+                <input type="radio" name="blk_t" value="full" ${U.blkType==='full'?'checked':''}>
+                <div>
+                  <b>a) Día completo cerrado</b>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita toda la fecha en el portal público de reservas.</div>
+                </div>
+              </label>
+              <label class="blk-opt ${U.blkType==='manana'?'on':''}" onclick="setBlkType('manana')">
+                <input type="radio" name="blk_t" value="manana" ${U.blkType==='manana'?'checked':''}>
+                <div>
+                  <b>b) Solo Turno Mañana (06:00 a 12:00)</b>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Turno Mañana y mantiene habilitado el Turno Tarde. (El intervalo de 12:00 a 14:00 hrs corresponde al buffer operativo/almuerzo no disponible para inicio de atenciones regulares).</div>
+                </div>
+              </label>
+              <label class="blk-opt ${U.blkType==='tarde'?'on':''}" onclick="setBlkType('tarde')">
+                <input type="radio" name="blk_t" value="tarde" ${U.blkType==='tarde'?'checked':''}>
+                <div>
+                  <b>c) Solo Turno Tarde (14:00 a 20:00)</b>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita el Turno Tarde y mantiene habilitado el Turno Mañana. (El intervalo de 12:00 a 14:00 hrs corresponde al buffer operativo/almuerzo no disponible para inicio de atenciones regulares).</div>
+                </div>
+              </label>
+              <label class="blk-opt ${U.blkType==='noche'?'on':''}" onclick="setBlkType('noche')">
+                <input type="radio" name="blk_t" value="noche" ${U.blkType==='noche'?'checked':''}>
+                <div>
+                  <b>d) Solo Turno Noche (20:00 a 06:00 hrs)</b>
+                  <div style="font-size:12px;color:var(--mut)">Inhabilita el agendamiento nocturno (Cuidados a Domicilio y Eventos) y mantiene habilitados los turnos diurnos de Mañana y Tarde.</div>
+                </div>
+              </label>
+            </div>
+
+            <div style="margin-bottom:12px">
+              <label>3. Motivo interno (opcional)</label>
+              <input id="mb_reason" type="text" placeholder="Ej: Mantención de móvil, Trámite, Día libre" style="width:100%">
+            </div>
+
+            <button class="p" type="submit" style="width:100%;padding:10px">🔒 Aplicar Bloqueo en ${U.date}</button>
+          </form>
+
+          <div class="card" style="margin:0">
+            <div class="row" style="justify-content:space-between;margin-bottom:8px">
+              <h2 style="margin:0">Bloqueos activos en ${U.date}</h2>
+              ${selDateBlocks.length > 1 ? `<button type="button" class="unlock-btn" onclick="removeAllBlocksForDate('${U.date}')">🔓 Desbloquear todo el día</button>` : ''}
+            </div>
+            ${selDateBlocks.length === 0 ? `
+              <div style="font-size:13px;color:var(--mut)">✅ Esta fecha no registra bloqueos manuales activos.</div>
+            ` : selDateBlocks.map(b => `
+              <div class="row" style="justify-content:space-between;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;background:var(--bg)">
+                <div>
+                  <strong style="color:${b.type==='full'?'#EF4444':'#F59E0B'}">
+                    ${b.type==='full'?'🔴 Día completo cerrado':b.type==='manana'?'☀️ Solo Turno Mañana':b.type==='tarde'?'⛅ Solo Turno Tarde':'🌙 Solo Turno Noche'}
+                  </strong>
+                  <div style="font-size:12px;color:var(--mut)">Motivo: <b>${e(b.reason || 'Sin motivo')}</b></div>
+                </div>
+                <button type="button" class="unlock-btn" onclick="removeManualBlock(${b.id})">🔓 Desbloquear</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <h2>📋 Listado general de bloqueos manuales activos (${allSortedBlocks.length})</h2>
+      ${allSortedBlocks.length === 0 ? `
+        <div class="msg">No hay bloqueos manuales registrados actualmente.</div>
+      ` : `
+        <table>
+          <tr><th>Fecha</th><th>Tipo de bloqueo</th><th>Motivo interno</th><th>Impacto Público</th><th>Acción</th></tr>
+          ${allSortedBlocks.map(b => `
+            <tr>
+              <td><b>${e(b.date)}</b></td>
+              <td><span class="badge" style="background:${b.type==='full'?'#EF4444':'#F59E0B'}">${b.type==='manana'?'☀️ Mañana':b.type==='tarde'?'⛅ Tarde':b.type==='noche'?'🌙 Noche':'🔴 Día completo'}</span></td>
+              <td>${e(b.reason || '—')}</td>
+              <td style="font-size:12px;color:var(--mut)">Inhabilita selección en reservar.html</td>
+              <td><button type="button" class="unlock-btn" onclick="removeManualBlock(${b.id})">🔓 Desbloquear</button></td>
+            </tr>
+          `).join('')}
+        </table>
+      `}
+    </div>
+  `;
+}
+
+function cal(){
+  const ss=D.svcs.filter(s=>s.date==U.date),act=D.techs.filter(t=>t.act),live=ss.filter(s=>s.st!='Cancelado');
+  const prevDate = addDaysYMD(U.date, -1);
+  const prevOvernightSvcs = D.svcs.filter(s => s.date == prevDate && s.st != 'Cancelado' && (s.start + s.dur > 1440));
+  const cob=live.reduce((a,s)=>a+s.paid,0),sal=live.reduce((a,s)=>a+s.fare-s.paid,0);
+  const H=(S1-S0)*PX/60;let hrs='';for(let m=S0;m<S1;m+=60)hrs+=`<div>${fm(m)}</div>`;
+  const cols=act.map(t=>{
+    const unitSvcs = ss.filter(s=>s.tid==t.id);
+    const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id);
+    return `<div class=col><div class=ch style="border-color:${t.col}">${e(t.nom)}</div><div class=cb style="height:${H}px;cursor:pointer" onclick="onCalGridClick(event, '${t.id}', '${U.date}')" title="Clic en cualquier espacio vacío para agendar a esta hora">${prevUnitOvernight.map(blkOvernightRem).join('')}${unitSvcs.map(blk).join('')}</div></div>`;
+  }).join('');
+  return dateNav()+`<div class=met><div><b>${live.length}</b><span>Servicios del día</span></div><div><b>${$c(cob)}</b><span>Abonado</span></div><div><b>${$c(sal)}</b><span>Saldo pendiente</span></div><div><b>${act.length}</b><span>TENS operativos</span></div></div>
+  <div class=row style="margin-bottom:8px;font-size:12px;gap:12px">${ST.map(s=>{
+    const icon = s==='En Ruta'?'🚗 ':s==='En Atención'?'🩺 ':'';
+    return `<span style="display:inline-flex;align-items:center;gap:5px"><span class=dot style="background:${COL[s]}"></span>${icon}${s}</span>`;
+  }).join('')}<span><span class=dot style="background:var(--buf);border:1px dashed var(--mut)"></span>Buffer 2 h</span></div>
+  <div class=cal><div class=tc><div style="height:38px;border:0"></div>${hrs}</div>${cols||'<p style="padding:12px">No hay TENS activos.</p>'}</div>${detail()}`;
+}
+
+function blk(s){
+  const top=(s.start-S0)*PX/60;
+  const rawH=s.dur*PX/60;
+  const maxH=(S1-S0)*PX/60 - top;
+  const h=Math.min(rawH, maxH);
+  const bt=top+rawH;
+  const bh=Math.max(0,Math.min(BUF*PX/60,(S1-S0)*PX/60-bt));
+  const c=s.st=='Cancelado';
+  const isOvernight = s.start + s.dur > 1440;
+  const stColor = COL[s.st] || '#64748B';
+  const stBg = COL_BG[s.st] || 'rgba(100, 116, 139, 0.12)';
+  const stIcon = s.st === 'En Ruta' ? '🚗 ' : s.st === 'En Atención' ? '🩺 ' : '';
+  const timeText = `${fm(s.start)}–${fm((s.start+s.dur)%1440)}`;
+
+  return (c?'':`<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`)+
+    `<div class="sv ${c?'c':''}" style="top:${top}px;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor}" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Clic para ver ficha clínica y acciones rápidas">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">#MSA-${s.id}</span>
+        <b style="color:#ffffff">${timeText}</b>
+      </div>
+      <div style="font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${isOvernight?'🌙 ':''}${e(s.pat)}</div>
+      ${h >= 52 ? `<div style="font-size:11px;color:${stColor};font-weight:700;margin-top:2px">${stIcon}${s.st}</div>` : ''}
+    </div>`;
+}
+
+function blkOvernightRem(s){
+  const remDur = (s.start + s.dur) - 1440;
+  const top = 0;
+  const h = remDur * PX / 60;
+  const bt = h;
+  const bh = Math.max(0, Math.min(BUF*PX/60, (S1-S0)*PX/60 - bt));
+  const c = s.st == 'Cancelado';
+  const stColor = COL[s.st] || '#64748B';
+  const stBg = COL_BG[s.st] || 'rgba(100, 116, 139, 0.12)';
+  const stIcon = s.st === 'En Ruta' ? '🚗 ' : s.st === 'En Atención' ? '🩺 ' : '';
+
+  return (c ? '' : `<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`) +
+    `<div class="sv ${c?'c':''}" style="top:0;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor};opacity:.88" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Continuación de atención nocturna iniciada el día anterior">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">#MSA-${s.id}</span>
+        <b style="color:#ffffff">00:00–${fm(remDur)}</b>
+      </div>
+      <div style="font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🌙 (Cont. noche) ${e(s.pat)}</div>
+      ${h >= 52 ? `<div style="font-size:11px;color:${stColor};font-weight:700;margin-top:2px">${stIcon}${s.st}</div>` : ''}
+    </div>`;
+}
+
+function onCalGridClick(event, tid, date){
+  const rect = event.currentTarget.getBoundingClientRect();
+  const offsetY = event.clientY - rect.top;
+  const slotHour = Math.floor(offsetY / PX);
+  const clampedHour = Math.max(0, Math.min(23, slotHour));
+  const timeStr = `${pad(clampedHour)}:00`;
+
+  U.tab = 'new';
+  U.date = date;
+  qState.date = date;
+  qState.time = timeStr;
+  render();
+
+  setTimeout(() => {
+    if($('#aq_date')) $('#aq_date').value = date;
+    if($('#aq_time')) $('#aq_time').value = timeStr;
+    if($('#aq_tens')) $('#aq_tens').value = tid;
+    calcAdminQuote();
+  }, 50);
+}
+window.onCalGridClick = onCalGridClick;
+
+function sel(id){U.sel=id;render();$('#det')&&$('#det').scrollIntoView({behavior:'smooth'})}
+function detail(){
+  const s=D.svcs.find(x=>x.id==U.sel);if(!s)return '';
+  const opts=D.techs.filter(t=>t.act&&(t.id==s.tid||avail(t.id,s.date,s.start,s.dur,s.id)));
+  return `<div class=card id=det style="margin-top:10px"><h2>Folio #MSA-${s.id} · ${e(s.pat)} (${s.age}) · ${fm(s.start)}–${fm((s.start+s.dur)%1440)} hrs <span class=badge style="background:${COL[s.st]}">${s.st}</span></h2>
+  <div><b>Motivo:</b> ${e(s.dx)} · <b>Movilidad:</b> ${e(s.mob)}${s.compDesc ? ' · ' + e(s.compDesc) : (s.comp?' (Con acompañante)':'')}</div>
+  ${s.alergias ? `<div><b>Alergias:</b> <span style="${s.alergias.startsWith('Sí') ? 'color:#dc2626;font-weight:700':''}">${e(s.alergias)}</span> · <b>Conciencia:</b> ${e(s.conciencia||'Lúcido / Orientado')}</div>` : ''}
+  ${s.patologias ? `<div><b>Patologías:</b> ${e(Array.isArray(s.patologias)?s.patologias.join(', '):s.patologias)}</div>` : ''}
+  <div><b>Ruta:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''} → ${e(s.to)}</div>
+  ${s.obs?`<div><b>Observaciones:</b> ${e(s.obs)}</div>`:''}
+  ${s.taxDoc?`<div><b>Doc. Tributario:</b> ${e(s.taxDoc.label||s.taxDoc.type)}</div>`:''}
+  <div><b>Contacto:</b> ${e(s.coord)} (${e(s.ph)})${s.coordType==='paciente'?' [Paciente directo]':' [Familiar/Tutor]'}${s.patPhone ? ` · <b>Tel. Paciente:</b> ${e(s.patPhone)}` : ''}</div>
+  <div class=msg>Bloqueo operativo hasta ${fm(s.start+s.dur+BUF)} · Tarifa ${$c(s.fare)} · Abono ${$c(s.paid)} · Saldo ${$c(s.fare-s.paid)}</div>
+  <div class="row" style="margin-top:10px;gap:8px">
+    <a href="https://wa.me/${(s.ph||'').replace(/\D/g,'').startsWith('56')?(s.ph||'').replace(/\D/g,''):'56'+(s.ph||'').replace(/\D/g,'')}?text=${encodeURIComponent('Hola ' + (s.coord||s.pat) + ', le contactamos de Movilidad y Salud Asistida respecto a su atención Folio #MSA-' + s.id)}" target="_blank" rel="noopener" style="background:#25D366;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">💬 WhatsApp</a>
+    <a href="https://waze.com/ul?q=${encodeURIComponent(s.to)}" target="_blank" rel="noopener" style="background:#0284c7;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">🚙 Waze</a>
+    <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.to)}" target="_blank" rel="noopener" style="background:#475569;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">🗺️ Google Maps</a>
+    <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-weight:700;font-size:12px">🏁 Liquidar / Finalizar Atención</button>
+  </div>
+  <div class=row style="margin-top:10px">
+  <div><label>Reasignar a</label><select onchange="reasg(${s.id},this.value)">${opts.map(t=>`<option value="${t.id}" ${t.id==s.tid?'selected':''}>${e(t.nom)}</option>`).join('')}</select></div>
+  <div><label>Estado</label><select onchange="setSt(${s.id},this.value)">${ST.map(x=>`<option ${x==s.st?'selected':''}>${x}</option>`).join('')}</select></div>
+  <div><label>Tarifa ($)</label><input type=number min=0 value="${s.fare}" style="width:110px" onchange="setPay(${s.id},'fare',this.value)"></div>
+  <div><label>Abono ($)</label><input type=number min=0 value="${s.paid}" style="width:110px" onchange="setPay(${s.id},'paid',this.value)"></div>
+  <button onclick="U.sel=null;render()">Cerrar</button></div></div>`;
+}
+
+function reasg(id,tid){const s=D.svcs.find(x=>x.id==id);if(!avail(tid,s.date,s.start,s.dur,id)){if(!confirm('⚠️ Ese TENS cuenta con un margen menor al buffer estándar de 2 horas. ¿Deseas reasignar de todas formas?')){return}}s.tid=tid;save();render()}
+function setSt(id,v){D.svcs.find(x=>x.id==id).st=v;save();render()}
+function setPay(id,k,v){const s=D.svcs.find(x=>x.id==id);if(s){s[k]=+v||0;save();render()}}
+
+// =========================================================================
+// =========================================================================
+// COTIZADOR AUTOMÁTICO ADMINISTRATIVO (NUEVA RESERVA)
+// =========================================================================
+let qState = {
+  mode: '1',
+  date: TODAY,
+  time: '10:00',
+  durationMin: 120, // 2 horas base
+  kmOneWay: 12.0,
+  kmTotal: 24.0,
+  ring: RINGS_DATA[0],
+  comuna: 'Maipú',
+  kmCost: 24000,
+  timeCost: 24000,
+  floorApplied: false,
+  totalFare: 48000,
+  abono50: 24000,
+  saldo50: 24000,
+  jornada: 'habil',
+  ratePerHour: 12000,
+  eventSubtype: 'sin_traslado',
+  eventPack: 'base',
+  eventExtraMin: 0,
+  interPlan: 'estandar',
+  interExtraMin: 0
+};
+
+function form(){
+  return `
+    <form class="card" id="adminQuoteForm" onsubmit="saveAdminBooking(event)">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:14px">
+        <div>
+          <h2 style="margin:0;color:var(--pri)">➕ Nueva Reserva y Cotizador Maestro</h2>
+          <div style="font-size:13px;color:var(--mut);margin-top:2px">Cálculo tarifario instantáneo con tarifas oficiales, 5 modalidades, pisos comunales y privilegios de Administrador.</div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 1: MODALIDAD Y TIEMPOS -->
+      <div class="g" style="margin-bottom:14px">
+        <div>
+          <label for="aq_mode"><b>Modalidad de Servicio *</b></label>
+          <select id="aq_mode" onchange="onAdminModeChange()" style="font-weight:700">
+            <option value="1" selected>1. Servicio Integral (Asistencia TENS + Traslado)</option>
+            <option value="2">2. Traslado Exclusivo con Espera</option>
+            <option value="3">3. Cuidados a Domicilio (Sin Traslado)</option>
+            <option value="4">4. Acompañamiento en Eventos Sociales</option>
+            <option value="5">5. Programas Interregionales</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="aq_date"><b>Fecha del Servicio *</b></label>
+          <input type="date" id="aq_date" value="${U.date}" onchange="calcAdminQuote()" required>
+        </div>
+
+        <div>
+          <label for="aq_time"><b>Hora de Recogida / Inicio *</b></label>
+          <input type="time" id="aq_time" value="10:00" onchange="calcAdminQuote()" required>
+        </div>
+
+        <div id="row_stay_time">
+          <label for="aq_stay_hours"><b id="lbl_stay_hours">Tiempo de Asistencia / Espera *</b></label>
+          <select id="aq_stay_hours" onchange="calcAdminQuote()">
+            <option value="60">1 hora de asistencia</option>
+            <option value="90">1 hora 30 min</option>
+            <option value="120" selected>2 horas de asistencia</option>
+            <option value="150">2 horas 30 min</option>
+            <option value="180">3 horas de asistencia</option>
+            <option value="210">3 horas 30 min</option>
+            <option value="240">4 horas de asistencia</option>
+            <option value="270">4 horas 30 min</option>
+            <option value="300">5 horas de asistencia</option>
+            <option value="330">5 horas 30 min</option>
+            <option value="360">6 horas de asistencia (Tope)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- SECCIÓN DINÁMICA: OPCIONES MODALIDAD 4 (EVENTOS SOCIALES) -->
+      <div class="g" style="margin-bottom:14px;display:none;background:rgba(217,119,6,0.06);border:1px solid rgba(217,119,6,0.25);border-radius:10px;padding:12px" id="row_event_options">
+        <div>
+          <label for="aq_event_subtype"><b>Subtipo de Contratación (Eventos) *</b></label>
+          <select id="aq_event_subtype" onchange="onAdminEventSubtypeChange()" style="font-weight:700">
+            <option value="sin_traslado" selected>Sin Traslado (Asistencia exclusiva en recinto)</option>
+            <option value="con_traslado">Con Traslado (Pack Integral Puerta a Puerta)</option>
+          </select>
+        </div>
+        <div>
+          <label for="aq_event_pack"><b>Paquete Base de Cobertura *</b></label>
+          <select id="aq_event_pack" onchange="calcAdminQuote()">
+            <option value="base" selected>Plan Base (4 horas continuas)</option>
+            <option value="total">Plan Total (6 horas continuas)</option>
+          </select>
+        </div>
+        <div>
+          <label for="aq_event_extra"><b>Tiempo Adicional *</b></label>
+          <select id="aq_event_extra" onchange="calcAdminQuote()">
+            <option value="0" selected>Sin tiempo adicional ($0)</option>
+            <option value="30">+30 minutos extra (+$7.500)</option>
+            <option value="60">+1 hora extra (+$15.000)</option>
+            <option value="90">+1 hora 30 min extra (+$22.500)</option>
+            <option value="120">+2 horas extras (+$30.000 - Tope máximo)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- SECCIÓN DINÁMICA: OPCIONES MODALIDAD 5 (PROGRAMAS INTERREGIONALES) -->
+      <div class="g" style="margin-bottom:14px;display:none;background:rgba(14,116,144,0.06);border:1px solid rgba(14,116,144,0.25);border-radius:10px;padding:12px" id="row_inter_options">
+        <div>
+          <label for="aq_inter_plan"><b>Plan Interregional *</b></label>
+          <select id="aq_inter_plan" onchange="calcAdminQuote()" style="font-weight:700">
+            <option value="estandar" selected>Programa Estándar (hasta 4 hrs) - $250.000</option>
+            <option value="cronico">Programa Crónico / Oncológico (hasta 6 hrs) - $300.000</option>
+          </select>
+        </div>
+        <div>
+          <label for="aq_inter_extra"><b>Tiempo Adicional *</b></label>
+          <select id="aq_inter_extra" onchange="calcAdminQuote()">
+            <option value="0" selected>Sin tiempo adicional ($0)</option>
+            <option value="30">+30 minutos extra (+$15.000)</option>
+            <option value="60">+1 hora extra (+$25.000)</option>
+            <option value="90">+1 hora 30 min extra (+$40.000)</option>
+            <option value="120">+2 horas extras (+$50.000 - Tope máximo)</option>
+          </select>
+          <small id="lbl_inter_note" style="font-size:11px;color:#0369a1;display:none;margin-top:4px"></small>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 2: DIRECCIONES Y KILOMETRAJE -->
+      <div class="g" style="margin-bottom:14px" id="row_addresses">
+        <div style="position:relative" id="col_origen">
+          <label for="aq_from"><b id="lbl_aq_from">Dirección Origen (A) *</b></label>
+          <input type="text" id="aq_from" placeholder="Ej: Av. Pajaritos 1450, Maipú" value="Av. Los Pajaritos 1450, Maipú" oninput="onAdminAddressInput('from')" required>
+          <div id="suggest_from" class="suggest-list"></div>
+          <small id="aq_ring_badge" style="font-size:11px;color:var(--pri);font-weight:700;display:block;margin-top:2px">Anillo 1 detectado (Piso legal: $18.000)</small>
+        </div>
+
+        <div style="position:relative" id="col_destino">
+          <label for="aq_to"><b id="lbl_aq_to">Dirección Destino (B) *</b></label>
+          <input type="text" id="aq_to" placeholder="Ej: Clínica Santa María, Providencia" value="Clínica Santa María, Providencia" oninput="onAdminAddressInput('to')">
+          <div id="suggest_to" class="suggest-list"></div>
+          <div id="quick_dest_wrap" style="margin-top:4px">
+            <label style="font-size:11px;color:var(--mut)">O elija un destino frecuente:</label>
+            <select id="aq_quick_dest" onchange="onQuickDestSelect(this.value)" style="font-size:12px;padding:4px 8px">
+              <option value="">-- Centros Médicos Frecuentes --</option>
+              ${MEDICAL_PLACES.map((m, idx) => `<option value="${idx}">${m.name} (${m.km} km)</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div id="col_km">
+          <label for="aq_km"><b id="lbl_aq_km">Kilometraje Total Ida y Vuelta (km) *</b></label>
+          <div class="row" style="flex-wrap:nowrap" id="km_input_wrap">
+            <input type="number" id="aq_km" min="1" step="0.5" value="24" oninput="calcAdminQuote()" style="font-weight:700">
+            <button type="button" id="btn_calc_km" onclick="autoCalcAdminKm()" title="Estimar km automáticos">📍 Recalcular</button>
+          </div>
+          <small id="lbl_km_note" style="font-size:11px;color:var(--mut)">$1.000 por km en circuito de ida y vuelta.</small>
+        </div>
+      </div>
+
+      <!-- CAJA DE LIQUIDACIÓN Y COTIZACIÓN AUTOMÁTICA -->
+      <div class="quote-box">
+        <div style="font-weight:800;color:var(--pri);font-size:0.92rem;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+          <span>📊 DESGLOSE ECONÓMICO AUTOMATIZADO</span>
+          <span style="font-size:0.75rem;background:#15803d;color:#fff;padding:2px 8px;border-radius:99px">✅ Tarifas Oficiales Activas</span>
+        </div>
+
+        <div class="quote-grid">
+          <div>
+            <span style="font-size:12px;color:var(--mut)">Kilometraje (<span id="q_lbl_km">24 km</span>):</span>
+            <div class="quote-num" id="q_km_cost">$24.000</div>
+          </div>
+          <div>
+            <span style="font-size:12px;color:var(--mut)">Tiempo / Cobertura (<span id="q_lbl_time">2.0 hrs</span>):</span>
+            <div class="quote-num" id="q_time_cost">$24.000</div>
+          </div>
+          <div>
+            <span style="font-size:12px;color:var(--mut)">TOTAL COTIZADO:</span>
+            <div class="quote-num" id="q_total" style="font-size:1.45rem;color:#15803d">$48.000</div>
+          </div>
+          <div>
+            <span style="font-size:12px;color:var(--mut)">Abono 50% Requerido:</span>
+            <div class="quote-num" id="q_abono" style="color:var(--pri)">$24.000</div>
+          </div>
+          <div>
+            <span style="font-size:12px;color:var(--mut)">Saldo en Terreno:</span>
+            <div class="quote-num" id="q_saldo" style="color:#b45309">$24.000</div>
+          </div>
+        </div>
+
+        <div id="q_floor_alert" style="margin-top:10px;font-size:12px;color:var(--pri);display:none">
+          ℹ️ Se aplicó la <b>tarifa mínima legal comunal garantizada</b> para el sector.
+        </div>
+      </div>
+
+      <!-- SECCIÓN 3: ANTECEDENTES DEL PACIENTE Y TENS ASIGNADO -->
+      <div class="g" style="margin-top:14px">
+        <div>
+          <label for="aq_pat">Nombre Completo del Paciente *</label>
+          <input type="text" id="aq_pat" placeholder="Ej: Rosa Medina" required>
+        </div>
+        <div>
+          <label for="aq_age">Edad del Paciente (años) *</label>
+          <input type="number" id="aq_age" min="0" max="120" value="78" oninput="onAdminAgeChange()" onchange="onAdminAgeChange()" required>
+          <div id="aq_minor_notice" style="display:none;margin-top:6px;padding:8px 10px;background:#fef2f2;border:1.5px solid #ef4444;border-radius:6px;color:#991b1b;font-size:11.5px;line-height:1.35">
+            ⚠️ <b>Paciente menor de edad:</b> Por normativa legal y términos del servicio, es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal. El tutor debe proveer el Sistema de Retención Infantil (SRI) correspondiente.
+          </div>
+        </div>
+        <div>
+          <label for="aq_comp">¿El paciente viaja solo o acompañado? *</label>
+          <select id="aq_comp" onchange="onAdminCompChange()">
+            <option value="Acompañado por tutor legal / familiar" selected>Acompañado por tutor legal / familiar</option>
+            <option value="Viaja solo">Viaja solo</option>
+          </select>
+        </div>
+        <div>
+          <label for="aq_dx">Diagnóstico / Motivo de Atención *</label>
+          <input type="text" id="aq_dx" placeholder="Ej: Control cardiológico" required>
+        </div>
+        <div>
+          <label for="aq_coord">Nombre del Coordinador/Contacto *</label>
+          <input type="text" id="aq_coord" placeholder="Ej: Andrea Medina" required>
+        </div>
+        <div>
+          <label for="aq_ph">Teléfono WhatsApp Contacto *</label>
+          <input type="tel" id="aq_ph" placeholder="+56 9 8765 4321" value="+56 9 " required>
+        </div>
+        <div>
+          <label for="aq_mob">Condición de Movilidad</label>
+          <select id="aq_mob">
+            ${MOB.map(m=>`<option>${m}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label for="aq_tens">TENS Asignado *</label>
+          <select id="aq_tens" required></select>
+        </div>
+        <div>
+          <label for="aq_alergias">Alergias Conocidas</label>
+          <input type="text" id="aq_alergias" placeholder="No registra o detallar">
+        </div>
+      </div>
+
+      <!-- PATOLOGÍAS CRÓNICAS HOMOLOGADAS CON RESERVAR.HTML -->
+      <div style="margin-top:14px">
+        <label style="font-weight:700;display:block;margin-bottom:6px">Patologías Crónicas o Condiciones de Base:</label>
+        <div class="rqs" style="margin-top:4px">
+          ${CLINICAL_PATHOLOGIES.map(p => `<label><input type="checkbox" class="aq_pat_cb" value="${p}" onchange="onAdminPathologyChange(this)">${p}</label>`).join('')}
+          <label><input type="checkbox" class="aq_pat_cb" id="aq_pat_ninguna" value="Ninguna" onchange="onAdminPathologyNingunaChange(this)">Ninguna</label>
+          <label><input type="checkbox" class="aq_pat_cb" id="aq_pat_otra" value="Otra patología" onchange="onAdminPathologyOtraChange(this)">Otra patología</label>
+        </div>
+        <div id="aq_pat_other_wrap" style="display:none;margin-top:6px">
+          <input type="text" id="aq_pat_other" placeholder="Especifique otra patología o condición médica..." style="font-size:12px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--bd)">
+        </div>
+      </div>
+
+      <div class="rqs" style="margin-top:12px">
+        <label><b>Tareas y Protocolos Asistenciales:</b></label>
+        ${REQ.map(r=>`<label><input type="checkbox" class="aq_rq" value="${r}" ${r==='Control de signos vitales'||r==='Acompañamiento en box médico'?'checked':''}>${r}</label>`).join('')}
+      </div>
+
+      <!-- SECCIÓN 4: DOCUMENTO TRIBUTARIO HOMOLOGADO -->
+      <div style="margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px">
+        <label style="font-weight:700;color:var(--pri);margin-bottom:8px;display:block;font-size:0.9rem">Documento Tributario Requerido *</label>
+        <div style="display:flex;gap:18px;margin-bottom:8px;font-size:12.5px">
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="aq_tax_doc" value="boleta" checked onchange="toggleAdminTaxDoc(this.value)">
+            <b>Boleta Electrónica Exenta</b> (Consumidor final / Reembolsos)
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="aq_tax_doc" value="factura" onchange="toggleAdminTaxDoc(this.value)">
+            <b>Factura Electrónica Exenta</b> (Empresas, Fundaciones o ELEAM)
+          </label>
+        </div>
+        <div id="aq_tax_factura_wrap" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd)">
+          <div style="font-size:11.5px;color:var(--mut);margin-bottom:8px">Antecedentes requeridos para la emisión de Factura Exenta:</div>
+          <div class="g" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px">
+            <div>
+              <label for="aq_tax_rs" style="font-size:11.5px">Razón Social *</label>
+              <input type="text" id="aq_tax_rs" placeholder="Ej: Fundación Las Rosas SpA" style="font-size:12px">
+            </div>
+            <div>
+              <label for="aq_tax_rut" style="font-size:11.5px">RUT Empresa *</label>
+              <input type="text" id="aq_tax_rut" placeholder="Ej: 76.123.456-7" style="font-size:12px">
+            </div>
+            <div>
+              <label for="aq_tax_giro" style="font-size:11.5px">Giro Comercial *</label>
+              <input type="text" id="aq_tax_giro" placeholder="Ej: Servicios de salud / Cuidados" style="font-size:12px">
+            </div>
+            <div>
+              <label for="aq_tax_dir" style="font-size:11.5px">Dirección Tributaria *</label>
+              <input type="text" id="aq_tax_dir" placeholder="Ej: Av. Providencia 1234, Providencia" style="font-size:12px">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="admin_buffer_info" class="msg" style="margin-top:12px"></div>
+
+      <!-- BOTONES DE ACCIÓN ADMINISTRATIVA -->
+      <div class="row" style="justify-content:flex-end;gap:12px;margin-top:18px;border-top:1px solid var(--bd);padding-top:14px">
+        <button type="button" class="btn" onclick="sendAdminQuoteWhatsApp()" style="background:#25d366;border-color:#25d366;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+          💬 Enviar Cotización por WhatsApp
+        </button>
+        <button type="submit" class="p" style="padding:10px 20px;font-size:15px;display:inline-flex;align-items:center;gap:6px">
+          💾 Guardar en Agenda
+        </button>
+      </div>
+    </form>
+  `;
+}
+
+function initAdminQuoter(){
+  onAdminModeChange();
+  populateAdminTechs();
+}
+
+function updateStayHoursSelector(mode, ringId){
+  const sel = $('#aq_stay_hours');
+  if(!sel) return;
+  const curVal = +sel.value || 120;
+  let minMin = 60;
+  if(mode === '3'){
+    // Pisos mínimos de permanencia para Cuidados a Domicilio según Anillo:
+    // Anillo 1: mín 2h (120 min), Anillo 2: mín 3h (180 min), Anillo 3: mín 4h (240 min)
+    if(ringId === 2) minMin = 180;
+    else if(ringId === 3) minMin = 240;
+    else minMin = 120;
+  }
+  const filtered = STAY_HOURS_OPTIONS.filter(o => o.val >= minMin);
+  sel.innerHTML = filtered.map(o => {
+    const isSelected = (curVal >= minMin && o.val === curVal) || (curVal < minMin && o.val === minMin);
+    return `<option value="${o.val}" ${isSelected ? 'selected' : ''}>${o.label}</option>`;
+  }).join('');
+  if(curVal < minMin){
+    sel.value = String(minMin);
+  }
+}
+
+function onAdminModeChange(){
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+  qState.mode = mode;
+
+  const rowStay = $('#row_stay_time');
+  const rowEvt = $('#row_event_options');
+  const rowInter = $('#row_inter_options');
+  const colDest = $('#col_destino');
+  const colKm = $('#col_km');
+  const badge = $('#aq_ring_badge');
+  const quickDestWrap = $('#quick_dest_wrap');
+  const btnKm = $('#btn_calc_km');
+  const kmInput = $('#aq_km');
+  const lblKmNote = $('#lbl_km_note');
+  const ringId = (qState.ring && qState.ring.id) || 1;
+
+  if(mode === '1' || mode === '2'){
+    if(rowStay) rowStay.style.display = 'block';
+    if(rowEvt) rowEvt.style.display = 'none';
+    if(rowInter) rowInter.style.display = 'none';
+    if(colDest) colDest.style.display = 'block';
+    if(quickDestWrap) quickDestWrap.style.display = 'block';
+    if(colKm) colKm.style.display = 'block';
+    if(kmInput) { kmInput.disabled = false; kmInput.style.opacity = '1'; }
+    if(btnKm) btnKm.style.display = 'inline-block';
+    if(lblKmNote) lblKmNote.textContent = '$1.000 por km en circuito de ida y vuelta.';
+    if(badge){
+      badge.style.display = 'block';
+      badge.textContent = `${qState.ring.name} detectado (Piso legal: ${$c(qState.ring.minFare)})`;
+    }
+    updateStayHoursSelector(mode, ringId);
+  } else if(mode === '3'){
+    if(rowStay) rowStay.style.display = 'block';
+    if(rowEvt) rowEvt.style.display = 'none';
+    if(rowInter) rowInter.style.display = 'none';
+    if(colDest) colDest.style.display = 'none';
+    if(colKm) colKm.style.display = 'none';
+    updateStayHoursSelector(mode, ringId);
+    if(badge){
+      badge.style.display = 'block';
+      const minHours = ringId === 3 ? 4 : (ringId === 2 ? 3 : 2);
+      badge.textContent = `${qState.ring.name} detectado (Mínimo ${minHours} horas de cuidado)`;
+    }
+  } else if(mode === '4'){
+    if(rowStay) rowStay.style.display = 'none';
+    if(rowEvt) rowEvt.style.display = 'grid';
+    if(rowInter) rowInter.style.display = 'none';
+    if(badge) badge.style.display = 'none';
+    onAdminEventSubtypeChange();
+    return;
+  } else if(mode === '5'){
+    if(rowStay) rowStay.style.display = 'none';
+    if(rowEvt) rowEvt.style.display = 'none';
+    if(rowInter) rowInter.style.display = 'grid';
+    if(badge) badge.style.display = 'none';
+    if(colDest) colDest.style.display = 'block';
+    if(quickDestWrap) quickDestWrap.style.display = 'none';
+    if(colKm) colKm.style.display = 'block';
+    if(kmInput) { kmInput.disabled = true; kmInput.style.opacity = '0.7'; kmInput.value = '250'; }
+    if(btnKm) btnKm.style.display = 'none';
+    if(lblKmNote) lblKmNote.textContent = 'Kilometraje interregional incluido en tarifa plana.';
+  }
+
+  calcAdminQuote();
+}
+
+function onAdminEventSubtypeChange(){
+  const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
+  qState.eventSubtype = subtype;
+  const colDest = $('#col_destino');
+  const colKm = $('#col_km');
+  const quickDestWrap = $('#quick_dest_wrap');
+  const btnKm = $('#btn_calc_km');
+  const kmInput = $('#aq_km');
+  const lblKmNote = $('#lbl_km_note');
+
+  if(subtype === 'sin_traslado'){
+    if(colDest) colDest.style.display = 'none';
+    if(colKm) colKm.style.display = 'none';
+  } else {
+    if(colDest) colDest.style.display = 'block';
+    if(quickDestWrap) quickDestWrap.style.display = 'none';
+    if(colKm) colKm.style.display = 'block';
+    if(kmInput) { kmInput.disabled = true; kmInput.style.opacity = '0.7'; kmInput.value = '40'; }
+    if(btnKm) btnKm.style.display = 'none';
+    if(lblKmNote) lblKmNote.textContent = 'Kilometraje incluido en Pack Integral Puerta a Puerta.';
+  }
+  calcAdminQuote();
+}
+
+let adminAddrTimers = {};
+let adminPtFrom = { lat: -33.5090, lon: -70.7570, label: 'Av. Los Pajaritos 1450, Maipú' };
+let adminPtTo = { lat: -33.4316, lon: -70.6279, label: 'Clínica Santa María, Providencia' };
+let adminRouteIdaMin = 30;
+let adminRouteVueltaMin = 30;
+
+function updateAdminRingBadge(){
+  const badge = $('#aq_ring_badge');
+  if(!badge || !qState.ring) return;
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+  if(mode === '3'){
+    const minHours = qState.ring.id === 3 ? 4 : (qState.ring.id === 2 ? 3 : 2);
+    badge.textContent = `${qState.ring.name} detectado · ${qState.comuna || 'Comuna'} (Mínimo ${minHours} horas de cuidado)`;
+  } else {
+    badge.textContent = `${qState.ring.name} detectado · ${qState.comuna || 'Comuna'} (Piso legal: ${$c(qState.ring.minFare)})`;
+  }
+}
+
+function onAdminAddressInput(type){
+  if(typeof clearTimeout === 'function') clearTimeout(adminAddrTimers[type]);
+  const text = (type === 'from' ? ($('#aq_from') && $('#aq_from').value) : ($('#aq_to') && $('#aq_to').value)) || '';
+
+  if(type === 'from'){
+    const det = detectRingFromText(text, adminPtFrom ? adminPtFrom.lat : null, adminPtFrom ? adminPtFrom.lon : null);
+    if(det){
+      qState.ring = det.ring;
+      qState.comuna = det.comuna;
+      updateAdminRingBadge();
+    }
+    const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+    if(mode === '3'){
+      updateStayHoursSelector('3', qState.ring.id);
+    }
+    calcAdminQuote();
+  }
+
+  if(typeof setTimeout === 'function'){
+    adminAddrTimers[type] = setTimeout(() => {
+      searchAdminAddr(type);
+    }, 260);
+  }
+}
+
+async function searchAdminAddr(type){
+  const inp = type === 'from' ? $('#aq_from') : $('#aq_to');
+  const sugBox = type === 'from' ? $('#suggest_from') : $('#suggest_to');
+  if(!inp || !sugBox) return;
+  const q = inp.value.trim();
+  if(!q || q.length < 3){
+    sugBox.style.display = 'none';
+    return;
+  }
+
+  const qLow = q.toLowerCase();
+  const medMatches = MEDICAL_PLACES.filter(m =>
+    m.name.toLowerCase().includes(qLow) || m.addr.toLowerCase().includes(qLow)
+  ).map(m => ({
+    title: m.name,
+    subtitle: m.addr,
+    fullLabel: `${m.name} (${m.addr})`,
+    rawFull: `${m.name}, ${m.addr}, Santiago, Región Metropolitana`,
+    lat: m.lat,
+    lon: m.lon
+  }));
+
+  let geoResults = [];
+  try {
+    const arcUrl = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(q)}&countryCode=CHL&maxLocations=6&outFields=PlaceName,Match_addr,Place_addr,City,Subregion,District,Nbrhd,Region`;
+    const r = await fetch(arcUrl);
+    const data = await r.json();
+    if(data && data.candidates && data.candidates.length > 0){
+      geoResults = data.candidates.map(c => {
+        const attr = c.attributes || {};
+        const mainAddr = (c.address || attr.Match_addr || '').replace(/, CHL$/i, '');
+        const subAddr = (attr.Place_addr || '').replace(/, CHL$/i, '');
+        const title = attr.PlaceName && !mainAddr.startsWith(attr.PlaceName)
+          ? `${attr.PlaceName} · ${mainAddr}`
+          : mainAddr;
+        const muni = attr.District || attr.City || attr.Nbrhd || '';
+        return {
+          title: title,
+          subtitle: subAddr || muni || 'Chile',
+          fullLabel: title,
+          rawFull: `${title}, ${subAddr}, ${muni}`,
+          lat: c.location.y,
+          lon: c.location.x
+        };
+      });
+    }
+  } catch(eArc){
+    console.warn('Geocoding error in admin:', eArc);
+  }
+
+  const combined = [...medMatches, ...geoResults].slice(0, 6);
+  if(combined.length === 0){
+    sugBox.innerHTML = '<div style="padding:8px 12px;font-size:11.5px;color:var(--mut)">No se encontraron direcciones sugeridas.</div>';
+    sugBox.style.display = 'block';
+    return;
+  }
+
+  window['__adminSugs_' + type] = combined;
+  sugBox.innerHTML = combined.map((item, idx) => `
+    <div style="padding:7px 10px;border-bottom:1px solid var(--bd);cursor:pointer;font-size:12px;line-height:1.3"
+         onmousedown="pickAdminSug('${type}', ${idx})"
+         onmouseover="this.style.background='rgba(15,118,110,0.1)'"
+         onmouseout="this.style.background=''">
+      <div style="font-weight:700;color:var(--pri)">${e(item.title)}</div>
+      <div style="font-size:10.5px;color:var(--mut)">${e(item.subtitle)}</div>
+    </div>
+  `).join('');
+  sugBox.style.display = 'block';
+}
+
+function pickAdminSug(type, idx){
+  const item = (window['__adminSugs_' + type] || [])[idx];
+  const inp = type === 'from' ? $('#aq_from') : $('#aq_to');
+  const sugBox = type === 'from' ? $('#suggest_from') : $('#suggest_to');
+  if(sugBox) sugBox.style.display = 'none';
+  if(!item || !inp) return;
+
+  inp.value = item.fullLabel || item.title;
+  if(type === 'from'){
+    adminPtFrom = { lat: item.lat, lon: item.lon, label: inp.value };
+    const det = detectRingFromText(item.rawFull || item.fullLabel || item.title, item.lat, item.lon);
+    if(det){
+      qState.ring = det.ring;
+      qState.comuna = det.comuna;
+    }
+    updateAdminRingBadge();
+    const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+    if(mode === '3'){
+      updateStayHoursSelector('3', qState.ring.id);
+    }
+  } else {
+    adminPtTo = { lat: item.lat, lon: item.lon, label: inp.value };
+  }
+
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+  if(mode === '1' || mode === '2' || (mode === '4' && qState.eventSubtype === 'con_traslado')){
+    computeAdminRoute();
+  } else {
+    calcAdminQuote();
+  }
+}
+
+async function computeAdminRoute(){
+  if(!adminPtFrom || !adminPtTo) return;
+  const btnKm = $('#btn_calc_km');
+  const lblNote = $('#lbl_km_note');
+  if(btnKm) btnKm.textContent = '⏳ Calculando...';
+  if(lblNote) lblNote.textContent = 'Calculando ruta vehicular exacta con OSRM...';
+
+  try {
+    const coords = `${adminPtFrom.lon},${adminPtFrom.lat};${adminPtTo.lon},${adminPtTo.lat};${adminPtFrom.lon},${adminPtFrom.lat}`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`;
+    const r = await fetch(url);
+    const data = await r.json();
+
+    if(data && data.routes && data.routes.length > 0){
+      const route = data.routes[0];
+      const legs = route.legs || [];
+      const totalKm = Math.round((route.distance / 1000) * 10) / 10;
+      const idaMin = legs[0] ? Math.max(1, Math.round(legs[0].duration / 60)) : Math.max(1, Math.round(route.duration / 120));
+      const vueltaMin = legs[1] ? Math.max(1, Math.round(legs[1].duration / 60)) : idaMin;
+
+      adminRouteIdaMin = idaMin;
+      adminRouteVueltaMin = vueltaMin;
+
+      if($('#aq_km')) $('#aq_km').value = totalKm.toFixed(1);
+      if(lblNote) lblNote.textContent = `✅ Ruta exacta: ${totalKm.toFixed(1)} km ida y vuelta (${idaMin} min ida / ${vueltaMin} min retorno).`;
+    } else {
+      throw new Error('Sin rutas disponibles');
+    }
+  } catch(eRoute){
+    console.warn('OSRM fallback to Haversine in admin:', eRoute);
+    const dKm = Math.round(haversineKm(adminPtFrom.lat, adminPtFrom.lon, adminPtTo.lat, adminPtTo.lon) * 1.3 * 10) / 10;
+    const totalKm = Math.round(dKm * 2 * 10) / 10;
+    const estMin = Math.max(15, Math.round(dKm * 1.3));
+    adminRouteIdaMin = estMin;
+    adminRouteVueltaMin = estMin;
+    if($('#aq_km')) $('#aq_km').value = totalKm.toFixed(1);
+    if(lblNote) lblNote.textContent = `✅ Distancia calculada: ${totalKm.toFixed(1)} km ida y vuelta (~${estMin} min viaje).`;
+  } finally {
+    if(btnKm) btnKm.textContent = '📍 Recalcular';
+    calcAdminQuote();
+  }
+}
+
+function onQuickDestSelect(idx){
+  if(idx === '' || !MEDICAL_PLACES[idx]) return;
+  const p = MEDICAL_PLACES[idx];
+  $('#aq_to').value = p.name + ' (' + p.addr + ')';
+  adminPtTo = { lat: p.lat, lon: p.lon, label: $('#aq_to').value };
+  if(adminPtFrom){
+    computeAdminRoute();
+  } else {
+    const dKm = p.km || 12;
+    $('#aq_km').value = (dKm * 2).toFixed(1);
+    calcAdminQuote();
+  }
+}
+
+function autoCalcAdminKm(){
+  const destIdx = $('#aq_quick_dest') ? $('#aq_quick_dest').value : '';
+  if(destIdx !== '' && MEDICAL_PLACES[destIdx]){
+    const p = MEDICAL_PLACES[destIdx];
+    adminPtTo = { lat: p.lat, lon: p.lon, label: p.name + ' (' + p.addr + ')' };
+    $('#aq_to').value = adminPtTo.label;
+    if(adminPtFrom){
+      computeAdminRoute();
+      return;
+    }
+    const dKm = p.km || 12;
+    $('#aq_km').value = (dKm * 2).toFixed(1);
+  } else {
+    if(adminPtFrom && adminPtTo){
+      computeAdminRoute();
+      return;
+    }
+    $('#aq_km').value = '25.0';
+  }
+  calcAdminQuote();
+}
+
+// Menores de edad, patologías y facturación
+function onAdminAgeChange(){
+  const ageVal = ($('#aq_age') && $('#aq_age').value.trim()) || '';
+  const age = ageVal !== '' ? parseInt(ageVal, 10) : NaN;
+  const isMinor = !isNaN(age) && age >= 0 && age < 18;
+  const notice = $('#aq_minor_notice');
+  const compSel = $('#aq_comp');
+
+  if(notice){
+    notice.style.display = isMinor ? 'block' : 'none';
+  }
+  if(compSel){
+    const soloOpt = compSel.querySelector('option[value*="solo"]') || compSel.querySelector('option[value="Viaja solo"]');
+    if(isMinor){
+      if(soloOpt) soloOpt.disabled = true;
+      compSel.value = 'Acompañado por tutor legal / familiar';
+    } else {
+      if(soloOpt) soloOpt.disabled = false;
+    }
+  }
+}
+
+function onAdminCompChange(){
+  const ageVal = ($('#aq_age') && $('#aq_age').value.trim()) || '';
+  const age = ageVal !== '' ? parseInt(ageVal, 10) : NaN;
+  const isMinor = !isNaN(age) && age >= 0 && age < 18;
+  const compSel = $('#aq_comp');
+  if(isMinor && compSel && compSel.value.toLowerCase().includes('solo')){
+    compSel.value = 'Acompañado por tutor legal / familiar';
+    alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de 18 años debe viajar obligatoriamente acompañado por su madre, padre o tutor legal.');
+  }
+}
+
+function onAdminPathologyChange(cb){
+  if(cb && cb.checked){
+    const ning = $('#aq_pat_ninguna');
+    if(ning) ning.checked = false;
+  }
+}
+
+function onAdminPathologyNingunaChange(cb){
+  if(cb && cb.checked){
+    document.querySelectorAll('.aq_pat_cb').forEach(c => {
+      if(c !== cb) c.checked = false;
+    });
+    const wrap = $('#aq_pat_other_wrap');
+    if(wrap) wrap.style.display = 'none';
+    const inp = $('#aq_pat_other');
+    if(inp) inp.value = '';
+  }
+}
+
+function onAdminPathologyOtraChange(cb){
+  const wrap = $('#aq_pat_other_wrap');
+  if(wrap) wrap.style.display = cb.checked ? 'block' : 'none';
+  if(cb.checked){
+    const ning = $('#aq_pat_ninguna');
+    if(ning) ning.checked = false;
+    const inp = $('#aq_pat_other');
+    if(inp) inp.focus();
+  }
+}
+
+function toggleAdminTaxDoc(val){
+  const wrap = $('#aq_tax_factura_wrap');
+  if(wrap) wrap.style.display = val === 'factura' ? 'block' : 'none';
+}
+
+if(typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
+  document.addEventListener('click', function(ev){
+    if(!ev.target.closest('#col_origen')){
+      const sf = $('#suggest_from');
+      if(sf) sf.style.display = 'none';
+    }
+    if(!ev.target.closest('#col_destino')){
+      const st = $('#suggest_to');
+      if(st) st.style.display = 'none';
+    }
+  });
+}
+
+function calcAdminQuote(){
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+  qState.mode = mode;
+
+  const dateVal = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
+  const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
+  const jornada = getAdminJornada(dateVal, timeVal);
+  qState.jornada = jornada;
+
+  let kmTot = +($('#aq_km') && $('#aq_km').value) || 24;
+  let kmCost = 0;
+  let timeCost = 0;
+  let totalFare = 0;
+  let floorApplied = false;
+  let stayMin = 120;
+  let timeLabel = '';
+  let kmLabel = `${kmTot} km`;
+
+  if(mode === '1' || mode === '2'){
+    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    if(stayMin > 360) stayMin = 360;
+    qState.stayMin = stayMin;
+    qState.durationMin = stayMin;
+    qState.kmTotal = kmTot;
+    timeLabel = `${(stayMin / 60).toFixed(1)} hrs`;
+    kmLabel = `${kmTot} km`;
+
+    const rates = ADMIN_RATES[mode] || ADMIN_RATES['1'];
+    const hourlyRate = rates[jornada] || rates.habil;
+    qState.ratePerHour = hourlyRate;
+
+    kmCost = Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
+    timeCost = Math.round((stayMin / 60) * hourlyRate);
+
+    const calculatedSum = kmCost + timeCost;
+    const ringFloor = (qState.ring && qState.ring.minFare) || 18000;
+
+    if(calculatedSum < ringFloor){
+      totalFare = ringFloor;
+      floorApplied = true;
+    } else {
+      totalFare = calculatedSum;
+      floorApplied = false;
+    }
+  } else if(mode === '3'){
+    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    const rId = (qState.ring && qState.ring.id) || 1;
+    const minMin = rId === 3 ? 240 : (rId === 2 ? 180 : 120);
+    if(stayMin < minMin){
+      stayMin = minMin;
+      if($('#aq_stay_hours')) $('#aq_stay_hours').value = String(minMin);
+    }
+    if(stayMin > 360){
+      stayMin = 360;
+      if($('#aq_stay_hours')) $('#aq_stay_hours').value = '360';
+    }
+    qState.durationMin = stayMin;
+    qState.kmTotal = 0;
+    kmCost = 0;
+    timeLabel = `${(stayMin / 60).toFixed(1)} hrs`;
+    kmLabel = '$0 (Sin traslado)';
+
+    const rates = ADMIN_RATES['3'];
+    const hourlyRate = rates[jornada] || rates.habil;
+    qState.ratePerHour = hourlyRate;
+
+    // Beneficio especial: si es turno nocturno y 6 horas (360 min), pack noche cerrada = $96.000
+    if(jornada === 'nocturno' && stayMin >= 360){
+      timeCost = 96000;
+    } else {
+      timeCost = Math.round((stayMin / 60) * hourlyRate);
+    }
+    totalFare = timeCost;
+    floorApplied = false;
+  } else if(mode === '4'){
+    const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
+    const pack = ($('#aq_event_pack') && $('#aq_event_pack').value) || 'base';
+    const extraKey = ($('#aq_event_extra') && $('#aq_event_extra').value) || '0';
+
+    qState.eventSubtype = subtype;
+    qState.eventPack = pack;
+
+    const packCfg = EVENT_RATES[pack] || EVENT_RATES.base;
+    const extraCfg = EVENT_EXTRAS[extraKey] || EVENT_EXTRAS['0'];
+
+    const baseFare = packCfg[subtype] || 65000;
+    const extraFare = extraCfg.fare;
+
+    stayMin = packCfg.dur + extraCfg.min;
+    qState.durationMin = stayMin;
+    qState.eventExtraMin = extraCfg.min;
+
+    kmCost = 0;
+    timeCost = baseFare + extraFare;
+    totalFare = timeCost;
+    floorApplied = false;
+
+    kmLabel = subtype === 'sin_traslado' ? 'No aplica' : 'Incluido';
+    timeLabel = `${pack === 'base' ? 'Plan Base 4h' : 'Plan Total 6h'}${extraCfg.min > 0 ? ` (+${extraCfg.min}m)` : ''}`;
+  } else if(mode === '5'){
+    const planKey = ($('#aq_inter_plan') && $('#aq_inter_plan').value) || 'estandar';
+    const extraSelect = $('#aq_inter_extra');
+    const noteEl = $('#lbl_inter_note');
+
+    if(planKey === 'cronico'){
+      if(extraSelect){
+        extraSelect.value = '0';
+        extraSelect.disabled = true;
+        extraSelect.style.opacity = '0.6';
+      }
+      if(noteEl){
+        noteEl.style.display = 'block';
+        noteEl.textContent = '🔒 Por límite estricto de seguridad vial y descanso, el Programa Crónico (6h) opera con cobertura cerrada improrrogable ($0 tiempo extra).';
+      }
+    } else {
+      if(extraSelect){
+        extraSelect.disabled = false;
+        extraSelect.style.opacity = '1';
+      }
+      if(noteEl){
+        noteEl.style.display = 'none';
+      }
+    }
+
+    const extraKey = (planKey === 'cronico') ? '0' : ((extraSelect && extraSelect.value) || '0');
+
+    qState.interPlan = planKey;
+
+    const planCfg = INTER_PLANS[planKey] || INTER_PLANS.estandar;
+    const extraCfg = INTER_EXTRAS[extraKey] || INTER_EXTRAS['0'];
+
+    const baseFare = planCfg.fare;
+    const extraFare = extraCfg.fare;
+
+    stayMin = planCfg.dur + extraCfg.min;
+    qState.durationMin = stayMin;
+    qState.interExtraMin = extraCfg.min;
+
+    kmCost = 0;
+    timeCost = baseFare + extraFare;
+    totalFare = timeCost;
+    floorApplied = false;
+
+    kmLabel = 'Incluido';
+    timeLabel = `${planKey === 'estandar' ? 'Estándar 4h' : 'Crónico 6h'}${extraCfg.min > 0 ? ` (+${extraCfg.min}m)` : ''}`;
+  }
+
+  qState.kmCost = kmCost;
+  qState.timeCost = timeCost;
+  qState.totalFare = totalFare;
+  qState.abono50 = Math.round((totalFare * 0.5) / 50) * 50;
+  qState.saldo50 = totalFare - qState.abono50;
+  qState.floorApplied = floorApplied;
+
+  // Actualizar textos en pantalla
+  if($('#q_lbl_km')) $('#q_lbl_km').textContent = kmLabel;
+  if($('#q_km_cost')) {
+    if(mode === '4' || mode === '5'){
+      $('#q_km_cost').textContent = (mode === '4' && qState.eventSubtype === 'sin_traslado') ? '$0' : 'Incluido';
+    } else if(mode === '3'){
+      $('#q_km_cost').textContent = '$0';
+    } else {
+      $('#q_km_cost').textContent = $c(kmCost);
+    }
+  }
+  if($('#q_lbl_time')) $('#q_lbl_time').textContent = timeLabel;
+  if($('#q_time_cost')) $('#q_time_cost').textContent = $c(timeCost);
+  if($('#q_total')) $('#q_total').textContent = $c(totalFare);
+  if($('#q_abono')) $('#q_abono').textContent = $c(qState.abono50);
+  if($('#q_saldo')) $('#q_saldo').textContent = $c(qState.saldo50);
+  if($('#q_floor_alert')){
+    $('#q_floor_alert').style.display = floorApplied ? 'block' : 'none';
+    if(floorApplied && qState.ring){
+      $('#q_floor_alert').innerHTML = `ℹ️ Se aplicó la <b>tarifa mínima legal comunal garantizada</b> para ${qState.ring.name} (${$c(qState.ring.minFare)}).`;
+    }
+  }
+
+  populateAdminTechs();
+}
+
+function populateAdminTechs(){
+  const dateVal = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
+  const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
+  const durVal = qState.durationMin || 120;
+  const startMin = tm(timeVal);
+
+  const select = $('#aq_tens');
+  if(!select) return;
+
+  const activeTechs = D.techs.filter(t => t.act);
+  const okTechs = activeTechs.filter(t => avail(t.id, dateVal, startMin, durVal));
+
+  select.innerHTML = activeTechs.map(t => {
+    const isAvail = okTechs.some(x => x.id === t.id);
+    return `<option value="${t.id}" ${!isAvail ? 'style="color:#dc2626"' : ''}>${e(t.nom)} ${!isAvail ? '(⚠️ Conflicto buffer 2h)' : '✅ Disponible'}</option>`;
+  }).join('');
+
+  const bufInfo = $('#admin_buffer_info');
+  if(bufInfo){
+    bufInfo.innerHTML = `ℹ️ Término proyectado: <b>${fm(startMin + durVal)} hrs</b> · Buffer de seguridad liberado a las <b>${fm(startMin + durVal + BUF)} hrs (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
+  }
+}
+
+function sendAdminQuoteWhatsApp(){
+  calcAdminQuote();
+  const phone = (($('#aq_ph') && $('#aq_ph').value) || '').replace(/\D/g, '');
+  const cleanPhone = phone.startsWith('56') ? phone : ('56' + (phone || '929990095'));
+
+  const modeNames = {
+    '1': '1. Servicio Integral (Asistencia TENS + Traslado)',
+    '2': '2. Traslado Exclusivo con Espera',
+    '3': '3. Cuidados a Domicilio (Sin Traslado)',
+    '4': '4. Acompañamiento en Eventos Sociales',
+    '5': '5. Programas Interregionales'
+  };
+
+  const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
+  const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Estimado(a)';
+  const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
+  const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
+  const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Origen';
+  const to = ($('#aq_to') && $('#aq_to').value.trim()) || 'Destino';
+  const durMin = qState.durationMin || 120;
+
+  let breakdown = '';
+  let trayectoLine = `• *Trayecto:* ${from} ➔ ${to}\n`;
+
+  if(qState.mode === '1' || qState.mode === '2'){
+    breakdown += `• *Kilometraje (${qState.kmTotal} km ida/vuelta):* ${$c(qState.kmCost)}\n`;
+    breakdown += `• *Tiempo de asistencia/espera (${(durMin/60).toFixed(1)} hrs):* ${$c(qState.timeCost)}\n`;
+    if(qState.floorApplied){
+      breakdown += `• *Tarifa mínima legal garantizada aplicada:* ${$c(qState.ring.minFare)} (${qState.ring.name})\n`;
+    }
+  } else if(qState.mode === '3'){
+    trayectoLine = `• *Domicilio de atención:* ${from}\n`;
+    if(qState.jornada === 'nocturno' && durMin >= 360){
+      breakdown += `• *Cuidado continuo nocturno (Pack 6 hrs):* ${$c(qState.totalFare)}\n`;
+    } else {
+      breakdown += `• *Horas de cuidado continuo (${(durMin/60).toFixed(1)} hrs):* ${$c(qState.totalFare)}\n`;
+    }
+  } else if(qState.mode === '4'){
+    const isSinTraslado = qState.eventSubtype === 'sin_traslado';
+    if(isSinTraslado){
+      trayectoLine = `• *Recinto del evento:* ${from}\n`;
+    }
+    const packLabel = qState.eventPack === 'base' ? 'Plan Base (4 horas)' : 'Plan Total (6 horas)';
+    const subLabel = isSinTraslado ? 'Asistencia en Recinto' : 'Pack Integral Puerta a Puerta';
+    breakdown += `• *Cobertura Evento:* ${packLabel} - ${subLabel}\n`;
+    if(qState.eventExtraMin > 0){
+      const extraCost = EVENT_EXTRAS[String(qState.eventExtraMin)] ? EVENT_EXTRAS[String(qState.eventExtraMin)].fare : 0;
+      breakdown += `• *Tiempo adicional:* +${qState.eventExtraMin} min (${$c(extraCost)})\n`;
+    }
+    breakdown += `• *Subtotal Cobertura:* ${$c(qState.totalFare)}\n`;
+  } else if(qState.mode === '5'){
+    const planLabel = qState.interPlan === 'estandar' ? 'Programa Estándar (hasta 4 hrs)' : 'Programa Crónico / Oncológico (hasta 6 hrs)';
+    breakdown += `• *Plan Interregional:* ${planLabel} (Todo Incluido)\n`;
+    if(qState.interExtraMin > 0){
+      const extraCost = INTER_EXTRAS[String(qState.interExtraMin)] ? INTER_EXTRAS[String(qState.interExtraMin)].fare : 0;
+      breakdown += `• *Tiempo adicional:* +${qState.interExtraMin} min (${$c(extraCost)})\n`;
+    }
+    breakdown += `• *Subtotal Programa:* ${$c(qState.totalFare)}\n`;
+  }
+
+  const msg = `Hola ${coord}! Le escribimos de Movilidad y Salud Asistida SpA. Le compartimos el detalle oficial de su cotización requerida:
+
+📋 *DETALLE DEL SERVICIO SOLICITADO:*
+• *Paciente:* ${pat}
+• *Servicio:* ${modeNames[qState.mode]}
+• *Fecha y Hora:* ${date} - ${time} hrs
+${trayectoLine}• *Permanencia estimada:* ${(durMin/60).toFixed(1)} hrs
+
+💰 *DESGLOSE ECONÓMICO:*
+${breakdown}• *TOTAL COTIZADO:* ${$c(qState.totalFare)}
+• *Abono 50% para reserva:* ${$c(qState.abono50)}
+• *Saldo restante al finalizar el servicio:* ${$c(qState.saldo50)}
+
+📄 *DOCUMENTO TRIBUTARIO:* ${(document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value === 'factura') ? ('Factura Electrónica Exenta (' + (($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || 'Empresa') + ' - RUT ' + (($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '') + ')') : 'Boleta Electrónica Exenta'}
+
+🏥 *INCLUYE:* Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, vehículo climatizado y habilitado para ayudas técnicas.
+
+Quedamos atentos para reservar su cupo exclusivo!`;
+
+  const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+let pendingAdminBooking = null;
+
+function saveAdminBooking(ev, forceConfirm = false){
+  if(ev && ev.preventDefault) ev.preventDefault();
+  calcAdminQuote();
+
+  const tid = ($('#aq_tens') && $('#aq_tens').value) || (D.techs[0] && D.techs[0].id) || 't1';
+  const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
+  const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
+  const start = tm(time);
+  const dur = qState.durationMin || 120;
+
+  const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
+  const age = (+$('#aq_age') && +$('#aq_age').value) || 75;
+  const compDesc = ($('#aq_comp') && $('#aq_comp').value) || 'Acompañado por tutor legal / familiar';
+  const isSolo = compDesc.toLowerCase().includes('solo');
+
+  // Validación obligatoria para menores de edad (< 18 años)
+  if(age < 18 && isSolo){
+    if(typeof alert !== 'undefined'){
+      alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de edad (< 18 años) debe viajar obligatoriamente acompañado de manera continua por su madre, padre o tutor legal.');
+    }
+    const compSel = $('#aq_comp');
+    if(compSel) compSel.focus();
+    return { error: 'Minor must be accompanied' };
+  }
+
+  // Validación de Documento Tributario (Factura)
+  const taxRadio = document.querySelector('input[name="aq_tax_doc"]:checked');
+  const isFactura = taxRadio ? taxRadio.value === 'factura' : false;
+  const taxRS = ($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || '';
+  const taxRUT = ($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '';
+  const taxGiro = ($('#aq_tax_giro') && $('#aq_tax_giro').value.trim()) || '';
+  const taxDir = ($('#aq_tax_dir') && $('#aq_tax_dir').value.trim()) || '';
+
+  if(isFactura && (!taxRS || !taxRUT || !taxGiro || !taxDir)){
+    if(typeof alert !== 'undefined'){
+      alert('⚠️ Por favor complete los antecedentes de facturación requeridos (Razón Social, RUT, Giro y Dirección Tributaria) antes de guardar.');
+    }
+    const inpRS = $('#aq_tax_rs');
+    if(inpRS) inpRS.focus();
+    return { error: 'Factura fields required' };
+  }
+
+  const taxDoc = {
+    type: isFactura ? 'factura' : 'boleta',
+    label: isFactura ? 'Factura Electrónica Exenta' : 'Boleta Electrónica Exenta',
+    razonSocial: isFactura ? taxRS : '',
+    rut: isFactura ? taxRUT : '',
+    giro: isFactura ? taxGiro : '',
+    direccion: isFactura ? taxDir : ''
+  };
+
+  const dx = ($('#aq_dx') && $('#aq_dx').value.trim()) || 'Atención clínica';
+  const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Coordinador';
+  const ph = ($('#aq_ph') && $('#aq_ph').value.trim()) || '+56900000000';
+  const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Domicilio Origen';
+  const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
+  const to = isSinTraslado ? from : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
+  const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
+  const req = typeof document !== 'undefined' && document.querySelectorAll
+    ? [...document.querySelectorAll('.aq_rq:checked')].map(x => x.value)
+    : [];
+
+  const selectedPats = typeof document !== 'undefined' && document.querySelectorAll
+    ? [...document.querySelectorAll('.aq_pat_cb:checked')].map(x => x.value)
+    : [];
+  if($('#aq_pat_otra') && $('#aq_pat_otra').checked && $('#aq_pat_other') && $('#aq_pat_other').value.trim()){
+    selectedPats.push($('#aq_pat_other').value.trim());
+  }
+  const patologias = selectedPats.length > 0 ? selectedPats : [dx];
+
+  const alergias = ($('#aq_alergias') && $('#aq_alergias').value.trim()) || 'No registra alergias';
+
+  const bookingData = { tid, date, time, start, dur, pat, age, dx, coord, ph, from, to, mob, req, alergias, compDesc, taxDoc, patologias };
+
+  // Verificación de advertencia preventiva de buffer de 2 horas (120 minutos)
+  if(!forceConfirm){
+    const conflictSvc = D.svcs.find(s => {
+      if(s.tid !== tid || s.date !== date || s.st === 'Cancelado') return false;
+      return (start < s.start + s.dur + 120) && (s.start < start + dur + 120);
+    });
+
+    if(conflictSvc){
+      pendingAdminBooking = bookingData;
+      abrirModalWarningBufferAdmin(conflictSvc, bookingData);
+      return { conflict: true, conflictSvc, bookingData };
+    }
+  }
+
+  const newId = D.nid++;
+  const newSvc = {
+    id: newId,
+    tid,
+    date,
+    start,
+    dur,
+    pat,
+    age,
+    dx,
+    coord,
+    ph,
+    from,
+    to,
+    mob,
+    req,
+    comp: !isSolo,
+    compDesc,
+    taxDoc,
+    patologias,
+    fare: qState.totalFare,
+    paid: qState.abono50,
+    st: 'Confirmado',
+    svcType: qState.mode,
+    alergias,
+    conciencia: 'Lúcido / Orientado',
+    obs: `Agendado vía Cotizador Maestro (${qState.mode === '1' ? 'Mod 1 Integral' : qState.mode === '2' ? 'Mod 2 Exclusivo' : qState.mode === '3' ? 'Mod 3 Domicilio' : qState.mode === '4' ? 'Mod 4 Eventos' : 'Mod 5 Interregional'})`,
+    createdAt: new Date().toISOString()
+  };
+
+  D.svcs.push(newSvc);
+  save();
+
+  cerrarModalWarningBufferAdmin();
+  if(typeof alert !== 'undefined') alert(`✅ ¡Reserva Folio #MSA-${newId} creada y guardada exitosamente en la agenda!`);
+  U.date = date;
+  U.tab = 'cal';
+  U.sel = newId;
+  render();
+  return { success: true, service: newSvc };
+}
+window.saveAdminBooking = saveAdminBooking;
+window.onAdminModeChange = onAdminModeChange;
+window.onAdminEventSubtypeChange = onAdminEventSubtypeChange;
+window.calcAdminQuote = calcAdminQuote;
+window.updateStayHoursSelector = updateStayHoursSelector;
+window.sendAdminQuoteWhatsApp = sendAdminQuoteWhatsApp;
+window.onAdminAddressInput = onAdminAddressInput;
+window.autoCalcAdminKm = autoCalcAdminKm;
+
+function abrirModalWarningBufferAdmin(conflictSvc, bookingData){
+  const modal = $('#modalWarningBufferAdmin');
+  const details = $('#modalWarningBufferDetails');
+  if(details){
+    details.innerHTML = `
+      <div><b>Servicio preexistente:</b> Folio #MSA-${conflictSvc.id} (${fm(conflictSvc.start)} a ${fm((conflictSvc.start+conflictSvc.dur)%1440)} hrs) — <i>${e(conflictSvc.pat)}</i></div>
+      <div style="margin-top:4px"><b>Nueva reserva proyectada:</b> ${bookingData.time} a ${fm((bookingData.start+bookingData.dur)%1440)} hrs — <i>${e(bookingData.pat)}</i></div>
+      <div style="margin-top:4px;color:#b45309"><b>TENS asignado:</b> ${tn(bookingData.tid)} · Fecha: ${bookingData.date}</div>
+    `;
+  }
+  if(modal) modal.style.display = 'flex';
+}
+window.abrirModalWarningBufferAdmin = abrirModalWarningBufferAdmin;
+
+function cerrarModalWarningBufferAdmin(){
+  const modal = $('#modalWarningBufferAdmin');
+  if(modal) modal.style.display = 'none';
+  pendingAdminBooking = null;
+}
+window.cerrarModalWarningBufferAdmin = cerrarModalWarningBufferAdmin;
+
+function confirmarGuardarConConflictoAdmin(){
+  if(!pendingAdminBooking) return;
+  const b = pendingAdminBooking;
+  return saveAdminBooking(null, true);
+}
+window.confirmarGuardarConConflictoAdmin = confirmarGuardarConConflictoAdmin;
+
+function abrirMenuContextualServicio(svcId){
+  U.sel = svcId;
+  const s = D.svcs.find(x => x.id === svcId);
+  if(!s) return;
+
+  const modal = $('#modalContextualServicioAdmin');
+  const phoneRaw = s.ph || '';
+  const digits = phoneRaw.replace(/\D/g, '');
+  const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
+  const clientName = s.coord || s.pat || 'Estimado(a)';
+  const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA respecto a su servicio Folio #MSA-${s.id} programado para el ${s.date} a las ${fm(s.start)} hrs.`;
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+
+  const wazeDestUrl = `https://waze.com/ul?q=${encodeURIComponent(s.to)}`;
+  const mapsDestUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.to)}`;
+
+  const ctxTitle = $('#ctxTitle');
+  if(ctxTitle){
+    ctxTitle.innerHTML = `<span>Folio #MSA-${s.id}</span> · <span class="badge" style="background:${COL[s.st]}">${s.st}</span>`;
+  }
+
+  const ctxContent = $('#ctxContent');
+  if(ctxContent){
+    ctxContent.innerHTML = `
+      <div style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-weight:800;color:var(--pri);font-size:1.05rem;margin-bottom:4px">
+          ${e(s.pat)} (${s.age} años)
+        </div>
+        <div><b>Diagnóstico / Motivo:</b> ${e(s.dx)}</div>
+        <div><b>Movilidad:</b> ${e(s.mob)} ${s.compDesc ? '· ' + e(s.compDesc) : (s.comp ? '(Con acompañante)' : '')}</div>
+        <div><b>Requerimientos Clínicos:</b> ${Array.isArray(s.req) && s.req.length ? s.req.join(' · ') : 'Signos vitales y asistencia TENS'}</div>
+        <div><b>Alergias:</b> <span style="${s.alergias && s.alergias.startsWith('Sí') ? 'color:#dc2626;font-weight:700' : ''}">${e(s.alergias || 'No registra')}</span> · <b>Conciencia:</b> ${e(s.conciencia || 'Lúcido / Orientado')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:.84rem;margin-bottom:12px">
+        <div><b>Horario:</b> ${fm(s.start)} a ${fm((s.start+s.dur)%1440)} hrs</div>
+        <div><b>TENS Asignado:</b> ${e(tn(s.tid))}</div>
+        <div><b>Origen:</b> ${e(s.from)}</div>
+        <div><b>Destino:</b> ${e(s.to)}</div>
+        <div><b>Contratante:</b> ${e(s.coord)} (${e(s.ph)})</div>
+        <div><b>Tarifa / Saldo:</b> ${$c(s.fare)} (Saldo: ${$c(s.fare - (s.paid||0))})</div>
+      </div>
+    `;
+  }
+
+  const ctxActions = $('#ctxActions');
+  if(ctxActions){
+    ctxActions.innerHTML = `
+      <a href="${waUrl}" target="_blank" rel="noopener" style="background:#25D366;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+        💬 WhatsApp Contratante
+      </a>
+      <a href="${wazeDestUrl}" target="_blank" rel="noopener" style="background:#0284c7;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+        🚙 Waze Destino
+      </a>
+      <a href="${mapsDestUrl}" target="_blank" rel="noopener" style="background:#475569;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+        🗺️ Google Maps
+      </a>
+      <button type="button" class="p" onclick="cerrarModalContextualServicioAdmin(); abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#0f766e;border-color:#0f766e;padding:8px 14px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+        🏁 Liquidar / Finalizar Atención
+      </button>
+      <button type="button" onclick="cerrarModalContextualServicioAdmin()" style="padding:8px 14px;font-size:.84rem">
+        Cerrar
+      </button>
+    `;
+  }
+
+  if(modal) modal.style.display = 'flex';
+  render();
+}
+window.abrirMenuContextualServicio = abrirMenuContextualServicio;
+
+function cerrarModalContextualServicioAdmin(){
+  const modal = $('#modalContextualServicioAdmin');
+  if(modal) modal.style.display = 'none';
+}
+window.cerrarModalContextualServicioAdmin = cerrarModalContextualServicioAdmin;
+
+function staff(){
+  const t=D.techs.find(x=>x.id==U.edit)||{nom:'',rut:'',tel:'',veh:'',col:'#2563eb'},v=(k)=>e(t[k]);
+  return `<div class=card><h2>${U.edit?'Editar TENS':'Agregar TENS'}</h2><form class=g onsubmit="saveT(event)">
+  <div><label>Nombre</label><input id=s_nom value="${v('nom')}" required></div><div><label>RUT</label><input id=s_rut value="${v('rut')}" required></div>
+  <div><label>Teléfono</label><input id=s_tel value="${v('tel')}" placeholder="+569..." required></div><div><label>Vehículo asociado</label><input id=s_veh value="${v('veh')}"></div>
+  <div><label>Color distintivo</label><input id=s_col type=color value="${t.col}"></div>
+  <div style="align-self:end"><button class=p type=submit>Guardar</button> ${U.edit?'<button type=button onclick="U.edit=null;render()">Cancelar</button>':''}</div></form></div>
+  <div class=card style="overflow-x:auto"><table><tr><th>TENS</th><th>RUT</th><th>Teléfono</th><th>Vehículo</th><th>Estado</th><th></th></tr>
+  ${D.techs.map(t=>`<tr><td><span class=dot style="background:${t.col}"></span>${e(t.nom)}</td><td>${e(t.rut)}</td><td>${e(t.tel)}</td><td>${e(t.veh)}</td><td>${t.act?'Activo':'Inactivo'}</td>
+  <td><button onclick="U.edit='${t.id}';render()">Editar</button> <button onclick="togT('${t.id}')">${t.act?'Desactivar':'Activar'}</button></td></tr>`).join('')}</table></div>`;
+}
+
+function saveT(ev){ev.preventDefault();const g=i=>$('#'+i).value,o={nom:g('s_nom'),rut:g('s_rut'),tel:g('s_tel'),veh:g('s_veh'),col:g('s_col')};
+if(U.edit)Object.assign(D.techs.find(x=>x.id==U.edit),o);else D.techs.push({id:'t'+Date.now(),act:true,...o});U.edit=null;save();render()}
+function togT(id){const t=D.techs.find(x=>x.id==id);t.act=!t.act;save();render()}
+
+// =========================================================================
+// VISTA TERRENO (TENS Y ADMINISTRACIÓN)
+// =========================================================================
+function tens(){
+  const sess = getSession();
+  const isAdmin = sess && sess.role === 'admin';
+  const act=D.techs.filter(t=>t.act);
+  if(!act.some(t=>t.id==U.tens))U.tens=(act[0]||{}).id;
+  const ss=D.svcs.filter(s=>s.tid==U.tens&&s.date==U.date&&s.st!='Cancelado').sort((a,b)=>a.start-b.start);
+  return `<div class=card>
+    ${isAdmin ? `
+      <label>Supervisar Conducción / TENS específico:</label>
+      <select onchange="U.tens=this.value;render()">${act.map(t=>`<option value="${t.id}" ${t.id==U.tens?'selected':''}>${e(t.nom)}</option>`).join('')}</select>
+    ` : `
+      <div style="font-weight:700;color:var(--pri)">🩺 Servicios de Hoy Asignados a: ${e(sess.name)}</div>
+    `}
+  </div>${dateNav()}
+  ${ss.map(card).join('')||'<div class=card style="text-align:center;padding:26px;color:var(--mut)">✅ Sin servicios asignados para este día.</div>'}`;
+}
+
+function card(s){
+  const n=NEXT[s.st];
+  const wa=s.ph.replace(/\D/g,'');
+  const q=encodeURIComponent(s.to);
+  const qo=encodeURIComponent(s.from);
+  const saldoFinal = (s.fare || 0) - (s.paid || 0);
+
+  return `
+    <div class="card" style="border-left:5px solid ${COL[s.st]};margin-bottom:14px">
+      <div class="row" style="justify-content:space-between;border-bottom:1px solid var(--bd);padding-bottom:6px">
+        <b>⏰ ${fm(s.start)} – ${fm(s.start+s.dur)} hrs</b>
+        <span class="badge" style="background:${COL[s.st]}">${s.st}</span>
+      </div>
+
+      <h2 style="margin:8px 0 2px;color:var(--pri)">${e(s.pat)} (${s.age} años)</h2>
+      <div style="font-weight:600">${e(s.dx)}</div>
+
+      ${s.alergias ? `<div style="font-size:12px;margin:3px 0"><b>Alergias:</b> <span style="${s.alergias.startsWith('Sí')?'color:#dc2626;font-weight:700':''}">${e(s.alergias)}</span> · <b>Conciencia:</b> ${e(s.conciencia||'Lúcido')}</div>` : ''}
+      <div class="al">⚠ ${e(s.mob)}${s.compDesc ? ' · ' + e(s.compDesc) : (s.comp?' · Viaja con acompañante':'')}${s.req && s.req.length ? '<br>' + s.req.map(e).join(' · ') : ''}</div>
+
+      <div style="margin:6px 0;line-height:1.4">
+        <div><b>Contacto:</b> ${e(s.coord)} (${e(s.ph)})</div>
+        <div style="margin-top:4px">
+          <a class="b" href="tel:${e(s.ph)}">📞 Llamar</a>
+          <a class="b" href="https://wa.me/${wa}" target="_blank" rel="noopener">💬 WhatsApp</a>
+        </div>
+      </div>
+
+      <div style="margin:8px 0;line-height:1.4">
+        <div><b>📍 Origen:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''}</div>
+        <div><b>🏥 Destino:</b> ${e(s.to)}</div>
+        <div style="margin-top:4px">
+          <a class="b" href="https://waze.com/ul?q=${qo}&navigate=yes" target="_blank" rel="noopener">🚗 Waze Origen</a>
+          <a class="b" href="https://www.google.com/maps/dir/?api=1&origin=${qo}&destination=${q}" target="_blank" rel="noopener">🗺️ Google Maps Ruta</a>
+        </div>
+      </div>
+
+      <div style="background:var(--bg);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:13.5px;display:flex;justify-content:space-between">
+        <span>Tarifa Total: <b>${$c(s.fare)}</b> (Abonado: ${$c(s.paid)})</span>
+        <span style="color:#b45309;font-weight:800">Saldo Pendiente: ${$c(saldoFinal)}</span>
+      </div>
+
+      <!-- BOTÓN DESTACADO DE CIERRE EN TERRENO Y BOLETA PDF -->
+      <div style="margin-top:10px">
+        <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#0f766e;border-color:#0f766e;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+          🏁 Finalizar Atención y Emitir Boleta PDF
+        </button>
+      </div>
+
+      ${n ? `<button class="p" style="width:100%;margin-top:8px;padding:9px;background:var(--card);color:var(--fg);border-color:var(--bd)" onclick="setSt(${s.id},'${n[0]}')">Avanzar a: [${n[1]}]</button>` : ''}
+    </div>
+  `;
+}
+
+// =========================================================================
+// FUNCIONES DE CIERRE EN TERRENO Y EMISIÓN DE BOLETA PDF
+// =========================================================================
+let currentClosingSvcId = null;
+
+function abrirModalFinalizarAtencionAdmin(svcId, options){
+  currentClosingSvcId = svcId;
+  const modal = $('#modalFinalizarAtencionAdmin');
+  if(!modal) return;
+
+  const s = D.svcs.find(item => item.id === svcId);
+  if(!s) return;
+
+  const startMin = s.start || 540;
+  const durMin = s.dur || 120;
+  const endPactadoMin = (startMin + durMin) % 1440;
+  const endPactadoStr = fm(endPactadoMin);
+
+  const inpCierre = $('#adm_horaCierreReal');
+  if(inpCierre) inpCierre.value = (options && options.horaCierre) || endPactadoStr;
+
+  const inpRut = $('#adm_rutPaciente');
+  if(inpRut) inpRut.value = (options && options.rutPaciente) || s.patRut || '12.345.678-9';
+
+  const selMedio = $('#adm_medioPago');
+  if(selMedio && options && options.medioPago) selMedio.value = options.medioPago;
+
+  const inpFolio = $('#adm_folioSII');
+  if(inpFolio) inpFolio.value = (options && options.folioSII !== undefined) ? options.folioSII : (s.folioSII || '');
+
+  modal.style.display = 'flex';
+
+  if(options && options.autoConfirm){
+    return ejecutarFinalizacionYDescargaPdfAdmin(options);
+  }
+}
+window.abrirModalFinalizarAtencionAdmin = abrirModalFinalizarAtencionAdmin;
+
+function cerrarModalFinalizarAtencionAdmin(){
+  const modal = $('#modalFinalizarAtencionAdmin');
+  if(modal) modal.style.display = 'none';
+}
+window.cerrarModalFinalizarAtencionAdmin = cerrarModalFinalizarAtencionAdmin;
+
+function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
+  const modal = $('#modalFinalizarAtencionAdmin');
+  const horaCierre = (customOpts && customOpts.horaCierre) || ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || '12:00';
+  const rutPaciente = (customOpts && customOpts.rutPaciente) || ($('#adm_rutPaciente') && $('#adm_rutPaciente').value.trim()) || '12.345.678-9';
+  const medioPago = (customOpts && customOpts.medioPago) || ($('#adm_medioPago') && $('#adm_medioPago').value) || 'Transferencia Electrónica';
+  const folioSII = (customOpts && customOpts.folioSII !== undefined) ? customOpts.folioSII : ($('#adm_folioSII') ? $('#adm_folioSII').value.trim() : '');
+
+  const s = D.svcs.find(item => item.id === currentClosingSvcId);
+  if(!s){ alert('Servicio no encontrado'); return; }
+
+  const folio = s.id;
+  const patName = s.pat || 'Paciente';
+  const patAge = s.age || '75';
+  const patDx = s.dx || 'Atención médica';
+  const mode = s.svcType || '1';
+
+  const startMin = s.start || 540;
+  const durMin = s.dur || 120;
+  const endPactadoMin = (startMin + durMin) % 1440;
+  const endPactadoStr = fm(endPactadoMin);
+
+  // Evaluar tiempo extra
+  const cierreMin = tm(horaCierre);
+  let diffMin = 0;
+  if(cierreMin > endPactadoMin){
+    diffMin = cierreMin - endPactadoMin;
+  } else if(cierreMin < endPactadoMin && cierreMin < 6 * 60 && endPactadoMin > 18 * 60){
+    diffMin = (cierreMin + 1440) - endPactadoMin;
+  }
+
+  let extraBlocks = 0;
+  let extraCost = 0;
+  if(diffMin > 0){
+    extraBlocks = Math.ceil(diffMin / 30);
+    let blockRate = 6000;
+    if(mode === '2') blockRate = 4000;
+    else if(mode === '3') blockRate = 7500;
+    else if(mode === '4' || mode === '5') blockRate = 15000;
+    extraCost = extraBlocks * blockRate;
+  }
+
+  const baseFare = s.fare || 48000;
+  const totalConExtra = baseFare + extraCost;
+  const abonoPrevio = (s.paid && s.paid > 0) ? s.paid : Math.round((baseFare * 0.5) / 50) * 50;
+  const saldoFinal = totalConExtra - abonoPrevio;
+
+  // Llenar datos de la boleta PDF
+  if($('#pdfFolio')) $('#pdfFolio').textContent = `FOLIO: #MSA-${folio}`;
+  if($('#pdfFechaEmision')) $('#pdfFechaEmision').textContent = `Fecha Emisión: ${TODAY}`;
+  if($('#pdfPatNombre')) $('#pdfPatNombre').textContent = patName;
+  if($('#pdfPatRut')) $('#pdfPatRut').textContent = rutPaciente;
+  if($('#pdfPatEdadDx')) $('#pdfPatEdadDx').textContent = `${patAge} años · ${patDx}`;
+  if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = `Modalidad ${mode}`;
+  if($('#pdfFechaServicio')) $('#pdfFechaServicio').textContent = s.date;
+  if($('#pdfHorarioPactado')) $('#pdfHorarioPactado').textContent = `${fm(startMin)} hrs a ${endPactadoStr} hrs`;
+  if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = s.from;
+  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = s.to;
+  if($('#pdfHoraCierreReal')) $('#pdfHoraCierreReal').textContent = `${horaCierre} hrs`;
+  if($('#pdfDesfaseExtraText')){
+    $('#pdfDesfaseExtraText').textContent = diffMin > 0
+      ? `⚠️ Excedente en terreno: +${diffMin} min (${extraBlocks * 30} min facturados)`
+      : 'Atención finalizada en horario estándar';
+    $('#pdfDesfaseExtraText').style.color = diffMin > 0 ? '#b91c1c' : '#0f766e';
+  }
+
+  // Tabla de items
+  const itemsTbody = $('#pdfTablaItems');
+  if(itemsTbody){
+    let itemsHtml = `
+      <tr>
+        <td style="padding:8px 12px;border:1px solid #cbd5e1">1. Servicio y Asistencia Clínica Programada</td>
+        <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center">${(durMin/60).toFixed(1)} hrs</td>
+        <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;white-space:nowrap;min-width:140px">${$c(baseFare)}</td>
+      </tr>
+    `;
+    if(diffMin > 0){
+      itemsHtml += `
+        <tr style="background:#fef2f2;color:#991b1b">
+          <td style="padding:8px 12px;border:1px solid #cbd5e1"><b>Tiempo Adicional Excedente en Terreno</b></td>
+          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">+${diffMin} min (${extraBlocks} bloques)</td>
+          <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;font-weight:700;white-space:nowrap;min-width:140px">${$c(extraCost)}</td>
+        </tr>
+      `;
+    }
+    itemsTbody.innerHTML = itemsHtml;
+  }
+
+  if($('#pdfSubtotal')) $('#pdfSubtotal').textContent = $c(totalConExtra);
+  if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(abonoPrevio);
+  if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(saldoFinal);
+  if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
+  const folioContainer = $('#pdfFolioSIIContainer');
+  if(folioContainer){
+    if(folioSII){
+      folioContainer.innerHTML = `<b>Boleta Electrónica SII N°:</b> <span id="pdfFolioSII">${folioSII}</span>`;
+    } else {
+      folioContainer.innerHTML = `<b>Documento Tributario:</b> <span id="pdfFolioSII">Boleta Electrónica Exenta emitida vía e-Boleta SII</span>`;
+    }
+  } else if($('#pdfFolioSII')) {
+    $('#pdfFolioSII').textContent = folioSII || 'Boleta Electrónica Exenta emitida vía e-Boleta SII';
+  }
+
+  // Generación y descarga con html2pdf
+  const pdfElement = document.getElementById('recibo-pdf');
+  if(pdfElement){
+    pdfElement.style.display = 'block';
+    if(typeof html2pdf !== 'undefined'){
+      html2pdf().set({
+        margin: 10,
+        filename: `Comprobante_Atencion_${folio}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(pdfElement).save().then(() => {
+        pdfElement.style.display = 'none';
+      }).catch(err => {
+        console.error('Error generando PDF:', err);
+        pdfElement.style.display = 'none';
+      });
+    } else {
+      console.log(`[html2pdf] Comprobante_Atencion_${folio}.pdf generado.`);
+      pdfElement.style.display = 'none';
+    }
+  }
+
+  // Redirección a WhatsApp
+  const clientName = s.coord || s.pat || 'Estimado(a)';
+  const phRaw = s.ph || '';
+  const digits = phRaw.replace(/\D/g, '');
+  const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
+  const waMsg = `Hola ${clientName}, adjunto el comprobante digital de atención y respaldo de pago del servicio finalizado.`;
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+
+  try { window.open(waUrl, '_blank'); } catch(e){}
+
+  // Actualizar estado en D.svcs
+  s.st = 'Finalizado';
+  s.fare = totalConExtra;
+  s.paid = totalConExtra;
+  s.patRut = rutPaciente;
+  s.medioPago = medioPago;
+  s.folioSII = folioSII;
+  save();
+
+  if(modal) modal.style.display = 'none';
+  render();
+  return { folio, totalConExtra, abonoPrevio, saldoFinal, waUrl };
+}
+window.ejecutarFinalizacionYDescargaPdfAdmin = ejecutarFinalizacionYDescargaPdfAdmin;
+
+render();
+</script>
 </body>
 </html>

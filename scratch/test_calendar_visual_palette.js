@@ -3,37 +3,35 @@ const fs = require('fs');
 
 console.log('=== TEST: DISEÑO VISUAL Y PALETA CLÍNICA DEL CALENDARIO DIARIO ===\n');
 
-const adminCode = fs.existsSync('js/admin.js')
-  ? fs.readFileSync('js/admin.js', 'utf8') + '\n' + fs.readFileSync('css/admin.css', 'utf8')
-  : fs.readFileSync('admin.html', 'utf8');
+const adminHtml = fs.readFileSync('admin.html', 'utf8');
 
-// 1. Verificación de la definición de colores y fondos
-assert(adminCode.includes("'Pendiente':'#F59E0B'"), 'Pendiente debe ser #F59E0B');
-assert(adminCode.includes("'Confirmado':'#3B82F6'"), 'Confirmado debe ser #3B82F6');
-assert(adminCode.includes("'En Ruta':'#14B8A6'"), 'En Ruta debe ser #14B8A6');
-assert(adminCode.includes("'En Atención':'#06B6D4'"), 'En Atención debe ser #06B6D4');
-assert(adminCode.includes("'Finalizado':'#10B981'"), 'Finalizado debe ser #10B981');
-assert(adminCode.includes("'Cancelado':'#64748B'"), 'Cancelado debe ser #64748B');
+// 1. Verificación de la definición de colores y fondos en admin.html
+assert(adminHtml.includes("'Pendiente':'#F59E0B'"), 'Pendiente debe ser #F59E0B');
+assert(adminHtml.includes("'Confirmado':'#3B82F6'"), 'Confirmado debe ser #3B82F6');
+assert(adminHtml.includes("'En Ruta':'#14B8A6'"), 'En Ruta debe ser #14B8A6');
+assert(adminHtml.includes("'En Atención':'#06B6D4'"), 'En Atención debe ser #06B6D4');
+assert(adminHtml.includes("'Finalizado':'#10B981'"), 'Finalizado debe ser #10B981');
+assert(adminHtml.includes("'Cancelado':'#64748B'"), 'Cancelado debe ser #64748B');
 
-assert(adminCode.includes("'Pendiente':'rgba(245, 158, 11, 0.12)'"), 'Fondo Pendiente debe ser rgba(245, 158, 11, 0.12)');
-assert(adminCode.includes("'Confirmado':'rgba(59, 130, 246, 0.12)'"), 'Fondo Confirmado debe ser rgba(59, 130, 246, 0.12)');
-assert(adminCode.includes("'En Ruta':'rgba(20, 184, 166, 0.12)'"), 'Fondo En Ruta debe ser rgba(20, 184, 166, 0.12)');
-assert(adminCode.includes("'En Atención':'rgba(6, 182, 212, 0.12)'"), 'Fondo En Atención debe ser rgba(6, 182, 212, 0.12)');
-assert(adminCode.includes("'Finalizado':'rgba(16, 185, 129, 0.12)'"), 'Fondo Finalizado debe ser rgba(16, 185, 129, 0.12)');
-assert(adminCode.includes("'Cancelado':'rgba(100, 116, 139, 0.12)'"), 'Fondo Cancelado debe ser rgba(100, 116, 139, 0.12)');
+assert(adminHtml.includes("'Pendiente':'rgba(245, 158, 11, 0.12)'"), 'Fondo Pendiente debe ser rgba(245, 158, 11, 0.12)');
+assert(adminHtml.includes("'Confirmado':'rgba(59, 130, 246, 0.12)'"), 'Fondo Confirmado debe ser rgba(59, 130, 246, 0.12)');
+assert(adminHtml.includes("'En Ruta':'rgba(20, 184, 166, 0.12)'"), 'Fondo En Ruta debe ser rgba(20, 184, 166, 0.12)');
+assert(adminHtml.includes("'En Atención':'rgba(6, 182, 212, 0.12)'"), 'Fondo En Atención debe ser rgba(6, 182, 212, 0.12)');
+assert(adminHtml.includes("'Finalizado':'rgba(16, 185, 129, 0.12)'"), 'Fondo Finalizado debe ser rgba(16, 185, 129, 0.12)');
+assert(adminHtml.includes("'Cancelado':'rgba(100, 116, 139, 0.12)'"), 'Fondo Cancelado debe ser rgba(100, 116, 139, 0.12)');
 
 console.log('✓ Códigos de color y transparencias (12%) verificados en constantes.');
 
 // 2. Verificación de estilos CSS para .sv
-assert(adminCode.includes('border-left:4px solid'), 'La tarjeta debe tener barra de acento vertical de 4px');
-assert(adminCode.includes('backdrop-filter:blur'), 'La tarjeta debe incorporar backdrop-filter translúcido');
-assert(adminCode.includes('color:#f1f5f9') || adminCode.includes('color:#ffffff'), 'La tipografía debe ser en color blanco / alto contraste');
+assert(adminHtml.includes('border-left:4px solid'), 'La tarjeta debe tener barra de acento vertical de 4px');
+assert(adminHtml.includes('backdrop-filter:blur'), 'La tarjeta debe incorporar backdrop-filter translúcido');
+assert(adminHtml.includes('color:#f1f5f9') || adminHtml.includes('color:#ffffff'), 'La tipografía debe ser en color blanco / alto contraste');
 
 console.log('✓ Estilos CSS de tarjeta translúcida, acento vertical 4px y tipografía blanca verificados.');
 
 // 3. Verificación de distintivos de traslado y asistencial
-assert(adminCode.includes('🚗') && adminCode.includes('En Ruta'), 'En Ruta debe tener el distintivo de traslado 🚗');
-assert(adminCode.includes('🩺') && adminCode.includes('En Atención'), 'En Atención debe tener el distintivo asistencial 🩺');
+assert(adminHtml.includes('🚗') && adminHtml.includes('En Ruta'), 'En Ruta debe tener el distintivo de traslado 🚗');
+assert(adminHtml.includes('🩺') && adminHtml.includes('En Atención'), 'En Atención debe tener el distintivo asistencial 🩺');
 
 console.log('✓ Distintivos 🚗 (En Ruta) y 🩺 (En Atención) verificados en bloques y leyendas.');
 
