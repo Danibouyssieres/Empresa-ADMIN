@@ -342,7 +342,7 @@ footer a{color:#fff}
           </div>
 
           <!-- BLOQUE 1: MAÑANA -->
-          <button type="button" id="btnBlock_manana" class="block-btn" onclick="selectShiftBlock('manana'); if(typeof window.actualizarTarifaSegunAgenda==='function') window.actualizarTarifaSegunAgenda();">
+          <button type="button" id="btnBlock_manana" class="block-btn" onclick="selectShiftBlock('manana')">
             <div class="block-btn-top">
               <span class="block-btn-title">🌅 Turno Mañana (06:00 a 12:00 hrs)</span>
               <span id="badgeBlock_manana" class="block-badge ok">Disponible (1 cupo)</span>
@@ -351,7 +351,7 @@ footer a{color:#fff}
           </button>
 
           <!-- BLOQUE 2: TARDE -->
-          <button type="button" id="btnBlock_tarde" class="block-btn" onclick="selectShiftBlock('tarde'); if(typeof window.actualizarTarifaSegunAgenda==='function') window.actualizarTarifaSegunAgenda();">
+          <button type="button" id="btnBlock_tarde" class="block-btn" onclick="selectShiftBlock('tarde')">
             <div class="block-btn-top">
               <span class="block-btn-title">🌇 Turno Tarde (14:00 a 20:00 hrs)</span>
               <span id="badgeBlock_tarde" class="block-badge ok">Disponible (1 cupo)</span>
@@ -360,7 +360,7 @@ footer a{color:#fff}
           </button>
 
           <!-- BLOQUE 3: NOCHE -->
-          <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche'); if(typeof window.actualizarTarifaSegunAgenda==='function') window.actualizarTarifaSegunAgenda();" disabled style="pointer-events:none">
+          <button type="button" id="btnBlock_noche" class="block-btn" onclick="selectShiftBlock('noche')" disabled style="pointer-events:none">
             <div class="block-btn-top">
               <span class="block-btn-title">🌙 Turno Noche (22:00 a 04:00 hrs)</span>
               <span id="badgeBlock_noche" class="block-badge occ">No disponible</span>
@@ -2185,7 +2185,7 @@ function recalcularTodoElServicio(triggerSource){
     if(mode === '1' || mode === '2' || mode === '5'){
       const appTime = ($('#appTimeInput') && $('#appTimeInput').value) || ($('#b_app_time') && $('#b_app_time').value);
       if(appTime && typeof calcSuggestedPickup === 'function'){
-        calcSuggestedPickup();
+        calcSuggestedPickup(triggerSource);
       }
     }
     if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility(); // recalcularTodoElServicio
@@ -4034,20 +4034,26 @@ function selectShiftBlock(blockId){
     selectedBlock = blockId;
   }
 
-  // Limpiar la hora previamente seleccionada para evitar inconsistencias
+  // En modalidades con traslado vehicular (1 y 2), sincronizar hora de cita médica según el turno seleccionado
+  if(mode === '1' || mode === '2'){
+    const appTimeInput = $('#appTimeInput') || $('#hora-cita-medica') || $('#b_app_time');
+    if(appTimeInput){
+      const curAppVal = appTimeInput.value;
+      const curAppMin = curAppVal ? tm(curAppVal) : 0;
+      if(selectedBlock === 'tarde' && curAppMin < 14 * 60){
+        appTimeInput.value = '15:00';
+      } else if(selectedBlock === 'manana' && curAppMin >= 14 * 60){
+        appTimeInput.value = '10:00';
+      }
+    }
+  }
+
+  // Limpiar la hora previamente seleccionada en #b_time para evitar inconsistencias
   const timeSelect = $('#b_time');
   if(timeSelect) timeSelect.value = '';
 
   updateSlots(false);
   actualizarTarifaSegunAgenda();
-
-  // Desplazamiento Suave (Auto-scroll) hacia el inicio de la Sección 2
-  setTimeout(() => {
-    const sec2 = document.getElementById('secModalidad');
-    if(sec2){
-      sec2.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, 60);
 }
 
 function onPickupTimeChange(){
@@ -5128,7 +5134,7 @@ function renderSemaforoCard(semaforo){
 }
 window.renderSemaforoCard = renderSemaforoCard;
 
-function calcSuggestedPickup(){
+function calcSuggestedPickup(source){
   try {
     const callout = $('#suggestedPickupCallout');
     const msg = $('#suggestedPickupMsg');
@@ -5205,12 +5211,23 @@ function calcSuggestedPickup(){
       targetBlock = 'manana';
       if(targetSlotMin < 300) targetSlotMin = 300; // Mínimo 05:00 AM (300 min)
       if(targetSlotMin > 540) targetSlotMin = 540; // Máximo 09:00 AM (540 min)
-    } else if(targetSlotMin < 720 || (targetSlotMin >= 720 && targetSlotMin < 840)){
-      targetBlock = 'manana';
-      if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00 AM (360 min)
+    } else if(source === 'appTime' || !selectedBlock){
+      if(targetSlotMin < 720 || (targetSlotMin >= 720 && targetSlotMin < 840)){
+        targetBlock = 'manana';
+        if(targetSlotMin < 360) targetSlotMin = 360; // Mínimo 06:00 AM (360 min)
+      } else {
+        targetBlock = 'tarde';
+        if(targetSlotMin < 840) targetSlotMin = 840; // Mínimo 14:00 (840 min)
+      }
     } else {
-      targetBlock = 'tarde';
-      if(targetSlotMin < 840) targetSlotMin = 840; // Mínimo 14:00 (840 min)
+      // Si el usuario ya tiene un turno seleccionado y la llamada proviene de un recálculo secundario (ruta, tarifa, click),
+      // respetar siempre el turno elegido por el usuario (selectedBlock)
+      targetBlock = selectedBlock;
+      if(targetBlock === 'manana'){
+        if(targetSlotMin < 360) targetSlotMin = 360;
+      } else if(targetBlock === 'tarde'){
+        if(targetSlotMin < 840) targetSlotMin = 840;
+      }
     }
 
     // Hora de término proyectada del servicio completo (Recogida + Viaje ida + Permanencia + Viaje retorno)
