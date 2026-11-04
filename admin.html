@@ -1446,6 +1446,19 @@ function onAdminModeChange(){
   const lblKmNote = $('#lbl_km_note');
   const ringId = (qState.ring && qState.ring.id) || 1;
 
+  const lblStayHours = $('#lbl_stay_hours');
+  if(lblStayHours){
+    if(mode === '1'){
+      lblStayHours.textContent = 'Permanencia en box / atención en destino *';
+    } else if(mode === '2'){
+      lblStayHours.textContent = 'Tiempo de espera vehicular en destino *';
+    } else if(mode === '3'){
+      lblStayHours.textContent = 'Horas de cuidado continuo a domicilio *';
+    } else {
+      lblStayHours.textContent = 'Tiempo de Asistencia / Espera *';
+    }
+  }
+
   if(mode === '1' || mode === '2'){
     if(rowStay) rowStay.style.display = 'block';
     if(rowEvt) rowEvt.style.display = 'none';
@@ -1843,21 +1856,55 @@ function calcAdminQuote(){
   let timeLabel = '';
   let kmLabel = `${kmTot} km`;
 
-  if(mode === '1' || mode === '2'){
+  if(mode === '1'){
+    stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
+    qState.stayMin = stayMin;
+    qState.kmTotal = kmTot;
+
+    const rates = ADMIN_RATES['1'];
+    const hourlyRate = rates[jornada] || rates.habil;
+    qState.ratePerHour = hourlyRate;
+
+    // Modalidad 1: CIRCUITO COMPLETO de asistencia TENS (Abordaje + Viaje Ida + Box + Retorno)
+    const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((kmTot / 2) * 1.3));
+    const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
+    const rawTotalMin = 10 + idaMin + stayMin + retornoMin;
+    const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
+    qState.durationMin = billedMin;
+
+    kmCost = Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
+    timeCost = Math.round((billedMin / 60) * hourlyRate);
+
+    timeLabel = `${(billedMin / 60).toFixed(1)} hrs (${(stayMin / 60).toFixed(1)}h box + ${Math.round(rawTotalMin - stayMin)}m viaje/abordaje)`;
+    kmLabel = `${kmTot} km`;
+
+    const calculatedSum = kmCost + timeCost;
+    const ringFloor = (qState.ring && qState.ring.minFare) || 18000;
+
+    if(calculatedSum < ringFloor){
+      totalFare = ringFloor;
+      floorApplied = true;
+    } else {
+      totalFare = calculatedSum;
+      floorApplied = false;
+    }
+  } else if(mode === '2'){
     stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 120;
     if(stayMin > 360) stayMin = 360;
     qState.stayMin = stayMin;
     qState.durationMin = stayMin;
     qState.kmTotal = kmTot;
-    timeLabel = `${(stayMin / 60).toFixed(1)} hrs`;
-    kmLabel = `${kmTot} km`;
 
-    const rates = ADMIN_RATES[mode] || ADMIN_RATES['1'];
+    const rates = ADMIN_RATES['2'];
     const hourlyRate = rates[jornada] || rates.habil;
     qState.ratePerHour = hourlyRate;
 
+    // Modalidad 2: EXCLUSIVAMENTE espera vehicular con auto estacionado en recinto
     kmCost = Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
     timeCost = Math.round((stayMin / 60) * hourlyRate);
+
+    timeLabel = `${(stayMin / 60).toFixed(1)} hrs espera vehicular`;
+    kmLabel = `${kmTot} km`;
 
     const calculatedSum = kmCost + timeCost;
     const ringFloor = (qState.ring && qState.ring.minFare) || 18000;
@@ -2052,9 +2099,17 @@ function sendAdminQuoteWhatsApp(){
   let breakdown = '';
   let trayectoLine = `• *Trayecto:* ${from} ➔ ${to}\n`;
 
-  if(qState.mode === '1' || qState.mode === '2'){
+  if(qState.mode === '1'){
+    const billedH = (durMin / 60).toFixed(1);
+    const stayH = ((qState.stayMin || durMin) / 60).toFixed(1);
     breakdown += `• *Kilometraje (${qState.kmTotal} km ida/vuelta):* ${$c(qState.kmCost)}\n`;
-    breakdown += `• *Tiempo de asistencia/espera (${(durMin/60).toFixed(1)} hrs):* ${$c(qState.timeCost)}\n`;
+    breakdown += `• *Circuito completo asistencia TENS (${billedH} hrs - ${stayH}h box + viaje):* ${$c(qState.timeCost)}\n`;
+    if(qState.floorApplied){
+      breakdown += `• *Tarifa mínima legal garantizada aplicada:* ${$c(qState.ring.minFare)} (${qState.ring.name})\n`;
+    }
+  } else if(qState.mode === '2'){
+    breakdown += `• *Kilometraje (${qState.kmTotal} km ida/vuelta):* ${$c(qState.kmCost)}\n`;
+    breakdown += `• *Tiempo de espera vehicular en destino (${(durMin/60).toFixed(1)} hrs):* ${$c(qState.timeCost)}\n`;
     if(qState.floorApplied){
       breakdown += `• *Tarifa mínima legal garantizada aplicada:* ${$c(qState.ring.minFare)} (${qState.ring.name})\n`;
     }

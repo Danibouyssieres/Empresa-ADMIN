@@ -98,12 +98,16 @@ vm.runInContext('onAdminAddressInput("from");', mockContext);
 let qState = vm.runInContext('qState;', mockContext);
 assert.strictEqual(qState.ring.id, 1, 'Maipú must be detected as Anillo 1');
 assert.strictEqual(qState.floorApplied, false);
-assert.strictEqual(qState.totalFare, 22000);
-assert.strictEqual(qState.abono50, 11000);
-console.log('✓ Modality 1 Anillo 1 standard fare passed');
+// Circuito Completo TENS: 60m box + 10m abordaje + 60m viaje ida/vuelta = 130m -> 150m (2.5h) = $30.000 tiempo + $10.000 km = $40.000
+assert.strictEqual(qState.totalFare, 40000);
+assert.strictEqual(qState.abono50, 20000);
+console.log('✓ Modality 1 Anillo 1 standard fare (Full Circuit TENS) passed');
 
-// Renca (Anillo 2: $35.000)
+// Renca (Anillo 2: $35.000 mínimo legal)
+// Con 2 km y 0h box para probar aplicación estricta de piso legal:
 q_from.value = 'Av. Domingo Santa María 4000, Renca';
+q_km.value = '4';
+q_stay.value = '30';
 vm.runInContext('onAdminAddressInput("from");', mockContext);
 qState = vm.runInContext('qState;', mockContext);
 assert.strictEqual(qState.ring.id, 2);
@@ -112,8 +116,10 @@ assert.strictEqual(qState.totalFare, 35000);
 assert.strictEqual(qState.abono50, 17500);
 console.log('✓ Modality 1 Anillo 2 guaranteed floor passed');
 
-// Las Condes (Anillo 3: $50.000)
+// Las Condes (Anillo 3: $50.000 mínimo legal)
 q_from.value = 'Av. Apoquindo 4000, Las Condes';
+q_km.value = '4';
+q_stay.value = '30';
 vm.runInContext('onAdminAddressInput("from");', mockContext);
 qState = vm.runInContext('qState;', mockContext);
 assert.strictEqual(qState.ring.id, 3);
