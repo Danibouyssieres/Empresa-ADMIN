@@ -1347,8 +1347,11 @@ function form(){
           <input type="text" id="aq_coord" placeholder="Ej: Andrea Medina" required>
         </div>
         <div>
-          <label for="aq_ph">Teléfono WhatsApp Contacto *</label>
-          <input type="tel" id="aq_ph" placeholder="+56 9 8765 4321" value="+56 9 " required>
+          <label for="aq_ph">Teléfono WhatsApp Contacto (+56 9) *</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-weight:700;padding:8px 10px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--pri);font-size:13px;white-space:nowrap">+56 9</span>
+            <input type="tel" id="aq_ph" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678" style="font-size:13px;width:100%" required oninput="this.value=this.value.replace(/\D/g,'').slice(0,8);saveAdminQuoterDraft()" onchange="this.value=this.value.replace(/\D/g,'').slice(0,8);saveAdminQuoterDraft()">
+          </div>
         </div>
         <div>
           <label for="aq_mob">Condición de Movilidad</label>
@@ -1361,8 +1364,21 @@ function form(){
           <select id="aq_tens" required></select>
         </div>
         <div>
-          <label for="aq_alergias">Alergias Conocidas</label>
-          <input type="text" id="aq_alergias" placeholder="No registra o detallar">
+          <label style="font-weight:700;display:block;margin-bottom:4px;font-size:13px">¿Presenta alergias conocidas? *</label>
+          <div style="display:flex;gap:18px;align-items:center;min-height:36px">
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+              <input type="radio" name="aq_allergy_radio" value="no" checked onchange="toggleAdminAllergyField(this.value);saveAdminQuoterDraft()">
+              <b>No</b>
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+              <input type="radio" name="aq_allergy_radio" value="si" onchange="toggleAdminAllergyField(this.value);saveAdminQuoterDraft()">
+              <b>Sí</b>
+            </label>
+          </div>
+          <div id="aq_allergy_detail_wrap" style="display:none;margin-top:6px">
+            <label for="aq_alergias" style="font-size:11.5px;color:#dc2626;font-weight:700;display:block;margin-bottom:3px">Detallar alergias (medicamentos, látex, parches, alimentos) *</label>
+            <input type="text" id="aq_alergias" placeholder="Ej: Penicilina, látex, parches, etc." style="font-size:12px;width:100%;border-color:#fca5a5" oninput="saveAdminQuoterDraft()" onchange="saveAdminQuoterDraft()">
+          </div>
         </div>
       </div>
 
@@ -1379,10 +1395,26 @@ function form(){
         </div>
       </div>
 
-      <div class="rqs" style="margin-top:12px">
-        <label><b>Tareas y Protocolos Asistenciales:</b></label>
-        ${REQ.map(r=>`<label><input type="checkbox" class="aq_rq" value="${r}" ${r==='Control de signos vitales'||r==='Acompañamiento en box médico'?'checked':''}>${r}</label>`).join('')}
+      <!-- MEDICAMENTOS HABITUALES (FICHA CLÍNICA ESENCIAL) -->
+      <div style="margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px">
+        <label style="font-weight:700;display:block;margin-bottom:6px;font-size:13px">¿Toma medicamentos de uso habitual? *</label>
+        <div style="display:flex;gap:18px;align-items:center;min-height:32px">
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+            <input type="radio" name="aq_meds_radio" value="no" checked onchange="toggleAdminMedsField(this.value);saveAdminQuoterDraft()">
+            <b>No</b>
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+            <input type="radio" name="aq_meds_radio" value="si" onchange="toggleAdminMedsField(this.value);saveAdminQuoterDraft()">
+            <b>Sí</b>
+          </label>
+        </div>
+        <div id="aq_meds_detail_wrap" style="display:none;margin-top:8px">
+          <label for="aq_meds_detail" style="font-size:11.5px;color:var(--pri);font-weight:700;display:block;margin-bottom:4px">Indicar fármacos, dosis y frecuencia:</label>
+          <textarea id="aq_meds_detail" rows="2" placeholder="Indicar fármacos, dosis y frecuencia (Ej: Losartán 50mg am, Metformina 850mg almuerzo). Si son muchos, puede indicar 'Revisar recetas en terreno'" style="font-size:12px;width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);resize:vertical" oninput="saveAdminQuoterDraft()" onchange="saveAdminQuoterDraft()"></textarea>
+        </div>
       </div>
+
+      <!-- Tareas y Protocolos tipificados automáticamente según modalidad -->
 
       <!-- SECCIÓN 4: DOCUMENTO TRIBUTARIO HOMOLOGADO -->
       <div style="margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px">
@@ -1464,10 +1496,13 @@ function saveAdminQuoterDraft(){
       ph: ($('#aq_ph') && $('#aq_ph').value) || '',
       mob: ($('#aq_mob') && $('#aq_mob').value) || '',
       tens: ($('#aq_tens') && $('#aq_tens').value) || '',
+      allergyRadio: (typeof document !== 'undefined' && document.querySelector('input[name="aq_allergy_radio"]:checked') && document.querySelector('input[name="aq_allergy_radio"]:checked').value) || 'no',
       alergias: ($('#aq_alergias') && $('#aq_alergias').value) || '',
+      medsRadio: (typeof document !== 'undefined' && document.querySelector('input[name="aq_meds_radio"]:checked') && document.querySelector('input[name="aq_meds_radio"]:checked').value) || 'no',
+      medsDetail: ($('#aq_meds_detail') && $('#aq_meds_detail').value) || '',
       pats: typeof document !== 'undefined' && document.querySelectorAll ? [...document.querySelectorAll('.aq_pat_cb:checked')].map(x => x.value) : [],
       patOther: ($('#aq_pat_other') && $('#aq_pat_other').value) || '',
-      reqs: typeof document !== 'undefined' && document.querySelectorAll ? [...document.querySelectorAll('.aq_rq:checked')].map(x => x.value) : [],
+      reqs: [],
       taxDoc: (document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value) || 'boleta',
       taxRS: ($('#aq_tax_rs') && $('#aq_tax_rs').value) || '',
       taxRUT: ($('#aq_tax_rut') && $('#aq_tax_rut').value) || '',
@@ -1526,10 +1561,25 @@ function loadAdminQuoterDraft(){
     if(d.comp && $('#aq_comp')) $('#aq_comp').value = d.comp;
     if(d.dx && $('#aq_dx')) $('#aq_dx').value = d.dx;
     if(d.coord && $('#aq_coord')) $('#aq_coord').value = d.coord;
-    if(d.ph && $('#aq_ph')) $('#aq_ph').value = d.ph;
+    if(d.ph && $('#aq_ph')) $('#aq_ph').value = d.ph.replace(/\D/g, '').slice(-8);
     if(d.mob && $('#aq_mob')) $('#aq_mob').value = d.mob;
     if(d.tens && $('#aq_tens')) $('#aq_tens').value = d.tens;
+    if(d.allergyRadio && typeof document !== 'undefined'){
+      const r = document.querySelector(`input[name="aq_allergy_radio"][value="${d.allergyRadio}"]`);
+      if(r){
+        r.checked = true;
+        toggleAdminAllergyField(d.allergyRadio);
+      }
+    }
     if(d.alergias && $('#aq_alergias')) $('#aq_alergias').value = d.alergias;
+    if(d.medsRadio && typeof document !== 'undefined'){
+      const r = document.querySelector(`input[name="aq_meds_radio"][value="${d.medsRadio}"]`);
+      if(r){
+        r.checked = true;
+        toggleAdminMedsField(d.medsRadio);
+      }
+    }
+    if(d.medsDetail && $('#aq_meds_detail')) $('#aq_meds_detail').value = d.medsDetail;
 
     if(Array.isArray(d.pats) && typeof document !== 'undefined' && document.querySelectorAll){
       document.querySelectorAll('.aq_pat_cb').forEach(cb => {
@@ -1542,19 +1592,6 @@ function loadAdminQuoterDraft(){
       if($('#aq_pat_otra')) $('#aq_pat_otra').checked = true;
     }
 
-    if(Array.isArray(d.reqs) && typeof document !== 'undefined' && document.querySelectorAll){
-      document.querySelectorAll('.aq_rq').forEach(cb => {
-        cb.checked = d.reqs.includes(cb.value);
-      });
-    }
-
-    if(d.taxDoc && typeof document !== 'undefined'){
-      const r = document.querySelector(`input[name="aq_tax_doc"][value="${d.taxDoc}"]`);
-      if(r){
-        r.checked = true;
-        toggleAdminTaxDoc(d.taxDoc);
-      }
-    }
     if(d.taxRS && $('#aq_tax_rs')) $('#aq_tax_rs').value = d.taxRS;
     if(d.taxRUT && $('#aq_tax_rut')) $('#aq_tax_rut').value = d.taxRUT;
     if(d.taxGiro && $('#aq_tax_giro')) $('#aq_tax_giro').value = d.taxGiro;
@@ -1591,8 +1628,17 @@ function resetAdminQuoterForm(){
   if($('#aq_pat')) $('#aq_pat').value = '';
   if($('#aq_dx')) $('#aq_dx').value = '';
   if($('#aq_coord')) $('#aq_coord').value = '';
-  if($('#aq_ph')) $('#aq_ph').value = '+56 9 ';
+  if($('#aq_ph')) $('#aq_ph').value = '';
+  if(typeof document !== 'undefined'){
+    const noAllergy = document.querySelector('input[name="aq_allergy_radio"][value="no"]');
+    if(noAllergy) noAllergy.checked = true;
+    toggleAdminAllergyField('no');
+    const noMeds = document.querySelector('input[name="aq_meds_radio"][value="no"]');
+    if(noMeds) noMeds.checked = true;
+    toggleAdminMedsField('no');
+  }
   if($('#aq_alergias')) $('#aq_alergias').value = '';
+  if($('#aq_meds_detail')) $('#aq_meds_detail').value = '';
   if($('#aq_pat_other')) $('#aq_pat_other').value = '';
   if($('#aq_pat_other_wrap')) $('#aq_pat_other_wrap').style.display = 'none';
 
@@ -2039,7 +2085,7 @@ function onAdminPathologyOtraChange(cb){
     const ning = $('#aq_pat_ninguna');
     if(ning) ning.checked = false;
     const inp = $('#aq_pat_other');
-    if(inp) inp.focus();
+    if(inp) if(typeof inp.focus === 'function') inp.focus();
   }
 }
 
@@ -2047,6 +2093,39 @@ function toggleAdminTaxDoc(val){
   const wrap = $('#aq_tax_factura_wrap');
   if(wrap) wrap.style.display = val === 'factura' ? 'block' : 'none';
 }
+
+function toggleAdminAllergyField(val){
+  const wrap = $('#aq_allergy_detail_wrap');
+  if(!wrap) return;
+  if(val === 'si'){
+    wrap.style.display = 'block';
+    const inp = $('#aq_alergias');
+    if(inp){
+      if(inp.value.includes('No registra')) inp.value = '';
+      if(typeof inp.focus === 'function') inp.focus();
+    }
+  } else {
+    wrap.style.display = 'none';
+    const inp = $('#aq_alergias');
+    if(inp) inp.value = '';
+  }
+}
+window.toggleAdminAllergyField = toggleAdminAllergyField;
+
+function toggleAdminMedsField(val){
+  const wrap = $('#aq_meds_detail_wrap');
+  if(!wrap) return;
+  if(val === 'si'){
+    wrap.style.display = 'block';
+    const detail = $('#aq_meds_detail');
+    if(detail) if(typeof detail.focus === 'function') detail.focus();
+  } else {
+    wrap.style.display = 'none';
+    const detail = $('#aq_meds_detail');
+    if(detail) detail.value = '';
+  }
+}
+window.toggleAdminMedsField = toggleAdminMedsField;
 
 if(typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
   document.addEventListener('click', function(ev){
@@ -2298,10 +2377,18 @@ function populateAdminTechs(){
   }
 }
 
+function fmtDurationClean(min){
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if(m === 0) return `${h} ${h === 1 ? 'hora' : 'horas'}`;
+  if(h === 0) return `${m} min`;
+  return `${h} ${h === 1 ? 'hora' : 'horas'} ${m} min`;
+}
+
 function sendAdminQuoteWhatsApp(){
   calcAdminQuote();
-  const phone = (($('#aq_ph') && $('#aq_ph').value) || '').replace(/\D/g, '');
-  const cleanPhone = phone.startsWith('56') ? phone : ('56' + (phone || '929990095'));
+  const phoneDigits = (($('#aq_ph') && $('#aq_ph').value) || '').replace(/\D/g, '').slice(0, 8);
+  const cleanPhone = phoneDigits ? ('569' + phoneDigits) : '56929990095';
 
   const modeNames = {
     '1': '1. Servicio Integral (Asistencia TENS + Traslado)',
@@ -2318,6 +2405,62 @@ function sendAdminQuoteWhatsApp(){
   const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Origen';
   const to = ($('#aq_to') && $('#aq_to').value.trim()) || 'Destino';
   const durMin = qState.durationMin || 120;
+  const startMin = tm(time);
+
+  // Cálculo de cronograma desglosado
+  let salidaDomicilio = time;
+  let llegadaDestino = '';
+  let tiempoAtencionLabel = '';
+  let retornoEstimado = '';
+
+  if(qState.mode === '1'){
+    const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((qState.kmTotal / 2) * 1.3));
+    const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
+    const stayMin = qState.stayMin || 60;
+    llegadaDestino = fm(startMin + 10 + idaMin);
+    tiempoAtencionLabel = fmtDurationClean(stayMin);
+    retornoEstimado = fm(startMin + (qState.durationMin || (10 + idaMin + stayMin + retornoMin)));
+  } else if(qState.mode === '2'){
+    const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((qState.kmTotal / 2) * 1.3));
+    const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
+    const stayMin = qState.stayMin || 60;
+    llegadaDestino = fm(startMin + idaMin);
+    tiempoAtencionLabel = `${fmtDurationClean(stayMin)} (Espera vehicular)`;
+    retornoEstimado = fm(startMin + idaMin + stayMin + retornoMin);
+  } else if(qState.mode === '3'){
+    tiempoAtencionLabel = fmtDurationClean(durMin);
+    retornoEstimado = fm(startMin + durMin);
+  } else if(qState.mode === '4'){
+    if(qState.eventSubtype === 'sin_traslado'){
+      tiempoAtencionLabel = fmtDurationClean(durMin);
+      retornoEstimado = fm(startMin + durMin);
+    } else {
+      const packMin = qState.eventPack === 'base' ? 240 : 360;
+      const extraMin = qState.eventExtraMin || 0;
+      const eventStayMin = packMin + extraMin;
+      llegadaDestino = fm(startMin + 30);
+      tiempoAtencionLabel = fmtDurationClean(eventStayMin);
+      retornoEstimado = fm(startMin + (qState.durationMin || (eventStayMin + 60)));
+    }
+  } else if(qState.mode === '5'){
+    const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 90;
+    const stayMin = qState.interPlan === 'estandar' ? (240 + (qState.interExtraMin || 0)) : 360;
+    llegadaDestino = fm(startMin + idaMin);
+    tiempoAtencionLabel = fmtDurationClean(stayMin);
+    retornoEstimado = fm(startMin + (qState.durationMin || (idaMin + stayMin + 90)));
+  }
+
+  let cronogramaDesglosado = '';
+  if(qState.mode === '3' || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado')){
+    cronogramaDesglosado = `• 🩺 *Inicio de atención:* ${salidaDomicilio} hrs\n` +
+      `• 🩺 *Tiempo de atención:* ${tiempoAtencionLabel}\n` +
+      `• 🏠 *Término estimado:* ${retornoEstimado} hrs\n`;
+  } else {
+    cronogramaDesglosado = `• 🚗 *Salida de domicilio:* ${salidaDomicilio} hrs\n` +
+      `• 🏥 *Llegada a destino:* ${llegadaDestino} hrs\n` +
+      `• 🩺 *Tiempo de atención:* ${tiempoAtencionLabel}\n` +
+      `• 🏠 *Retorno estimado:* ${retornoEstimado} hrs\n`;
+  }
 
   let breakdown = '';
   let trayectoLine = `• *Trayecto:* ${from} ➔ ${to}\n`;
@@ -2366,29 +2509,44 @@ function sendAdminQuoteWhatsApp(){
     breakdown += `• *Subtotal Programa:* ${$c(qState.totalFare)}\n`;
   }
 
+  const hasAllergy = (typeof document !== 'undefined' && document.querySelector('input[name="aq_allergy_radio"]:checked') && document.querySelector('input[name="aq_allergy_radio"]:checked').value === 'si');
+  const allergyDetail = ($('#aq_alergias') && $('#aq_alergias').value.trim()) || '';
+  const alergiasText = hasAllergy ? (allergyDetail || 'Sí (Ver detalle en ficha)') : 'No registra alergias conocidas';
+
+  const hasMeds = (typeof document !== 'undefined' && document.querySelector('input[name="aq_meds_radio"]:checked') && document.querySelector('input[name="aq_meds_radio"]:checked').value === 'si');
+  const medsDetail = ($('#aq_meds_detail') && $('#aq_meds_detail').value.trim()) || '';
+  const medsText = hasMeds ? (medsDetail || 'Sí (Revisar recetas en terreno)') : 'No toma medicamentos habituales';
+
   const msg = `Hola ${coord}! Le escribimos de Movilidad y Salud Asistida SpA. Le compartimos el detalle oficial de su cotización requerida:
 
 📋 *DETALLE DEL SERVICIO SOLICITADO:*
 • *Paciente:* ${pat}
 • *Servicio:* ${modeNames[qState.mode]}
-• *Fecha y Hora:* ${date} - ${time} hrs
-${trayectoLine}• *Permanencia estimada:* ${(durMin/60).toFixed(1)} hrs
+• *Fecha:* ${date}
+${trayectoLine}
+⏱️ *CRONOGRAMA ESTIMADO:*
+${cronogramaDesglosado}
+🏥 *FICHA CLÍNICA:*
+• *Alergias conocidas:* ${alergiasText}
+• *Medicamentos habituales:* ${medsText}
 
 💰 *DESGLOSE ECONÓMICO:*
 ${breakdown}• *TOTAL COTIZADO:* ${$c(qState.totalFare)}
 • *Abono 50% para reserva:* ${$c(qState.abono50)}
 • *Saldo restante al finalizar el servicio:* ${$c(qState.saldo50)}
 
-📄 *DOCUMENTO TRIBUTARIO:* ${(document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value === 'factura') ? ('Factura Electrónica Exenta (' + (($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || 'Empresa') + ' - RUT ' + (($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '') + ')') : 'Boleta Electrónica Exenta'}
+📄 *DOCUMENTO TRIBUTARIO:* ${(typeof document !== 'undefined' && document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value === 'factura') ? ('Factura Electrónica Exenta (' + (($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || 'Empresa') + ' - RUT ' + (($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '') + ')') : 'Boleta Electrónica Exenta'}
 
 🏥 *INCLUYE:* Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, vehículo climatizado y habilitado para ayudas técnicas.
 
 Quedamos atentos para reservar su cupo exclusivo!`;
 
   const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank');
+  if(typeof window !== 'undefined' && window.open){
+    window.open(url, '_blank');
+  }
 }
-
+window.sendAdminQuoteWhatsApp = sendAdminQuoteWhatsApp;
 let pendingAdminBooking = null;
 
 function saveAdminBooking(ev, forceConfirm = false){
@@ -2444,14 +2602,19 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   const dx = ($('#aq_dx') && $('#aq_dx').value.trim()) || 'Atención clínica';
   const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Coordinador';
-  const ph = ($('#aq_ph') && $('#aq_ph').value.trim()) || '+56900000000';
+  const phRaw = (($('#aq_ph') && $('#aq_ph').value) || '').replace(/\D/g, '');
+  const phDigits = phRaw.slice(0, 8);
+  if(phDigits.length !== 8 && phRaw.length > 0){
+    if(typeof alert !== 'undefined') alert('⚠️ Ingrese un número de teléfono móvil de contacto válido de exactamente 8 dígitos (ej: 87654321).');
+    if($('#aq_ph') && typeof $('#aq_ph').focus === 'function') $('#aq_ph').focus();
+    return;
+  }
+  const ph = phDigits.length === 8 ? ('+56 9 ' + phDigits) : '+56 9 92999009';
   const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Domicilio Origen';
   const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
   const to = isSinTraslado ? from : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
-  const req = typeof document !== 'undefined' && document.querySelectorAll
-    ? [...document.querySelectorAll('.aq_rq:checked')].map(x => x.value)
-    : [];
+  const req = [];
 
   const selectedPats = typeof document !== 'undefined' && document.querySelectorAll
     ? [...document.querySelectorAll('.aq_pat_cb:checked')].map(x => x.value)
@@ -2461,9 +2624,20 @@ function saveAdminBooking(ev, forceConfirm = false){
   }
   const patologias = selectedPats.length > 0 ? selectedPats : [dx];
 
-  const alergias = ($('#aq_alergias') && $('#aq_alergias').value.trim()) || 'No registra alergias';
+  const hasAllergy = (typeof document !== 'undefined' && document.querySelector('input[name="aq_allergy_radio"]:checked') && document.querySelector('input[name="aq_allergy_radio"]:checked').value === 'si');
+  const allergyDetail = ($('#aq_alergias') && $('#aq_alergias').value.trim()) || '';
+  if(hasAllergy && !allergyDetail){
+    if(typeof alert !== 'undefined') alert('⚠️ Por favor especifique las alergias conocidas del paciente.');
+    if($('#aq_alergias')) $('#aq_alergias').focus();
+    return;
+  }
+  const alergias = hasAllergy ? allergyDetail : 'No registra alergias conocidas';
 
-  const bookingData = { tid, date, time, start, dur, pat, age, dx, coord, ph, from, to, mob, req, alergias, compDesc, taxDoc, patologias };
+  const hasMeds = (typeof document !== 'undefined' && document.querySelector('input[name="aq_meds_radio"]:checked') && document.querySelector('input[name="aq_meds_radio"]:checked').value === 'si');
+  const medsDetail = ($('#aq_meds_detail') && $('#aq_meds_detail').value.trim()) || '';
+  const medicamentos = hasMeds ? (medsDetail || 'Sí (Revisar recetas en terreno)') : 'No toma medicamentos habituales';
+
+  const bookingData = { tid, date, time, start, dur, pat, age, dx, coord, ph, from, to, mob, req, alergias, medicamentos, compDesc, taxDoc, patologias };
 
   // Verificación de advertencia preventiva de buffer de 2 horas (120 minutos)
   if(!forceConfirm){
