@@ -387,6 +387,21 @@ const STAY_HOURS_OPTIONS = [
   { val: 360, label: '6 horas de asistencia (Tope)' }
 ];
 
+const STAY_HOURS_OPTIONS_MOD2 = [
+  { val: 60, label: '1 hora de espera vehicular (Base mínima)' },
+  { val: 90, label: '1 hora 30 min' },
+  { val: 120, label: '2 horas de espera vehicular' },
+  { val: 150, label: '2 horas 30 min' },
+  { val: 180, label: '3 horas de espera vehicular' },
+  { val: 210, label: '3 horas 30 min' },
+  { val: 240, label: '4 horas de espera vehicular' },
+  { val: 270, label: '4 horas 30 min' },
+  { val: 300, label: '5 horas de espera vehicular' },
+  { val: 330, label: '5 horas 30 min' },
+  { val: 360, label: '6 horas de espera vehicular (Tope)' }
+];
+window.STAY_HOURS_OPTIONS_MOD2 = STAY_HOURS_OPTIONS_MOD2;
+
 const EVENT_RATES = {
   base: { sin_traslado: 65000, con_traslado: 95000, dur: 240 },
   total: { sin_traslado: 95000, con_traslado: 125000, dur: 360 }
@@ -1691,7 +1706,8 @@ function updateStayHoursSelector(mode, ringId){
     else if(ringId === 3) minMin = 240;
     else minMin = 120;
   }
-  const filtered = STAY_HOURS_OPTIONS.filter(o => o.val >= minMin);
+  const sourceList = (mode === '2') ? STAY_HOURS_OPTIONS_MOD2 : STAY_HOURS_OPTIONS;
+  const filtered = sourceList.filter(o => o.val >= minMin);
   sel.innerHTML = filtered.map(o => {
     const isSelected = (curVal >= minMin && o.val === curVal) || (curVal < minMin && o.val === minMin);
     return `<option value="${o.val}" ${isSelected ? 'selected' : ''}>${o.label}</option>`;
@@ -2194,7 +2210,6 @@ function calcAdminQuote(){
     stayMin = +($('#aq_stay_hours') && $('#aq_stay_hours').value) || 60;
     if(stayMin > 360) stayMin = 360;
     qState.stayMin = stayMin;
-    qState.durationMin = stayMin;
     qState.kmTotal = kmTot;
 
     const rates = ADMIN_RATES['2'];
@@ -2204,6 +2219,13 @@ function calcAdminQuote(){
     // Modalidad 2: EXCLUSIVAMENTE espera vehicular con auto estacionado en recinto
     kmCost = Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
     timeCost = Math.round((stayMin / 60) * hourlyRate);
+
+    // Proyección de término para el bloqueo de agenda:
+    // Fórmula oficial: Término proyectado = Hora salida + Viaje ida + Tiempo de espera contratado + Viaje retorno al hogar.
+    const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((kmTot / 2) * 1.3));
+    const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
+    const fullCircuitMin = idaMin + stayMin + retornoMin;
+    qState.durationMin = fullCircuitMin;
 
     timeLabel = `${(stayMin / 60).toFixed(1)} hrs espera vehicular`;
     kmLabel = `${kmTot} km`;
@@ -2474,8 +2496,9 @@ function sendAdminQuoteWhatsApp(){
       breakdown += `• *Tarifa mínima legal garantizada aplicada:* ${$c(qState.ring.minFare)} (${qState.ring.name})\n`;
     }
   } else if(qState.mode === '2'){
+    const stayH = ((qState.stayMin || 60) / 60).toFixed(1);
     breakdown += `• *Kilometraje (${qState.kmTotal} km ida/vuelta):* ${$c(qState.kmCost)}\n`;
-    breakdown += `• *Tiempo de espera vehicular en destino (${(durMin/60).toFixed(1)} hrs):* ${$c(qState.timeCost)}\n`;
+    breakdown += `• *Tiempo de espera vehicular en destino (${stayH} hrs):* ${$c(qState.timeCost)}\n`;
     if(qState.floorApplied){
       breakdown += `• *Tarifa mínima legal garantizada aplicada:* ${$c(qState.ring.minFare)} (${qState.ring.name})\n`;
     }
