@@ -1194,7 +1194,7 @@ function form(){
         </div>
 
         <div>
-          <label for="aq_time"><b>Hora de Recogida / Inicio *</b></label>
+          <label for="aq_time"><b>Hora de Llegada / Inicio de Atención *</b></label>
           <input type="time" id="aq_time" value="10:00" onchange="calcAdminQuote()" required>
         </div>
 
@@ -1346,16 +1346,29 @@ function form(){
             ⚠️ <b>Paciente menor de edad:</b> Por normativa legal y términos del servicio, es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal. El tutor debe proveer el Sistema de Retención Infantil (SRI) correspondiente.
           </div>
         </div>
-        <div>
+        <div id="row_aq_comp_veh">
           <label for="aq_comp">¿El paciente viaja solo o acompañado? *</label>
           <select id="aq_comp" onchange="onAdminCompChange()">
             <option value="Acompañado por tutor legal / familiar" selected>Acompañado por tutor legal / familiar</option>
             <option value="Viaja solo">Viaja solo</option>
           </select>
         </div>
+        <div id="row_aq_comp_home" style="display:none">
+          <label style="font-weight:700;display:block;margin-bottom:4px;font-size:13px">¿Se encontrará acompañado por un familiar/cuidador en el hogar? *</label>
+          <div style="display:flex;gap:18px;align-items:center;min-height:36px">
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+              <input type="radio" name="aq_comp_home_radio" value="si" checked onchange="saveAdminQuoterDraft()">
+              <b>Sí</b>
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+              <input type="radio" name="aq_comp_home_radio" value="no" onchange="saveAdminQuoterDraft()">
+              <b>No</b>
+            </label>
+          </div>
+        </div>
         <div>
           <label for="aq_dx">Diagnóstico / Motivo de Atención *</label>
-          <input type="text" id="aq_dx" placeholder="Ej: Control cardiológico" required>
+          <input type="text" id="aq_dx" placeholder="Ej: Cuidados de confort y aseo, administración de tratamiento oral, acompañamiento" required>
         </div>
         <div>
           <label for="aq_coord">Nombre del Coordinador/Contacto *</label>
@@ -1468,6 +1481,9 @@ function form(){
       </div>
 
       <div id="admin_buffer_info" class="msg" style="margin-top:12px"></div>
+      <div id="admin_night_alert" style="display:none;margin-top:10px;padding:10px 14px;background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:8px;color:#92400E;font-size:12.5px;font-weight:600">
+        ⚠️ Atención: El servicio se extiende fuera del horario del Turno Noche (04:00 hrs). El buffer de descanso podría solaparse con el Turno Mañana.
+      </div>
 
       <!-- BOTONES DE ACCIÓN ADMINISTRATIVA -->
       <div class="row" style="justify-content:space-between;align-items:center;margin-top:18px;border-top:1px solid var(--bd);padding-top:14px">
@@ -1506,6 +1522,7 @@ function saveAdminQuoterDraft(){
       pat: ($('#aq_pat') && $('#aq_pat').value) || '',
       age: ($('#aq_age') && $('#aq_age').value) || '',
       comp: ($('#aq_comp') && $('#aq_comp').value) || '',
+      compHomeRadio: (typeof document !== 'undefined' && document.querySelector('input[name="aq_comp_home_radio"]:checked') && document.querySelector('input[name="aq_comp_home_radio"]:checked').value) || 'si',
       dx: ($('#aq_dx') && $('#aq_dx').value) || '',
       coord: ($('#aq_coord') && $('#aq_coord').value) || '',
       ph: ($('#aq_ph') && $('#aq_ph').value) || '',
@@ -1574,6 +1591,10 @@ function loadAdminQuoterDraft(){
       onAdminAgeChange();
     }
     if(d.comp && $('#aq_comp')) $('#aq_comp').value = d.comp;
+    if(d.compHomeRadio && typeof document !== 'undefined'){
+      const r = document.querySelector(`input[name="aq_comp_home_radio"][value="${d.compHomeRadio}"]`);
+      if(r) r.checked = true;
+    }
     if(d.dx && $('#aq_dx')) $('#aq_dx').value = d.dx;
     if(d.coord && $('#aq_coord')) $('#aq_coord').value = d.coord;
     if(d.ph && $('#aq_ph')) $('#aq_ph').value = d.ph.replace(/\D/g, '').slice(-8);
@@ -1743,6 +1764,11 @@ function onAdminModeChange(){
       lblStayHours.textContent = 'Tiempo de Asistencia / Espera *';
     }
   }
+
+  const compVeh = $('#row_aq_comp_veh');
+  const compHome = $('#row_aq_comp_home');
+  if(compVeh) compVeh.style.display = (mode === '3') ? 'none' : 'block';
+  if(compHome) compHome.style.display = (mode === '3') ? 'block' : 'none';
 
   if(mode === '1' || mode === '2'){
     if(rowStay) rowStay.style.display = 'block';
@@ -2397,6 +2423,24 @@ function populateAdminTechs(){
   if(bufInfo){
     bufInfo.innerHTML = `ℹ️ Término proyectado: <b>${fm(startMin + durVal)} hrs</b> · Buffer de seguridad liberado a las <b>${fm(startMin + durVal + BUF)} hrs (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
   }
+
+  const nightAlert = $('#admin_night_alert');
+  if(nightAlert){
+    let isNight = false;
+    let exceeds04 = false;
+    if(startMin >= 22 * 60){
+      isNight = true;
+      if(startMin + durVal > 28 * 60){
+        exceeds04 = true;
+      }
+    } else if(startMin < 4 * 60){
+      isNight = true;
+      if(startMin + durVal > 4 * 60){
+        exceeds04 = true;
+      }
+    }
+    nightAlert.style.display = (isNight && exceeds04) ? 'block' : 'none';
+  }
 }
 
 function fmtDurationClean(min){
@@ -2584,17 +2628,25 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
   const age = (+$('#aq_age') && +$('#aq_age').value) || 75;
-  const compDesc = ($('#aq_comp') && $('#aq_comp').value) || 'Acompañado por tutor legal / familiar';
-  const isSolo = compDesc.toLowerCase().includes('solo');
+  let compDesc = '';
+  let isSolo = false;
+  if(qState.mode === '3'){
+    const isCompHome = (typeof document !== 'undefined' && document.querySelector('input[name="aq_comp_home_radio"]:checked') && document.querySelector('input[name="aq_comp_home_radio"]:checked').value === 'si');
+    compDesc = isCompHome ? 'Acompañado por familiar/cuidador en el hogar' : 'Solo en el hogar';
+    isSolo = !isCompHome;
+  } else {
+    compDesc = ($('#aq_comp') && $('#aq_comp').value) || 'Acompañado por tutor legal / familiar';
+    isSolo = compDesc.toLowerCase().includes('solo');
 
-  // Validación obligatoria para menores de edad (< 18 años)
-  if(age < 18 && isSolo){
-    if(typeof alert !== 'undefined'){
-      alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de edad (< 18 años) debe viajar obligatoriamente acompañado de manera continua por su madre, padre o tutor legal.');
+    // Validación obligatoria para menores de edad (< 18 años)
+    if(age < 18 && isSolo){
+      if(typeof alert !== 'undefined'){
+        alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de edad (< 18 años) debe viajar obligatoriamente acompañado de manera continua por su madre, padre o tutor legal.');
+      }
+      const compSel = $('#aq_comp');
+      if(compSel && typeof compSel.focus === 'function') compSel.focus();
+      return { error: 'Minor must be accompanied' };
     }
-    const compSel = $('#aq_comp');
-    if(compSel) compSel.focus();
-    return { error: 'Minor must be accompanied' };
   }
 
   // Validación de Documento Tributario (Factura)

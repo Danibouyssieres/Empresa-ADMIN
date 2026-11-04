@@ -587,9 +587,9 @@ footer a{color:#fff}
                 </div>
               </div>
 
-              <!-- MECANISMO PARA CUIDADOS A DOMICILIO (MODALIDAD 3 Y EVENTOS 4 SIN TRASLADO): SELECTOR SIMPLE Y CONTACTO HORARIO ESPECIAL -->
+              <!-- MECANISMO PARA CUIDADOS A DOMICILIO (MODALIDAD 3 Y EVENTOS 4 SIN TRASLADO): SELECTOR SIMPLE Y SEMÁFORO REACTIVO -->
               <div id="homeTimeWrap" style="display:none;height:100%">
-                <div style="display:flex;flex-direction:column;justify-content:space-between;min-height:260px;height:100%">
+                <div style="display:flex;flex-direction:column;min-height:140px;height:100%">
                   <div>
                     <label for="b_time" id="lblPickupSelect" style="color:var(--teal);font-size:.94rem;font-weight:700;display:block;margin-bottom:6px">
                       Hora de inicio de la atención en el domicilio *
@@ -598,19 +598,6 @@ footer a{color:#fff}
                       <option value="">Primero seleccione un turno arriba</option>
                     </select>
                     <div id="homeTimeSemaforoBox"></div>
-                  </div>
-
-                  <!-- TARJETA INFORMATIVA ROJA: HORARIO ESPECIAL / CONSULTA WHATSAPP -->
-                  <div id="homeSpecialScheduleCard" style="margin-top:20px;padding:14px 16px;background-color:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;color:var(--ink);line-height:1.5;box-sizing:border-box">
-                    <div style="font-weight:800;color:#B91C1C;font-size:.95rem;margin-bottom:6px;display:flex;align-items:center;gap:8px">
-                      <span>💬</span> ¿Requiere un horario de inicio diferente?
-                    </div>
-                    <p style="font-size:.85rem;color:var(--ink);margin:0 0 12px;line-height:1.45">
-                      Si necesita que la atención comience en una hora específica fuera de las opciones listadas o requiere una cobertura personalizada, escríbanos directamente para coordinar factibilidad operativa.
-                    </p>
-                    <a id="btnHomeSpecialWa" href="https://wa.me/56929990095?text=Hola%2C%20necesito%20consultar%20por%20un%20horario%20de%20inicio%20especial%20o%20cobertura%20personalizada%20para%20el%20servicio%20de%20Cuidados%20a%20Domicilio." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#ffffff;padding:9px 16px;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25);width:100%;box-sizing:border-box">
-                      💬 Consultar Horario Especial por WhatsApp
-                    </a>
                   </div>
                 </div>
               </div>
@@ -868,9 +855,9 @@ footer a{color:#fff}
         <div>
           <label for="b_mob">Condición de movilidad *</label>
           <select id="b_mob" onchange="onMobilityOrCompanionChange()"></select>
-          <small style="color:var(--mute);font-size:.82rem;display:block;margin-top:4px">⚠️ Por capacidad vehicular, no se admiten sillas neurológicas rígidas ni motorizadas.</small>
+          <small id="b_mob_wheelchair_note" style="color:var(--mute);font-size:.82rem;display:block;margin-top:4px">⚠️ Por capacidad vehicular, no se admiten sillas neurológicas rígidas ni motorizadas.</small>
         </div>
-        <div>
+        <div id="row_companion_vehicle">
           <label for="b_comp">¿El paciente viaja solo o acompañado? *</label>
           <select id="b_comp" onchange="onMobilityOrCompanionChange()">
             <option value="Sí, viaja solo">Sí, viaja solo</option>
@@ -879,6 +866,19 @@ footer a{color:#fff}
           </select>
           <div id="compValidationNotice" style="display:none;margin-top:6px;font-size:.84rem;color:#b45309;background:#fffbeb;border:1px solid #fef3c7;border-radius:6px;padding:8px 10px;line-height:1.4">
             ⚠️ <b>Recomendación para Modalidad 2 (Traslado con Espera):</b> Al requerir asistencia de marcha o no ser autovalente, y considerando que este servicio no incluye acompañamiento TENS dentro del recinto o box médico, sugerimos fuertemente que viaje un familiar acompañante para apoyarlo durante su atención o trámite.
+          </div>
+        </div>
+        <div id="row_companion_home" style="display:none">
+          <label style="font-weight:700">¿Se encontrará acompañado por un familiar/cuidador en el hogar? *</label>
+          <div style="display:flex;gap:18px;margin-top:6px;align-items:center;min-height:38px">
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:.92rem;font-weight:600">
+              <input type="radio" name="b_comp_home_radio" value="si" checked style="accent-color:var(--teal);width:18px;height:18px;margin:0">
+              <span>Sí</span>
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:.92rem;font-weight:600">
+              <input type="radio" name="b_comp_home_radio" value="no" style="accent-color:var(--teal);width:18px;height:18px;margin:0">
+              <span>No</span>
+            </label>
           </div>
         </div>
       </div>
@@ -1561,6 +1561,13 @@ function applyModalityVisibility(){
   } else {
     $('#timeSectionSub').textContent = 'Seleccione la jornada horaria en que necesita el servicio y la cantidad de horas/minutos. Cada bloque adicional de 30 minutos se calcula a la mitad del valor hora de su jornada.';
   }
+
+  const wheelNote = $('#b_mob_wheelchair_note');
+  const compVeh = $('#row_companion_vehicle');
+  const compHome = $('#row_companion_home');
+  if(wheelNote) wheelNote.style.display = (mode === '3') ? 'none' : 'block';
+  if(compVeh) compVeh.style.display = (mode === '3') ? 'none' : 'block';
+  if(compHome) compHome.style.display = (mode === '3') ? 'block' : 'none';
 
   if(showMap){
     layoutBox.classList.remove('no-map');
@@ -4643,32 +4650,37 @@ function updateSlots(keepCurrentTime = false){
     const endsAfter22 = endMin > 22 * 60;
     const isMiddayCase = (!isInter && (window.isMiddaySpecial || (stMin >= 720 && stMin < 840) || (selectedBlock === 'manana' && endMin > 720 && endMin <= 840)));
 
-    if(mode === '4'){
-      // Evaluación dinámica del Semáforo Operativo para Modalidad 4 (Eventos Sociales)
-      const h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
-      const extraM = (+$('#selMins34').value) || 0;
-      const stayMin = (h >= 6 ? 6 : 4) * 60 + extraM;
+    if(mode === '3' || mode === '4'){
+      // Evaluación dinámica del Semáforo Operativo para Modalidades 3 (Cuidados a Domicilio) y 4 (Eventos Sociales)
       let endServiceMin = 0;
-      if(selectedEventSubMode === 'con_traslado'){
-        const effIdaMin = (typeof lastRouteIdaMin === 'number' && lastRouteIdaMin > 0) ? lastRouteIdaMin : 30;
-        const effRetornoMin = (typeof lastRouteVueltaMin === 'number' && lastRouteVueltaMin > 0) ? lastRouteVueltaMin : effIdaMin;
-        endServiceMin = stMin + effIdaMin + stayMin + effRetornoMin;
-      } else {
+      if(mode === '3'){
+        const h = +($('#selHours34') ? $('#selHours34').value : 2) || 2;
+        const extraM = (+$('#selMins34').value) || 0;
+        const stayMin = h * 60 + extraM;
         endServiceMin = stMin + stayMin;
+      } else {
+        const h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+        const extraM = (+$('#selMins34').value) || 0;
+        const stayMin = (h >= 6 ? 6 : 4) * 60 + extraM;
+        if(selectedEventSubMode === 'con_traslado'){
+          const effIdaMin = (typeof lastRouteIdaMin === 'number' && lastRouteIdaMin > 0) ? lastRouteIdaMin : 30;
+          const effRetornoMin = (typeof lastRouteVueltaMin === 'number' && lastRouteVueltaMin > 0) ? lastRouteVueltaMin : effIdaMin;
+          endServiceMin = stMin + effIdaMin + stayMin + effRetornoMin;
+        } else {
+          endServiceMin = stMin + stayMin;
+        }
       }
 
       const semaforo = evaluarSemaforoTurno(endServiceMin, selectedBlock);
       window.currentSemaforo = semaforo;
 
       const homeSemaBox = $('#homeTimeSemaforoBox');
-      const homeSpecialCard = $('#homeSpecialScheduleCard');
 
       updateSectionsVisibility(semaforo.state);
 
       if(semaforo.state === 'red'){
         if(subBtn) subBtn.disabled = true;
         if(homeSemaBox) homeSemaBox.innerHTML = renderSemaforoCard(semaforo);
-        if(homeSpecialCard) homeSpecialCard.style.display = 'none';
         if(stBox) stBox.style.display = 'none';
         if(submitAlert){
           submitAlert.style.display = 'block';
@@ -4678,13 +4690,12 @@ function updateSlots(keepCurrentTime = false){
       } else if(semaforo.state === 'yellow'){
         if(subBtn) subBtn.disabled = false;
         if(homeSemaBox) homeSemaBox.innerHTML = renderSemaforoCard(semaforo);
-        if(homeSpecialCard) homeSpecialCard.style.display = 'none';
+        if(stBox) stBox.style.display = 'none';
         if(submitAlert) submitAlert.style.display = 'none';
       } else {
-        // Estado Verde
+        // Estado Verde (Dentro de rango)
         if(subBtn) subBtn.disabled = false;
         if(homeSemaBox) homeSemaBox.innerHTML = '';
-        if(homeSpecialCard) homeSpecialCard.style.display = 'block';
         if(submitAlert) submitAlert.style.display = 'none';
       }
     } else if(!isInter && endMin > shiftEnd && !isMiddayCase){
@@ -4727,12 +4738,10 @@ function updateSlots(keepCurrentTime = false){
     if(submitAlert) submitAlert.style.display = 'none';
   } else if(ev.inRange && activeBlockObj.available && !curTime){
     // Turno activo y disponible, pero aún no selecciona la hora exacta
-    if(mode === '4'){
+    if(mode === '3' || mode === '4'){
       window.currentSemaforo = null;
       const homeSemaBox = $('#homeTimeSemaforoBox');
       if(homeSemaBox) homeSemaBox.innerHTML = '';
-      const homeSpecialCard = $('#homeSpecialScheduleCard');
-      if(homeSpecialCard) homeSpecialCard.style.display = 'block';
       updateSectionsVisibility();
     }
     if(estWindow) estWindow.textContent = '';
@@ -5549,7 +5558,7 @@ async function submitBooking(ev){
     return;
   }
   const compValCheck = ($('#b_comp') && $('#b_comp').value) || '';
-  if(age < 18 && compValCheck.toLowerCase().includes('solo')){
+  if(mode !== '3' && age < 18 && compValCheck.toLowerCase().includes('solo')){
     $('#b_comp').scrollIntoView({ behavior: 'smooth', block: 'center' });
     $('#b_comp').focus();
     const submitAlert = $('#submitBlockAlert');
@@ -5654,8 +5663,16 @@ async function submitBooking(ev){
   const from = $('#b_from').value.trim();
   const depto = ($('#b_depto') && $('#b_depto').value.trim()) || '';
   const to = showDest ? $('#b_to').value.trim() : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
-  const compVal = $('#b_comp').value;
-  const comp = compVal.includes('acompañante');
+  let compVal = '';
+  let comp = false;
+  if(mode === '3'){
+    const isCompHome = (typeof document !== 'undefined' && document.querySelector('input[name="b_comp_home_radio"]:checked') && document.querySelector('input[name="b_comp_home_radio"]:checked').value === 'si');
+    compVal = isCompHome ? 'Acompañado por familiar/cuidador en el hogar' : 'Solo en el hogar';
+    comp = isCompHome;
+  } else {
+    compVal = ($('#b_comp') && $('#b_comp').value) || 'Sí, viaja solo';
+    comp = compVal.includes('acompañante');
+  }
   const reqs = [];
   const obs = ($('#b_obs') && $('#b_obs').value.trim()) || '';
 
