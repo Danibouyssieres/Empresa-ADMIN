@@ -215,10 +215,13 @@ fakeDoc.getElementById('aq_to').value = 'Clínica Santa María';
 vm.runInContext('calcAdminQuote();', mockContext);
 const qState = vm.runInContext('qState;', mockContext);
 
-assert.strictEqual(qState.totalFare, 48000, 'Modality 1 total fare should be $48.000');
-assert.strictEqual(qState.abono50, 24000, 'Modality 1 abono 50% should be $24.000');
-assert.strictEqual(qState.saldo50, 24000, 'Modality 1 saldo 50% should be $24.000');
-console.log('✓ Cotizador Automático calculation verified (24km + 2h in Anillo 1 = $48.000)');
+// En Modalidad 1 (Servicio Integral): CIRCUITO COMPLETO TENS
+// 120 min en box + 10 min abordaje + 30 min ida + 30 min retorno = 190 min -> 210 min (3.5 hrs)
+// 3.5 hrs * $12.000/h = $42.000 tiempo + $24.000 km = $66.000
+assert.strictEqual(qState.totalFare, 66000, 'Modality 1 total fare should be $66.000 (Full Circuit TENS)');
+assert.strictEqual(qState.abono50, 33000, 'Modality 1 abono 50% should be $33.000');
+assert.strictEqual(qState.saldo50, 33000, 'Modality 1 saldo 50% should be $33.000');
+console.log('✓ Cotizador Automático calculation verified (24km + Circuito Completo TENS 3.5h in Anillo 1 = $66.000)');
 
 // Test 5B: Test Ring 3 Minimum Floor ($50.000)
 fakeDoc.getElementById('aq_from').value = 'Av. Las Condes 12000, Las Condes';
