@@ -1,58 +1,54 @@
-const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const assert = require('assert');
 const vm = require('vm');
+
+console.log('=== TEST: SINCRONIZACIÓN DE BLOQUEOS MANUALES Y AGENDA PÚBLICA ===\n');
 
 const reservarHtml = fs.readFileSync(path.join(__dirname, '..', 'reservar.html'), 'utf8');
 
-// Mock a lightweight DOM environment
-class ClassList {
-  constructor() { this.classes = new Set(); }
-  add(c) { this.classes.add(c); }
-  remove(c) { this.classes.delete(c); }
-  contains(c) { return this.classes.has(c); }
-  toggle(c, force) {
-    if (force === undefined) {
-      if (this.classes.has(c)) this.classes.delete(c);
-      else this.classes.add(c);
-    } else if (force) {
-      this.classes.add(c);
-    } else {
-      this.classes.delete(c);
-    }
-  }
-}
-
-class MockElement {
-  constructor(id, tagName = 'div') {
-    this.id = id;
-    this.tagName = tagName;
-    this.classList = new ClassList();
-    this.style = {};
-    this.disabled = false;
-    this.textContent = '';
-    this.innerHTML = '';
-    this.value = '';
-    this.options = [];
-  }
-  setAttribute(k, v) { this[k] = v; }
-  getAttribute(k) { return this[k]; }
-}
-
+// Setup a mock DOM for testing reservar.html
 const elements = {};
 function getEl(id) {
-  if (!elements[id]) elements[id] = new MockElement(id);
+  if (!elements[id]) {
+    elements[id] = {
+      id: id,
+      value: '',
+      textContent: '',
+      innerHTML: '',
+      style: {},
+      disabled: false,
+      classList: {
+        _classes: new Set(),
+        add: function(c) { this._classes.add(c); },
+        remove: function(c) { this._classes.delete(c); },
+        toggle: function(c, force) {
+          if (force !== undefined) {
+            if (force) this._classes.add(c);
+            else this._classes.delete(c);
+          } else {
+            if (this._classes.has(c)) this._classes.delete(c);
+            else this._classes.add(c);
+          }
+        },
+        contains: function(c) { return this._classes.has(c); }
+      },
+      querySelectorAll: () => [],
+      querySelector: () => null,
+      setAttribute: () => {},
+      removeAttribute: () => {},
+      addEventListener: () => {}
+    };
+  }
   return elements[id];
 }
 
 const mockDoc = {
   getElementById: (id) => getEl(id),
-  querySelector: (sel) => {
-    if (sel.startsWith('#')) return getEl(sel.slice(1));
-    return new MockElement(sel);
-  },
-  querySelectorAll: () => [], addEventListener: () => {},
-  documentElement: { setAttribute: () => {}, getAttribute: () => 'light' }
+  querySelector: (sel) => getEl(sel.replace('#', '')),
+  querySelectorAll: () => [],
+  addEventListener: () => {},
+  documentElement: { getAttribute: () => 'light', setAttribute: () => {} }
 };
 
 const mockMap = {
@@ -99,10 +95,10 @@ if (fs.existsSync(path.join(__dirname, '..', 'js', 'reservar.js'))) {
 
 vm.runInContext(scriptBody, ctx);
 
-// Test 1: Add a manual block for Turno Tarde on 2026-11-05 (where morning is free)
+// Test 1: Add a manual block for Turno Tarde on 2026-11-12 (where morning is free)
 vm.runInContext(`
-  D.blocks = [{ id: 101, date: '2026-11-05', type: 'tarde', reason: 'Mantención preventiva móvil' }];
-  $('#b_date').value = '2026-11-05';
+  D.blocks = [{ id: 101, date: '2026-11-12', type: 'tarde', reason: 'Mantención preventiva móvil' }];
+  $('#b_date').value = '2026-11-12';
   updateSlots();
 `, ctx);
 
@@ -115,7 +111,7 @@ assert.strictEqual(btnT.disabled, true, 'Turno Tarde button must be disabled whe
 assert(btnT.classList.contains('shift-manual-blocked'), 'Turno Tarde button must have shift-manual-blocked class');
 assert.strictEqual(badgeT.textContent, 'Bloqueado / No disponible (0 cupos)', 'Turno Tarde badge must show "Bloqueado / No disponible (0 cupos)"');
 
-assert.strictEqual(btnM.disabled, false, 'Turno Mañana button must remain enabled on 2026-11-05');
+assert.strictEqual(btnM.disabled, false, 'Turno Mañana button must remain enabled on 2026-11-12');
 assert(!btnM.classList.contains('shift-manual-blocked'), 'Turno Mañana button must not have shift-manual-blocked class');
 assert(badgeM.textContent.includes('Disponible'), 'Turno Mañana badge must indicate Disponible');
 
@@ -127,11 +123,11 @@ vm.runInContext(`
 const selectedBlock = vm.runInContext('selectedBlock', ctx);
 assert.strictEqual(selectedBlock, 'manana', 'selectShiftBlock must reject selecting a blocked shift');
 
-// Test 3: Add a full day block on 2026-11-07
+// Test 3: Add a full day block on 2026-11-15
 vm.runInContext(`
   calViewYear = 2026;
   calViewMonth = 10; // Noviembre (0-indexed)
-  D.blocks.push({ id: 102, date: '2026-11-07', type: 'full', reason: 'Feriado de empresa' });
+  D.blocks.push({ id: 102, date: '2026-11-15', type: 'full', reason: 'Feriado de empresa' });
   renderCalendar();
 `, ctx);
 
@@ -139,13 +135,16 @@ const calGrid = mockDoc.getElementById('calGrid');
 assert(calGrid.innerHTML.includes('is-blocked-full'), 'Calendar grid must render full-day blocked cell with is-blocked-full class');
 assert(calGrid.innerHTML.includes('Bloqueado'), 'Calendar cell must show Bloqueado badge');
 
-// Test 4: For date 2026-11-06, Turno Mañana is blocked by Rosa Medina, and Tarde/Noche blocked manually
+// Test 4: Dynamic date for Rosa Medina booking (Turno Mañana booked by patient, Tarde/Noche blocked manually)
+const rosaService = vm.runInContext("D.svcs.find(s => s.client && s.client.includes('Rosa'))", ctx);
+const rosaDate = rosaService ? rosaService.date : '2026-11-07';
+
 vm.runInContext(`
   D.blocks = [
-    { id: 101, date: '2026-11-06', type: 'tarde', reason: 'Mantención de unidad' },
-    { id: 102, date: '2026-11-06', type: 'noche', reason: 'Mantención de unidad' }
+    { id: 101, date: '${rosaDate}', type: 'tarde', reason: 'Mantención de unidad' },
+    { id: 102, date: '${rosaDate}', type: 'noche', reason: 'Mantención de unidad' }
   ];
-  $('#b_date').value = '2026-11-06';
+  $('#b_date').value = '${rosaDate}';
   updateSlots();
 `, ctx);
 

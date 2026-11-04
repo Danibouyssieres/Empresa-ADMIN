@@ -382,7 +382,7 @@ footer a{color:#fff}
         </div>
         <div class="rate-pill-bar locked">
           <div id="pillJornada_habil" class="rate-pill active">
-            <strong>Hábil (Lun a Vie · 06:00 a 20:00)</strong>
+            <strong>Hábil (Lun a Vie - 06:00 a 20:00)</strong>
             <small>Jornada diurna de lunes a viernes</small>
             <div class="rp-val" id="lblRateHabil">$12.000/h ($1.000/km)</div>
           </div>
@@ -661,9 +661,13 @@ footer a{color:#fff}
                   <option value="90">1 hora 30 min (Notaría / Trámites bancarios / Consulta con exámenes)</option>
                   <option value="120">2 horas (Procedimiento ambulatorio / Diligencias públicas extensas)</option>
                   <option value="150">2 horas 30 min (Gestiones combinadas)</option>
-                  <option value="180">3 horas o más (Tratamientos médicos prolongados / Jornadas extensas)</option>
-                  <option value="210">3 horas 30 min (Atención médica de alta complejidad / Trámites múltiples)</option>
+                  <option value="180">3 horas (Tratamientos médicos prolongados / Jornadas extensas)</option>
+                  <option value="210">3 horas 30 min (Atención médica de alta complejidad)</option>
                   <option value="240">4 horas (Procedimiento clínico quirúrgico ambulatorio extenso)</option>
+                  <option value="270">4 horas 30 min (Tratamientos y recuperaciones prolongadas)</option>
+                  <option value="300">5 horas (Procedimientos de media jornada)</option>
+                  <option value="330">5 horas 30 min (Atención clínica continuada)</option>
+                  <option value="360">6 horas (Tope máximo de cobertura ambulatoria)</option>
                 </select>
               </div>
 
@@ -1091,7 +1095,7 @@ const RATES = {
 };
 
 const JORNADA_LABELS = {
-  habil: 'Hábil (Lun a Vie · 06:00 a 20:00)',
+  habil: 'Hábil (Lun a Vie - 06:00 a 20:00)',
   tarde: 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)',
   nocturno: 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)'
 };
@@ -2367,7 +2371,7 @@ function recalcAll(){
     } else if(mode === '4'){
       $('#lblTimeSummaryDesc').textContent = `${durationText}:`;
     } else {
-      const jShort = currentJornada === 'habil' ? 'Hábil (Lun a Vie · 06:00 a 20:00)' : currentJornada === 'tarde' ? 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)' : 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
+      const jShort = currentJornada === 'habil' ? 'Hábil (Lun a Vie - 06:00 a 20:00)' :  currentJornada === 'tarde' ? 'Fin de Semana (Sáb y Dom · 06:00 a 20:00)' : 'Días Festivos (06:00 a 20:00) y Horario Nocturno (20:00 a 06:00)';
       $('#lblTimeSummaryDesc').textContent = `Valor según selección (${durationText} · ${jShort}):`;
     }
   }
