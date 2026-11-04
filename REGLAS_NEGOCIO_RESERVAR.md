@@ -80,7 +80,7 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
 * **Programas:**
   1. **Programa Estándar (hasta 4 horas de permanencia en Santiago):** \$250.000 tarifa base.
   2. **Programa Crónico / Oncológico (hasta 6 horas de permanencia en Santiago):** \$300.000 tarifa base.
-* **Horas Extras de Permanencia:** \$25.000 por hora adicional / \$15.000 por fracción de 30 minutos.
+* **Horas Extras de Permanencia:** Aplica exclusivamente sobre el Programa Estándar de 4h (\$25.000 por hora adicional / \$15.000 por fracción de 30 minutos, con tope máx. de 2 horas extras). El Programa Crónico / Oncológico (6h) opera con cobertura cerrada improrrogable por normativas de seguridad vial y descanso interurbano.
 * **Incluye:** Peajes de ida y vuelta, combustible, kilometraje total, viáticos de conducción y monitoreo de signos vitales en carretera.
 
 ---

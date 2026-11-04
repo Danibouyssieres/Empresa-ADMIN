@@ -706,6 +706,7 @@ footer a{color:#fff}
                     <option value="0" selected>+ 0 minutos (sin bloque adicional)</option>
                     <option value="30">+ 30 minutos extra (1/2 hora)</option>
                   </select>
+                  <div id="noteMins34" style="display:none;margin-top:6px;color:#b45309;font-weight:600;font-size:.82rem;line-height:1.4"></div>
                 </div>
               </div>
             </div>
@@ -1421,6 +1422,12 @@ function refreshDuration34Options(resetSelection = false){
     $('#selMins34').value = (!resetSelection && ['0','30','60','90','120'].includes(prevM)) ? prevM : '0';
   }
 
+  const noteM = $('#noteMins34');
+  if(noteM && mode !== '5'){
+    noteM.style.display = 'none';
+    noteM.innerHTML = '';
+  }
+
   applyMaxDurationRule();
 }
 
@@ -2001,13 +2008,22 @@ function applyMaxDurationRule(){
   } else if(mode === '5'){
     if(selM34){
       const progH = selectedInterProgram || 4;
+      const noteM = $('#noteMins34');
       if(progH >= 6){
         selM34.value = '0';
         selM34.disabled = true;
-        selM34.title = 'El Programa Crónico ya incluye 6 horas continuas (tope máximo web).';
+        selM34.title = 'Por normativas de descanso y seguridad vial interurbana, este servicio opera con cobertura cerrada de 6 horas improrrogable.';
+        if(noteM){
+          noteM.style.display = 'block';
+          noteM.innerHTML = '⚠️ Por normativas de descanso y seguridad vial interurbana, este servicio opera con cobertura cerrada de 6 horas improrrogable.';
+        }
       } else {
         selM34.disabled = false;
         selM34.removeAttribute('title');
+        if(noteM){
+          noteM.style.display = 'none';
+          noteM.innerHTML = '';
+        }
       }
     }
   }
