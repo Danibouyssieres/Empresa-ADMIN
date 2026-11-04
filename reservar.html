@@ -4543,7 +4543,7 @@ function updateSlots(keepCurrentTime = false){
   // - Turno Mañana: <= 12:00 hrs (720 min)
   // - Turno Tarde: <= 20:00 hrs (1200 min)
   // - Turno Noche: <= 04:00 hrs (1680 min)
-  const hoursList = (isInter || mode === '4')
+  const hoursList = (isInter || mode === '3' || mode === '4')
     ? rawHoursList
     : rawHoursList.filter(h => {
         const slotStart = getSlotStartMin(h, selectedBlock);
@@ -4600,9 +4600,9 @@ function updateSlots(keepCurrentTime = false){
       let prevTimeExceededShift = false;
       const isTransfer = (mode === '1' || mode === '2');
       if(keepCurrentTime && prevTime){
-        if(validChoices.includes(prevTime) || (isTransfer && (window.isMiddaySpecial || prevTime)) || mode === '4'){
+        if(validChoices.includes(prevTime) || (isTransfer && (window.isMiddaySpecial || prevTime)) || mode === '3' || mode === '4'){
           const hasOpt = timeSelect.options ? [...timeSelect.options].some(o => o.value === prevTime) : false;
-          if(!hasOpt && (isTransfer || mode === '4')){
+          if(!hasOpt && (isTransfer || mode === '3' || mode === '4')){
             timeSelect.innerHTML += `<option value="${prevTime}">${prevTime} hrs</option>`;
           }
           timeSelect.value = prevTime;
@@ -4696,6 +4696,7 @@ function updateSlots(keepCurrentTime = false){
         // Estado Verde (Dentro de rango)
         if(subBtn) subBtn.disabled = false;
         if(homeSemaBox) homeSemaBox.innerHTML = '';
+        if(stBox) stBox.style.display = 'block';
         if(submitAlert) submitAlert.style.display = 'none';
       }
     } else if(!isInter && endMin > shiftEnd && !isMiddayCase){
@@ -4846,7 +4847,7 @@ function updateSectionsVisibility(state){
   const calcComplete = isCalculationComplete();
   let semaOk = false;
 
-  if(mode === '4'){
+  if(mode === '3' || mode === '4'){
     // En Modalidad 4 (Eventos Sociales tanto sin traslado como con traslado): Verde o Amarillo
     semaOk = (semaState === 'green' || semaState === 'yellow');
   } else if(mode === '1' || mode === '2' || mode === '5'){
@@ -5051,6 +5052,10 @@ window.refreshSemaforoWaLinkIfPresent = refreshSemaforoWaLinkIfPresent;
 function renderSemaforoCard(semaforo){
   if(!semaforo || semaforo.state === 'green') return '';
   const timeFormatted = fm(semaforo.effEnd % 1440);
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const termLabel = (mode === '3' || (mode === '4' && selectedEventSubMode === 'sin_traslado'))
+    ? 'La atención finaliza a las'
+    : 'El retorno estimado finaliza a las';
   if(semaforo.state === 'yellow'){
     return `
       <div id="shiftSemaforoCard" style="margin-top:12px;padding:14px 16px;background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:12px;color:#92400E;line-height:1.5;box-sizing:border-box">
@@ -5058,7 +5063,7 @@ function renderSemaforoCard(semaforo){
           <span>⚠️</span> Atención con Cierre al Límite del Turno
         </div>
         <div style="font-size:.87rem;color:#92400E;line-height:1.45">
-          El retorno estimado finaliza a las <b>${timeFormatted} hrs</b>, en el margen límite de nuestro turno. Puede continuar con su reserva con normalidad; sin embargo, considere que durante el servicio no será posible solicitar extensiones de tiempo en el lugar, con el propósito de resguardar los tiempos de traslado y la puntualidad de la atención siguiente.
+          ${termLabel} <b>${timeFormatted} hrs</b>, en el margen límite de nuestro turno. Puede continuar con su reserva con normalidad; sin embargo, considere que durante el servicio no será posible solicitar extensiones de tiempo en el lugar, con el propósito de resguardar los tiempos de traslado y la puntualidad de la atención siguiente.
         </div>
       </div>
     `;
@@ -5501,7 +5506,7 @@ async function submitBooking(ev){
   const shiftEnd = getShiftEndTime(selectedBlock);
   const isMiddayCase = (!isInter && (window.isMiddaySpecial || (start >= 720 && start < 840) || (selectedBlock === 'manana' && endMin > 720 && endMin <= 840)));
   let exceedsShift = false;
-  if(mode === '4'){
+  if(mode === '3' || mode === '4'){
     const sema = window.currentSemaforo || evaluarSemaforoTurno(endMin, selectedBlock);
     exceedsShift = (sema && sema.state === 'red');
   } else if(!isInter && selectedBlock && endMin > shiftEnd && !isMiddayCase){
