@@ -597,6 +597,7 @@ footer a{color:#fff}
                     <select id="b_time" onchange="onPickupTimeChange()" disabled style="width:100%;padding:10px 12px;font-size:.92rem;background:var(--mist);border:1.5px solid var(--line);border-radius:10px">
                       <option value="">Primero seleccione un turno arriba</option>
                     </select>
+                    <div id="homeTimeSemaforoBox"></div>
                   </div>
 
                   <!-- TARJETA INFORMATIVA ROJA: HORARIO ESPECIAL / CONSULTA WHATSAPP -->
@@ -4457,7 +4458,7 @@ function updateSlots(keepCurrentTime = false){
   // - Turno Mañana: <= 12:00 hrs (720 min)
   // - Turno Tarde: <= 20:00 hrs (1200 min)
   // - Turno Noche: <= 04:00 hrs (1680 min)
-  const hoursList = isInter
+  const hoursList = (isInter || mode === '4')
     ? rawHoursList
     : rawHoursList.filter(h => {
         const slotStart = getSlotStartMin(h, selectedBlock);
@@ -4514,9 +4515,9 @@ function updateSlots(keepCurrentTime = false){
       let prevTimeExceededShift = false;
       const isTransfer = (mode === '1' || mode === '2');
       if(keepCurrentTime && prevTime){
-        if(validChoices.includes(prevTime) || (isTransfer && (window.isMiddaySpecial || prevTime))){
+        if(validChoices.includes(prevTime) || (isTransfer && (window.isMiddaySpecial || prevTime)) || mode === '4'){
           const hasOpt = timeSelect.options ? [...timeSelect.options].some(o => o.value === prevTime) : false;
-          if(isTransfer && !hasOpt){
+          if(!hasOpt && (isTransfer || mode === '4')){
             timeSelect.innerHTML += `<option value="${prevTime}">${prevTime} hrs</option>`;
           }
           timeSelect.value = prevTime;
@@ -4564,7 +4565,51 @@ function updateSlots(keepCurrentTime = false){
     const endsAfter22 = endMin > 22 * 60;
     const isMiddayCase = (!isInter && (window.isMiddaySpecial || (stMin >= 720 && stMin < 840) || (selectedBlock === 'manana' && endMin > 720 && endMin <= 840)));
 
-    if(!isInter && endMin > shiftEnd && !isMiddayCase){
+    if(mode === '4'){
+      // Evaluación dinámica del Semáforo Operativo para Modalidad 4 (Eventos Sociales)
+      const h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+      const extraM = (+$('#selMins34').value) || 0;
+      const stayMin = (h >= 6 ? 6 : 4) * 60 + extraM;
+      let endServiceMin = 0;
+      if(selectedEventSubMode === 'con_traslado'){
+        const effIdaMin = (typeof lastRouteIdaMin === 'number' && lastRouteIdaMin > 0) ? lastRouteIdaMin : 30;
+        const effRetornoMin = (typeof lastRouteVueltaMin === 'number' && lastRouteVueltaMin > 0) ? lastRouteVueltaMin : effIdaMin;
+        endServiceMin = stMin + effIdaMin + stayMin + effRetornoMin;
+      } else {
+        endServiceMin = stMin + stayMin;
+      }
+
+      const semaforo = evaluarSemaforoTurno(endServiceMin, selectedBlock);
+      window.currentSemaforo = semaforo;
+
+      const homeSemaBox = $('#homeTimeSemaforoBox');
+      const homeSpecialCard = $('#homeSpecialScheduleCard');
+
+      updateSectionsVisibility(semaforo.state);
+
+      if(semaforo.state === 'red'){
+        if(subBtn) subBtn.disabled = true;
+        if(homeSemaBox) homeSemaBox.innerHTML = renderSemaforoCard(semaforo);
+        if(homeSpecialCard) homeSpecialCard.style.display = 'none';
+        if(stBox) stBox.style.display = 'none';
+        if(submitAlert){
+          submitAlert.style.display = 'block';
+          submitAlert.innerHTML = `<span>⚠️ <b>Horario fuera de rango operativo estándar:</b> La atención finaliza a las <b>${fm(endServiceMin % 1440)} hrs</b>, fuera del límite del turno. Por favor coordine por WhatsApp o ajuste el horario.</span>`;
+        }
+        return;
+      } else if(semaforo.state === 'yellow'){
+        if(subBtn) subBtn.disabled = false;
+        if(homeSemaBox) homeSemaBox.innerHTML = renderSemaforoCard(semaforo);
+        if(homeSpecialCard) homeSpecialCard.style.display = 'none';
+        if(submitAlert) submitAlert.style.display = 'none';
+      } else {
+        // Estado Verde
+        if(subBtn) subBtn.disabled = false;
+        if(homeSemaBox) homeSemaBox.innerHTML = '';
+        if(homeSpecialCard) homeSpecialCard.style.display = 'block';
+        if(submitAlert) submitAlert.style.display = 'none';
+      }
+    } else if(!isInter && endMin > shiftEnd && !isMiddayCase){
       if(estWindow) estWindow.textContent = '';
       if(nightNotice) nightNotice.style.display = 'none';
       stBox.className = 'status-box err';
@@ -4604,6 +4649,14 @@ function updateSlots(keepCurrentTime = false){
     if(submitAlert) submitAlert.style.display = 'none';
   } else if(ev.inRange && activeBlockObj.available && !curTime){
     // Turno activo y disponible, pero aún no selecciona la hora exacta
+    if(mode === '4'){
+      window.currentSemaforo = null;
+      const homeSemaBox = $('#homeTimeSemaforoBox');
+      if(homeSemaBox) homeSemaBox.innerHTML = '';
+      const homeSpecialCard = $('#homeSpecialScheduleCard');
+      if(homeSpecialCard) homeSpecialCard.style.display = 'block';
+      updateSectionsVisibility();
+    }
     if(estWindow) estWindow.textContent = '';
     if(nightNotice) nightNotice.style.display = 'none';
     stBox.className = 'status-box';
@@ -4706,7 +4759,10 @@ function updateSectionsVisibility(state){
   const calcComplete = isCalculationComplete();
   let semaOk = false;
 
-  if(mode === '1' || mode === '2' || mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado')){
+  if(mode === '4'){
+    // En Modalidad 4 (Eventos Sociales tanto sin traslado como con traslado): Verde o Amarillo
+    semaOk = (semaState === 'green' || semaState === 'yellow');
+  } else if(mode === '1' || mode === '2' || mode === '5'){
     // En modalidades con traslado y asistente de jornada: Verde o Amarillo
     semaOk = (semaState === 'green' || semaState === 'yellow');
   } else {
@@ -5357,7 +5413,13 @@ async function submitBooking(ev){
   const endMin = start + dur;
   const shiftEnd = getShiftEndTime(selectedBlock);
   const isMiddayCase = (!isInter && (window.isMiddaySpecial || (start >= 720 && start < 840) || (selectedBlock === 'manana' && endMin > 720 && endMin <= 840)));
-  const exceedsShift = (!isInter && selectedBlock && endMin > shiftEnd && !isMiddayCase);
+  let exceedsShift = false;
+  if(mode === '4'){
+    const sema = window.currentSemaforo || evaluarSemaforoTurno(endMin, selectedBlock);
+    exceedsShift = (sema && sema.state === 'red');
+  } else if(!isInter && selectedBlock && endMin > shiftEnd && !isMiddayCase){
+    exceedsShift = true;
+  }
 
   if(!date || (!selectedBlock && !isInter) || !timeStr || !capEval.inRange || (!targetBlockObj.available && !isMiddayCase) || !isSlotAtLeast24hAhead(date, timeStr, selectedBlock === 'noche' && timeStr < '12:00') || exceedsShift){
     updateSlots();
