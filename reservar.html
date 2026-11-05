@@ -2277,10 +2277,11 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     const effIdaMin = (typeof idaMin === 'number' && idaMin > 0) ? idaMin : (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30);
     const effRetornoMin = (typeof retornoMin === 'number' && retornoMin > 0) ? retornoMin : (lastRouteVueltaMin > 0 ? lastRouteVueltaMin : effIdaMin);
 
-    const llegadaRecintoMin = startMin + effIdaMin;
+    const abordajeMin = 10;
+    const llegadaRecintoMin = startMin + abordajeMin + effIdaMin;
     const terminoEventoMin = llegadaRecintoMin + eventStayMin;
     const retornoHogarMin = terminoEventoMin + effRetornoMin;
-    const totalCircuitoMin = effIdaMin + eventStayMin + effRetornoMin;
+    const totalCircuitoMin = abordajeMin + effIdaMin + eventStayMin + effRetornoMin;
 
     if($('#tlBadge')) $('#tlBadge').textContent = 'Ida + Asistencia en Evento + Retorno';
     if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora de recogida programada:';
@@ -2296,7 +2297,7 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     if($('#tlHorasEfectivasLabel')) $('#tlHorasEfectivasLabel').textContent = 'Duración total del compromiso:';
     if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)`;
 
-    const formulaDesc = `Circuito completo del servicio: ${effIdaMin} min viaje de ida + ${fmtHoursClean(eventStayMin)} de permanencia en el evento${extraM > 0 ? ` (${h}h base + ${extraM}m extra)` : ''} + ${effRetornoMin} min viaje de regreso = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados de dedicación exclusiva.<br><span style="display:inline-block;margin-top:6px;color:var(--ink);font-weight:600">Nota: Las ${h} horas base contratadas${extraM > 0 ? ` más ${extraM} min adicionales` : ''} corresponden a permanencia continua y efectiva en el evento. Los traslados de ida y regreso se suman como tiempo de viaje adicional, garantizando que el paciente disfrute su fiesta completa.</span>`;
+    const formulaDesc = `Circuito completo del servicio: ${abordajeMin} min abordaje (asistencia inicial) + ${effIdaMin} min viaje de ida + ${fmtHoursClean(eventStayMin)} de permanencia en el evento${extraM > 0 ? ` (${h}h base + ${extraM}m extra)` : ''} + ${effRetornoMin} min viaje de regreso = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados de dedicación exclusiva.<br><span style="display:inline-block;margin-top:6px;color:var(--ink);font-weight:600">Nota: Las ${h} horas base contratadas${extraM > 0 ? ` más ${extraM} min adicionales` : ''} corresponden a permanencia continua y efectiva en el evento. Los traslados de ida y regreso se suman como tiempo de viaje adicional, garantizando que el paciente disfrute su fiesta completa.</span>`;
     if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
     return;
   }
@@ -2370,7 +2371,8 @@ function getSelectedTotalMinutes(){
     if(isCon){
       const effIdaMin = (lastRouteIdaMin > 0 ? lastRouteIdaMin : 30);
       const effRetornoMin = (lastRouteVueltaMin > 0 ? lastRouteVueltaMin : effIdaMin);
-      totalMin = effIdaMin + ((h >= 6 ? 6 : 4) * 60 + extraM) + effRetornoMin;
+      const abordajeMin = 10;
+      totalMin = abordajeMin + effIdaMin + ((h >= 6 ? 6 : 4) * 60 + extraM) + effRetornoMin;
     } else {
       totalMin = (h >= 6 ? 6 : 4) * 60 + extraM;
     }
@@ -4717,7 +4719,8 @@ function updateSlots(keepCurrentTime = false){
         if(selectedEventSubMode === 'con_traslado'){
           const effIdaMin = (typeof lastRouteIdaMin === 'number' && lastRouteIdaMin > 0) ? lastRouteIdaMin : 30;
           const effRetornoMin = (typeof lastRouteVueltaMin === 'number' && lastRouteVueltaMin > 0) ? lastRouteVueltaMin : effIdaMin;
-          endServiceMin = stMin + effIdaMin + stayMin + effRetornoMin;
+          const abordajeMin = 10;
+          endServiceMin = stMin + abordajeMin + effIdaMin + stayMin + effRetornoMin;
         } else {
           endServiceMin = stMin + stayMin;
         }
@@ -5000,7 +5003,7 @@ function getSemaforoRedWaText(semaforo){
     const extraM = (+$('#selMins34').value) || 0;
     const stayMin = (h >= 6 ? 6 : 4) * 60 + extraM;
     if(selectedEventSubMode === 'con_traslado'){
-      const totalCircuitoMin = routeMin + stayMin + routeMin;
+      const totalCircuitoMin = 10 + routeMin + stayMin + routeMin;
       tiempoTotalDesc = `${fmtHoursClean(totalCircuitoMin)} (${fmtHoursClean(stayMin)} de permanencia en el evento)`;
     } else {
       tiempoTotalDesc = `${fmtHoursClean(stayMin)} (${fmtHoursClean(stayMin)} de atención en evento)`;

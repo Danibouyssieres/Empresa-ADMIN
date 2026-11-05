@@ -1194,7 +1194,7 @@ function form(){
         </div>
 
         <div>
-          <label for="aq_time"><b>Hora de Llegada / Inicio de Atención *</b></label>
+          <label for="aq_time"><b id="lbl_aq_time">Hora de Llegada / Inicio de Atención *</b></label>
           <input type="time" id="aq_time" value="10:00" onchange="calcAdminQuote()" required>
         </div>
 
@@ -1772,6 +1772,8 @@ function onAdminModeChange(){
   if(compHome) compHome.style.display = (mode === '3') ? 'block' : 'none';
   const lblCompInit = $('#lbl_aq_comp') || document.querySelector('label[for="aq_comp"]');
   if(lblCompInit && mode !== '4') lblCompInit.textContent = '¿El paciente viaja solo o acompañado? *';
+  const lblTimeInit = $('#lbl_aq_time') || document.querySelector('label[for="aq_time"] b');
+  if(lblTimeInit && mode !== '4') lblTimeInit.textContent = 'Hora de Llegada / Inicio de Atención *';
 
   if(mode === '1' || mode === '2'){
     if(rowStay) rowStay.style.display = 'block';
@@ -1833,9 +1835,11 @@ function onAdminEventSubtypeChange(){
   const kmInput = $('#aq_km');
   const lblKmNote = $('#lbl_km_note');
   const lblComp = $('#lbl_aq_comp') || document.querySelector('label[for="aq_comp"]');
+  const lblTime = $('#lbl_aq_time') || document.querySelector('label[for="aq_time"] b');
 
   if(subtype === 'sin_traslado'){
     if(lblComp) lblComp.textContent = '¿El paciente asistirá solo o acompañado por un familiar/tutor al evento? *';
+    if(lblTime) lblTime.textContent = 'Hora de Llegada / Inicio de Atención *';
     if(colDest) colDest.style.display = 'none';
     if(colKm) colKm.style.display = 'none';
   } else {
@@ -1846,6 +1850,7 @@ function onAdminEventSubtypeChange(){
     if(btnKm) btnKm.style.display = 'none';
     if(lblKmNote) lblKmNote.textContent = 'Kilometraje incluido en Pack Integral Puerta a Puerta.';
     if(lblComp) lblComp.textContent = '¿El paciente viaja solo o acompañado? *';
+    if(lblTime) lblTime.textContent = 'Hora de Recogida en Domicilio *';
   }
   calcAdminQuote();
 }
@@ -2316,8 +2321,18 @@ function calcAdminQuote(){
     const baseFare = packCfg[subtype] || 65000;
     const extraFare = extraCfg.fare;
 
-    stayMin = packCfg.dur + extraCfg.min;
-    qState.durationMin = stayMin;
+    const eventStayMin = packCfg.dur + extraCfg.min;
+    stayMin = eventStayMin;
+    qState.stayMin = eventStayMin;
+    if(subtype === 'con_traslado'){
+      const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 30;
+      const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
+      const abordajeMin = 10;
+      const fullCircuitMin = abordajeMin + idaMin + eventStayMin + retornoMin;
+      qState.durationMin = fullCircuitMin;
+    } else {
+      qState.durationMin = eventStayMin;
+    }
     qState.eventExtraMin = extraCfg.min;
 
     kmCost = 0;
@@ -2510,9 +2525,12 @@ function sendAdminQuoteWhatsApp(){
       const packMin = qState.eventPack === 'base' ? 240 : 360;
       const extraMin = qState.eventExtraMin || 0;
       const eventStayMin = packMin + extraMin;
-      llegadaDestino = fm(startMin + 30);
+      const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 30;
+      const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
+      const abordajeMin = 10;
+      llegadaDestino = fm(startMin + abordajeMin + idaMin);
       tiempoAtencionLabel = fmtDurationClean(eventStayMin);
-      retornoEstimado = fm(startMin + (qState.durationMin || (eventStayMin + 60)));
+      retornoEstimado = fm(startMin + (qState.durationMin || (abordajeMin + idaMin + eventStayMin + retornoMin)));
     }
   } else if(qState.mode === '5'){
     const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 90;
@@ -2527,6 +2545,11 @@ function sendAdminQuoteWhatsApp(){
     cronogramaDesglosado = `• 🩺 *Inicio de atención:* ${salidaDomicilio} hrs\n` +
       `• 🩺 *Tiempo de atención:* ${tiempoAtencionLabel}\n` +
       `• 🏠 *Término estimado:* ${retornoEstimado} hrs\n`;
+  } else if(qState.mode === '4' && qState.eventSubtype === 'con_traslado'){
+    cronogramaDesglosado = `• 🚗 *Recogida en domicilio:* ${salidaDomicilio} hrs\n` +
+      `• 🏥 *Llegada a recinto:* ${llegadaDestino} hrs\n` +
+      `• 🩺 *Permanencia en evento:* ${tiempoAtencionLabel}\n` +
+      `• 🏠 *Retorno estimado al hogar:* ${retornoEstimado} hrs\n`;
   } else {
     cronogramaDesglosado = `• 🚗 *Salida de domicilio:* ${salidaDomicilio} hrs\n` +
       `• 🏥 *Llegada a destino:* ${llegadaDestino} hrs\n` +
