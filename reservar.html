@@ -862,7 +862,7 @@ footer a{color:#fff}
           <small id="b_mob_wheelchair_note" style="color:var(--mute);font-size:.82rem;display:block;margin-top:4px">⚠️ Por capacidad vehicular, no se admiten sillas neurológicas rígidas ni motorizadas.</small>
         </div>
         <div id="row_companion_vehicle">
-          <label for="b_comp">¿El paciente viaja solo o acompañado? *</label>
+          <label for="b_comp" id="lbl_b_comp">¿El paciente viaja solo o acompañado? *</label>
           <select id="b_comp" onchange="onMobilityOrCompanionChange()">
             <option value="Sí, viaja solo">Sí, viaja solo</option>
             <option value="No, viaja con 1 acompañante">No, viaja con 1 acompañante</option>
@@ -1569,9 +1569,19 @@ function applyModalityVisibility(){
   const wheelNote = $('#b_mob_wheelchair_note');
   const compVeh = $('#row_companion_vehicle');
   const compHome = $('#row_companion_home');
-  if(wheelNote) wheelNote.style.display = (mode === '3') ? 'none' : 'block';
+  const isSinTraslado = (mode === '3' || (mode === '4' && selectedEventSubMode === 'sin_traslado'));
+  if(wheelNote) wheelNote.style.display = isSinTraslado ? 'none' : 'block';
   if(compVeh) compVeh.style.display = (mode === '3') ? 'none' : 'block';
   if(compHome) compHome.style.display = (mode === '3') ? 'block' : 'none';
+
+  const lblComp = $('#lbl_b_comp') || document.querySelector('label[for="b_comp"]');
+  if(lblComp){
+    if(mode === '4' && selectedEventSubMode === 'sin_traslado'){
+      lblComp.textContent = '¿El paciente asistirá solo o acompañado por un familiar/tutor al evento? *';
+    } else {
+      lblComp.textContent = '¿El paciente viaja solo o acompañado? *';
+    }
+  }
 
   if(showMap){
     layoutBox.classList.remove('no-map');
