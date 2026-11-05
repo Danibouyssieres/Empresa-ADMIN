@@ -4034,18 +4034,9 @@ function selectShiftBlock(blockId){
     selectedBlock = blockId;
   }
 
-  // En modalidades con traslado vehicular (1 y 2), sincronizar hora de cita médica según el turno seleccionado
+  // En modalidades con traslado vehicular (1 y 2), sincronizar y filtrar selector de cita médica según turno activo
   if(mode === '1' || mode === '2'){
-    const appTimeInput = $('#appTimeInput') || $('#hora-cita-medica') || $('#b_app_time');
-    if(appTimeInput){
-      const curAppVal = appTimeInput.value;
-      const curAppMin = curAppVal ? tm(curAppVal) : 0;
-      if(selectedBlock === 'tarde' && curAppMin < 14 * 60){
-        appTimeInput.value = '15:00';
-      } else if(selectedBlock === 'manana' && curAppMin >= 14 * 60){
-        appTimeInput.value = '10:00';
-      }
-    }
+    populateAppTimeOptions(mode);
   }
 
   // Limpiar la hora previamente seleccionada en #b_time para evitar inconsistencias
@@ -4545,6 +4536,11 @@ function updateSlots(keepCurrentTime = false){
     }
   }
 
+  // Sincronizar desplegable de citas médicas si corresponde a traslados
+  if(mode === '1' || mode === '2' || mode === '5'){
+    populateAppTimeOptions(mode);
+  }
+
   // Poblar desplegable #b_time según el bloque activo
   const timeSelect = $('#b_time');
   const prevTime = timeSelect ? timeSelect.value : '';
@@ -4589,7 +4585,7 @@ function updateSlots(keepCurrentTime = false){
   // - Turno Mañana: <= 12:00 hrs (720 min)
   // - Turno Tarde: <= 20:00 hrs (1200 min)
   // - Turno Noche: <= 04:00 hrs (1680 min)
-  const hoursList = (isInter || mode === '3' || mode === '4')
+  const hoursList = (isInter || mode === '1' || mode === '2' || mode === '3' || mode === '4')
     ? rawHoursList
     : rawHoursList.filter(h => {
         const slotStart = getSlotStartMin(h, selectedBlock);
@@ -4744,6 +4740,24 @@ function updateSlots(keepCurrentTime = false){
         if(homeSemaBox) homeSemaBox.innerHTML = '';
         if(stBox) stBox.style.display = 'block';
         if(submitAlert) submitAlert.style.display = 'none';
+      }
+    } else if(mode === '1' || mode === '2'){
+      // En Modalidades 1 y 2, el semáforo dinámico evalúa el término proyectado del servicio (retorno al hogar)
+      const sema = window.currentSemaforo;
+      if(sema){
+        updateSectionsVisibility(sema.state);
+        if(sema.state === 'red'){
+          if(subBtn) subBtn.disabled = true;
+          if(stBox) stBox.style.display = 'none';
+          return;
+        } else if(sema.state === 'yellow'){
+          if(subBtn) subBtn.disabled = false;
+          if(submitAlert) submitAlert.style.display = 'none';
+        } else {
+          // Estado Verde
+          if(subBtn) subBtn.disabled = false;
+          if(submitAlert) submitAlert.style.display = 'none';
+        }
       }
     } else if(!isInter && endMin > shiftEnd && !isMiddayCase){
       if(estWindow) estWindow.textContent = '';
@@ -5122,7 +5136,7 @@ function renderSemaforoCard(semaforo){
           <span>🛑</span> Horario fuera de rango operativo estándar
         </div>
         <div style="font-size:.87rem;color:#7F1D1D;line-height:1.45;margin-bottom:12px">
-          Con la duración seleccionada, el servicio finalizaría a las <b>${timeFormatted} hrs</b>, invadiendo el cambio de turno. Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp.
+          Con la duración seleccionada, el servicio completo excede el horario del turno seleccionado por más de 30 min (retorno proyectado: <b>${timeFormatted} hrs</b>). Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp.
         </div>
         <a id="btnSemaforoWa" href="${waUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#ffffff;padding:11px 18px;border-radius:8px;font-size:.88rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(37,211,102,.25);width:100%;box-sizing:border-box">
           💬 Coordinar por WhatsApp (+56 9 2999 0095)
@@ -5363,15 +5377,34 @@ function populateAppTimeOptions(mode){
   if(!appTimeSel) return;
   const currentVal = appTimeSel.value;
   const isInter = (mode === '5');
-  const startMin = isInter ? (8 * 60) : (7 * 60);
-  const endMin = isInter ? (12 * 60) : (18 * 60);
+
+  let startMin = 6 * 60;
+  let endMin = 12 * 60;
+  let defaultVal = '10:00';
+
+  if(isInter){
+    startMin = 8 * 60;
+    endMin = 12 * 60;
+    defaultVal = '10:00';
+  } else if(selectedBlock === 'tarde'){
+    startMin = 14 * 60;
+    endMin = 20 * 60;
+    defaultVal = '15:00';
+  } else {
+    // Turno Mañana (06:00 a 12:00 hrs)
+    startMin = 6 * 60;
+    endMin = 12 * 60;
+    defaultVal = '10:00';
+  }
+
   const appTimes = [];
   for(let m = startMin; m <= endMin; m += 15){
     appTimes.push(fm(m));
   }
-  const defaultVal = appTimes.includes(currentVal) ? currentVal : (isInter ? '10:00' : (currentVal || '10:00'));
-  appTimeSel.innerHTML = appTimes.map(t => `<option value="${t}" ${t === defaultVal ? 'selected' : ''}>${t} hrs</option>`).join('');
-  appTimeSel.value = defaultVal;
+
+  const chosenVal = appTimes.includes(currentVal) ? currentVal : defaultVal;
+  appTimeSel.innerHTML = appTimes.map(t => `<option value="${t}" ${t === chosenVal ? 'selected' : ''}>${t} hrs</option>`).join('');
+  appTimeSel.value = chosenVal;
 }
 window.populateAppTimeOptions = populateAppTimeOptions;
 
@@ -5563,7 +5596,7 @@ async function submitBooking(ev){
   const shiftEnd = getShiftEndTime(selectedBlock);
   const isMiddayCase = (!isInter && (window.isMiddaySpecial || (start >= 720 && start < 840) || (selectedBlock === 'manana' && endMin > 720 && endMin <= 840)));
   let exceedsShift = false;
-  if(mode === '3' || mode === '4'){
+  if(mode === '1' || mode === '2' || mode === '3' || mode === '4'){
     const sema = window.currentSemaforo || evaluarSemaforoTurno(endMin, selectedBlock);
     exceedsShift = (sema && sema.state === 'red');
   } else if(!isInter && selectedBlock && endMin > shiftEnd && !isMiddayCase){
