@@ -516,12 +516,12 @@ function detectRing(addrText, lat, lon){
 function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x){}return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}
 function applyTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem(TM_K,t)}catch(x){}}
 function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme')||getTheme();applyTheme(cur==='dark'?'light':'dark');render()}
-const ST=['Pendiente','Confirmado','En Ruta','En Atención','Finalizado','Cancelado'];
-const COL={'Pendiente':'#F59E0B','Confirmado':'#3B82F6','En Ruta':'#14B8A6','En Atención':'#06B6D4','Finalizado':'#10B981','Cancelado':'#64748B'};
-const COL_BG={'Pendiente':'rgba(245, 158, 11, 0.12)','Confirmado':'rgba(59, 130, 246, 0.12)','En Ruta':'rgba(20, 184, 166, 0.12)','En Atención':'rgba(6, 182, 212, 0.12)','Finalizado':'rgba(16, 185, 129, 0.12)','Cancelado':'rgba(100, 116, 139, 0.12)'};
+const ST=['Pre-reserva pendiente','Pendiente','Confirmado','En Ruta','En Atención','Finalizado','Cancelado'];
+const COL={'Pre-reserva pendiente':'#F59E0B','Pendiente':'#F59E0B','Confirmado':'#3B82F6','En Ruta':'#14B8A6','En Atención':'#06B6D4','Finalizado':'#10B981','Cancelado':'#64748B'};
+const COL_BG={'Pre-reserva pendiente':'rgba(245, 158, 11, 0.16)','Pendiente':'rgba(245, 158, 11, 0.12)','Confirmado':'rgba(59, 130, 246, 0.12)','En Ruta':'rgba(20, 184, 166, 0.12)','En Atención':'rgba(6, 182, 212, 0.12)','Finalizado':'rgba(16, 185, 129, 0.12)','Cancelado':'rgba(100, 116, 139, 0.12)'};
 const MOB=['Autovalente','Bastón / andador','Silla de ruedas','Dependencia Severa'];
 const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
-const NEXT={'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
+const NEXT={'Pre-reserva pendiente':['Confirmar','Confirmado'],'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
 const $=s=>document.querySelector(s);
 const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $c=n=>'$'+Math.round(n).toLocaleString('es-CL');
@@ -615,7 +615,11 @@ if(typeof window !== 'undefined' && typeof window.addEventListener === 'function
   window.addEventListener('msa-blocks-updated', () => {
     D = load() || D;
     render();
+    if(typeof syncCentralizedBlocksAdmin === 'function') syncCentralizedBlocksAdmin();
   });
+  setTimeout(() => {
+    if(typeof syncCentralizedBlocksAdmin === 'function') syncCentralizedBlocksAdmin();
+  }, 350);
 }
 const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
 
@@ -771,11 +775,53 @@ async function syncCentralizedBlocksAdmin(){
       const remoteBlocks = await MsaBlocksService.fetchBlocks();
       if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
         MsaBlocksService.mergeBlocksIntoD(remoteBlocks, D);
-        save();
-        render();
       }
+      if(typeof MsaBlocksService.fetchReservas === 'function'){
+        const remoteReservas = await MsaBlocksService.fetchReservas();
+        if(Array.isArray(remoteReservas) && remoteReservas.length > 0){
+          if(!Array.isArray(D.svcs)) D.svcs = [];
+          remoteReservas.forEach(r => {
+            const rawFolio = r.folio ? parseInt(String(r.folio).replace(/\D/g, ''), 10) : null;
+            const matchId = rawFolio || r.id;
+            const exists = D.svcs.find(s => s.id === matchId || (s.folio && s.folio === r.folio));
+            if(!exists){
+              D.svcs.push({
+                id: matchId,
+                folio: r.folio,
+                tid: r.tens_id || 't1',
+                date: r.date,
+                start: r.start_min !== undefined ? r.start_min : tm(r.time || '10:00'),
+                dur: r.dur_min || 120,
+                pat: r.pat_name,
+                patPhone: r.pat_phone,
+                age: r.pat_age,
+                dx: r.dx,
+                coord: r.coord_name,
+                ph: r.coord_phone,
+                from: r.from_addr,
+                to: r.to_addr,
+                depto: r.depto,
+                mob: r.mob,
+                req: [],
+                comp: r.comp_desc ? r.comp_desc.includes('acompañante') : false,
+                compDesc: r.comp_desc,
+                fare: r.fare,
+                abono: r.abono,
+                paid: r.paid || 0,
+                st: r.st || 'Pre-reserva pendiente',
+                svcType: r.svc_type || '1',
+                block: r.block || 'manana'
+              });
+            } else if(r.st && exists.st !== r.st){
+              exists.st = r.st;
+            }
+          });
+        }
+      }
+      save();
+      render();
     } catch(e){
-      console.warn('Error sincronizando bloqueos en admin:', e);
+      console.warn('Error sincronizando bloqueos/reservas en admin:', e);
     }
   }
 }
@@ -1120,6 +1166,12 @@ function setSt(id,v){
   }
   save();
   render();
+
+  if(window.MsaBlocksService && typeof window.MsaBlocksService.updateReservaStatus === 'function'){
+    window.MsaBlocksService.updateReservaStatus(s.folio || s.id, v).catch(err => {
+      console.warn('Error al actualizar estado de reserva en BD:', err);
+    });
+  }
 }
 
 function iniciarAtencionTerreno(id){

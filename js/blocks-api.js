@@ -1,7 +1,7 @@
 /**
  * js/blocks-api.js
  * Capa de persistencia centralizada en tiempo real para bloqueos de agenda y disponibilidad.
- * Conecta bidireccionalmente con el endpoint Edge API (/api/blocks) y Supabase
+ * Conecta bidireccionalmente con el endpoint Edge API (/api/blocks, /api/reservas) y Supabase
  * con respaldo inmediato en localStorage (claves 'msa_blocks' y 'msa-v1').
  */
 
@@ -39,6 +39,26 @@
         }
       } catch (e) {}
       this._client = null;
+    },
+
+    // Obtener headers de autenticación administrativa para endpoints protegidos
+    getAdminAuthHeaders: function() {
+      var headers = {};
+      try {
+        var token = (typeof localStorage !== 'undefined' && localStorage.getItem('msa-admin-token')) || '';
+        var sbKey = (typeof localStorage !== 'undefined' && localStorage.getItem(LS_SB_KEY)) || '';
+        var sess = null;
+        try {
+          sess = JSON.parse(sessionStorage.getItem('msa-session')) || JSON.parse(localStorage.getItem('msa-admin-user'));
+        } catch (e) {}
+        var sessToken = (sess && sess.token) || '';
+        var chosen = token || sessToken || sbKey;
+        if (chosen) {
+          headers['Authorization'] = 'Bearer ' + chosen;
+          headers['x-admin-token'] = chosen;
+        }
+      } catch (e) {}
+      return headers;
     },
 
     // Instancia del cliente Supabase si la librería CDN está presente y hay credenciales
@@ -80,8 +100,9 @@
       if (typeof fetch === 'function') {
         try {
           var apiUrl = '/api/blocks' + (dateFilter ? '?date=' + encodeURIComponent(dateFilter) : '');
+          var headers = Object.assign({ 'Accept': 'application/json' }, this.getAdminAuthHeaders());
           var apiRes = await fetch(apiUrl, {
-            headers: { 'Accept': 'application/json' },
+            headers: headers,
             cache: 'no-store'
           });
           if (apiRes.ok) {
@@ -101,7 +122,7 @@
         var sb = this.getSupabaseClient();
         if (sb) {
           try {
-            var query = sb.from('bloqueos').select('*');
+            var query = sb.from('bloqueos').select('date,type');
             if (dateFilter) {
               query = query.eq('date', dateFilter);
             }
@@ -143,7 +164,7 @@
       return blocks;
     },
 
-    // 2. Persistir nuevo bloqueo en la base de datos central y local
+    // 2. Persistir nuevo bloqueo en la base de datos central y local (Requiere autenticación)
     saveBlock: async function(block) {
       var norm = this.normalizeBlock(block);
       if (!norm) return { ok: false, error: 'Bloqueo inválido' };
@@ -153,15 +174,22 @@
 
       var remoteSuccess = false;
 
-      // Persistir vía /api/blocks
+      // Persistir vía /api/blocks con headers de autenticación
       if (typeof fetch === 'function') {
         try {
+          var headers = Object.assign(
+            { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            this.getAdminAuthHeaders()
+          );
           var apiRes = await fetch('/api/blocks', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify(norm)
           });
           if (apiRes.ok) remoteSuccess = true;
+          else if (apiRes.status === 401) {
+            console.warn('[MsaBlocksService] No autorizado para guardar bloqueos. Requiere sesión admin.');
+          }
         } catch (eApi) {}
       }
 
@@ -192,14 +220,14 @@
       return { ok: true, remote: remoteSuccess };
     },
 
-    // 3. Eliminar bloqueo en la base de datos central y local
+    // 3. Eliminar bloqueo en la base de datos central y local (Requiere autenticación)
     removeBlock: async function(idOrDate, type) {
       // Eliminar de localStorage inmediatamente
       this._removeLocalBlock(idOrDate, type);
 
       var remoteSuccess = false;
 
-      // Eliminar vía /api/blocks
+      // Eliminar vía /api/blocks con headers de autenticación
       if (typeof fetch === 'function') {
         try {
           var delUrl = '/api/blocks?';
@@ -208,10 +236,17 @@
           } else if (type) {
             delUrl += 'date=' + encodeURIComponent(idOrDate) + '&type=' + encodeURIComponent(type);
           } else {
-            delUrl += 'date=' + encodeURIComponent(idOrDate);
+            // Protección: no enviar sin tipo si no hay id
+            delUrl += 'date=' + encodeURIComponent(idOrDate) + '&type=full';
           }
-          var delRes = await fetch(delUrl, { method: 'DELETE' });
+          var delRes = await fetch(delUrl, {
+            method: 'DELETE',
+            headers: this.getAdminAuthHeaders()
+          });
           if (delRes.ok) remoteSuccess = true;
+          else if (delRes.status === 401) {
+            console.warn('[MsaBlocksService] No autorizado para eliminar bloqueos. Requiere sesión admin.');
+          }
         } catch (eDel) {}
       }
 
@@ -238,6 +273,80 @@
       return { ok: true, remote: remoteSuccess };
     },
 
+    // 4. PERSISTENCIA DE RESERVAS WEB: Guardar pre-reserva en base de datos
+    createPreReserva: async function(reservaData) {
+      if (!reservaData) return { ok: false, error: 'Datos de reserva vacíos' };
+      if (typeof fetch === 'function') {
+        try {
+          var res = await fetch('/api/reservas', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(reservaData)
+          });
+          var data = await res.json().catch(function() { return {}; });
+          if (res.ok && data && data.ok) {
+            return { ok: true, source: 'api', data: data.data };
+          }
+          return { ok: false, error: data.error || ('Error HTTP ' + res.status) };
+        } catch (err) {
+          return { ok: false, error: err.message || 'Error de conexión' };
+        }
+      }
+      return { ok: false, error: 'Fetch no disponible' };
+    },
+
+    // 5. Consultar reservas registradas (Solo Admin)
+    fetchReservas: async function(dateFilter, stFilter) {
+      if (typeof fetch === 'function') {
+        try {
+          var q = [];
+          if (dateFilter) q.push('date=' + encodeURIComponent(dateFilter));
+          if (stFilter) q.push('st=' + encodeURIComponent(stFilter));
+          var url = '/api/reservas' + (q.length ? '?' + q.join('&') : '');
+          var res = await fetch(url, {
+            headers: Object.assign({ 'Accept': 'application/json' }, this.getAdminAuthHeaders()),
+            cache: 'no-store'
+          });
+          if (res.ok) {
+            var data = await res.json().catch(function() { return {}; });
+            if (data && data.ok && Array.isArray(data.data)) {
+              return data.data;
+            }
+          }
+        } catch (err) {}
+      }
+      return [];
+    },
+
+    // 6. Actualizar estado de reserva (Solo Admin)
+    updateReservaStatus: async function(idOrFolio, st, extraFields) {
+      if (!idOrFolio) return { ok: false, error: 'ID o Folio requerido' };
+      if (typeof fetch === 'function') {
+        try {
+          var param = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
+            ? 'id=' + encodeURIComponent(idOrFolio)
+            : 'folio=' + encodeURIComponent(idOrFolio);
+          var body = Object.assign({ st: st }, extraFields || {});
+          var res = await fetch('/api/reservas?' + param, {
+            method: 'PATCH',
+            headers: Object.assign(
+              { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              this.getAdminAuthHeaders()
+            ),
+            body: JSON.stringify(body)
+          });
+          var data = await res.json().catch(function() { return {}; });
+          return { ok: res.ok && data && data.ok, data: data };
+        } catch (err) {
+          return { ok: false, error: err.message };
+        }
+      }
+      return { ok: false, error: 'Fetch no disponible' };
+    },
+
     // Combinar bloques remotos con el estado local
     mergeBlocksIntoD: function(remoteBlocks, D) {
       if (!D) return;
@@ -261,14 +370,12 @@
       try {
         if (typeof localStorage === 'undefined') return;
 
-        // Actualizar msa_blocks
         var dedArr = JSON.parse(localStorage.getItem(LS_BLOCKS_KEY)) || [];
         var map = {};
         dedArr.forEach(function(b) { map[b.date + '_' + b.type] = b; });
         remoteBlocks.forEach(function(b) { map[b.date + '_' + b.type] = b; });
         localStorage.setItem(LS_BLOCKS_KEY, JSON.stringify(Object.values(map)));
 
-        // Actualizar msa-v1
         var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
         if (Array.isArray(state.blocks)) {
           var stateMap = {};
@@ -284,7 +391,6 @@
       try {
         if (typeof localStorage === 'undefined') return;
 
-        // Actualizar msa_blocks
         var dedArr = JSON.parse(localStorage.getItem(LS_BLOCKS_KEY)) || [];
         if (block.type === 'full') {
           dedArr = dedArr.filter(function(b) { return b.date !== block.date; });
@@ -296,7 +402,6 @@
         dedArr.push(block);
         localStorage.setItem(LS_BLOCKS_KEY, JSON.stringify(dedArr));
 
-        // Actualizar msa-v1
         var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
         if (Array.isArray(state.blocks)) {
           if (block.type === 'full') {

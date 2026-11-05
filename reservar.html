@@ -5852,7 +5852,7 @@ async function submitBooking(ev){
     fare: lastFinalTotal,
     abono: lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50,
     paid: 0,
-    st: 'Confirmado',
+    st: 'Pre-reserva pendiente',
     svcType: mode,
     block: isInter ? 'full' : selectedBlock,
     fullDay: isInter,
@@ -5863,6 +5863,17 @@ async function submitBooking(ev){
 
   D.svcs.push(newSvc);
   save();
+
+  // Persistencia centralizada en base de datos Supabase / API
+  if(window.MsaBlocksService && typeof window.MsaBlocksService.createPreReserva === 'function'){
+    window.MsaBlocksService.createPreReserva(newSvc).then(function(res){
+      if(res && res.ok){
+        console.log('[reservar.html] Pre-reserva persistida exitosamente en BD:', res.data);
+      }
+    }).catch(function(err){
+      console.warn('[reservar.html] Error al persistir pre-reserva remota:', err);
+    });
+  }
 
   const taxDocWa = isInvoice
     ? `• Documento Tributario: Factura Electrónica Exenta\n  - Razón Social: ${taxRS}\n  - RUT: ${taxRUT}\n  - Giro: ${taxGiro}\n  - Dirección Tributaria: ${taxDir}\n`
@@ -5908,9 +5919,9 @@ async function submitBooking(ev){
     <section class="card" style="text-align:center;padding:36px 24px">
       <div style="font-size:3rem;margin-bottom:8px">🎉</div>
       <span class="step-tag">Solicitud Registrada · Folio #MSA-${newId}</span>
-      <h2 style="margin-top:6px">¡Su bloque horario ha sido reservado con éxito!</h2>
+      <h2 style="margin-top:6px">¡Su Pre-Reserva ha sido registrada con éxito!</h2>
       <p style="color:var(--mute);max-width:62ch;margin:8px auto 20px">
-        Su bloque ya quedó registrado en nuestra agenda. A continuación encontrará el desglose de su atención y las <b>coordenadas bancarias oficiales</b> para transferir el abono del 50%.
+        Su solicitud quedó registrada en el sistema con estado <b>Pre-reserva pendiente</b>. A continuación encontrará el desglose de su atención y las <b>coordenadas bancarias oficiales</b> para transferir el abono del 50%.
       </p>
 
       <ul class="summary-list" style="max-width:660px;margin:20px auto;text-align:left">
