@@ -108,6 +108,18 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 .suggest-list{position:absolute;z-index:99;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);max-height:200px;overflow-y:auto;display:none}
 .suggest-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--bd);font-size:13px}
 .suggest-item:hover{background:var(--buf)}
+.reservation-actions{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.btn-confirm-deposit{background:#10b981;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-confirm-deposit:hover{background:#059669;box-shadow:0 2px 8px rgba(16,185,129,0.3)}
+.btn-cancel-reservation{background:#ef4444;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-cancel-reservation:hover{background:#dc2626;box-shadow:0 2px 8px rgba(239,68,68,0.3)}
+.res-card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.res-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-weight:700;font-size:12px}
+.res-badge-pending{background:rgba(245,158,11,0.15);color:#d97706;border:1px solid rgba(245,158,11,0.3)}
+.res-badge-confirmed{background:rgba(16,185,129,0.15);color:#059669;border:1px solid rgba(16,185,129,0.3)}
+.res-badge-cancelled{background:rgba(239,68,68,0.15);color:#dc2626;border:1px solid rgba(239,68,68,0.3)}
+.res-badge-completed{background:rgba(6,182,212,0.15);color:#0891b2;border:1px solid rgba(6,182,212,0.3)}
+.res-econ-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px}
 </style>
 </head>
 <body>
@@ -212,6 +224,27 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 <!-- =========================================================================
      MODAL DE ADVERTENCIA PREVENTIVA DE BUFFER (2 HORAS)
      ========================================================================= -->
+<!-- MODAL CONFIRMAR ABONO 50% Y ACTIVAR BLOQUEO PERMANENTE -->
+<div id="modalConfirmDepositAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);max-width:500px;width:100%;border-radius:14px;border:1.5px solid #10b981;box-shadow:0 10px 35px rgba(0,0,0,.25);padding:22px 24px;box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0;font-size:1.15rem;color:#059669;display:flex;align-items:center;gap:8px">
+        <span>✔</span> Confirmar Recepción de Abono 50%
+      </h3>
+      <button type="button" onclick="closeConfirmModal()" style="background:transparent;border:0;font-size:1.2rem;cursor:pointer;color:var(--mut)">✕</button>
+    </div>
+    <div id="modalConfirmDepositDetails" style="font-size:.9rem;line-height:1.5;margin-bottom:16px"></div>
+    <div style="margin-bottom:14px">
+      <label for="confirmDepositVoucher" style="font-weight:700;font-size:12px;display:block;margin-bottom:5px">N° Comprobante / Transf. Bancaria (opcional):</label>
+      <input type="text" id="confirmDepositVoucher" name="conf_deposit_comprobante" placeholder="Ej: Scotiabank #994821 / Transf. 12345" style="width:100%;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);box-sizing:border-box">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" onclick="closeConfirmModal()" style="padding:8px 16px;border-radius:8px">Cancelar</button>
+      <button type="button" id="btn_submit_confirm_deposit" onclick="executeConfirmDeposit()" class="p" style="padding:8px 18px;background:#10b981;border-color:#10b981;font-weight:700;border-radius:8px">✔ Confirmar y Activar Bloqueo Permanente</button>
+    </div>
+  </div>
+</div>
+
 <div id="modalWarningBufferAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);max-width:500px;width:100%;border-radius:14px;border:1.5px solid #d97706;box-shadow:0 10px 35px rgba(0,0,0,.25);padding:24px;box-sizing:border-box">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -517,8 +550,20 @@ function getTheme(){try{const s=localStorage.getItem(TM_K);if(s)return s}catch(x
 function applyTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem(TM_K,t)}catch(x){}}
 function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme')||getTheme();applyTheme(cur==='dark'?'light':'dark');render()}
 const ST=['Pre-reserva pendiente','Pendiente','Confirmado','En Ruta','En Atención','Finalizado','Cancelado'];
-const COL={'Pre-reserva pendiente':'#F59E0B','Pendiente':'#F59E0B','Confirmado':'#3B82F6','En Ruta':'#14B8A6','En Atención':'#06B6D4','Finalizado':'#10B981','Cancelado':'#64748B'};
-const COL_BG={'Pre-reserva pendiente':'rgba(245, 158, 11, 0.16)','Pendiente':'rgba(245, 158, 11, 0.12)','Confirmado':'rgba(59, 130, 246, 0.12)','En Ruta':'rgba(20, 184, 166, 0.12)','En Atención':'rgba(6, 182, 212, 0.12)','Finalizado':'rgba(16, 185, 129, 0.12)','Cancelado':'rgba(100, 116, 139, 0.12)'};
+const COL={
+  'Pre-reserva pendiente':'#F59E0B','pendiente_abono':'#F59E0B','Pendiente':'#F59E0B',
+  'Confirmado':'#10B981','confirmada':'#10B981','Confirmada':'#10B981',
+  'En Ruta':'#14B8A6','En Atención':'#06B6D4',
+  'Finalizado':'#10B981','completada':'#10B981',
+  'Cancelado':'#EF4444','Cancelada':'#EF4444','expirada_cancelada':'#EF4444'
+};
+const COL_BG={
+  'Pre-reserva pendiente':'rgba(245, 158, 11, 0.16)','pendiente_abono':'rgba(245, 158, 11, 0.16)','Pendiente':'rgba(245, 158, 11, 0.12)',
+  'Confirmado':'rgba(16, 185, 129, 0.12)','confirmada':'rgba(16, 185, 129, 0.12)','Confirmada':'rgba(16, 185, 129, 0.12)',
+  'En Ruta':'rgba(20, 184, 166, 0.12)','En Atención':'rgba(6, 182, 212, 0.12)',
+  'Finalizado':'rgba(16, 185, 129, 0.12)','completada':'rgba(16, 185, 129, 0.12)',
+  'Cancelado':'rgba(239, 68, 68, 0.12)','Cancelada':'rgba(239, 68, 68, 0.12)','expirada_cancelada':'rgba(239, 68, 68, 0.12)'
+};
 const MOB=['Autovalente','Bastón / andador','Silla de ruedas','Dependencia Severa'];
 const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
 const NEXT={'Pre-reserva pendiente':['Confirmar','Confirmado'],'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
@@ -625,7 +670,7 @@ const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
 
 /* REGLA DE BUFFER: nuevo.inicio < previo.fin + 180 (y simétrica: previo.inicio < nuevo.fin + 180) */
 function avail(tid,date,start,dur,ign){
-  return !D.svcs.some(s=>s.tid==tid&&s.date==date&&s.st!='Cancelado'&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF);
+  return !D.svcs.some(s=>s.tid==tid&&s.date==date&&s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada'&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF);
 }
 
 function render(){
@@ -676,14 +721,16 @@ function dateNav(){return `<div class=row style="margin-bottom:10px"><button onc
 function mv(n){const d=new Date(U.date+'T12:00:00');d.setDate(d.getDate()+n);U.date=d.toISOString().slice(0,10);render()}
 
 function admin(){
+  const pendingCount = (D.svcs || []).filter(s => s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono').length;
   const tabs=[
+    ['inbox', `📥 Bandeja de Entrada${pendingCount > 0 ? ` (${pendingCount})` : ''}`],
+    ['cal','📅 Calendario diario'],
     ['blocks','🔒 Gestión de Disponibilidad y Bloqueos'],
-    ['cal','Calendario diario'],
     ['new','➕ Nueva reserva (Cotizador Auto)'],
     ['staff','Personal TENS']
   ];
   return `<div class=row style="margin-bottom:10px">${tabs.map(t=>`<button class="${U.tab==t[0]?'on':''}" onclick="U.tab='${t[0]}';U.sel=null;render()">${t[1]}</button>`).join('')}</div>`+
-         (U.tab=='blocks'?blocksView():U.tab=='cal'?cal():U.tab=='new'?form():staff());
+         (U.tab=='inbox'?inboxView():U.tab=='blocks'?blocksView():U.tab=='cal'?cal():U.tab=='new'?form():staff());
 }
 
 function changeAdminCalMonth(delta){
@@ -790,6 +837,7 @@ async function syncCentralizedBlocksAdmin(){
                 folio: r.folio,
                 tid: r.tens_id || 't1',
                 date: r.date,
+                time: r.time || '10:00',
                 start: r.start_min !== undefined ? r.start_min : tm(r.time || '10:00'),
                 dur: r.dur_min || 120,
                 pat: r.pat_name,
@@ -810,10 +858,13 @@ async function syncCentralizedBlocksAdmin(){
                 paid: r.paid || 0,
                 st: r.st || 'Pre-reserva pendiente',
                 svcType: r.svc_type || '1',
-                block: r.block || 'manana'
+                block: r.block || 'manana',
+                createdAt: r.created_at || new Date().toISOString()
               });
-            } else if(r.st && exists.st !== r.st){
-              exists.st = r.st;
+            } else {
+              if(r.st && exists.st !== r.st) exists.st = r.st;
+              if(r.paid !== undefined && exists.paid !== r.paid) exists.paid = r.paid;
+              if(!exists.createdAt && r.created_at) exists.createdAt = r.created_at;
             }
           });
         }
@@ -1033,7 +1084,8 @@ function blocksView(){
 }
 
 function cal(){
-  const ss=D.svcs.filter(s=>s.date==U.date),act=D.techs.filter(t=>t.act),live=ss.filter(s=>s.st!='Cancelado');
+  const allPendingPreReservas = (D.svcs || []).filter(s => s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono');
+  const ss=D.svcs.filter(s=>s.date==U.date),act=D.techs.filter(t=>t.act),live=ss.filter(s=>s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada');
   const prevDate = addDaysYMD(U.date, -1);
   const prevOvernightSvcs = D.svcs.filter(s => s.date == prevDate && s.st != 'Cancelado' && (s.start + s.dur > 1440));
   const cob=live.reduce((a,s)=>a+s.paid,0),sal=live.reduce((a,s)=>a+s.fare-s.paid,0);
@@ -1043,8 +1095,26 @@ function cal(){
     const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id);
     return `<div class=col><div class=ch style="border-color:${t.col}">${e(t.nom)}</div><div class=cb style="height:${H}px;cursor:pointer" onclick="onCalGridClick(event, '${t.id}', '${U.date}')" title="Clic en cualquier espacio vacío para agendar a esta hora">${prevUnitOvernight.map(blkOvernightRem).join('')}${unitSvcs.map(blk).join('')}</div></div>`;
   }).join('');
-  return dateNav()+`<div class=met><div><b>${live.length}</b><span>Servicios del día</span></div><div><b>${$c(cob)}</b><span>Abonado</span></div><div><b>${$c(sal)}</b><span>Saldo pendiente</span></div><div><b>${act.length}</b><span>TENS operativos</span></div></div>
-  <div class=row style="margin-bottom:8px;font-size:12px;gap:12px">${ST.map(s=>{
+  let pendingSection = '';
+  if(allPendingPreReservas.length > 0){
+    pendingSection = `
+      <div class="card" style="margin-bottom:12px;border-left:4px solid #f59e0b">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <h3 style="margin:0;font-size:1.05rem;color:#b45309;display:flex;align-items:center;gap:8px">
+            <span>📥</span> Pre-Reservas Web Pendientes de Abono (${allPendingPreReservas.length})
+          </h3>
+          <button type="button" onclick="U.tab='inbox';render()" style="font-size:12px;padding:4px 10px;cursor:pointer">Ver Bandeja Completa ›</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${allPendingPreReservas.slice(0, 3).map(s => renderReservaCard(s)).join('')}
+          ${allPendingPreReservas.length > 3 ? `<div style="font-size:12px;color:var(--mut);text-align:center;padding:4px"><a href="javascript:void(0)" onclick="U.tab='inbox';render()">+ ${allPendingPreReservas.length - 3} solicitudes más en Bandeja de Entrada</a></div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  return dateNav()+`<div class=met><div><b>${live.length}</b><span>Servicios del día</span></div><div><b>${$c(cob)}</b><span>Abonado</span></div><div><b>${$c(sal)}</b><span>Saldo pendiente</span></div><div><b>${act.length}</b><span>TENS operativos</span></div></div>`+pendingSection+
+  `<div class=row style="margin-bottom:8px;font-size:12px;gap:12px">${ST.map(s=>{
     const icon = s==='En Ruta'?'🚗 ':s==='En Atención'?'🩺 ':'';
     return `<span style="display:inline-flex;align-items:center;gap:5px"><span class=dot style="background:${COL[s]}"></span>${icon}${s}</span>`;
   }).join('')}<span><span class=dot style="background:var(--buf);border:1px dashed var(--mut)"></span>Buffer 2 h</span></div>
@@ -3063,9 +3133,33 @@ function abrirMenuContextualServicio(svcId){
     `;
   }
 
+  const isCtxPending = s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono';
+  let quickDepositBtn = '';
+  if(isCtxPending){
+    const abonoVal = s.abono || Math.round((s.fare||0)*0.5);
+    quickDepositBtn = `
+      <div class="reservation-actions" style="margin:0 0 10px;width:100%">
+        <button 
+          class="btn-confirm-deposit" 
+          data-reserva-id="${s.id}" 
+          onclick="cerrarModalContextualServicioAdmin(); openConfirmModal('${s.id}', '${e(s.pat).replace(/'/g, "\\'")}', ${abonoVal})"
+        >
+          ✔ Confirmar Abono 50%
+        </button>
+        <button 
+          class="btn-cancel-reservation" 
+          data-reserva-id="${s.id}" 
+          onclick="cerrarModalContextualServicioAdmin(); cancelReservation('${s.id}')"
+        >
+          ✕ Anular / Liberar Cupo
+        </button>
+      </div>
+    `;
+  }
+
   const ctxActions = $('#ctxActions');
   if(ctxActions){
-    ctxActions.innerHTML = `
+    ctxActions.innerHTML = quickDepositBtn + `
       <a href="${waUrl}" target="_blank" rel="noopener" style="background:#25D366;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
         💬 WhatsApp Contratante
       </a>
@@ -3594,7 +3688,428 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
 }
 window.ejecutarFinalizacionYDescargaPdfAdmin = ejecutarFinalizacionYDescargaPdfAdmin;
 
+// =========================================================================
+// MOTOR DE CONFIRMACIÓN DE ABONO, PERSISTENCIA Y TRANSICIÓN DE ESTADOS
+// =========================================================================
+function getReservationExpiresMs(s){
+  const created = s.createdAt || s.created_at;
+  const createdMs = created ? new Date(created).getTime() : Date.now();
+  return createdMs + (60 * 60 * 1000); // 60 minutos TTL
+}
+
+function getReservationRemainingSeconds(s){
+  if(s.st !== 'Pre-reserva pendiente' && s.st !== 'pendiente_abono') return null;
+  const expiresMs = getReservationExpiresMs(s);
+  return Math.floor((expiresMs - Date.now()) / 1000);
+}
+
+function renderReservaStateBadge(s){
+  const isPending = s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono';
+  if(isPending){
+    const remSec = getReservationRemainingSeconds(s);
+    if(remSec !== null && remSec <= 0){
+      return `<span class="res-badge res-badge-cancelled">🔴 Cancelada / Expirada</span>`;
+    }
+    const mm = remSec !== null ? String(Math.floor(remSec / 60)).padStart(2, '0') : '60';
+    const ss = remSec !== null ? String(remSec % 60).padStart(2, '0') : '00';
+    const expiresMs = getReservationExpiresMs(s);
+    return `<span class="res-badge res-badge-pending res-countdown" data-reserva-id="${s.id}" data-expires-ms="${expiresMs}">🟡 Pre-reserva Pendiente (Expira en: ${mm}:${ss})</span>`;
+  }
+  if(s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada'){
+    return `<span class="res-badge res-badge-confirmed">🟢 Confirmada / Bloqueo Activo</span>`;
+  }
+  if(s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada'){
+    return `<span class="res-badge res-badge-cancelled">🔴 Cancelada / Expirada</span>`;
+  }
+  if(s.st === 'Finalizado' || s.st === 'completada'){
+    return `<span class="res-badge res-badge-completed">🔵 Finalizada / Completada</span>`;
+  }
+  return `<span class="res-badge" style="background:rgba(100,116,139,0.15);color:#475569">${e(s.st)}</span>`;
+}
+window.renderReservaStateBadge = renderReservaStateBadge;
+
+function renderReservaEconBreakdown(s){
+  const total = s.fare || 0;
+  const abono = s.abono || Math.round(total * 0.5);
+  const paid = s.paid || 0;
+  const saldo = Math.max(0, total - paid);
+
+  return `
+    <div class="res-econ-grid">
+      <div><span style="color:var(--mut);display:block">Total Cotizado</span><b style="font-size:13px">${$c(total)}</b></div>
+      <div><span style="color:var(--mut);display:block">Abono 50% Esperado</span><b style="font-size:13px;color:#10b981">${$c(abono)}</b> ${paid >= abono ? '<span style="font-size:10px;color:#10b981">✓ Pagado</span>' : '<span style="font-size:10px;color:#f59e0b">⏳ Pendiente</span>'}</div>
+      <div><span style="color:var(--mut);display:block">Saldo Pendiente en Terreno</span><b style="font-size:13px;color:#d97706">${$c(saldo)}</b></div>
+    </div>
+  `;
+}
+window.renderReservaEconBreakdown = renderReservaEconBreakdown;
+
+let inboxStatusFilter = 'all';
+let inboxSearchQuery = '';
+
+function setInboxStatusFilter(filter){
+  inboxStatusFilter = filter;
+  render();
+}
+window.setInboxStatusFilter = setInboxStatusFilter;
+
+function onInboxSearch(q){
+  inboxSearchQuery = q.toLowerCase().trim();
+  render();
+}
+window.onInboxSearch = onInboxSearch;
+
+function renderReservaCard(s){
+  const isPending = s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono';
+  const abonoVal = s.abono || Math.round((s.fare || 0) * 0.5);
+
+  return `
+    <div class="res-card" style="border-left:5px solid ${COL[s.st] || '#64748B'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <span style="font-size:11px;font-weight:800;color:var(--mut);letter-spacing:0.5px">FOLIO #MSA-${s.id}</span>
+          <h3 style="margin:2px 0 4px;font-size:1.1rem;color:var(--pri)">
+            ${e(s.pat)} <span style="font-size:12px;font-weight:400;color:var(--mut)">(${s.age || '—'} años)</span>
+          </h3>
+          <div style="font-size:12px;color:var(--fg)">
+            📅 <b>Fecha:</b> ${s.date} · ⏱️ <b>Horario:</b> ${fm(s.start)} a ${fm((s.start+s.dur)%1440)} hrs (${fmtDurationClean(s.dur)})
+          </div>
+        </div>
+        <div style="text-align:right">
+          ${renderReservaStateBadge(s)}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:12px;color:var(--fg);margin-bottom:8px">
+        <div><b>Diagnóstico / Motivo:</b> ${e(s.dx || 'Atención clínica')}</div>
+        <div><b>Contratante:</b> ${e(s.coord || '—')} (${e(s.ph || '—')})</div>
+        <div><b>Origen:</b> ${e(s.from || '—')}</div>
+        <div><b>Destino:</b> ${e(s.to || '—')}</div>
+      </div>
+
+      ${renderReservaEconBreakdown(s)}
+
+      ${isPending ? `
+        <div class="reservation-actions">
+          <button 
+            class="btn-confirm-deposit" 
+            data-reserva-id="${s.id}" 
+            onclick="openConfirmModal('${s.id}', '${e(s.pat).replace(/'/g, "\\'")}', ${abonoVal})"
+          >
+            ✔ Confirmar Abono 50%
+          </button>
+
+          <button 
+            class="btn-cancel-reservation" 
+            data-reserva-id="${s.id}" 
+            onclick="cancelReservation('${s.id}')"
+          >
+            ✕ Anular / Liberar Cupo
+          </button>
+        </div>
+      ` : (s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada' ? `
+        <div class="reservation-actions">
+          <span style="font-size:12px;color:#059669;font-weight:700">🟢 Bloqueo activo permanente · Abono registrado (${$c(s.paid)})</span>
+          <button type="button" class="btn-cancel-reservation" style="padding:4px 10px;font-size:11px" onclick="cancelReservation('${s.id}')">✕ Anular / Liberar Cupo</button>
+        </div>
+      ` : '')}
+    </div>
+  `;
+}
+window.renderReservaCard = renderReservaCard;
+
+function inboxView(){
+  const allSvcs = D.svcs || [];
+  const pending = allSvcs.filter(s => s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono');
+  const confirmed = allSvcs.filter(s => s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada');
+  const completed = allSvcs.filter(s => s.st === 'Finalizado' || s.st === 'completada');
+  const cancelled = allSvcs.filter(s => s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada');
+
+  let filtered = allSvcs;
+  if(inboxStatusFilter === 'pending'){
+    filtered = pending;
+  } else if(inboxStatusFilter === 'confirmed'){
+    filtered = confirmed;
+  } else if(inboxStatusFilter === 'cancelled'){
+    filtered = cancelled;
+  }
+
+  if(inboxSearchQuery){
+    filtered = filtered.filter(s => {
+      const txt = `${s.id} ${s.folio||''} ${s.pat||''} ${s.coord||''} ${s.ph||''} ${s.from||''} ${s.to||''} ${s.dx||''}`.toLowerCase();
+      return txt.includes(inboxSearchQuery);
+    });
+  }
+
+  const sorted = [...filtered].sort((a,b) => {
+    const aPend = a.st === 'Pre-reserva pendiente' || a.st === 'pendiente_abono';
+    const bPend = b.st === 'Pre-reserva pendiente' || b.st === 'pendiente_abono';
+    if(aPend && !bPend) return -1;
+    if(!aPend && bPend) return 1;
+    const aTime = a.createdAt || a.created_at || a.date;
+    const bTime = b.createdAt || b.created_at || b.date;
+    return (bTime > aTime) ? 1 : -1;
+  });
+
+  return `
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+        <div>
+          <h2 style="margin:0;font-size:1.25rem;color:var(--pri);display:flex;align-items:center;gap:8px">
+            <span>📥</span> Bandeja de Entrada · Solicitudes y Reservas Web
+          </h2>
+          <div style="font-size:12px;color:var(--mut);margin-top:2px">
+            Control de ciclo de vida, confirmación de abono del 50%, desbloqueos y persistencia centralizada.
+          </div>
+        </div>
+        <button type="button" class="unlock-btn" onclick="syncCentralizedBlocksAdmin(); alert('Sincronizando reservas con la base de datos central...')" style="padding:7px 14px;font-size:12px;font-weight:700">
+          🔄 Sincronizar con BD
+        </button>
+      </div>
+
+      <div class="met" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:14px">
+        <div style="cursor:pointer" onclick="setInboxStatusFilter('pending')">
+          <b style="color:#d97706">${pending.length}</b>
+          <span>🟡 Pendientes Abono</span>
+        </div>
+        <div style="cursor:pointer" onclick="setInboxStatusFilter('confirmed')">
+          <b style="color:#10b981">${confirmed.length}</b>
+          <span>🟢 Confirmadas</span>
+        </div>
+        <div style="cursor:pointer" onclick="setInboxStatusFilter('cancelled')">
+          <b style="color:#ef4444">${cancelled.length}</b>
+          <span>🔴 Canceladas / Expiradas</span>
+        </div>
+        <div>
+          <b style="color:#06b6d4">${completed.length}</b>
+          <span>🔵 Finalizadas / Terreno</span>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="${inboxStatusFilter==='all'?'on':''}" onclick="setInboxStatusFilter('all')" style="padding:6px 12px;font-size:12px">Todas (${allSvcs.length})</button>
+          <button type="button" class="${inboxStatusFilter==='pending'?'on':''}" onclick="setInboxStatusFilter('pending')" style="padding:6px 12px;font-size:12px;border-color:#f59e0b">🟡 Pendientes (${pending.length})</button>
+          <button type="button" class="${inboxStatusFilter==='confirmed'?'on':''}" onclick="setInboxStatusFilter('confirmed')" style="padding:6px 12px;font-size:12px;border-color:#10b981">🟢 Confirmadas (${confirmed.length})</button>
+          <button type="button" class="${inboxStatusFilter==='cancelled'?'on':''}" onclick="setInboxStatusFilter('cancelled')" style="padding:6px 12px;font-size:12px;border-color:#ef4444">🔴 Canceladas (${cancelled.length})</button>
+        </div>
+        <div style="position:relative;min-width:240px">
+          <input type="text" placeholder="🔍 Buscar por paciente, folio, teléfono..." value="${e(inboxSearchQuery)}" oninput="onInboxSearch(this.value)" style="width:100%;font-size:12px;padding:6px 10px;border-radius:8px">
+        </div>
+      </div>
+
+      ${sorted.length === 0 ? `
+        <div class="msg" style="text-align:center;padding:24px">
+          No se encontraron solicitudes o reservas para los filtros seleccionados.
+        </div>
+      ` : `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${sorted.map(s => renderReservaCard(s)).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+window.inboxView = inboxView;
+
+let pendingConfirmReservaId = null;
+
+function openConfirmModal(id, paciente, montoAbono){
+  pendingConfirmReservaId = id;
+  const s = D.svcs.find(x => x.id == id || x.folio == id);
+  const patName = paciente || (s && s.pat) || 'Paciente';
+  const abonoVal = montoAbono || (s && s.abono) || (s && Math.round(s.fare * 0.5)) || 0;
+  const fareVal = (s && s.fare) || (abonoVal * 2);
+  const saldoVal = Math.max(0, fareVal - abonoVal);
+
+  const modal = $('#modalConfirmDepositAdmin');
+  const details = $('#modalConfirmDepositDetails');
+  if(details){
+    details.innerHTML = `
+      <div style="padding:10px 12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:8px;margin-bottom:10px">
+        <div><b>Folio:</b> #MSA-${id} ${s && s.date ? `· <b>Fecha:</b> ${s.date}` : ''}</div>
+        <div><b>Paciente:</b> <span style="color:var(--pri);font-weight:800">${e(patName)}</span></div>
+        <div><b>Contratante:</b> ${e((s && s.coord) || '—')} (${e((s && s.ph) || '—')})</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;background:var(--bg);padding:8px;border-radius:8px">
+        <div><small style="color:var(--mut);display:block">Total Cotizado</small><b>${$c(fareVal)}</b></div>
+        <div><small style="color:var(--mut);display:block">Abono 50%</small><b style="color:#10b981">${$c(abonoVal)}</b></div>
+        <div><small style="color:var(--mut);display:block">Saldo en Terreno</small><b style="color:#d97706">${$c(saldoVal)}</b></div>
+      </div>
+      <div style="font-size:12px;color:var(--mut);line-height:1.4">
+        🛡️ Al confirmar la recepción del abono, se anula el temporizador de expiración de 60 minutos, el bloqueo de la agenda en la base de datos pasa a ser permanente y atómico, y el saldo pendiente queda listo para liquidar en terreno.
+      </div>
+    `;
+  }
+  const btnSubmit = $('#btn_submit_confirm_deposit');
+  if(btnSubmit){
+    btnSubmit.onclick = () => executeConfirmDeposit(id);
+  }
+  const _cInp = $('#confirmDepositVoucher') || $('#conf_deposit_comprobante'); if(_cInp) _cInp.value = '';
+  if(modal) modal.style.display = 'flex';
+}
+window.openConfirmModal = openConfirmModal;
+
+function closeConfirmModal(){
+  const modal = $('#modalConfirmDepositAdmin');
+  if(modal) modal.style.display = 'none';
+  pendingConfirmReservaId = null;
+}
+window.closeConfirmModal = closeConfirmModal;
+
+async function executeConfirmDeposit(id){
+  id = id || pendingConfirmReservaId;
+  const s = D.svcs.find(x => x.id == id || x.folio == id);
+  if(!s){
+    if(typeof alert !== 'undefined') alert('No se encontró la reserva.');
+    closeConfirmModal();
+    return;
+  }
+  const compInput = $('#confirmDepositVoucher') || $('#conf_deposit_comprobante');
+  const comprobante = compInput ? compInput.value.trim() : '';
+
+  const abonoMonto = s.abono || Math.round((s.fare || 0) * 0.5);
+  s.st = 'Confirmado';
+  s.paid = abonoMonto;
+  s.montoAbono = abonoMonto;
+  s.saldoPendiente = Math.max(0, (s.fare || 0) - abonoMonto);
+  s.abonoConfirmado = true;
+  s.confirmedAt = new Date().toISOString();
+  if(comprobante){
+    s.comprobanteAbono = comprobante;
+    s.abonoVoucher = comprobante;
+    s.obs = (s.obs ? s.obs + ' · ' : '') + 'Abono confirmado: ' + comprobante;
+  }
+
+  // Actualizar bloqueo local si existe
+  if(D.blocks && Array.isArray(D.blocks)){
+    const b = D.blocks.find(x => x.reservaId == id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full'))));
+    if(b){
+      b.status = 'definitivo';
+      b.locked = true;
+    }
+  }
+
+  // 1. Guardar bloqueo permanente y atómico en base de datos central
+  if(window.MsaBlocksService){
+    MsaBlocksService.saveBlock({
+      date: s.date,
+      type: s.block || 'full',
+      reason: `Reserva confirmada #${s.folio || s.id} (${s.pat})`,
+      tid: s.tid || 'all'
+    }).catch(err => console.warn('Error al persistir bloqueo permanente:', err));
+
+    // 2. Actualizar estado y pago en tabla reservas
+    MsaBlocksService.updateReservaStatus(s.folio || s.id, 'Confirmado', {
+      paid: s.paid,
+      confirmed_at: s.confirmedAt,
+      obs: s.obs
+    }).catch(err => console.warn('Error al actualizar reserva:', err));
+  }
+
+  save();
+  closeConfirmModal();
+  render();
+
+  if(typeof alert !== 'undefined'){
+    alert(`✅ ¡Abono del 50% (${$c(abonoMonto)}) confirmado exitosamente!
+
+• Reserva Folio #MSA-${s.id} confirmada de forma persistente.
+• Bloqueo atómico activo en la agenda.
+• Saldo pendiente en terreno: ${$c(s.fare - s.paid)}.`);
+  }
+  return { success: true, service: s };
+}
+window.executeConfirmDeposit = executeConfirmDeposit;
+
+async function cancelReservation(id){
+  const s = D.svcs.find(x => x.id == id || x.folio == id);
+  if(!s) return;
+  if(typeof confirm !== 'undefined'){
+    if(!confirm(`¿Está seguro de anular la reserva Folio #MSA-${s.id} de ${s.pat} y liberar el cupo en la agenda?\n\nEsta acción eliminará el bloqueo y devolverá la disponibilidad al calendario público.`)) return;
+  }
+
+  s.st = 'Cancelado';
+  s.cancelledAt = new Date().toISOString();
+  s.obs = (s.obs ? s.obs + ' · ' : '') + 'Anulada por administrador / cupo liberado';
+
+  if(D.blocks && Array.isArray(D.blocks)){
+    D.blocks = D.blocks.filter(x => !(x.reservaId == id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
+  }
+
+  if(window.MsaBlocksService){
+    MsaBlocksService.removeBlock(s.date, s.block || 'full').catch(err => console.warn('Error al liberar bloqueo:', err));
+    MsaBlocksService.updateReservaStatus(s.folio || s.id, 'Cancelado', {
+      cancelled_at: s.cancelledAt,
+      obs: s.obs
+    }).catch(err => console.warn('Error al actualizar reserva cancelada:', err));
+  }
+
+  save();
+  render();
+  if(typeof alert !== 'undefined'){
+    alert(`🗑️ Reserva Folio #MSA-${s.id} anulada y cupo liberado exitosamente en la agenda.`);
+  }
+  return { success: true, service: s };
+}
+window.cancelReservation = cancelReservation;
+
+async function autoExpireReservation(id){
+  const s = D.svcs.find(x => x.id == id || x.folio == id);
+  if(!s || (s.st !== 'Pre-reserva pendiente' && s.st !== 'pendiente_abono')) return;
+  s.st = 'Cancelado';
+  s.expiredAt = new Date().toISOString();
+  s.obs = (s.obs ? s.obs + ' · ' : '') + 'Expirada automáticamente por falta de abono (TTL 60 min)';
+
+  if(D.blocks && Array.isArray(D.blocks)){
+    D.blocks = D.blocks.filter(x => !(x.reservaId == id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
+  }
+
+  save();
+  if(window.MsaBlocksService){
+    MsaBlocksService.removeBlock(s.date, s.block || 'full').catch(()=>{});
+    MsaBlocksService.updateReservaStatus(s.folio || s.id, 'Cancelado', {
+      obs: s.obs,
+      expired_at: s.expiredAt
+    }).catch(()=>{});
+  }
+  render();
+}
+window.autoExpireReservation = autoExpireReservation;
+
+function initReservationCountdownTimer(){
+  if(typeof window === 'undefined' || typeof setInterval === 'undefined') return;
+  if(window.__countdownTimerInterval && typeof clearInterval !== 'undefined') clearInterval(window.__countdownTimerInterval);
+  window.__countdownTimerInterval = setInterval(() => {
+    if(typeof document === 'undefined' || !document.querySelectorAll) return;
+    let needsRender = false;
+    const elements = document.querySelectorAll('.res-countdown');
+    if(!elements || elements.length === 0) return;
+    elements.forEach(el => {
+      const id = el.getAttribute('data-reserva-id');
+      const expiresMs = parseInt(el.getAttribute('data-expires-ms'), 10);
+      if(!expiresMs) return;
+      const diffSec = Math.floor((expiresMs - Date.now()) / 1000);
+      if(diffSec <= 0){
+        el.className = 'res-badge res-badge-cancelled';
+        el.textContent = '🔴 Cancelada / Expirada';
+        autoExpireReservation(id);
+        needsRender = true;
+      } else {
+        const mm = String(Math.floor(diffSec / 60)).padStart(2, '0');
+        const ss = String(diffSec % 60).padStart(2, '0');
+        el.textContent = `🟡 Pre-reserva Pendiente (Expira en: ${mm}:${ss})`;
+      }
+    });
+    if(needsRender && typeof render === 'function'){
+      render();
+    }
+  }, 1000);
+}
+window.initReservationCountdownTimer = initReservationCountdownTimer;
+
 render();
+initReservationCountdownTimer();
 </script>
 </body>
 </html>
