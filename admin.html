@@ -688,14 +688,18 @@ let D=load()||seed();
 let U={view:'admin',tab:'blocks',date:addDaysYMD(TODAY,1),calYear:nowInit.getFullYear(),calMonth:nowInit.getMonth(),blkType:'full',tens:'t1',sel:null,edit:null};
 save();
 
-addEventListener('storage',ev=>{
-  if(ev.key===K || ev.key==='msa-last-block-update'){
-    D=load()||D;
-    render();
+let storageDebounceTimer = null;
+addEventListener('storage', ev => {
+  if(ev.key === K || ev.key === 'msa_blocks'){
+    if(storageDebounceTimer) clearTimeout(storageDebounceTimer);
+    storageDebounceTimer = setTimeout(() => {
+      D = load() || D;
+      safeBackgroundRender();
+    }, 400);
   }
-  if(ev.key===TM_K){
-    document.documentElement.setAttribute('data-theme',ev.newValue);
-    render();
+  if(ev.key === TM_K){
+    document.documentElement.setAttribute('data-theme', ev.newValue);
+    safeBackgroundRender();
   }
 });
 
@@ -703,16 +707,15 @@ addEventListener('storage',ev=>{
 if(typeof window !== 'undefined' && typeof window.addEventListener === 'function'){
   window.addEventListener('msa-blocks-updated', () => {
     D = load() || D;
-    render();
-    if(typeof syncCentralizedBlocksAdmin === 'function') syncCentralizedBlocksAdmin();
+    safeBackgroundRender();
   });
   setTimeout(() => {
     if(typeof syncCentralizedBlocksAdmin === 'function') syncCentralizedBlocksAdmin();
-  }, 350);
+  }, 800);
   if(typeof setInterval === 'function'){
     setInterval(() => {
       if(typeof syncCentralizedBlocksAdmin === 'function') syncCentralizedBlocksAdmin();
-    }, 30000);
+    }, 60000);
   }
 }
 const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
@@ -721,6 +724,18 @@ const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
 function avail(tid,date,start,dur,ign){
   return !D.svcs.some(s=>s.tid==tid&&s.date==date&&s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada'&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF);
 }
+
+function safeBackgroundRender(){
+  if(typeof document === 'undefined') return;
+  const activeEl = document.activeElement;
+  const isTyping = activeEl && ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName);
+  // Jamás interrumpir ni destruir el DOM si el administrador está en el Cotizador ('new') o escribiendo
+  if(U && U.tab === 'new' || isTyping){
+    return;
+  }
+  render();
+}
+window.safeBackgroundRender = safeBackgroundRender;
 
 function render(){
   const sess = getSession();
@@ -913,7 +928,13 @@ async function syncCentralizedBlocksAdmin(){
                 expiresAt: r.expires_at || ''
               });
             } else {
-              if((r.st || r.estado) && exists.st !== (r.st || r.estado)) exists.st = (r.st || r.estado);
+              if((r.st || r.estado) && exists.st !== (r.st || r.estado)){
+                if((exists.st === 'Cancelado' || exists.st === 'expirada_cancelada') && (r.st === 'pendiente_abono' || r.st === 'Pre-reserva pendiente')){
+                  // Preservar estado cancelado para evitar bucles de expiración
+                } else {
+                  exists.st = (r.st || r.estado);
+                }
+              }
               if(r.paid !== undefined && exists.paid !== r.paid) exists.paid = r.paid;
               if(!exists.createdAt && r.created_at) exists.createdAt = r.created_at;
               if(!exists.expiresAt && r.expires_at) exists.expiresAt = r.expires_at;
@@ -922,7 +943,7 @@ async function syncCentralizedBlocksAdmin(){
         }
       }
       save();
-      render();
+      safeBackgroundRender();
     } catch(e){
       console.warn('Error sincronizando bloqueos/reservas en admin:', e);
     }
@@ -4192,9 +4213,9 @@ async function cancelReservation(id){
 }
 window.cancelReservation = cancelReservation;
 
-async function autoExpireReservation(id){
-  const s = D.svcs.find(x => x.id == id || x.folio == id);
-  if(!s || (s.st !== 'Pre-reserva pendiente' && s.st !== 'pendiente_abono')) return;
+async function autoExpireReservation(id, triggerRender = true){
+  const s = D.svcs.find(x => (x.id == id || x.folio == id) && (x.st === 'Pre-reserva pendiente' || x.st === 'pendiente_abono'));
+  if(!s) return;
   s.st = 'Cancelado';
   s.expiredAt = new Date().toISOString();
   s.obs = (s.obs ? s.obs + ' · ' : '') + 'Expirada automáticamente por falta de abono (TTL 60 min)';
@@ -4211,7 +4232,9 @@ async function autoExpireReservation(id){
       expired_at: s.expiredAt
     }).catch(()=>{});
   }
-  render();
+  if(triggerRender){
+    safeBackgroundRender();
+  }
 }
 window.autoExpireReservation = autoExpireReservation;
 
@@ -4220,7 +4243,6 @@ function initReservationCountdownTimer(){
   if(window.__countdownTimerInterval && typeof clearInterval !== 'undefined') clearInterval(window.__countdownTimerInterval);
   window.__countdownTimerInterval = setInterval(() => {
     if(typeof document === 'undefined' || !document.querySelectorAll) return;
-    let needsRender = false;
     const elements = document.querySelectorAll('.res-countdown');
     if(!elements || elements.length === 0) return;
     elements.forEach(el => {
@@ -4231,17 +4253,15 @@ function initReservationCountdownTimer(){
       if(diffSec <= 0){
         el.className = 'res-badge res-badge-cancelled';
         el.textContent = '🔴 Cancelada / Expirada';
-        autoExpireReservation(id);
-        needsRender = true;
+        el.removeAttribute('data-expires-ms');
+        el.classList.remove('res-countdown');
+        autoExpireReservation(id, false);
       } else {
         const mm = String(Math.floor(diffSec / 60)).padStart(2, '0');
         const ss = String(diffSec % 60).padStart(2, '0');
         el.textContent = `🟡 Pre-reserva Pendiente (Expira en: ${mm}:${ss})`;
       }
     });
-    if(needsRender && typeof render === 'function'){
-      render();
-    }
   }, 1000);
 }
 window.initReservationCountdownTimer = initReservationCountdownTimer;
