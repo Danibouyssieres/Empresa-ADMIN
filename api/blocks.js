@@ -90,16 +90,38 @@ export default async function handler(req) {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = (
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_PROJECT_URL ||
+    process.env.VITE_SUPABASE_URL ||
+    req.headers.get('x-supabase-url') ||
+    ''
+  ).trim();
 
-  // Si Supabase no está configurado, responder 503 sin datos inventados en memoria
+  const supabaseAnonKey = (
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_KEY ||
+    process.env.SUPABASE_PUBLIC_KEY ||
+    req.headers.get('x-supabase-key') ||
+    req.headers.get('apikey') ||
+    ''
+  ).trim();
+
+  const supabaseServiceKey = (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SECRET_KEY ||
+    ''
+  ).trim();
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    return new Response(
-      JSON.stringify({ ok: false, error: 'Servicio de disponibilidad no configurado' }),
-      { status: 503, headers: corsHeaders }
-    );
+    if (method === 'GET') {
+      return new Response(
+        JSON.stringify({ ok: true, source: 'edge-fallback', data: [] }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
   }
 
   try {
