@@ -567,6 +567,49 @@ const COL_BG={
 const MOB=['Autovalente','Bastón / andador','Silla de ruedas','Dependencia Severa'];
 const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
 const NEXT={'Pre-reserva pendiente':['Confirmar','Confirmado'],'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
+function formatFolioMSA(folio, id){
+  const str = String(folio || id || '').trim();
+  if(!str) return 'MSA-001';
+  const m = str.match(/(\d+)/);
+  if(m){
+    const n = parseInt(m[1], 10);
+    if(!isNaN(n) && n > 0){
+      return 'MSA-' + String(n).padStart(3, '0');
+    }
+  }
+  return 'MSA-001';
+}
+window.formatFolioMSA = formatFolioMSA;
+
+function deduplicateAndNormalizeSvcs(svcs){
+  if(!Array.isArray(svcs)) return [];
+  const seenFolios = new Map();
+  let maxNum = 0;
+
+  // 1. Encontrar el número correlativo máximo asignado
+  svcs.forEach(s => {
+    const raw = String(s.folio || s.id || '');
+    const m = raw.match(/(\d+)/);
+    if(m){
+      const n = parseInt(m[1], 10);
+      if(!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  });
+
+  // 2. Normalizar folios y resolver colisiones garantizando correlativo único
+  svcs.forEach((s) => {
+    let clean = formatFolioMSA(s.folio, s.id);
+    if(seenFolios.has(clean)){
+      maxNum++;
+      clean = 'MSA-' + String(maxNum).padStart(3, '0');
+    }
+    seenFolios.set(clean, true);
+    s.folio = clean;
+  });
+  return svcs;
+}
+window.deduplicateAndNormalizeSvcs = deduplicateAndNormalizeSvcs;
+
 const $=s=>document.querySelector(s);
 const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $c=n=>'$'+Math.round(n).toLocaleString('es-CL');
@@ -607,6 +650,7 @@ function load(){
           });
         }
       } catch(e){}
+      if(Array.isArray(parsed.svcs)) deduplicateAndNormalizeSvcs(parsed.svcs);
       return parsed;
     }
     return null;
@@ -796,8 +840,8 @@ function saveManualBlock(ev){
 
 function removeManualBlock(blockId){
   if(!Array.isArray(D.blocks)) return;
-  const target = D.blocks.find(b => b.id === blockId);
-  D.blocks = D.blocks.filter(b => b.id !== blockId);
+  const target = D.blocks.find(b => b.id === blockId || b.id == blockId || (b.date + '_' + b.type) === blockId);
+  D.blocks = D.blocks.filter(b => b.id !== blockId && b.id != blockId && (b.date + '_' + b.type) !== blockId);
   save();
   render();
 
@@ -834,14 +878,13 @@ async function syncCentralizedBlocksAdmin(){
         if(Array.isArray(remoteReservas) && remoteReservas.length > 0){
           if(!Array.isArray(D.svcs)) D.svcs = [];
           remoteReservas.forEach(r => {
-            const rFolio = r.folio || (r.id ? 'FBISA-' + r.id : '');
-            const rawFolioNum = r.folio ? parseInt(String(r.folio).replace(/\D/g, ''), 10) : null;
-            const matchId = r.id || r.folio || rFolio || rawFolioNum;
-            const exists = D.svcs.find(s => (s.folio && s.folio === r.folio) || (r.id && s.id === r.id) || (s.id && s.id === matchId) || (s.id && s.id === r.folio));
+            const canonicalFolio = formatFolioMSA(r.folio, r.id);
+            const exists = D.svcs.find(s => (s.folio && formatFolioMSA(s.folio, s.id) === canonicalFolio) || (r.id && s.remoteId === r.id));
             if(!exists){
               D.svcs.push({
-                id: matchId,
-                folio: r.folio || rFolio,
+                id: canonicalFolio,
+                remoteId: r.id,
+                folio: canonicalFolio,
                 tid: r.tens_id || 't1',
                 date: r.date,
                 time: r.time || '10:00',
@@ -900,6 +943,13 @@ function openDbConfigModal(){
     syncCentralizedBlocksAdmin();
   }
 }
+
+let blocksListFilter = 'all'; // 'all' | 'selected'
+function setBlocksListFilter(m){
+  blocksListFilter = m;
+  render();
+}
+window.setBlocksListFilter = setBlocksListFilter;
 
 function blocksView(){
   if(!Array.isArray(D.blocks)) D.blocks = [];
@@ -1062,7 +1112,7 @@ function blocksView(){
                   </strong>
                   <div style="font-size:12px;color:var(--mut)">Motivo: <b>${e(b.reason || 'Sin motivo')}</b></div>
                 </div>
-                <button type="button" class="unlock-btn" onclick="removeManualBlock(${b.id})">🔓 Desbloquear</button>
+                <button type="button" class="unlock-btn" onclick="removeManualBlock('${b.id || (b.date + '_' + b.type)}')">🔓 Desbloquear</button>
               </div>
             `).join('')}
           </div>
@@ -1071,19 +1121,29 @@ function blocksView(){
     </div>
 
     <div class="card" style="overflow-x:auto">
-      <h2>📋 Listado general de bloqueos manuales activos (${allSortedBlocks.length})</h2>
-      ${allSortedBlocks.length === 0 ? `
-        <div class="msg">No hay bloqueos manuales registrados actualmente.</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <h2 style="margin:0">📋 Listado general de bloqueos manuales activos (${(blocksListFilter === 'selected' ? selDateBlocks : allSortedBlocks).length})</h2>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="${blocksListFilter==='all'?'on':''}" onclick="setBlocksListFilter('all')" style="padding:5px 12px;font-size:12px">
+            📋 Ver todos los bloqueos (${allSortedBlocks.length})
+          </button>
+          <button type="button" class="${blocksListFilter==='selected'?'on':''}" onclick="setBlocksListFilter('selected')" style="padding:5px 12px;font-size:12px">
+            📅 Filtrar solo fecha seleccionada (${selDateBlocks.length})
+          </button>
+        </div>
+      </div>
+      ${(blocksListFilter === 'selected' ? selDateBlocks : allSortedBlocks).length === 0 ? `
+        <div class="msg">No hay bloqueos manuales para el criterio de visualización seleccionado.</div>
       ` : `
         <table>
           <tr><th>Fecha</th><th>Tipo de bloqueo</th><th>Motivo interno</th><th>Impacto Público</th><th>Acción</th></tr>
-          ${allSortedBlocks.map(b => `
-            <tr>
-              <td><b>${e(b.date)}</b></td>
+          ${(blocksListFilter === 'selected' ? selDateBlocks : allSortedBlocks).map(b => `
+            <tr onclick="pickAdminCalDate('${b.date}')" style="cursor:pointer;${b.date === U.date ? 'background:rgba(15,118,110,0.08);font-weight:600' : ''}" title="Clic para enfocar esta fecha en el calendario interactivo">
+              <td><b>${e(b.date)}</b> ${b.date === U.date ? '<span style="font-size:10px;color:var(--pri);font-weight:700">◀ Seleccionada</span>' : ''}</td>
               <td><span class="badge" style="background:${b.type==='full'?'#EF4444':'#F59E0B'}">${b.type==='manana'?'☀️ Mañana':b.type==='tarde'?'⛅ Tarde':b.type==='noche'?'🌙 Noche':'🔴 Día completo'}</span></td>
               <td>${e(b.reason || '—')}</td>
               <td style="font-size:12px;color:var(--mut)">Inhabilita selección en reservar.html</td>
-              <td><button type="button" class="unlock-btn" onclick="removeManualBlock(${b.id})">🔓 Desbloquear</button></td>
+              <td><button type="button" class="unlock-btn" onclick="event.stopPropagation(); removeManualBlock('${b.id || (b.date + '_' + b.type)}')">🔓 Desbloquear</button></td>
             </tr>
           `).join('')}
         </table>
@@ -1169,7 +1229,7 @@ function blkOvernightRem(s){
   return (c ? '' : `<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`) +
     `<div class="sv ${c?'c':''}" style="top:0;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor};opacity:.88" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Continuación de atención nocturna iniciada el día anterior">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-        <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">#MSA-${s.id}</span>
+        <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">#${formatFolioMSA(s.folio, s.id)}</span>
         <b style="color:#ffffff">00:00–${fm(remDur)}</b>
       </div>
       <div style="font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🌙 (Cont. noche) ${e(s.pat)}</div>
@@ -1203,7 +1263,7 @@ function sel(id){U.sel=id;render();$('#det')&&$('#det').scrollIntoView({behavior
 function detail(){
   const s=D.svcs.find(x=>x.id==U.sel);if(!s)return '';
   const opts=D.techs.filter(t=>t.act&&(t.id==s.tid||avail(t.id,s.date,s.start,s.dur,s.id)));
-  return `<div class=card id=det style="margin-top:10px"><h2>Folio #MSA-${s.id} · ${e(s.pat)} (${s.age}) · ${fm(s.start)}–${fm((s.start+s.dur)%1440)} hrs <span class=badge style="background:${COL[s.st]}">${s.st}</span></h2>
+  return `<div class=card id=det style="margin-top:10px"><h2>Folio #${formatFolioMSA(s.folio, s.id)} · ${e(s.pat)} (${s.age}) · ${fm(s.start)}–${fm((s.start+s.dur)%1440)} hrs <span class=badge style="background:${COL[s.st]}">${s.st}</span></h2>
   <div><b>Motivo:</b> ${e(s.dx)} · <b>Movilidad:</b> ${e(s.mob)}${s.compDesc ? ' · ' + e(s.compDesc) : (s.comp?' (Con acompañante)':'')}</div>
   ${s.alergias ? `<div><b>Alergias:</b> <span style="${s.alergias.startsWith('Sí') ? 'color:#dc2626;font-weight:700':''}">${e(s.alergias)}</span> · <b>Conciencia:</b> ${e(s.conciencia||'Lúcido / Orientado')}</div>` : ''}
   ${s.patologias ? `<div><b>Patologías:</b> ${e(Array.isArray(s.patologias)?s.patologias.join(', '):s.patologias)}</div>` : ''}
@@ -3108,7 +3168,7 @@ function abrirMenuContextualServicio(svcId){
   const digits = phoneRaw.replace(/\D/g, '');
   const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
   const clientName = s.coord || s.pat || 'Estimado(a)';
-  const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA respecto a su servicio Folio #MSA-${s.id} programado para el ${s.date} a las ${fm(s.start)} hrs.`;
+  const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA respecto a su servicio Folio #${formatFolioMSA(s.folio, s.id)} programado para el ${s.date} a las ${fm(s.start)} hrs.`;
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
 
   const wazeDestUrl = `https://waze.com/ul?q=${encodeURIComponent(s.to)}`;
@@ -3116,7 +3176,7 @@ function abrirMenuContextualServicio(svcId){
 
   const ctxTitle = $('#ctxTitle');
   if(ctxTitle){
-    ctxTitle.innerHTML = `<span>Folio #MSA-${s.id}</span> · <span class="badge" style="background:${COL[s.st]}">${s.st}</span>`;
+    ctxTitle.innerHTML = `<span>Folio #${formatFolioMSA(s.folio, s.id)}</span> · <span class="badge" style="background:${COL[s.st]}">${s.st}</span>`;
   }
 
   const ctxContent = $('#ctxContent');
@@ -3770,13 +3830,20 @@ window.onInboxSearch = onInboxSearch;
 
 function renderReservaCard(s){
   const isPending = s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono';
+  const isConfirmed = s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada';
+  const isCompleted = s.st === 'Finalizado' || s.st === 'completada' || s.st === 'Completada';
   const abonoVal = s.abono || Math.round((s.fare || 0) * 0.5);
+  const displayFolio = formatFolioMSA(s.folio, s.id);
+
+  const cleanPh = (s.ph || '').replace(/\D/g, '');
+  const waPh = cleanPh.startsWith('56') ? cleanPh : ('56' + (cleanPh.startsWith('9') ? cleanPh : cleanPh));
+  const waLink = waPh.length >= 8 ? `https://wa.me/${waPh}?text=${encodeURIComponent(`Hola ${s.coord || s.pat}, le contactamos de Movilidad y Salud Asistida respecto a su atención Folio #${displayFolio}.`)}` : '';
 
   return `
     <div class="res-card" style="border-left:5px solid ${COL[s.st] || '#64748B'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px">
         <div>
-          <span style="font-size:11px;font-weight:800;color:var(--mut);letter-spacing:0.5px">FOLIO ${s.folio ? (s.folio.startsWith('#') ? s.folio : '#' + s.folio) : '#MSA-' + s.id}</span>
+          <span style="font-size:11px;font-weight:800;color:var(--mut);letter-spacing:0.5px">FOLIO #${displayFolio}</span>
           <h3 style="margin:2px 0 4px;font-size:1.1rem;color:var(--pri)">
             ${e(s.pat)} <span style="font-size:12px;font-weight:400;color:var(--mut)">(${s.age || '—'} años)</span>
           </h3>
@@ -3791,7 +3858,9 @@ function renderReservaCard(s){
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:12px;color:var(--fg);margin-bottom:8px">
         <div><b>Diagnóstico / Motivo:</b> ${e(s.dx || 'Atención clínica')}</div>
-        <div><b>Contratante:</b> ${e(s.coord || '—')} (${e(s.ph || '—')})</div>
+        <div>
+          <b>Contratante:</b> ${e(s.coord || '—')} ${waLink ? `(<a href="${waLink}" target="_blank" rel="noopener" style="color:#059669;font-weight:700;text-decoration:none" title="Enviar WhatsApp al contratante">💬 +${waPh}</a>)` : `(${e(s.ph || '—')})`}
+        </div>
         <div><b>Origen:</b> ${e(s.from || '—')}</div>
         <div><b>Destino:</b> ${e(s.to || '—')}</div>
       </div>
@@ -3816,12 +3885,30 @@ function renderReservaCard(s){
             ✕ Anular / Liberar Cupo
           </button>
         </div>
-      ` : (s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada' ? `
-        <div class="reservation-actions">
-          <span style="font-size:12px;color:#059669;font-weight:700">🟢 Bloqueo activo permanente · Abono registrado (${$c(s.paid)})</span>
-          <button type="button" class="btn-cancel-reservation" style="padding:4px 10px;font-size:11px" onclick="cancelReservation('${s.id}')">✕ Anular / Liberar Cupo</button>
+      ` : isConfirmed ? `
+        <div class="reservation-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button 
+            type="button" 
+            class="btn-confirm-deposit" 
+            style="background:#0f766e;border-color:#0f766e;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer" 
+            onclick="liquidarSaldoReserva('${s.id}')"
+          >
+            ✔ Liquidar Saldo y Finalizar
+          </button>
+          <button 
+            type="button" 
+            class="btn-cancel-reservation" 
+            style="padding:6px 10px;font-size:11px" 
+            onclick="cancelReservation('${s.id}')"
+          >
+            ✕ Anular / Liberar Cupo
+          </button>
         </div>
-      ` : '')}
+      ` : isCompleted ? `
+        <div class="reservation-actions">
+          <span style="font-size:12px;color:#0284c7;font-weight:700">🔵 Atención completada en terreno · Saldo 100% liquidado (${$c(s.paid)})</span>
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -3839,6 +3926,8 @@ function inboxView(){
     filtered = pending;
   } else if(inboxStatusFilter === 'confirmed'){
     filtered = confirmed;
+  } else if(inboxStatusFilter === 'completed'){
+    filtered = completed;
   } else if(inboxStatusFilter === 'cancelled'){
     filtered = cancelled;
   }
@@ -3889,7 +3978,7 @@ function inboxView(){
           <b style="color:#ef4444">${cancelled.length}</b>
           <span>🔴 Canceladas / Expiradas</span>
         </div>
-        <div>
+        <div style="cursor:pointer" onclick="setInboxStatusFilter('completed')">
           <b style="color:#06b6d4">${completed.length}</b>
           <span>🔵 Finalizadas / Terreno</span>
         </div>
@@ -3900,6 +3989,7 @@ function inboxView(){
           <button type="button" class="${inboxStatusFilter==='all'?'on':''}" onclick="setInboxStatusFilter('all')" style="padding:6px 12px;font-size:12px">Todas (${allSvcs.length})</button>
           <button type="button" class="${inboxStatusFilter==='pending'?'on':''}" onclick="setInboxStatusFilter('pending')" style="padding:6px 12px;font-size:12px;border-color:#f59e0b">🟡 Pendientes (${pending.length})</button>
           <button type="button" class="${inboxStatusFilter==='confirmed'?'on':''}" onclick="setInboxStatusFilter('confirmed')" style="padding:6px 12px;font-size:12px;border-color:#10b981">🟢 Confirmadas (${confirmed.length})</button>
+          <button type="button" class="${inboxStatusFilter==='completed'?'on':''}" onclick="setInboxStatusFilter('completed')" style="padding:6px 12px;font-size:12px;border-color:#06b6d4">🔵 Finalizadas (${completed.length})</button>
           <button type="button" class="${inboxStatusFilter==='cancelled'?'on':''}" onclick="setInboxStatusFilter('cancelled')" style="padding:6px 12px;font-size:12px;border-color:#ef4444">🔴 Canceladas (${cancelled.length})</button>
         </div>
         <div style="position:relative;min-width:240px">
@@ -4023,7 +4113,7 @@ async function executeConfirmDeposit(id){
   if(typeof alert !== 'undefined'){
     alert(`✅ ¡Abono del 50% (${$c(abonoMonto)}) confirmado exitosamente!
 
-• Reserva Folio #MSA-${s.id} confirmada de forma persistente.
+• Reserva Folio #${formatFolioMSA(s.folio, s.id)} confirmada de forma persistente.
 • Bloqueo atómico activo en la agenda.
 • Saldo pendiente en terreno: ${$c(s.fare - s.paid)}.`);
   }
@@ -4031,11 +4121,50 @@ async function executeConfirmDeposit(id){
 }
 window.executeConfirmDeposit = executeConfirmDeposit;
 
+async function liquidarSaldoReserva(id){
+  const s = D.svcs.find(x => x.id == id || x.folio == id);
+  if(!s){
+    if(typeof alert !== 'undefined') alert('No se encontró la reserva.');
+    return;
+  }
+  const cleanFolio = formatFolioMSA(s.folio, s.id);
+  const saldoPendiente = Math.max(0, (s.fare || 0) - (s.paid || 0));
+
+  if(typeof confirm !== 'undefined'){
+    if(!confirm(`¿Confirma la liquidación del saldo pendiente (${$c(saldoPendiente)}) en terreno y el cierre definitivo de la atención Folio #${cleanFolio} de ${s.pat}?\n\nEsta acción registrará el cobro total, cambiará el estado a "completada" y transferirá el registro al contador "Finalizadas / Terreno".`)) return;
+  }
+
+  s.st = 'completada';
+  s.paid = s.fare || s.paid;
+  s.saldoPendiente = 0;
+  s.completedAt = new Date().toISOString();
+  s.endedAt = new Date().toISOString();
+  s.obs = (s.obs ? s.obs + ' · ' : '') + `Saldo liquidado en terreno (${$c(saldoPendiente)}). Servicio completado con éxito.`;
+
+  save();
+
+  if(window.MsaBlocksService){
+    window.MsaBlocksService.updateReservaStatus(s.folio || s.id, 'completada', {
+      paid: s.paid,
+      saldoPendiente: 0,
+      completed_at: s.completedAt,
+      obs: s.obs
+    }).catch(err => console.warn('Error al actualizar liquidación en BD:', err));
+  }
+
+  render();
+
+  if(typeof alert !== 'undefined'){
+    alert(`🏁 ¡Atención Folio #${cleanFolio} (${s.pat}) liquidada y finalizada con éxito!\n\n• Cobro del saldo en terreno registrado: ${$c(saldoPendiente)}.\n• Total cancelado: ${$c(s.paid)}.\n• Estado: completada (transferida a Finalizadas / Terreno).`);
+  }
+}
+window.liquidarSaldoReserva = liquidarSaldoReserva;
+
 async function cancelReservation(id){
   const s = D.svcs.find(x => x.id == id || x.folio == id);
   if(!s) return;
   if(typeof confirm !== 'undefined'){
-    if(!confirm(`¿Está seguro de anular la reserva Folio #MSA-${s.id} de ${s.pat} y liberar el cupo en la agenda?\n\nEsta acción eliminará el bloqueo y devolverá la disponibilidad al calendario público.`)) return;
+    if(!confirm(`¿Está seguro de anular la reserva Folio #${formatFolioMSA(s.folio, s.id)} de ${s.pat} y liberar el cupo en la agenda?\n\nEsta acción eliminará el bloqueo y devolverá la disponibilidad al calendario público.`)) return;
   }
 
   s.st = 'Cancelado';
@@ -4057,7 +4186,7 @@ async function cancelReservation(id){
   save();
   render();
   if(typeof alert !== 'undefined'){
-    alert(`🗑️ Reserva Folio #MSA-${s.id} anulada y cupo liberado exitosamente en la agenda.`);
+    alert(`🗑️ Reserva Folio #${formatFolioMSA(s.folio, s.id)} anulada y cupo liberado exitosamente en la agenda.`);
   }
   return { success: true, service: s };
 }

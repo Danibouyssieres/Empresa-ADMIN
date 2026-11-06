@@ -35,7 +35,7 @@ assert(apiReservasJs.includes('body.destino'), 'api/reservas.js must support bod
 assert(apiReservasJs.includes('body.total'), 'api/reservas.js must support body.total');
 assert(apiReservasJs.includes('body.abono_requerido'), 'api/reservas.js must support body.abono_requerido');
 assert(apiReservasJs.includes('st: \'pendiente_abono\''), 'api/reservas.js must set st: pendiente_abono');
-assert(apiReservasJs.includes('FBISA-'), 'api/reservas.js must generate official FBISA-XX folio format');
+assert(apiReservasJs.includes('MSA-'), 'api/reservas.js must generate official MSA-XXX folio format');
 assert(apiReservasJs.includes('rest/v1/bloqueos'), 'api/reservas.js must automatically insert block into bloqueos');
 console.log('✓ api/reservas.js payload extraction, FBISA folio generation, and bloqueos persistence verified');
 
@@ -191,8 +191,8 @@ vm.runInContext(`
 setTimeout(() => {
   const adminState = vm.runInContext(`D.svcs;`, mockContext);
   assert(adminState.length >= 1, 'D.svcs must contain the synced reservation from Supabase');
-  const synced = adminState.find(s => s.folio === 'FBISA-25');
-  assert(synced, 'Reservation FBISA-25 must exist in admin state');
+  const synced = adminState.find(s => s.folio === 'MSA-025');
+  assert(synced, 'Reservation MSA-025 must exist in admin state');
   assert.strictEqual(synced.st, 'pendiente_abono', 'Status must be pendiente_abono');
   assert.strictEqual(synced.pat, 'Carlos Santander', 'Patient name must be Carlos Santander');
 
@@ -202,7 +202,7 @@ setTimeout(() => {
 
   // Verify Inbox View rendering
   const inboxHtml = vm.runInContext(`inboxView();`, mockContext);
-  assert(inboxHtml.includes('FBISA-25'), 'Inbox view must render Folio FBISA-25');
+  assert(inboxHtml.includes('MSA-025'), 'Inbox view must render Folio FBISA-25');
   assert(inboxHtml.includes('Carlos Santander'), 'Inbox view must render Carlos Santander');
   assert(inboxHtml.includes('btn-confirm-deposit'), 'Inbox view must include [✔ Confirmar Abono 50%]');
   assert(inboxHtml.includes('openConfirmModal('), 'Button must be wired to openConfirmModal');

@@ -147,8 +147,48 @@ export default async function handler(req) {
         );
       }
 
-      // Folio oficial generado: formato FBISA-25 o MSA-XXXXXX
-      const folio = String(body.folio || ('FBISA-' + Math.floor(10 + Math.random() * 90))).trim();
+      // Generación estandarizada de Folio correlativo único y secuencial: MSA-001, MSA-002, etc.
+      let maxCorrelative = 0;
+
+      // 1. Revisar almacén edgeReservasStore en memoria
+      for (const r of edgeReservasStore) {
+        const raw = String(r.folio || r.id || '');
+        const match = raw.match(/(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (!isNaN(num) && num > maxCorrelative) maxCorrelative = num;
+        }
+      }
+
+      // 2. Si Supabase está disponible, consultar los folios o IDs existentes en base de datos
+      if (supabaseUrl && (supabaseAnonKey || supabaseServiceKey)) {
+        const readKey = supabaseServiceKey || supabaseAnonKey;
+        try {
+          const sbFoliosRes = await fetch(`${supabaseUrl}/rest/v1/reservas?select=id,folio&order=id.desc&limit=200`, {
+            headers: {
+              apikey: readKey,
+              Authorization: `Bearer ${readKey}`,
+            },
+          });
+          if (sbFoliosRes.ok) {
+            const existingList = await sbFoliosRes.json();
+            if (Array.isArray(existingList)) {
+              for (const item of existingList) {
+                const raw = String(item.folio || item.id || '');
+                const match = raw.match(/(\d+)/);
+                if (match) {
+                  const num = parseInt(match[1], 10);
+                  if (!isNaN(num) && num > maxCorrelative) maxCorrelative = num;
+                }
+              }
+            }
+          }
+        } catch (eFolio) {}
+      }
+
+      // Generar el nuevo folio secuencial correlativo MSA-XXX
+      const nextNum = maxCorrelative + 1;
+      const folio = 'MSA-' + String(nextNum).padStart(3, '0');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       const newReserva = {
@@ -333,7 +373,18 @@ export default async function handler(req) {
           });
 
           if (sbRes.ok) {
-            const data = await sbRes.json();
+            let data = await sbRes.json();
+            if (Array.isArray(data)) {
+              data = data.map(item => {
+                const raw = String(item.folio || item.id || '');
+                const m = raw.match(/(\d+)/);
+                const n = m ? parseInt(m[1], 10) : 1;
+                return {
+                  ...item,
+                  folio: 'MSA-' + String(n).padStart(3, '0')
+                };
+              });
+            }
             return new Response(
               JSON.stringify({ ok: true, source: 'supabase', data }),
               { status: 200, headers: corsHeaders }
@@ -346,8 +397,17 @@ export default async function handler(req) {
       let results = [...edgeReservasStore];
       if (date) results = results.filter(r => r.date === date);
       if (st) results = results.filter(r => r.st === st || (st === 'pendiente_abono' && r.st === 'Pre-reserva pendiente'));
+      const normalizedResults = results.map(item => {
+        const raw = String(item.folio || item.id || '');
+        const m = raw.match(/(\d+)/);
+        const n = m ? parseInt(m[1], 10) : 1;
+        return {
+          ...item,
+          folio: 'MSA-' + String(n).padStart(3, '0')
+        };
+      });
       return new Response(
-        JSON.stringify({ ok: true, source: 'edge-store', data: results }),
+        JSON.stringify({ ok: true, source: 'edge-store', data: normalizedResults }),
         { status: 200, headers: corsHeaders }
       );
     }
