@@ -287,10 +287,11 @@
             body: JSON.stringify(reservaData)
           });
           var data = await res.json().catch(function() { return {}; });
-          if (res.ok && data && data.ok) {
-            return { ok: true, source: 'api', data: data.data };
+          if (res.ok && (res.status === 200 || res.status === 201) && data && data.ok !== false) {
+            var folio = data.folio || (data.data && data.data.folio) || (reservaData && reservaData.folio);
+            return { ok: true, source: 'api', folio: folio, data: data.data || data };
           }
-          return { ok: false, error: data.error || ('Error HTTP ' + res.status) };
+          return { ok: false, error: (data && (data.error || data.details)) || ('Error HTTP ' + res.status) };
         } catch (err) {
           return { ok: false, error: err.message || 'Error de conexión' };
         }
@@ -317,6 +318,23 @@
             }
           }
         } catch (err) {}
+      }
+
+      // Intento B: Si el endpoint no respondió o estamos directos con Supabase Client
+      var sb = this.getSupabaseClient();
+      if (sb) {
+        try {
+          var query = sb.from('reservas').select('*');
+          if (dateFilter) query = query.eq('date', dateFilter);
+          if (stFilter) query = query.or('st.eq.' + stFilter + ',st.eq.Pre-reserva pendiente');
+          query = query.order('created_at', { ascending: false });
+          var sbRes = await query;
+          if (!sbRes.error && Array.isArray(sbRes.data)) {
+            return sbRes.data;
+          }
+        } catch (eSb) {
+          console.warn('[MsaBlocksService] Error al consultar reservas en Supabase:', eSb);
+        }
       }
       return [];
     },
