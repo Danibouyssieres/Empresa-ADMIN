@@ -665,6 +665,11 @@ if(typeof window !== 'undefined' && typeof window.addEventListener === 'function
   setTimeout(() => {
     if(typeof syncCentralizedBlocksAdmin === 'function') syncCentralizedBlocksAdmin();
   }, 350);
+  if(typeof setInterval === 'function'){
+    setInterval(() => {
+      if(typeof syncCentralizedBlocksAdmin === 'function') syncCentralizedBlocksAdmin();
+    }, 30000);
+  }
 }
 const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
 
@@ -729,7 +734,7 @@ function admin(){
     ['new','➕ Nueva reserva (Cotizador Auto)'],
     ['staff','Personal TENS']
   ];
-  return `<div class=row style="margin-bottom:10px">${tabs.map(t=>`<button class="${U.tab==t[0]?'on':''}" onclick="U.tab='${t[0]}';U.sel=null;render()">${t[1]}</button>`).join('')}</div>`+
+  return `<div class=row style="margin-bottom:10px">${tabs.map(t=>`<button class="${U.tab==t[0]?'on':''}" onclick="U.tab='${t[0]}';U.sel=null;${t[0]==='inbox'?'syncCentralizedBlocksAdmin();':''}render()">${t[1]}</button>`).join('')}</div>`+
          (U.tab=='inbox'?inboxView():U.tab=='blocks'?blocksView():U.tab=='cal'?cal():U.tab=='new'?form():staff());
 }
 
@@ -817,54 +822,58 @@ function removeAllBlocksForDate(dateStr){
 }
 
 async function syncCentralizedBlocksAdmin(){
-  if(window.MsaBlocksService){
+  const bs = (typeof window !== 'undefined' && window.MsaBlocksService) ? window.MsaBlocksService : (typeof MsaBlocksService !== 'undefined' ? MsaBlocksService : null);
+  if(bs){
     try {
-      const remoteBlocks = await MsaBlocksService.fetchBlocks();
+      const remoteBlocks = await bs.fetchBlocks();
       if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
-        MsaBlocksService.mergeBlocksIntoD(remoteBlocks, D);
+        if(typeof bs.mergeBlocksIntoD === 'function') bs.mergeBlocksIntoD(remoteBlocks, D);
       }
-      if(typeof MsaBlocksService.fetchReservas === 'function'){
-        const remoteReservas = await MsaBlocksService.fetchReservas();
+      if(typeof bs.fetchReservas === 'function'){
+        const remoteReservas = await bs.fetchReservas();
         if(Array.isArray(remoteReservas) && remoteReservas.length > 0){
           if(!Array.isArray(D.svcs)) D.svcs = [];
           remoteReservas.forEach(r => {
-            const rawFolio = r.folio ? parseInt(String(r.folio).replace(/\D/g, ''), 10) : null;
-            const matchId = rawFolio || r.id;
-            const exists = D.svcs.find(s => s.id === matchId || (s.folio && s.folio === r.folio));
+            const rFolio = r.folio || (r.id ? 'FBISA-' + r.id : '');
+            const rawFolioNum = r.folio ? parseInt(String(r.folio).replace(/\D/g, ''), 10) : null;
+            const matchId = r.id || r.folio || rFolio || rawFolioNum;
+            const exists = D.svcs.find(s => (s.folio && s.folio === r.folio) || (r.id && s.id === r.id) || (s.id && s.id === matchId) || (s.id && s.id === r.folio));
             if(!exists){
               D.svcs.push({
                 id: matchId,
-                folio: r.folio,
+                folio: r.folio || rFolio,
                 tid: r.tens_id || 't1',
                 date: r.date,
                 time: r.time || '10:00',
                 start: r.start_min !== undefined ? r.start_min : tm(r.time || '10:00'),
                 dur: r.dur_min || 120,
-                pat: r.pat_name,
+                pat: r.pat_name || r.paciente,
                 patPhone: r.pat_phone,
-                age: r.pat_age,
-                dx: r.dx,
-                coord: r.coord_name,
-                ph: r.coord_phone,
-                from: r.from_addr,
-                to: r.to_addr,
-                depto: r.depto,
-                mob: r.mob,
+                age: r.pat_age || 0,
+                dx: r.dx || 'Atención solicitada web',
+                coord: r.coord_name || r.contacto || (r.pat_name || r.paciente),
+                ph: r.coord_phone || r.contacto,
+                from: r.from_addr || r.origen,
+                to: r.to_addr || r.destino,
+                depto: r.depto || '',
+                mob: r.mob || 'Autovalente',
                 req: [],
                 comp: r.comp_desc ? r.comp_desc.includes('acompañante') : false,
-                compDesc: r.comp_desc,
-                fare: r.fare,
-                abono: r.abono,
+                compDesc: r.comp_desc || '',
+                fare: r.fare || r.total || 0,
+                abono: r.abono || r.abono_requerido || Math.round((r.fare || r.total || 0) * 0.5),
                 paid: r.paid || 0,
-                st: r.st || 'Pre-reserva pendiente',
-                svcType: r.svc_type || '1',
-                block: r.block || 'manana',
-                createdAt: r.created_at || new Date().toISOString()
+                st: r.st || r.estado || 'pendiente_abono',
+                svcType: r.svc_type || r.modalidad || '1',
+                block: r.block || r.turno || 'manana',
+                createdAt: r.created_at || new Date().toISOString(),
+                expiresAt: r.expires_at || ''
               });
             } else {
-              if(r.st && exists.st !== r.st) exists.st = r.st;
+              if((r.st || r.estado) && exists.st !== (r.st || r.estado)) exists.st = (r.st || r.estado);
               if(r.paid !== undefined && exists.paid !== r.paid) exists.paid = r.paid;
               if(!exists.createdAt && r.created_at) exists.createdAt = r.created_at;
+              if(!exists.expiresAt && r.expires_at) exists.expiresAt = r.expires_at;
             }
           });
         }
@@ -1138,7 +1147,7 @@ function blk(s){
   return (c?'':`<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`)+
     `<div class="sv ${c?'c':''}" style="top:${top}px;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor}" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Clic para ver ficha clínica y acciones rápidas">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-        <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">#MSA-${s.id}</span>
+        <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">${s.folio ? (s.folio.startsWith('#') ? s.folio : '#' + s.folio) : '#MSA-' + s.id}</span>
         <b style="color:#ffffff">${timeText}</b>
       </div>
       <div style="font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${isOvernight?'🌙 ':''}${e(s.pat)}</div>
@@ -3767,7 +3776,7 @@ function renderReservaCard(s){
     <div class="res-card" style="border-left:5px solid ${COL[s.st] || '#64748B'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px">
         <div>
-          <span style="font-size:11px;font-weight:800;color:var(--mut);letter-spacing:0.5px">FOLIO #MSA-${s.id}</span>
+          <span style="font-size:11px;font-weight:800;color:var(--mut);letter-spacing:0.5px">FOLIO ${s.folio ? (s.folio.startsWith('#') ? s.folio : '#' + s.folio) : '#MSA-' + s.id}</span>
           <h3 style="margin:2px 0 4px;font-size:1.1rem;color:var(--pri)">
             ${e(s.pat)} <span style="font-size:12px;font-weight:400;color:var(--mut)">(${s.age || '—'} años)</span>
           </h3>
@@ -3927,7 +3936,7 @@ function openConfirmModal(id, paciente, montoAbono){
   if(details){
     details.innerHTML = `
       <div style="padding:10px 12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:8px;margin-bottom:10px">
-        <div><b>Folio:</b> #MSA-${id} ${s && s.date ? `· <b>Fecha:</b> ${s.date}` : ''}</div>
+        <div><b>Folio:</b> ${s && s.folio ? (s.folio.startsWith('#') ? s.folio : '#' + s.folio) : '#MSA-' + id} ${s && s.date ? `· <b>Fecha:</b> ${s.date}` : ''}</div>
         <div><b>Paciente:</b> <span style="color:var(--pri);font-weight:800">${e(patName)}</span></div>
         <div><b>Contratante:</b> ${e((s && s.coord) || '—')} (${e((s && s.ph) || '—')})</div>
       </div>

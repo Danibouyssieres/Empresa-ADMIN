@@ -5815,9 +5815,100 @@ async function submitBooking(ev){
     ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
     : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:00 a 20:00 hrs)'));
 
-  const newId = D.nid++;
+  const submitBtn = $('#submitBtn');
+  if(submitBtn){
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '⏳ Conectando con servidor y asegurando cupo...';
+  }
+
+  const abonoVal = lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50;
+  const destinoVal = showDest ? to : (mode === '4' ? 'Atención en recinto del evento (Sin traslado)' : 'Atención en domicilio');
+  const turnoVal = isInter ? 'full' : selectedBlock;
+
+  const payload = {
+    modalidad: mode,
+    fecha: date,
+    turno: turnoVal,
+    paciente: pat,
+    contacto: ph,
+    origen: from + (depto ? ` (${depto})` : ''),
+    destino: destinoVal,
+    total: lastFinalTotal,
+    abono_requerido: abonoVal,
+
+    // Parámetros canónicos para ficha clínica completa
+    date: date,
+    time: timeStr || '10:00',
+    start: start,
+    dur: dur,
+    pat: pat,
+    patPhone: patPhone,
+    age: age,
+    dx: fullDx,
+    coord: coord,
+    coordType: isSameAsPatient ? 'paciente' : 'familiar',
+    ph: ph,
+    from: from,
+    depto: depto,
+    to: destinoVal,
+    mob: mob,
+    conciencia: conciencia,
+    alergias: allergyText,
+    medicamentos: medsText,
+    patologias: pathologies,
+    obs: obs,
+    taxDoc: {
+      type: taxDocType,
+      label: isInvoice ? 'Factura Electrónica Exenta' : 'Boleta Electrónica Exenta',
+      rs: taxRS,
+      rut: taxRUT,
+      giro: taxGiro,
+      dir: taxDir
+    },
+    fare: lastFinalTotal,
+    abono: abonoVal,
+    st: 'pendiente_abono',
+    svcType: mode,
+    block: turnoVal
+  };
+
+  let apiOk = false;
+  let realFolio = '';
+  let apiErrorMsg = '';
+
+  try {
+    const resp = await fetch('/api/reservas', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const respData = await resp.json().catch(() => ({}));
+    if (resp.ok && (resp.status === 200 || resp.status === 201) && respData && respData.ok !== false) {
+      apiOk = true;
+      realFolio = respData.folio || (respData.data && respData.data.folio) || ('FBISA-' + Math.floor(10 + Math.random() * 90));
+    } else {
+      apiErrorMsg = (respData && (respData.error || respData.details)) || `Error HTTP ${resp.status}`;
+    }
+  } catch (fetchErr) {
+    apiErrorMsg = fetchErr && fetchErr.message ? fetchErr.message : 'Error de comunicación con el servidor';
+  }
+
+  if (!apiOk) {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '💬 Solicitar Pre-Reserva vía WhatsApp';
+    }
+    alert(`❌ Error al registrar su pre-reserva:\n\n${apiErrorMsg}\n\nPor favor revise su conexión a internet e inténtelo nuevamente.`);
+    return;
+  }
+
   const newSvc = {
-    id: newId,
+    id: realFolio,
+    folio: realFolio,
     tid,
     date,
     start,
@@ -5831,7 +5922,7 @@ async function submitBooking(ev){
     ph,
     from,
     depto,
-    to,
+    to: destinoVal,
     mob,
     conciencia,
     alergias: allergyText,
@@ -5850,12 +5941,13 @@ async function submitBooking(ev){
     comp,
     compDesc: compVal,
     fare: lastFinalTotal,
-    abono: lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50,
+    abono: abonoVal,
     paid: 0,
-    st: 'Pre-reserva pendiente',
+    st: 'pendiente_abono',
     createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     svcType: mode,
-    block: isInter ? 'full' : selectedBlock,
+    block: turnoVal,
     fullDay: isInter,
     crossShift: false,
     blocksNextMorning: endsAfter22,
@@ -5863,25 +5955,25 @@ async function submitBooking(ev){
   };
 
   D.svcs.push(newSvc);
+  if (!Array.isArray(D.blocks)) D.blocks = [];
+  D.blocks.push({
+    id: 'blk_' + realFolio,
+    reservaId: realFolio,
+    date: date,
+    type: turnoVal,
+    shift: turnoVal,
+    reason: `Pre-reserva pendiente #${realFolio} (${pat})`,
+    status: 'temporal_60m',
+    expiresAt: newSvc.expiresAt
+  });
   save();
-
-  // Persistencia centralizada en base de datos Supabase / API
-  if(window.MsaBlocksService && typeof window.MsaBlocksService.createPreReserva === 'function'){
-    window.MsaBlocksService.createPreReserva(newSvc).then(function(res){
-      if(res && res.ok){
-        console.log('[reservar.html] Pre-reserva persistida exitosamente en BD:', res.data);
-      }
-    }).catch(function(err){
-      console.warn('[reservar.html] Error al persistir pre-reserva remota:', err);
-    });
-  }
 
   const taxDocWa = isInvoice
     ? `• Documento Tributario: Factura Electrónica Exenta\n  - Razón Social: ${taxRS}\n  - RUT: ${taxRUT}\n  - Giro: ${taxGiro}\n  - Dirección Tributaria: ${taxDir}\n`
     : `• Documento Tributario: Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)\n`;
 
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};
-  const waText = `Hola, deseo solicitar una Pre-Reserva vía WhatsApp (Folio #MSA-${newId}):\n` +
+  const waText = `Hola, deseo solicitar una Pre-Reserva vía WhatsApp (Folio #${realFolio}):\n` +
     `• Modalidad: ${svcName}\n` +
     (mode === '4'
       ? `• Formato y Plan: ${durationText}\n• Tarifa: Plana paquetizada cerrada para toda la RM\n`
@@ -5919,7 +6011,7 @@ async function submitBooking(ev){
   $('#mainContent').innerHTML = `
     <section class="card" style="text-align:center;padding:36px 24px">
       <div style="font-size:3rem;margin-bottom:8px">🎉</div>
-      <span class="step-tag">Solicitud Registrada · Folio #MSA-${newId}</span>
+      <span class="step-tag">Solicitud Registrada Oficialmente · Folio #${realFolio}</span>
       <h2 style="margin-top:6px">¡Su Pre-Reserva ha sido registrada con éxito!</h2>
       <p style="color:var(--mute);max-width:62ch;margin:8px auto 20px">
         Su solicitud quedó registrada en el sistema con estado <b>Pre-reserva pendiente</b>. A continuación encontrará el desglose de su atención y las <b>coordenadas bancarias oficiales</b> para transferir el abono del 50%.

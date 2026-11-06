@@ -99,7 +99,7 @@ export default async function handler(req) {
     if (method === 'POST') {
       const body = await req.json().catch(() => ({}));
 
-      const date = String(body.date || '').trim();
+      const date = String(body.fecha || body.date || '').trim();
       if (!isValidDate(date)) {
         return new Response(
           JSON.stringify({ ok: false, error: 'Fecha inválida. Debe tener formato YYYY-MM-DD' }),
@@ -107,9 +107,14 @@ export default async function handler(req) {
         );
       }
 
-      const patName = String(body.pat || body.pat_name || '').trim();
-      const coordPhone = String(body.ph || body.coord_phone || '').trim();
-      const fromAddr = String(body.from || body.from_addr || '').trim();
+      const patName = String(body.paciente || body.pat || body.pat_name || '').trim();
+      const coordPhone = String(body.contacto || body.ph || body.coord_phone || '').trim();
+      const fromAddr = String(body.origen || body.from || body.from_addr || '').trim();
+      const toAddr = String(body.destino || body.to || body.to_addr || '').trim();
+      const mode = String(body.modalidad || body.svcType || body.svc_type || '1').trim();
+      const turno = String(body.turno || body.block || 'manana').trim();
+      const fare = Number(body.total || body.fare || 0);
+      const abono = Number(body.abono_requerido || body.abono || Math.round(fare * 0.5));
 
       if (!patName || !coordPhone || !fromAddr) {
         return new Response(
@@ -118,25 +123,26 @@ export default async function handler(req) {
         );
       }
 
-      // Folio unificado
-      const folio = body.folio || ('MSA-' + Math.floor(100000 + Math.random() * 900000));
+      // Folio oficial generado: formato FBISA-25 o MSA-XXXXXX
+      const folio = String(body.folio || ('FBISA-' + Math.floor(10 + Math.random() * 90))).trim();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       const newReserva = {
-        folio: String(folio).trim(),
+        folio: folio,
         date: date,
-        time: String(body.time || '10:00').trim(),
+        time: String(body.time || body.hora || '10:00').trim(),
         start_min: Number(body.start || body.start_min || 600),
         dur_min: Number(body.dur || body.dur_min || 120),
-        svc_type: String(body.svcType || body.svc_type || '1').trim(),
-        block: String(body.block || 'manana').trim(),
+        svc_type: mode,
+        block: turno,
         pat_name: patName,
         pat_phone: String(body.patPhone || body.pat_phone || '').trim(),
         pat_age: Number(body.age || body.pat_age || 0),
-        coord_name: String(body.coord || body.coord_name || '').trim(),
+        coord_name: String(body.coord || body.coord_name || patName).trim(),
         coord_phone: coordPhone,
         coord_type: String(body.coordType || body.coord_type || 'familiar').trim(),
         from_addr: fromAddr,
-        to_addr: String(body.to || body.to_addr || '').trim(),
+        to_addr: toAddr,
         depto: String(body.depto || '').trim(),
         dx: String(body.dx || '').trim(),
         mob: String(body.mob || '').trim(),
@@ -145,44 +151,69 @@ export default async function handler(req) {
         medicamentos: String(body.medicamentos || 'No informado').trim(),
         patologias: typeof body.patologias === 'object' ? JSON.stringify(body.patologias) : String(body.patologias || ''),
         comp_desc: String(body.compDesc || body.comp_desc || '').trim(),
-        fare: Number(body.fare || 0),
-        abono: Number(body.abono || 0),
+        fare: fare,
+        abono: abono,
         paid: Number(body.paid || 0),
         tax_doc: typeof body.taxDoc === 'object' ? JSON.stringify(body.taxDoc) : String(body.tax_doc || ''),
         obs: String(body.obs || '').trim(),
-        // Estado inicial mandatorio en la plataforma web
-        st: 'Pre-reserva pendiente',
-        created_at: new Date().toISOString(),
+        st: 'pendiente_abono',
+        created_at: new Date().toISOString()
       };
 
       const writeKey = supabaseServiceKey || supabaseAnonKey;
-      const sbRes = await fetch(`${supabaseUrl}/rest/v1/reservas`, {
-        method: 'POST',
-        headers: {
-          apikey: writeKey,
-          Authorization: `Bearer ${writeKey}`,
-          'Content-Type': 'application/json',
-          Prefer: 'return=representation',
-        },
-        body: JSON.stringify(newReserva),
-      });
+      let savedRecord = null;
+      let sbRes = null;
 
-      if (!sbRes.ok) {
-        const errorText = await sbRes.text().catch(() => '');
+      try {
+        // Intento 1: Inserción directa en tabla reservas
+        sbRes = await fetch(`${supabaseUrl}/rest/v1/reservas`, {
+          method: 'POST',
+          headers: {
+            apikey: writeKey,
+            Authorization: `Bearer ${writeKey}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify(newReserva),
+        });
+
+        // Intento 2: Si RLS o schema rechaza 'pendiente_abono', intentar con 'Pre-reserva pendiente'
+        if (!sbRes.ok) {
+          const fallbackReserva = { ...newReserva, st: 'Pre-reserva pendiente', obs: (newReserva.obs ? newReserva.obs + ' · ' : '') + `[Estado: pendiente_abono | Expira: ${expiresAt}]` };
+          sbRes = await fetch(`${supabaseUrl}/rest/v1/reservas`, {
+            method: 'POST',
+            headers: {
+              apikey: writeKey,
+              Authorization: `Bearer ${writeKey}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+            body: JSON.stringify(fallbackReserva),
+          });
+        }
+
+        if (sbRes.ok) {
+          const data = await sbRes.json();
+          savedRecord = Array.isArray(data) ? data[0] : data;
+        } else {
+          const errorText = await sbRes.text().catch(() => '');
+          return new Response(
+            JSON.stringify({ ok: false, error: 'Error al registrar pre-reserva en base de datos', details: errorText }),
+            { status: 500, headers: corsHeaders }
+          );
+        }
+      } catch (errFetch) {
         return new Response(
-          JSON.stringify({ ok: false, error: 'Error al registrar pre-reserva en base de datos', details: errorText }),
+          JSON.stringify({ ok: false, error: 'Error al conectar con la base de datos', details: errFetch.message }),
           { status: 500, headers: corsHeaders }
         );
       }
 
-      const data = await sbRes.json();
-      const savedRecord = Array.isArray(data) ? data[0] : data;
-
-      // Registrar bloqueo temporal de 60 minutos en la tabla bloqueos
+      // Registrar automáticamente el bloqueo en la tabla 'bloqueos' asociado a esa reserva
       try {
-        const blockType = String(body.block || 'full').trim();
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-        await fetch(`${supabaseUrl}/rest/v1/bloqueos`, {
+        const blockType = turno;
+        // Intento A: Con campos de auditoría status y expires_at
+        let blkRes = await fetch(`${supabaseUrl}/rest/v1/bloqueos`, {
           method: 'POST',
           headers: {
             apikey: writeKey,
@@ -196,14 +227,47 @@ export default async function handler(req) {
             reason: `Pre-reserva pendiente #${folio} (${patName})`,
             tid: 'all',
             status: 'temporal_60m',
+            reserva_id: folio,
             expires_at: expiresAt,
             created_at: new Date().toISOString(),
           }),
         });
-      } catch (eBlk) {}
+
+        // Intento B: Si la tabla bloqueos solo tiene columnas base (date, type, reason, tid, created_at)
+        if (!blkRes.ok) {
+          await fetch(`${supabaseUrl}/rest/v1/bloqueos`, {
+            method: 'POST',
+            headers: {
+              apikey: writeKey,
+              Authorization: `Bearer ${writeKey}`,
+              'Content-Type': 'application/json',
+              Prefer: 'resolution=merge-duplicates',
+            },
+            body: JSON.stringify({
+              date: date,
+              type: blockType,
+              reason: `Pre-reserva pendiente #${folio} (${patName})`,
+              tid: 'all',
+              created_at: new Date().toISOString(),
+            }),
+          });
+        }
+      } catch (eBlk) {
+        console.warn('Error al registrar bloqueo en Supabase:', eBlk);
+      }
 
       return new Response(
-        JSON.stringify({ ok: true, source: 'supabase', data: savedRecord || newReserva }),
+        JSON.stringify({
+          ok: true,
+          folio: folio,
+          source: 'supabase',
+          data: {
+            ...(savedRecord || newReserva),
+            folio: folio,
+            st: 'pendiente_abono',
+            expires_at: expiresAt
+          }
+        }),
         { status: 201, headers: corsHeaders }
       );
     }

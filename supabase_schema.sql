@@ -119,7 +119,7 @@ CREATE POLICY "Permitir insercion publica de pre-reservas"
 ON public.reservas
 FOR INSERT
 TO public, anon, authenticated
-WITH CHECK (st = 'Pre-reserva pendiente');
+WITH CHECK (st IN ('Pre-reserva pendiente', 'pendiente_abono'));
 
 -- Política de lectura y gestión: Solo administradores pueden consultar y gestionar las reservas (protección PHI / datos clínicos)
 DROP POLICY IF EXISTS "Acceso exclusivo a administradores para lectura y gestion" ON public.reservas;
@@ -129,3 +129,9 @@ FOR ALL
 TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
+
+-- Actualizaciones de compatibilidad para ciclo de vida de abonos (60m TTL):
+ALTER TABLE public.reservas ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'temporal_60m';
+ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS reserva_id VARCHAR(50);
