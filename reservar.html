@@ -5872,6 +5872,18 @@ async function submitBooking(ev){
     block: turnoVal
   };
 
+  function formatFolioMSA(folio, id) {
+  const str = String(folio || id || '').trim();
+  if (!str) return 'MSA-001';
+  const m = str.match(/(\d+)/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    if (!isNaN(n) && n > 0) return 'MSA-' + String(n).padStart(3, '0');
+  }
+  return 'MSA-001';
+}
+window.formatFolioMSA = formatFolioMSA;
+
   let apiOk = false;
   let realFolio = '';
   let apiErrorMsg = '';
@@ -5897,15 +5909,15 @@ async function submitBooking(ev){
     const respData = await resp.json().catch(() => ({}));
     if (resp.ok && (resp.status === 200 || resp.status === 201) && respData && respData.ok !== false) {
       apiOk = true;
-      realFolio = respData.folio || (respData.data && respData.data.folio) || ('FBISA-' + Math.floor(10 + Math.random() * 90));
+      realFolio = formatFolioMSA(respData.folio || (respData.data && respData.data.folio));
     } else {
       // Si la API devolvió folio aun con código 200/aviso o en fallback
-      realFolio = (respData && respData.folio) || ('FBISA-' + Math.floor(10 + Math.random() * 90));
+      realFolio = formatFolioMSA(respData && respData.folio);
       apiOk = true;
     }
   } catch (fetchErr) {
-    // Resiliencia móvil / offline: asegurar folio y gatillar WhatsApp sin frustrar al cliente
-    realFolio = 'FBISA-' + Math.floor(10 + Math.random() * 90);
+    // Resiliencia móvil / offline: asegurar folio estandarizado MSA-XXX y gatillar WhatsApp
+    realFolio = formatFolioMSA(Date.now() % 1000 || '001');
     apiOk = true;
   }
 
