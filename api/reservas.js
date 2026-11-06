@@ -178,6 +178,30 @@ export default async function handler(req) {
       const data = await sbRes.json();
       const savedRecord = Array.isArray(data) ? data[0] : data;
 
+      // Registrar bloqueo temporal de 60 minutos en la tabla bloqueos
+      try {
+        const blockType = String(body.block || 'full').trim();
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+        await fetch(`${supabaseUrl}/rest/v1/bloqueos`, {
+          method: 'POST',
+          headers: {
+            apikey: writeKey,
+            Authorization: `Bearer ${writeKey}`,
+            'Content-Type': 'application/json',
+            Prefer: 'resolution=merge-duplicates',
+          },
+          body: JSON.stringify({
+            date: date,
+            type: blockType,
+            reason: `Pre-reserva pendiente #${folio} (${patName})`,
+            tid: 'all',
+            status: 'temporal_60m',
+            expires_at: expiresAt,
+            created_at: new Date().toISOString(),
+          }),
+        });
+      } catch (eBlk) {}
+
       return new Response(
         JSON.stringify({ ok: true, source: 'supabase', data: savedRecord || newReserva }),
         { status: 201, headers: corsHeaders }

@@ -5853,6 +5853,7 @@ async function submitBooking(ev){
     abono: lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50,
     paid: 0,
     st: 'Pre-reserva pendiente',
+    createdAt: new Date().toISOString(),
     svcType: mode,
     block: isInter ? 'full' : selectedBlock,
     fullDay: isInter,

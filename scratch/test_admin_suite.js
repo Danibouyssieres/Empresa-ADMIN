@@ -207,6 +207,8 @@ vm.runInContext(scriptBody, mockContext);
 
 // Test 5A: Test calcAdminQuote with Modality 1: 24 km, 2 hrs assistance in Maipú (Anillo 1)
 fakeDoc.getElementById('aq_mode').value = '1';
+fakeDoc.getElementById('aq_date').value = '2026-11-04';
+fakeDoc.getElementById('aq_time').value = '10:00';
 fakeDoc.getElementById('aq_km').value = '24';
 fakeDoc.getElementById('aq_stay_hours').value = '120';
 fakeDoc.getElementById('aq_from').value = 'Av. Los Pajaritos 1450, Maipú';
