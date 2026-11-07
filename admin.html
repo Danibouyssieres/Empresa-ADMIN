@@ -668,8 +668,7 @@ function seed(){
     seedVersion: 3,
     nid:14,
     techs:[
-      {id:'t1',nom:'Daniela González Bouyssieres',rut:'Registro SIS Nº 442762',tel:'+56929990095',veh:'Unidad 1 · Vehículo Acondicionado Clase A2',col:'#0f766e',act:true},
-      {id:'t2',nom:'Unidad TENS 2 (Respaldo)',rut:'15.987.654-3',tel:'+56933334444',veh:'Unidad 2',col:'#c2410c',act:false}
+      {id:'t1',nom:'Daniela González Bouyssieres',rut:'Registro SIS Nº 442762',tel:'+56929990095',veh:'Unidad 1 · Vehículo Acondicionado Clase A2',col:'#0f766e',act:true}
     ],
     svcs:[
       sv(1,'t1',dMananaOcupada,'08:30',120,'Rosa Medina',82,'1. Servicio Integral · Control cardiológico','Andrea Medina','+56977778888','Maipú, Av. Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
@@ -696,6 +695,9 @@ function load(){
         }
       } catch(e){}
       if(Array.isArray(parsed.svcs)) deduplicateAndNormalizeSvcs(parsed.svcs);
+      if(Array.isArray(parsed.techs)){
+        parsed.techs = parsed.techs.filter(t => t.id !== 't2' && !t.nom.includes('TENS 2'));
+      }
       return parsed;
     }
     return null;
@@ -730,6 +732,9 @@ function logout(){
 
 const nowInit=new Date();
 let D=load()||seed();
+if(Array.isArray(D.techs)){
+  D.techs = D.techs.filter(t => t.id !== 't2' && !t.nom.includes('TENS 2'));
+}
 let U={view:'admin',tab:'blocks',date:addDaysYMD(TODAY,1),calYear:nowInit.getFullYear(),calMonth:nowInit.getMonth(),blkType:'full',tens:'t1',sel:null,edit:null};
 save();
 
@@ -3505,12 +3510,25 @@ function staff(){
   <div style="align-self:end"><button class=p type=submit>Guardar</button> ${U.edit?'<button type=button onclick="U.edit=null;render()">Cancelar</button>':''}</div></form></div>
   <div class=card style="overflow-x:auto"><table><tr><th>TENS</th><th>RUT</th><th>Teléfono</th><th>Vehículo</th><th>Estado</th><th></th></tr>
   ${D.techs.map(t=>`<tr><td><span class=dot style="background:${t.col}"></span>${e(t.nom)}</td><td>${e(t.rut)}</td><td>${e(t.tel)}</td><td>${e(t.veh)}</td><td>${t.act?'Activo':'Inactivo'}</td>
-  <td><button onclick="U.edit='${t.id}';render()">Editar</button> <button onclick="togT('${t.id}')">${t.act?'Desactivar':'Activar'}</button></td></tr>`).join('')}</table></div>`;
+  <td><button onclick="U.edit='${t.id}';render()">Editar</button> <button onclick="togT('${t.id}')">${t.act?'Desactivar':'Activar'}</button> <button class="unlock-btn" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:4px 8px;font-size:12px;margin-left:4px" onclick="delT('${t.id}')">Eliminar</button></td></tr>`).join('')}</table></div>`;
 }
 
 function saveT(ev){ev.preventDefault();const g=i=>$('#'+i).value,o={nom:g('s_nom'),rut:g('s_rut'),tel:g('s_tel'),veh:g('s_veh'),col:g('s_col')};
 if(U.edit)Object.assign(D.techs.find(x=>x.id==U.edit),o);else D.techs.push({id:'t'+Date.now(),act:true,...o});U.edit=null;save();render()}
 function togT(id){const t=D.techs.find(x=>x.id==id);t.act=!t.act;save();render()}
+function delT(id){
+  if(D.techs.length <= 1){
+    alert('⚠️ No se puede eliminar al único TENS activo del sistema.');
+    return;
+  }
+  const t = D.techs.find(x => x.id === id);
+  if(!t) return;
+  if(!confirm(`¿Está seguro de eliminar a ${t.nom} del sistema?`)) return;
+  D.techs = D.techs.filter(x => x.id !== id);
+  save();
+  render();
+}
+window.delT = delT;
 
 // =========================================================================
 // VISTA TERRENO (TENS Y ADMINISTRACIÓN)
