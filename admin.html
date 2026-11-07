@@ -331,7 +331,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 <script>
 const PX=44,S0=0,S1=1440,BUF=120,K='msa-v1',TM_K='msa-theme',SESS_K='msa-session';
 const PRICE_PER_KM = 1000;
-const pad=n=>String(n).padStart(2,'0'),fm=m=>pad(Math.floor(m/60))+':'+pad(m%60),tm=t=>{if(!t)return 0;const[a,b]=t.split(':');return +a*60+ +b};
+const pad=n=>String(n).padStart(2,'0'),fm=m=>{const norm=((Math.round(m)%1440)+1440)%1440;return pad(Math.floor(norm/60))+':'+pad(norm%60)},tm=t=>{if(!t)return 0;const[a,b]=t.split(':');return +a*60+ +b};
 const toYMD=dt=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
 const addDaysYMD=(str,days)=>{const[y,m,d]=str.split('-').map(Number);const dt=new Date(y,m-1,d);dt.setDate(dt.getDate()+days);return toYMD(dt)};
 const TODAY=toYMD(new Date());
@@ -2763,10 +2763,17 @@ function populateAdminTechs(){
 
   const bufInfo = $('#admin_buffer_info');
   if(bufInfo){
+    const endMin = startMin + durVal;
+    const bufEndMin = endMin + BUF;
+    const isNextDayEnd = endMin >= 1440;
+    const isNextDayBuf = bufEndMin >= 1440;
+    const endStr = `${fm(endMin)} hrs${isNextDayEnd ? ' (del día siguiente)' : ''}`;
+    const bufStr = `${fm(bufEndMin)} hrs${isNextDayBuf ? ' (del día siguiente)' : ''}`;
+
     if(qState.mode === '5'){
-      bufInfo.innerHTML = `ℹ️ Salida regional: <b>${fm(startMin)} hrs</b> · Término proyectado: <b>${fm(startMin + durVal)} hrs</b> · Buffer liberado a las <b>${fm(startMin + durVal + BUF)} hrs (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
+      bufInfo.innerHTML = `ℹ️ Salida regional: <b>${fm(startMin)} hrs</b> · Término proyectado: <b>${endStr}</b> · Buffer liberado a las <b>${bufStr} (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
     } else {
-      bufInfo.innerHTML = `ℹ️ Término proyectado: <b>${fm(startMin + durVal)} hrs</b> · Buffer de seguridad liberado a las <b>${fm(startMin + durVal + BUF)} hrs (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
+      bufInfo.innerHTML = `ℹ️ Término proyectado: <b>${endStr}</b> · Buffer de seguridad liberado a las <b>${bufStr} (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
     }
   }
 
