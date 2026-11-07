@@ -225,31 +225,23 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
           <td style="padding:3px 8px;text-align:right;box-sizing:border-box" id="pdfAbono">-$20.000</td>
         </tr>
         <tr style="background:#0f766e;color:#ffffff;font-size:.80rem">
-          <td colspan="2" style="padding:5px 8px;text-align:right;font-weight:800;box-sizing:border-box">SALDO FINAL PAGADO AL CIERRE:</td>
-          <td style="padding:5px 8px;text-align:right;font-weight:800;font-size:.88rem;box-sizing:border-box" id="pdfSaldoFinal">$30.500</td>
+          <td colspan="2" style="padding:6px 8px;text-align:right;font-weight:800;box-sizing:border-box">👉 SALDO FINAL LIQUIDADO AL CIERRE / EN TERRENO:</td>
+          <td style="padding:6px 8px;text-align:right;font-weight:800;font-size:.92rem;box-sizing:border-box" id="pdfSaldoFinal">$30.500</td>
         </tr>
       </tfoot>
     </table>
   </div>
 
-  <!-- BLOQUE RESPALDO SII Y FIRMAS -->
-  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-bottom:6px;box-sizing:border-box">
-    <div style="border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;background:#f8fafc;font-size:.72rem;line-height:1.35">
-      <div style="font-weight:800;color:#0f766e;margin-bottom:2px;text-transform:uppercase;font-size:.68rem">🧾 Respaldo de Pago y Registro Tributario</div>
-      <div><b>Medio de Pago:</b> <span id="pdfMedioPago">Transferencia Electrónica</span></div>
-      <div id="pdfFolioSIIContainer"><b>Documento Tributario:</b> <span id="pdfFolioSII">En trámite e-Boleta SII</span></div>
-      <div><b>Estado de Pago:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span></div>
+  <!-- LÍNEA COMPACTA DE ESTADO Y LIQUIDACIÓN -->
+  <div style="margin-top:6px;padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;font-size:.73rem;display:flex;justify-content:space-between;align-items:center;box-sizing:border-box">
+    <div>
+      <b>ESTADO:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span>
+      <span style="color:#94a3b8;margin:0 6px">|</span>
+      <b>Medio de pago:</b> <span id="pdfMedioPago">Transferencia Electrónica</span>
     </div>
-    <div style="border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;text-align:center;display:flex;flex-direction:column;justify-content:flex-end">
-      <div style="border-bottom:1px solid #475569;margin:0 14px 4px"></div>
-      <div style="font-size:.72rem;font-weight:700;color:#1e293b">Firma y Recepción Conforme</div>
-      <div style="font-size:.66rem;color:#64748b">Paciente / Contratante Responsable</div>
+    <div id="pdfFolioSIIContainer" style="font-size:.72rem;color:#475569">
+      <b>Documento:</b> <span id="pdfFolioSII">En trámite e-Boleta SII</span>
     </div>
-  </div>
-
-  <!-- GLOSA LEGAL TRIBUTARIA (EXENCIÓN DE IVA) -->
-  <div style="font-size:.64rem;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;padding-top:4px;line-height:1.25;box-sizing:border-box">
-    Servicios médicos, asistenciales y de enfermería exentos de IVA conforme al D.L. 825 de 1974 (Ley sobre Impuesto a las Ventas y Servicios), Art. 8° y Art. 12° Letra E N° 1. Comprobante timbrado válido para reembolsos en Isapres, Seguros Complementarios y registros contables.
   </div>
 </div>
 
@@ -4170,7 +4162,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
   const folioContainer = $('#pdfFolioSIIContainer');
   if(folioContainer){
-    folioContainer.innerHTML = `<b>Documento Tributario:</b> <span id="pdfFolioSII">${folioSII ? ('Boleta Electrónica SII N° ' + folioSII) : 'En trámite e-Boleta SII'}</span>`;
+    folioContainer.innerHTML = `<b>Documento:</b> <span id="pdfFolioSII">${folioSII ? ('Boleta Electrónica SII N° ' + folioSII) : 'En trámite e-Boleta SII'}</span>`;
   }
 
   // Generación y descarga con html2pdf
