@@ -97,7 +97,8 @@ assert(adminCode.includes('✔ Liquidar Saldo y Finalizar'), 'admin.html must ha
 assert(adminCode.includes("s.st = 'completada'"), 'liquidarSaldoReserva must transition status to completada');
 assert(adminCode.includes('s.saldoPendiente = 0'), 'liquidarSaldoReserva must set saldoPendiente to 0');
 assert(adminCode.includes("setInboxStatusFilter('completed')"), 'admin.html must support filtering by completed');
-assert(adminCode.includes('🔵 Finalizadas'), 'admin.html must have 🔵 Finalizadas filter tab');
+assert(adminCode.includes('🔵 En Terreno'), 'admin.html must have 🔵 En Terreno filter tab');
+assert(adminCode.includes('⚪ Finalizadas'), 'admin.html must have ⚪ Finalizadas filter tab');
 console.log('✓ Settlement [ ✔ Liquidar Saldo y Finalizar ] and transition to completada verified');
 
 // 6. Verify Gestión de Bloqueos Optimizations
