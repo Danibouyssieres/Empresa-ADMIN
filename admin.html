@@ -603,6 +603,13 @@ const COL_BG={
   'Cancelado':'rgba(239, 68, 68, 0.12)','Cancelada':'rgba(239, 68, 68, 0.12)','expirada_cancelada':'rgba(239, 68, 68, 0.12)'
 };
 const MOB=['Autovalente','Bastón / andador','Silla de ruedas','Dependencia Severa'];
+const AYUDAS_TECNICAS = [
+  'Ninguna (autovalente / no requiere implementos)',
+  'Silla de Ruedas del servicio (traslado y confort en clínica / salón de eventos)',
+  'Andador / Burrito de apoyo del servicio',
+  'Bastón de apoyo del servicio',
+  'Paciente cuenta con implemento propio plegable'
+];
 const REQ=['Solo traslado','Acompañamiento en box médico','Control de signos vitales','Administración de medicamentos','Asistencia de higiene/confort'];
 const NEXT={'Pre-reserva pendiente':['Confirmar','Confirmado'],'Pendiente':['En Ruta','En Camino'],'Confirmado':['En Ruta','En Camino'],'En Ruta':['En Atención','Iniciado'],'En Atención':['Finalizado','Finalizado']};
 function formatFolioMSA(folio, id){
@@ -1107,6 +1114,7 @@ async function syncCentralizedBlocksAdmin(){
                 to: r.to_addr || r.destino,
                 depto: r.depto || '',
                 mob: r.mob || 'Autovalente',
+                ayudaTecnica: r.ayuda_tecnica || r.ayudaTecnica || (r.obs && r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/) ? r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/)[1] : '') || '',
                 req: [],
                 comp: r.comp_desc ? r.comp_desc.includes('acompañante') : false,
                 compDesc: r.comp_desc || '',
@@ -1471,7 +1479,7 @@ function detail(){
   const s=D.svcs.find(x=>x.id==U.sel);if(!s)return '';
   const opts=D.techs.filter(t=>t.act&&(t.id==s.tid||avail(t.id,s.date,s.start,s.dur,s.id)));
   return `<div class=card id=det style="margin-top:10px"><h2>Folio #${formatFolioMSA(s.folio, s.id)} · ${e(s.pat)} (${s.age}) · ${fm(s.start)}–${fm((s.start+s.dur)%1440)} hrs <span class=badge style="background:${COL[s.st]}">${s.st}</span></h2>
-  <div><b>Motivo:</b> ${e(s.dx)} · <b>Movilidad:</b> ${e(s.mob)}${s.compDesc ? ' · ' + e(s.compDesc) : (s.comp?' (Con acompañante)':'')}</div>
+  <div><b>Motivo:</b> ${e(s.dx)} · <b>Movilidad:</b> ${e(s.mob)}${s.ayudaTecnica ? ' · <b>Ayuda Técnica:</b> ' + e(s.ayudaTecnica) : ''}${s.compDesc ? ' · ' + e(s.compDesc) : (s.comp?' (Con acompañante)':'')}</div>
   ${s.alergias ? `<div><b>Alergias:</b> <span style="${s.alergias.startsWith('Sí') ? 'color:#dc2626;font-weight:700':''}">${e(s.alergias)}</span> · <b>Conciencia:</b> ${e(s.conciencia||'Lúcido / Orientado')}</div>` : ''}
   ${s.patologias ? `<div><b>Patologías:</b> ${e(Array.isArray(s.patologias)?s.patologias.join(', '):s.patologias)}</div>` : ''}
   <div><b>Ruta:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''} → ${e(s.to)}</div>
@@ -1797,6 +1805,12 @@ function form(){
             ${MOB.map(m=>`<option>${m}</option>`).join('')}
           </select>
         </div>
+        <div id="row_aq_ayuda_tecnica">
+          <label for="aq_ayuda_tecnica">¿Requiere apoyo de Ayuda Técnica durante la atención o evento? *</label>
+          <select id="aq_ayuda_tecnica" onchange="saveAdminQuoterDraft()">
+            ${AYUDAS_TECNICAS.map(a=>`<option value="${a}">${a}</option>`).join('')}
+          </select>
+        </div>
         <div>
           <label for="aq_tens">TENS Asignado *</label>
           <select id="aq_tens" required></select>
@@ -1938,6 +1952,7 @@ function saveAdminQuoterDraft(){
       coord: ($('#aq_coord') && $('#aq_coord').value) || '',
       ph: ($('#aq_ph') && $('#aq_ph').value) || '',
       mob: ($('#aq_mob') && $('#aq_mob').value) || '',
+      ayudaTecnica: ($('#aq_ayuda_tecnica') && $('#aq_ayuda_tecnica').value) || '',
       tens: ($('#aq_tens') && $('#aq_tens').value) || '',
       allergyRadio: (typeof document !== 'undefined' && document.querySelector('input[name="aq_allergy_radio"]:checked') && document.querySelector('input[name="aq_allergy_radio"]:checked').value) || 'no',
       alergias: ($('#aq_alergias') && $('#aq_alergias').value) || '',
@@ -2011,6 +2026,7 @@ function loadAdminQuoterDraft(){
     if(d.coord && $('#aq_coord')) $('#aq_coord').value = d.coord;
     if(d.ph && $('#aq_ph')) $('#aq_ph').value = d.ph.replace(/\D/g, '').slice(-8);
     if(d.mob && $('#aq_mob')) $('#aq_mob').value = d.mob;
+    if(d.ayudaTecnica && $('#aq_ayuda_tecnica')) $('#aq_ayuda_tecnica').value = d.ayudaTecnica;
     if(d.tens && $('#aq_tens')) $('#aq_tens').value = d.tens;
     if(d.allergyRadio && typeof document !== 'undefined'){
       const r = document.querySelector(`input[name="aq_allergy_radio"][value="${d.allergyRadio}"]`);
@@ -2180,8 +2196,10 @@ function onAdminModeChange(){
 
   const compVeh = $('#row_aq_comp_veh');
   const compHome = $('#row_aq_comp_home');
+  const rowAyuda = $('#row_aq_ayuda_tecnica');
   if(compVeh) compVeh.style.display = (mode === '3') ? 'none' : 'block';
   if(compHome) compHome.style.display = (mode === '3') ? 'block' : 'none';
+  if(rowAyuda) rowAyuda.style.display = (mode === '3') ? 'none' : 'block';
   const lblCompInit = $('#lbl_aq_comp') || document.querySelector('label[for="aq_comp"]');
   if(lblCompInit && mode !== '4') lblCompInit.textContent = '¿El paciente viaja solo o acompañado? *';
   const lblTimeInit = $('#lbl_aq_time') || document.querySelector('label[for="aq_time"] b');
@@ -3004,6 +3022,8 @@ function sendAdminQuoteWhatsApp(){
   };
 
   const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
+  const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
+  const ayudaTecnica = (qState.mode !== '3' && $('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
   const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Estimado(a)';
   const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
@@ -3150,7 +3170,8 @@ ${trayectoLine}
 ⏱️ *CRONOGRAMA ESTIMADO:*
 ${cronogramaDesglosado}
 🏥 *FICHA CLÍNICA:*
-• *Alergias conocidas:* ${alergiasText}
+• *Condición de movilidad:* ${mob}
+${ayudaTecnica ? `• *Ayuda técnica requerida:* ${ayudaTecnica}\n` : ''}• *Alergias conocidas:* ${alergiasText}
 • *Medicamentos habituales:* ${medsText}
 
 💰 *DESGLOSE ECONÓMICO:*
@@ -3246,6 +3267,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
   const to = isSinTraslado ? from : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
+  const ayudaTecnica = (qState.mode !== '3' && $('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
   const req = [];
 
   const selectedPats = typeof document !== 'undefined' && document.querySelectorAll
@@ -3269,7 +3291,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   const medsDetail = ($('#aq_meds_detail') && $('#aq_meds_detail').value.trim()) || '';
   const medicamentos = hasMeds ? (medsDetail || 'Sí (Revisar recetas en terreno)') : 'No toma medicamentos habituales';
 
-  const bookingData = { tid, date, time: bookingTime, start, dur, pat, age, dx, coord, ph, from, to, mob, req, alergias, medicamentos, compDesc, taxDoc, patologias };
+  const bookingData = { tid, date, time: bookingTime, start, dur, pat, age, dx, coord, ph, from, to, mob, ayudaTecnica, ayuda_tecnica: ayudaTecnica, req, alergias, medicamentos, compDesc, taxDoc, patologias };
 
   // Verificación de advertencia preventiva de buffer de 2 horas (120 minutos)
   if(!forceConfirm){
@@ -3301,6 +3323,8 @@ function saveAdminBooking(ev, forceConfirm = false){
     from,
     to,
     mob,
+    ayudaTecnica,
+    ayuda_tecnica: ayudaTecnica,
     req,
     comp: !isSolo,
     compDesc,
@@ -4084,6 +4108,8 @@ function renderReservaCard(s){
         </div>
         <div><b>Origen:</b> ${e(s.from || '—')}</div>
         <div><b>Destino:</b> ${e(s.to || '—')}</div>
+        <div><b>Movilidad:</b> ${e(s.mob || 'Autovalente')}</div>
+        <div><b>Ayuda Técnica:</b> <span style="color:var(--pri);font-weight:600">${e(s.ayudaTecnica || s.ayuda_tecnica || 'Ninguna (autovalente / no requiere implementos)')}</span></div>
       </div>
 
       ${renderReservaEconBreakdown(s)}

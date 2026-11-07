@@ -861,6 +861,16 @@ footer a{color:#fff}
           <select id="b_mob" onchange="onMobilityOrCompanionChange()"></select>
           <small id="b_mob_wheelchair_note" style="color:var(--mute);font-size:.82rem;display:block;margin-top:4px">⚠️ Por capacidad vehicular, no se admiten sillas neurológicas rígidas ni motorizadas.</small>
         </div>
+        <div id="row_ayuda_tecnica">
+          <label for="b_ayuda_tecnica">¿Requiere apoyo de Ayuda Técnica durante la atención o evento? *</label>
+          <select id="b_ayuda_tecnica">
+            <option value="Ninguna (autovalente / no requiere implementos)" selected>Ninguna (autovalente / no requiere implementos)</option>
+            <option value="Silla de Ruedas del servicio (traslado y confort en clínica / salón de eventos)">Silla de Ruedas del servicio (traslado y confort en clínica / salón de eventos)</option>
+            <option value="Andador / Burrito de apoyo del servicio">Andador / Burrito de apoyo del servicio</option>
+            <option value="Bastón de apoyo del servicio">Bastón de apoyo del servicio</option>
+            <option value="Paciente cuenta con implemento propio plegable">Paciente cuenta con implemento propio plegable</option>
+          </select>
+        </div>
         <div id="row_companion_vehicle">
           <label for="b_comp" id="lbl_b_comp">¿El paciente viaja solo o acompañado? *</label>
           <select id="b_comp" onchange="onMobilityOrCompanionChange()">
@@ -1040,6 +1050,13 @@ const MOB = [
   'Bastón / andador',
   'Silla de ruedas',
   'Dependencia Severa'
+];
+const AYUDAS_TECNICAS = [
+  'Ninguna (autovalente / no requiere implementos)',
+  'Silla de Ruedas del servicio (traslado y confort en clínica / salón de eventos)',
+  'Andador / Burrito de apoyo del servicio',
+  'Bastón de apoyo del servicio',
+  'Paciente cuenta con implemento propio plegable'
 ];
 
 const REQ_BY_MODE = {
@@ -1569,10 +1586,12 @@ function applyModalityVisibility(){
   const wheelNote = $('#b_mob_wheelchair_note');
   const compVeh = $('#row_companion_vehicle');
   const compHome = $('#row_companion_home');
+  const rowAyuda = $('#row_ayuda_tecnica');
   const isSinTraslado = (mode === '3' || (mode === '4' && selectedEventSubMode === 'sin_traslado'));
   if(wheelNote) wheelNote.style.display = isSinTraslado ? 'none' : 'block';
   if(compVeh) compVeh.style.display = (mode === '3') ? 'none' : 'block';
   if(compHome) compHome.style.display = (mode === '3') ? 'block' : 'none';
+  if(rowAyuda) rowAyuda.style.display = (mode === '3') ? 'none' : 'block';
 
   const lblComp = $('#lbl_b_comp') || document.querySelector('label[for="b_comp"]');
   if(lblComp){
@@ -5768,6 +5787,7 @@ async function submitBooking(ev){
         ? `${svcName} · ${dxInput}`
         : `${svcName} · ${dxInput}`);
   const mob = $('#b_mob').value;
+  const ayudaTecnica = (mode !== '3' && $('#b_ayuda_tecnica')) ? $('#b_ayuda_tecnica').value : '';
   const from = $('#b_from').value.trim();
   const depto = ($('#b_depto') && $('#b_depto').value.trim()) || '';
   const to = showDest ? $('#b_to').value.trim() : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
@@ -5852,6 +5872,8 @@ async function submitBooking(ev){
     depto: depto,
     to: destinoVal,
     mob: mob,
+    ayuda_tecnica: ayudaTecnica,
+    ayudaTecnica: ayudaTecnica,
     conciencia: conciencia,
     alergias: allergyText,
     medicamentos: medsText,
@@ -6019,6 +6041,7 @@ window.formatFolioMSA = formatFolioMSA;
     `• Medicamentos habituales: ${medsText}\n` +
     `• Estado de Conciencia: ${conciencia}\n` +
     `• Condición de Movilidad: ${mob}\n` +
+    (ayudaTecnica ? `• Ayuda técnica requerida: ${ayudaTecnica}\n` : '') +
     `• Patologías crónicas / Base: ${pathologiesText}\n` +
     `• ¿Viaja solo o acompañado?: ${compVal}\n` +
     (obs ? `• Observaciones e Indicaciones: ${obs}\n` : '') +
@@ -6071,6 +6094,7 @@ window.formatFolioMSA = formatFolioMSA;
         <li><span>💊 <b>Medicamentos Habituales:</b></span> <span>${e(medsText)}</span></li>
         <li><span>🧠 <b>Estado de Conciencia:</b></span> <span>${e(conciencia)}</span></li>
         <li><span>♿ <b>Condición de Movilidad:</b></span> <span>${e(mob)}</span></li>
+        ${ayudaTecnica ? `<li><span>🦯 <b>Ayuda Técnica Requerida:</b></span> <span>${e(ayudaTecnica)}</span></li>` : ''}
         <li><span>🩺 <b>Patologías Crónicas / Base:</b></span> <span>${e(pathologiesText)}</span></li>
         <li><span>👥 <b>¿Viaja solo o acompañado?:</b></span> <span>${e(compVal)}</span></li>
         ${obs ? `<li><span>📝 <b>Observaciones / Indicaciones:</b></span> <span>${e(obs)}</span></li>` : ''}
