@@ -118,7 +118,8 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 .res-badge-pending{background:rgba(245,158,11,0.15);color:#d97706;border:1px solid rgba(245,158,11,0.3)}
 .res-badge-confirmed{background:rgba(16,185,129,0.15);color:#059669;border:1px solid rgba(16,185,129,0.3)}
 .res-badge-cancelled{background:rgba(239,68,68,0.15);color:#dc2626;border:1px solid rgba(239,68,68,0.3)}
-.res-badge-completed{background:rgba(6,182,212,0.15);color:#0891b2;border:1px solid rgba(6,182,212,0.3)}
+.res-badge-completed{background:rgba(100,116,139,0.14);color:#475569;border:1px solid rgba(100,116,139,0.35)}
+.res-badge-terreno{background:rgba(2,132,199,0.14);color:#0284c7;border:1px solid rgba(2,132,199,0.35)}
 .res-econ-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px}
 </style>
 </head>
@@ -553,15 +554,15 @@ const ST=['Pre-reserva pendiente','Pendiente','Confirmado','En Ruta','En Atenci�
 const COL={
   'Pre-reserva pendiente':'#F59E0B','pendiente_abono':'#F59E0B','Pendiente':'#F59E0B',
   'Confirmado':'#10B981','confirmada':'#10B981','Confirmada':'#10B981',
-  'En Ruta':'#14B8A6','En Atención':'#06B6D4',
-  'Finalizado':'#10B981','completada':'#10B981',
+  'En Ruta':'#0284C7','En Atención':'#0284C7',
+  'Finalizado':'#64748B','completada':'#64748B',
   'Cancelado':'#EF4444','Cancelada':'#EF4444','expirada_cancelada':'#EF4444'
 };
 const COL_BG={
   'Pre-reserva pendiente':'rgba(245, 158, 11, 0.16)','pendiente_abono':'rgba(245, 158, 11, 0.16)','Pendiente':'rgba(245, 158, 11, 0.12)',
   'Confirmado':'rgba(16, 185, 129, 0.12)','confirmada':'rgba(16, 185, 129, 0.12)','Confirmada':'rgba(16, 185, 129, 0.12)',
-  'En Ruta':'rgba(20, 184, 166, 0.12)','En Atención':'rgba(6, 182, 212, 0.12)',
-  'Finalizado':'rgba(16, 185, 129, 0.12)','completada':'rgba(16, 185, 129, 0.12)',
+  'En Ruta':'rgba(2, 132, 199, 0.12)','En Atención':'rgba(2, 132, 199, 0.12)',
+  'Finalizado':'rgba(100, 116, 139, 0.12)','completada':'rgba(100, 116, 139, 0.12)',
   'Cancelado':'rgba(239, 68, 68, 0.12)','Cancelada':'rgba(239, 68, 68, 0.12)','expirada_cancelada':'rgba(239, 68, 68, 0.12)'
 };
 const MOB=['Autovalente','Bastón / andador','Silla de ruedas','Dependencia Severa'];
@@ -3819,13 +3820,13 @@ function renderReservaStateBadge(s){
     return `<span class="res-badge res-badge-cancelled">🔴 Cancelada / Expirada</span>`;
   }
   if(s.st === 'Finalizado' || s.st === 'completada' || s.st === 'Completada'){
-    return `<span class="res-badge res-badge-completed">🔵 Finalizada / Completada</span>`;
+    return `<span class="res-badge res-badge-completed" style="font-weight:700">⚪ Finalizada / Liquidada</span>`;
   }
   if(s.st === 'En Ruta'){
-    return `<span class="res-badge" style="background:rgba(20,184,166,0.15);color:#0f766e;border:1px solid #14b8a6;font-weight:700">🚗 En Ruta (Hacia el domicilio)</span>`;
+    return `<span class="res-badge res-badge-terreno" style="font-weight:700">🚗 En Ruta (Hacia el domicilio)</span>`;
   }
   if(s.st === 'En Atención' || s.st === 'En Terreno'){
-    return `<span class="res-badge" style="background:rgba(6,182,212,0.15);color:#0284c7;border:1px solid #06b6d4;font-weight:700">🩺 En Atención (En Terreno)</span>`;
+    return `<span class="res-badge res-badge-terreno" style="font-weight:700">🩺 En Atención (En Terreno)</span>`;
   }
   return `<span class="res-badge" style="background:rgba(100,116,139,0.15);color:#475569">${e(s.st)}</span>`;
 }
@@ -3955,7 +3956,7 @@ function renderReservaCard(s){
         </div>
       ` : isCompleted ? `
         <div class="reservation-actions">
-          <span style="font-size:12px;color:#0284c7;font-weight:700">🔵 Atención completada en terreno · Saldo 100% liquidado (${$c(s.paid)})</span>
+          <span style="font-size:12px;color:#64748b;font-weight:700">⚪ Atención finalizada en terreno · Saldo 100% liquidado (${$c(s.paid)})</span>
         </div>
       ` : ''}
     </div>
@@ -3967,7 +3968,8 @@ function inboxView(){
   const allSvcs = D.svcs || [];
   const pending = allSvcs.filter(s => s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono' || s.st === 'Pendiente');
   const confirmed = allSvcs.filter(s => s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada');
-  const completed = allSvcs.filter(s => s.st === 'Finalizado' || s.st === 'completada' || s.st === 'Completada' || s.st === 'En Ruta' || s.st === 'En Atención' || s.st === 'En Terreno');
+  const terreno = allSvcs.filter(s => s.st === 'En Ruta' || s.st === 'En Atención' || s.st === 'En Terreno');
+  const completed = allSvcs.filter(s => s.st === 'Finalizado' || s.st === 'completada' || s.st === 'Completada');
   const cancelled = allSvcs.filter(s => s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada');
 
   let filtered = allSvcs;
@@ -3975,6 +3977,8 @@ function inboxView(){
     filtered = pending;
   } else if(inboxStatusFilter === 'confirmed'){
     filtered = confirmed;
+  } else if(inboxStatusFilter === 'terreno'){
+    filtered = terreno;
   } else if(inboxStatusFilter === 'completed'){
     filtered = completed;
   } else if(inboxStatusFilter === 'cancelled'){
@@ -4024,7 +4028,7 @@ function inboxView(){
         </button>
       </div>
 
-      <div class="met" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:14px">
+      <div class="met" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-bottom:14px">
         <div style="cursor:pointer" onclick="setInboxStatusFilter('pending')">
           <b style="color:#d97706">${pending.length}</b>
           <span>🟡 Pendientes Abono</span>
@@ -4033,13 +4037,17 @@ function inboxView(){
           <b style="color:#10b981">${confirmed.length}</b>
           <span>🟢 Confirmadas</span>
         </div>
-        <div style="cursor:pointer" onclick="setInboxStatusFilter('cancelled')">
-          <b style="color:#ef4444">${cancelled.length}</b>
-          <span>🔴 Canceladas / Expiradas</span>
+        <div style="cursor:pointer" onclick="setInboxStatusFilter('terreno')">
+          <b style="color:#0284c7">${terreno.length}</b>
+          <span>🔵 En Terreno</span>
         </div>
         <div style="cursor:pointer" onclick="setInboxStatusFilter('completed')">
-          <b style="color:#06b6d4">${completed.length}</b>
-          <span>🔵 Finalizadas / Terreno</span>
+          <b style="color:#64748b">${completed.length}</b>
+          <span>⚪ Finalizadas</span>
+        </div>
+        <div style="cursor:pointer" onclick="setInboxStatusFilter('cancelled')">
+          <b style="color:#ef4444">${cancelled.length}</b>
+          <span>🔴 Canceladas</span>
         </div>
       </div>
 
@@ -4048,7 +4056,8 @@ function inboxView(){
           <button type="button" class="${inboxStatusFilter==='all'?'on':''}" onclick="setInboxStatusFilter('all')" style="padding:6px 12px;font-size:12px">Todas (${allSvcs.length})</button>
           <button type="button" class="${inboxStatusFilter==='pending'?'on':''}" onclick="setInboxStatusFilter('pending')" style="padding:6px 12px;font-size:12px;border-color:#f59e0b">🟡 Pendientes (${pending.length})</button>
           <button type="button" class="${inboxStatusFilter==='confirmed'?'on':''}" onclick="setInboxStatusFilter('confirmed')" style="padding:6px 12px;font-size:12px;border-color:#10b981">🟢 Confirmadas (${confirmed.length})</button>
-          <button type="button" class="${inboxStatusFilter==='completed'?'on':''}" onclick="setInboxStatusFilter('completed')" style="padding:6px 12px;font-size:12px;border-color:#06b6d4">🔵 Finalizadas / Terreno (${completed.length})</button>
+          <button type="button" class="${inboxStatusFilter==='terreno'?'on':''}" onclick="setInboxStatusFilter('terreno')" style="padding:6px 12px;font-size:12px;border-color:#0284c7">🔵 En Terreno (${terreno.length})</button>
+          <button type="button" class="${inboxStatusFilter==='completed'?'on':''}" onclick="setInboxStatusFilter('completed')" style="padding:6px 12px;font-size:12px;border-color:#64748b">⚪ Finalizadas (${completed.length})</button>
           <button type="button" class="${inboxStatusFilter==='cancelled'?'on':''}" onclick="setInboxStatusFilter('cancelled')" style="padding:6px 12px;font-size:12px;border-color:#ef4444">🔴 Canceladas (${cancelled.length})</button>
         </div>
         <div style="position:relative;min-width:240px">
