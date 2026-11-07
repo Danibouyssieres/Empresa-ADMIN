@@ -4017,23 +4017,17 @@ function selectCalendarDate(dateStr){
   const mode = $('#b_svc_type').value;
   if(mode === '5'){
     selectedBlock = 'manana';
-  } else if(selectedBlock){
-    if(mode === '3' || mode === '4'){
-      if(selectedBlock === 'manana' && !ev.manana.available){
-        selectedBlock = ev.tarde.available ? 'tarde' : (ev.noche.available ? 'noche' : null);
-      } else if(selectedBlock === 'tarde' && !ev.tarde.available){
-        selectedBlock = ev.manana.available ? 'manana' : (ev.noche.available ? 'noche' : null);
-      } else if(selectedBlock === 'noche' && !ev.noche.available){
-        selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
-      }
+  } else {
+    // Por defecto, al seleccionar cualquier fecha, activar siempre el primer turno habilitado (Turno Mañana)
+    const allowsNight = (mode === '3' || mode === '4');
+    if(ev.manana && ev.manana.available){
+      selectedBlock = 'manana';
+    } else if(ev.tarde && ev.tarde.available){
+      selectedBlock = 'tarde';
+    } else if(allowsNight && ev.noche && ev.noche.available){
+      selectedBlock = 'noche';
     } else {
-      if(selectedBlock === 'noche'){
-        selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
-      } else if(selectedBlock === 'manana' && !ev.manana.available){
-        selectedBlock = ev.tarde.available ? 'tarde' : null;
-      } else if(selectedBlock === 'tarde' && !ev.tarde.available){
-        selectedBlock = ev.manana.available ? 'manana' : null;
-      }
+      selectedBlock = null;
     }
   }
   updateSlots(true);
@@ -4368,20 +4362,12 @@ function updateSlots(keepCurrentTime = false){
   const ev = evaluateDateCapacity(dateStr);
   $('#lblSelectedDateHuman').textContent = formatHumanDate(dateStr);
 
-  // Si la modalidad cambió o el bloque elegido quedó sin cupo en esta fecha, auto-ajustar bloque
+  // Si la modalidad cambió o el bloque elegido quedó sin cupo en esta fecha, auto-ajustar bloque (priorizando Mañana)
   const allowsNight = (mode === '3' || mode === '4');
   if(isInter){
     selectedBlock = 'manana';
-  } else if(selectedBlock && ev.inRange){
-    if(!allowsNight && selectedBlock === 'noche'){
-      selectedBlock = null;
-    } else if(selectedBlock === 'manana' && !ev.manana.available){
-      selectedBlock = ev.tarde.available ? 'tarde' : (allowsNight && ev.noche.available ? 'noche' : null);
-    } else if(selectedBlock === 'tarde' && !ev.tarde.available){
-      selectedBlock = ev.manana.available ? 'manana' : (allowsNight && ev.noche.available ? 'noche' : null);
-    } else if(selectedBlock === 'noche' && !ev.noche.available){
-      selectedBlock = ev.manana.available ? 'manana' : (ev.tarde.available ? 'tarde' : null);
-    }
+  } else if(!selectedBlock || !ev.inRange || (selectedBlock === 'manana' && !ev.manana.available) || (selectedBlock === 'tarde' && !ev.tarde.available) || (selectedBlock === 'noche' && (!allowsNight || !ev.noche.available))){
+    selectedBlock = (ev.manana && ev.manana.available) ? 'manana' : ((ev.tarde && ev.tarde.available) ? 'tarde' : (allowsNight && ev.noche && ev.noche.available ? 'noche' : null));
   }
 
   renderCalendar();
@@ -4397,28 +4383,15 @@ function updateSlots(keepCurrentTime = false){
   const reasonT = $('#reasonBlock_tarde');
   const reasonN = $('#reasonBlock_noche');
 
-  // Restricción cruzada en combobox de modalidades (Sección 2):
-  // Si el usuario tiene seleccionado Turno Tarde o Noche, la opción 5 queda disabled.
-  // La advertencia SOLO se muestra si el usuario tiene seleccionada la modalidad 5.
-  const curSvc = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  // Modalidad 5 (Programas Interregionales) siempre habilitada en el combobox de modalidades.
+  // Si el usuario la selecciona, onServiceTypeChange() conmuta automáticamente a Turno Mañana.
   const optInter = ($('#b_svc_type') && typeof $('#b_svc_type').querySelector === 'function') ? $('#b_svc_type').querySelector('option[value="5"]') : null;
   const warnInter = $('#interregionalBlockWarn');
-
-  if(selectedBlock && selectedBlock !== 'manana'){
-    if(optInter){
-      optInter.disabled = true;
-    }
-    if(warnInter){
-      warnInter.style.display = (curSvc === '5') ? 'block' : 'none';
-      warnInter.innerHTML = `⚠️ Los Programas Interregionales (Valparaíso / O'Higgins) contemplan entre 4 y 6 horas de permanencia más traslados de larga distancia, por lo que únicamente pueden iniciarse en el Turno Mañana.`;
-    }
-  } else {
-    if(optInter){
-      optInter.disabled = false;
-    }
-    if(warnInter){
-      warnInter.style.display = 'none';
-    }
+  if(optInter){
+    optInter.disabled = false;
+  }
+  if(warnInter){
+    warnInter.style.display = 'none';
   }
 
   if(isInter){
@@ -5499,6 +5472,7 @@ async function initForm(){
   const svcSelect = $('#b_svc_type');
   if(svcSelect && svcSelect.addEventListener){
     svcSelect.addEventListener('change', () => {
+      onServiceTypeChange();
       if(typeof window.actualizarTarifaSegunAgenda === 'function') window.actualizarTarifaSegunAgenda();
     });
   }

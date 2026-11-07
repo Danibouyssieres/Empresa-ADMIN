@@ -129,7 +129,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 <!-- =========================================================================
      PLANTILLA OCULTA: BOLETA / COMPROBANTE MÉDICO DE ATENCIÓN EN PDF (html2pdf)
      ========================================================================= -->
-<div id="recibo-pdf" style="display:none;width:680px;max-width:680px;background:#ffffff;color:#0f172a;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:16px 20px;box-sizing:border-box;border:1px solid #cbd5e1;margin:0 auto;page-break-inside:avoid;page-break-after:avoid">
+<div id="recibo-pdf" style="display:none;width:640px;max-width:640px;background:#ffffff;color:#0f172a;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:14px 22px;box-sizing:border-box;border:1px solid #cbd5e1;margin:0 auto;page-break-inside:avoid;page-break-after:avoid">
   <!-- ENCABEZADO OFICIAL -->
   <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:8px;margin-bottom:8px;box-sizing:border-box">
     <div style="display:flex;gap:12px;align-items:center">
@@ -201,47 +201,42 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     <table style="width:100%;max-width:100%;border-collapse:collapse;font-size:.74rem;border:1px solid #cbd5e1;box-sizing:border-box">
       <thead>
         <tr style="background:#0f766e;color:#ffffff;text-align:left">
-          <th style="padding:4px 8px;border:1px solid #0f766e;width:58%;box-sizing:border-box">Concepto / Ítem de Atención</th>
+          <th style="padding:4px 8px;border:1px solid #0f766e;width:56%;box-sizing:border-box">Concepto / Ítem de Atención</th>
           <th style="padding:4px 6px;border:1px solid #0f766e;text-align:center;width:18%;box-sizing:border-box">Métrica / Alcance</th>
-          <th style="padding:4px 8px;border:1px solid #0f766e;text-align:right;width:24%;box-sizing:border-box">Subtotal</th>
+          <th style="padding:4px 12px;border:1px solid #0f766e;text-align:right;width:26%;box-sizing:border-box;white-space:nowrap">Subtotal</th>
         </tr>
       </thead>
       <tbody id="pdfTablaItems"></tbody>
       <tfoot style="font-weight:700">
         <tr style="background:#f8fafc;border-top:1.5px solid #cbd5e1">
           <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">SUBTOTAL SERVICIO:</td>
-          <td style="padding:3px 8px;text-align:right;box-sizing:border-box" id="pdfSubtotal">$46.000</td>
+          <td style="padding:3px 12px;text-align:right;box-sizing:border-box;white-space:nowrap" id="pdfSubtotal">$46.000</td>
         </tr>
         <tr id="pdfRowEstacionamiento" style="background:#f8fafc;color:#0f766e;display:none">
           <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">REEMBOLSO ESTACIONAMIENTO / PARKING:</td>
-          <td style="padding:3px 8px;text-align:right;font-weight:700;box-sizing:border-box" id="pdfEstacionamiento">+$4.500</td>
+          <td style="padding:3px 12px;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap" id="pdfEstacionamiento">+$4.500</td>
         </tr>
         <tr style="background:#f1f5f9;color:#0f766e">
           <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">TOTAL SERVICIO LIQUIDADO:</td>
-          <td style="padding:3px 8px;text-align:right;font-weight:800;box-sizing:border-box" id="pdfTotalLiquidado">$50.500</td>
+          <td style="padding:3px 12px;text-align:right;font-weight:800;box-sizing:border-box;white-space:nowrap" id="pdfTotalLiquidado">$50.500</td>
         </tr>
         <tr style="color:#b91c1c">
           <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
-          <td style="padding:3px 8px;text-align:right;box-sizing:border-box" id="pdfAbono">-$20.000</td>
+          <td style="padding:3px 12px;text-align:right;box-sizing:border-box;white-space:nowrap" id="pdfAbono">-$20.000</td>
         </tr>
         <tr style="background:#0f766e;color:#ffffff;font-size:.80rem">
-          <td colspan="2" style="padding:6px 8px;text-align:right;font-weight:800;box-sizing:border-box">👉 SALDO FINAL LIQUIDADO AL CIERRE / EN TERRENO:</td>
-          <td style="padding:6px 8px;text-align:right;font-weight:800;font-size:.92rem;box-sizing:border-box" id="pdfSaldoFinal">$30.500</td>
+          <td colspan="2" style="padding:6px 8px;text-align:right;font-weight:800;box-sizing:border-box">👉 SALDO FINAL LIQUIDADO EN TERRENO:</td>
+          <td style="padding:6px 12px;text-align:right;font-weight:800;font-size:.92rem;box-sizing:border-box;white-space:nowrap" id="pdfSaldoFinal">$30.500</td>
         </tr>
       </tfoot>
     </table>
   </div>
 
   <!-- LÍNEA COMPACTA DE ESTADO Y LIQUIDACIÓN -->
-  <div style="margin-top:6px;padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;font-size:.73rem;display:flex;justify-content:space-between;align-items:center;box-sizing:border-box">
-    <div>
-      <b>ESTADO:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span>
-      <span style="color:#94a3b8;margin:0 6px">|</span>
-      <b>Medio de pago:</b> <span id="pdfMedioPago">Transferencia Electrónica</span>
-    </div>
-    <div id="pdfFolioSIIContainer" style="font-size:.72rem;color:#475569">
-      <b>Documento:</b> <span id="pdfFolioSII">En trámite e-Boleta SII</span>
-    </div>
+  <div style="margin-top:6px;padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;font-size:.76rem;text-align:center;box-sizing:border-box">
+    <b>ESTADO:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span>
+    <span style="color:#94a3b8;margin:0 8px">|</span>
+    <b>Medio:</b> <span id="pdfMedioPago">Transferencia Electrónica</span>
   </div>
 </div>
 
@@ -3780,10 +3775,10 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono){
   // 3. Total del servicio liquidado
   const totalServicio = subtotalServicio + montoEstacionamiento;
 
-  // 4. Abono previo del 50%
+  // 4. Abono previo del 50% (Asegurar valor absoluto positivo)
   let abonoPrevio = 0;
   if(customAbono !== undefined && customAbono !== null && !isNaN(customAbono)){
-    abonoPrevio = Math.max(0, parseInt(customAbono, 10) || 0);
+    abonoPrevio = Math.max(0, Math.abs(parseInt(customAbono, 10) || 0));
   } else if(s.abono !== undefined && s.abono !== null && s.abono > 0){
     abonoPrevio = s.abono;
   } else if(s.paid !== undefined && s.paid !== null && s.paid > 0 && s.paid < totalServicio){
@@ -3792,7 +3787,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono){
     abonoPrevio = Math.round((baseContractFare || subtotalServicio) * 0.5);
   }
 
-  // 5. Saldo final = totalServicio - abonoPrevio
+  // 5. Saldo a Liquidar = Total Servicio - Abono Previo 50%
   const saldoFinal = Math.max(0, totalServicio - abonoPrevio);
 
   return {
@@ -4117,12 +4112,12 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       <tr>
         <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (KM / Tarifa Base Comunal)</td>
         <td style="padding:4px 6px;border:1px solid #cbd5e1;text-align:center;box-sizing:border-box">${(calc.kmTot).toFixed(1)} km ida/vuelta</td>
-        <td style="padding:4px 8px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box">${$c(trasladoCost)}</td>
+        <td style="padding:4px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(trasladoCost)}</td>
       </tr>
       <tr>
         <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box">Asistencia Clínica TENS (Tiempo pactado + soporte)</td>
         <td style="padding:4px 6px;border:1px solid #cbd5e1;text-align:center;box-sizing:border-box">${(durMin/60).toFixed(1)} hrs base</td>
-        <td style="padding:4px 8px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box">${$c(baseClinicaCost)}</td>
+        <td style="padding:4px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(baseClinicaCost)}</td>
       </tr>
     `;
     if(diffMin > 0){
@@ -4130,7 +4125,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         <tr style="background:#fef2f2;color:#991b1b">
           <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
           <td style="padding:4px 6px;border:1px solid #cbd5e1;text-align:center;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq)</td>
-          <td style="padding:4px 8px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box">${$c(extraCost)}</td>
+          <td style="padding:4px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">${$c(extraCost)}</td>
         </tr>
       `;
     }
@@ -4139,7 +4134,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         <tr style="background:#f8fafc;color:#0f766e">
           <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Reembolso Estacionamiento / Parking</b></td>
           <td style="padding:4px 6px;border:1px solid #cbd5e1;text-align:center;font-weight:700;box-sizing:border-box">Ruta / Terreno</td>
-          <td style="padding:4px 8px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box">${$c(calc.parking)}</td>
+          <td style="padding:4px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">${$c(calc.parking)}</td>
         </tr>
       `;
     }
@@ -4160,10 +4155,6 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(calc.abonoPrevio);
   if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(calc.saldoFinal);
   if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
-  const folioContainer = $('#pdfFolioSIIContainer');
-  if(folioContainer){
-    folioContainer.innerHTML = `<b>Documento:</b> <span id="pdfFolioSII">${folioSII ? ('Boleta Electrónica SII N° ' + folioSII) : 'En trámite e-Boleta SII'}</span>`;
-  }
 
   // Generación y descarga con html2pdf
   const pdfElement = document.getElementById('recibo-pdf');
@@ -4171,7 +4162,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     pdfElement.style.display = 'block';
     if(typeof html2pdf !== 'undefined'){
       html2pdf().set({
-        margin: [6, 10, 6, 10],
+        margin: [8, 10, 8, 10],
         filename: `Comprobante_Atencion_${cleanFolio}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
