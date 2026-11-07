@@ -3972,9 +3972,19 @@ function inboxView(){
     const bPend = b.st === 'Pre-reserva pendiente' || b.st === 'pendiente_abono';
     if(aPend && !bPend) return -1;
     if(!aPend && bPend) return 1;
-    const aTime = a.createdAt || a.created_at || a.date;
-    const bTime = b.createdAt || b.created_at || b.date;
-    return (bTime > aTime) ? 1 : -1;
+
+    // Orden por proximidad cronológica de atención: la reserva más cercana en fecha y hora se muestra primero
+    const dateA = a.date || '9999-99-99';
+    const dateB = b.date || '9999-99-99';
+    if(dateA !== dateB){
+      return dateA.localeCompare(dateB);
+    }
+    const startA = a.start !== undefined ? a.start : (a.time ? tm(a.time) : 0);
+    const startB = b.start !== undefined ? b.start : (b.time ? tm(b.time) : 0);
+    if(startA !== startB){
+      return startA - startB;
+    }
+    return String(a.folio || a.id || '').localeCompare(String(b.folio || b.id || ''));
   });
 
   return `
