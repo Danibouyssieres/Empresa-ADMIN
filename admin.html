@@ -265,6 +265,43 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 </div>
 
 <!-- =========================================================================
+     MODAL DE ADVERTENCIA Y RESOLUCIÓN DE CONFLICTO AL BLOQUEAR AGENDA
+     ========================================================================= -->
+<div id="modalConflictoBloqueoAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:99999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);max-width:640px;width:100%;border-radius:14px;border:2px solid #ef4444;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:24px;box-sizing:border-box;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <span style="font-size:2rem;line-height:1">⚠️</span>
+      <div>
+        <h3 style="margin:0;font-size:1.18rem;color:#dc2626" id="modalConflictoBloqueoTitle">
+          Conflicto de Agenda: Servicios previamente agendados
+        </h3>
+        <div style="font-size:12.5px;color:var(--mut);margin-top:2px" id="modalConflictoBloqueoSubtitle">
+          Esta fecha y turno registran reservas activas que se verían afectadas.
+        </div>
+      </div>
+    </div>
+    
+    <div id="modalConflictoBloqueoBody" style="margin:16px 0">
+      <!-- Se inserta dinámicamente la tabla con Folio, Paciente, Turno, Horario y Teléfono -->
+    </div>
+
+    <div style="font-size:12.5px;color:var(--fg);background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:10px 14px;margin-bottom:18px;line-height:1.45">
+      🛡️ <b>Resolución de Seguridad:</b> Al forzar el bloqueo por emergencia, la fecha y turno quedarán completamente inhabilitados en la web pública para evitar nuevas reservas, pero los servicios internos permanecerán visibles en la agenda para su gestión y reagendamiento prioritario con los pacientes.
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button type="button" class="btn" onclick="cerrarModalConflictoBloqueo()" style="padding:9px 18px;font-weight:700">
+        ✕ Cancelar y Mantener Agenda
+      </button>
+      <button type="button" class="p" onclick="confirmarBloqueoEmergencia()" style="background:#dc2626;border-color:#dc2626;padding:9px 18px;font-weight:700">
+        ⚠️ Forzar Bloqueo por Emergencia
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- =========================================================================
      MODAL CONTEXTUAL RÁPIDO DE SERVICIO AGENDADO (CALENDARIO DIARIO)
      ========================================================================= -->
 <div id="modalContextualServicioAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:16px">
@@ -818,12 +855,160 @@ function setBlkType(t){
   render();
 }
 
-function saveManualBlock(ev){
-  ev.preventDefault();
+let pendingManualBlockData = null;
+
+async function checkDateReservasConflict(dateStr, type) {
+  let allSvcs = D.svcs || [];
+
+  // Si el servicio de bloqueos/reservas está disponible, consultar las reservas registradas
+  if (window.MsaBlocksService && typeof window.MsaBlocksService.fetchReservas === 'function') {
+    try {
+      const remoteRes = await window.MsaBlocksService.fetchReservas(dateStr);
+      if (Array.isArray(remoteRes)) {
+        remoteRes.forEach(r => {
+          const canonicalFolio = formatFolioMSA(r.folio, r.id);
+          const exists = allSvcs.find(s => (s.folio && formatFolioMSA(s.folio, s.id) === canonicalFolio) || (r.id && s.remoteId === r.id));
+          if (!exists) {
+            allSvcs.push({
+              id: canonicalFolio,
+              folio: canonicalFolio,
+              remoteId: r.id,
+              date: r.date,
+              time: r.time,
+              start: r.start_min !== undefined ? r.start_min : tm(r.time || '10:00'),
+              dur: r.dur_min || 120,
+              pat: r.pat_name || r.paciente,
+              age: r.pat_age || 0,
+              ph: r.coord_phone || r.contacto,
+              st: r.st || r.estado || 'pendiente_abono',
+              block: r.block || r.turno || 'manana'
+            });
+          }
+        });
+      }
+    } catch(e) {}
+  }
+
+  // Filtrar servicios activos de la fecha (confirmada, pendiente_abono, en terreno, etc.)
+  const activeDateSvcs = allSvcs.filter(s => {
+    if (s.date !== dateStr) return false;
+    const isCancelled = s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada';
+    return !isCancelled;
+  });
+
+  // Si el bloqueo solicitado es día completo cerrado ('full'), todas las reservas activas generan conflicto
+  if (type === 'full') {
+    return activeDateSvcs;
+  }
+
+  // Filtrar según el turno específico
+  return activeDateSvcs.filter(s => {
+    if (s.fullDay || s.block === 'full') return true;
+    const sBlock = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+    if (sBlock === type) return true;
+
+    // Chequeo por hora de servicio si no tiene bloque asignado
+    if (type === 'manana') {
+      return s.start < 720 && (s.start + (s.dur || 120)) > 360;
+    } else if (type === 'tarde') {
+      return s.start < 1200 && (s.start + (s.dur || 120)) > 720;
+    } else if (type === 'noche') {
+      return s.start >= 1200 || s.start < 360;
+    }
+    return false;
+  });
+}
+window.checkDateReservasConflict = checkDateReservasConflict;
+
+function abrirModalConflictoBloqueo(conflicts, dateStr, type, reason){
+  const modal = $('#modalConflictoBloqueoAdmin');
+  const title = $('#modalConflictoBloqueoTitle');
+  const subtitle = $('#modalConflictoBloqueoSubtitle');
+  const body = $('#modalConflictoBloqueoBody');
+  if(!modal || !body) return;
+
+  const count = conflicts.length;
+  const typeLabel = BLOCK_LABELS[type] || type;
+
+  if(title){
+    title.textContent = `⚠️ Conflicto de Agenda: Esta fecha registra ${count} servicio(s) previamente agendado(s)`;
+  }
+  if(subtitle){
+    subtitle.innerHTML = `Intento de bloqueo: <b>${dateStr}</b> · <b>${typeLabel}</b> ${reason ? `(Motivo: <i>${e(reason)}</i>)` : ''}`;
+  }
+
+  body.innerHTML = `
+    <div style="overflow-x:auto;border:1px solid var(--bd);border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="background:var(--bg);text-align:left">
+            <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">Folio</th>
+            <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">Paciente</th>
+            <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">Turno</th>
+            <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">Horario</th>
+            <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">Teléfono</th>
+            <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${conflicts.map(s => {
+            const cleanFolio = formatFolioMSA(s.folio, s.id);
+            const turnoStr = s.block === 'full' ? 'Día Completo' : s.block === 'manana' ? 'Mañana' : s.block === 'tarde' ? 'Tarde' : s.block === 'noche' ? 'Noche' : (s.start < 720 ? 'Mañana' : s.start < 1200 ? 'Tarde' : 'Noche');
+            const horarioStr = `${fm(s.start)} a ${fm((s.start + (s.dur || 120)) % 1440)} hrs`;
+            const phoneStr = s.ph || s.patPhone || '—';
+            return `
+              <tr>
+                <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-weight:700">#${cleanFolio}</td>
+                <td style="padding:8px 10px;border-bottom:1px solid var(--bd)"><b>${e(s.pat)}</b> (${s.age || '—'} a)</td>
+                <td style="padding:8px 10px;border-bottom:1px solid var(--bd)"><span class="badge" style="background:#0284c7;font-size:11px">${turnoStr}</span></td>
+                <td style="padding:8px 10px;border-bottom:1px solid var(--bd)">${horarioStr}</td>
+                <td style="padding:8px 10px;border-bottom:1px solid var(--bd)">${e(phoneStr)}</td>
+                <td style="padding:8px 10px;border-bottom:1px solid var(--bd)">
+                  <span style="font-weight:700;color:${COL[s.st] || '#64748B'}">${s.st}</span>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  modal.style.display = 'flex';
+}
+window.abrirModalConflictoBloqueo = abrirModalConflictoBloqueo;
+
+function cerrarModalConflictoBloqueo(){
+  const modal = $('#modalConflictoBloqueoAdmin');
+  if(modal) modal.style.display = 'none';
+  pendingManualBlockData = null;
+}
+window.cerrarModalConflictoBloqueo = cerrarModalConflictoBloqueo;
+
+function confirmarBloqueoEmergencia(){
+  if(!pendingManualBlockData) return;
+  const b = pendingManualBlockData;
+  return saveManualBlock(null, true);
+}
+window.confirmarBloqueoEmergencia = confirmarBloqueoEmergencia;
+
+async function saveManualBlock(ev, forceEmergency = false){
+  if(ev && ev.preventDefault) ev.preventDefault();
   const dateStr = ($('#mb_date') && $('#mb_date').value) || U.date;
   const type = U.blkType || 'full';
   const reason = (($('#mb_reason') && $('#mb_reason').value) || '').trim();
   if(!dateStr){ alert('Seleccione una fecha válida.'); return; }
+
+  // 1. CHECK DE CONFLICTO PREVIO (si no es forzado por emergencia)
+  if(!forceEmergency){
+    const conflicts = await checkDateReservasConflict(dateStr, type);
+    if(conflicts && conflicts.length > 0){
+      pendingManualBlockData = { dateStr, type, reason };
+      abrirModalConflictoBloqueo(conflicts, dateStr, type, reason);
+      return { conflict: true, conflicts };
+    }
+  }
+
   if(!Array.isArray(D.blocks)) D.blocks = [];
 
   if(type === 'full'){
@@ -836,7 +1021,7 @@ function saveManualBlock(ev){
     id: D.nid++,
     date: dateStr,
     type,
-    reason: reason || 'Sin motivo especificado',
+    reason: (reason || 'Sin motivo especificado') + (forceEmergency ? ' [Bloqueo forzado por emergencia]' : ''),
     tid: 'all',
     createdAt: new Date().toISOString()
   };
@@ -852,6 +1037,12 @@ function saveManualBlock(ev){
       console.warn('Error al persistir bloqueo centralizado:', err);
     });
   }
+
+  cerrarModalConflictoBloqueo();
+  if(forceEmergency && typeof alert !== 'undefined'){
+    alert(`🚨 Bloqueo por emergencia aplicado exitosamente en ${dateStr} (${BLOCK_LABELS[type] || type}).\n\nLa agenda pública quedó inhabilitada para nuevas reservas, pero los servicios internos previamente registrados permanecen resguardados y visibles para su gestión.`);
+  }
+  return { success: true, block: newBlock };
 }
 
 function removeManualBlock(blockId){
