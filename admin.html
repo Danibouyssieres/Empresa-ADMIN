@@ -129,7 +129,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 <!-- =========================================================================
      PLANTILLA OCULTA: BOLETA / COMPROBANTE MÉDICO DE ATENCIÓN EN PDF (html2pdf)
      ========================================================================= -->
-<div id="recibo-pdf" style="display:none;width:780px;background:#ffffff;color:#1e293b;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:30px 34px;box-sizing:border-box;border:1px solid #cbd5e1;margin:0 auto">
+<div id="recibo-pdf" style="display:none;width:680px;max-width:680px;background:#ffffff;color:#1e293b;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:24px 28px;box-sizing:border-box;border:1px solid #cbd5e1;margin:0 auto">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0f766e;padding-bottom:16px;margin-bottom:18px">
     <div style="display:flex;gap:14px;align-items:center">
       <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida" style="height:56px;width:auto">
@@ -171,27 +171,31 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     <div style="font-weight:800;color:#0f766e;font-size:.85rem;text-transform:uppercase;margin-bottom:8px;letter-spacing:.02em">
       💰 Desglose Económico de la Liquidación
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:.84rem;border:1px solid #cbd5e1">
+    <table style="width:100%;max-width:100%;border-collapse:collapse;font-size:.82rem;border:1px solid #cbd5e1;box-sizing:border-box">
       <thead>
         <tr style="background:#0f766e;color:#ffffff;text-align:left">
-          <th style="padding:8px 12px;border:1px solid #0f766e;width:58%">Concepto / Ítem</th>
-          <th style="padding:8px 10px;border:1px solid #0f766e;text-align:center;width:18%">Métrica</th>
-          <th style="padding:8px 14px;border:1px solid #0f766e;text-align:right;width:24%;min-width:140px;white-space:nowrap">Subtotal</th>
+          <th style="padding:8px 10px;border:1px solid #0f766e;width:56%;box-sizing:border-box">Concepto / Ítem</th>
+          <th style="padding:8px 8px;border:1px solid #0f766e;text-align:center;width:18%;box-sizing:border-box">Métrica</th>
+          <th style="padding:8px 10px;border:1px solid #0f766e;text-align:right;width:26%;box-sizing:border-box">Subtotal</th>
         </tr>
       </thead>
       <tbody id="pdfTablaItems"></tbody>
       <tfoot style="font-weight:700">
         <tr style="background:#f8fafc;border-top:2px solid #cbd5e1">
-          <td colspan="2" style="padding:8px 12px;text-align:right">SUBTOTAL SERVICIO:</td>
-          <td style="padding:8px 14px;text-align:right;white-space:nowrap;min-width:140px" id="pdfSubtotal">$48.500</td>
+          <td colspan="2" style="padding:8px 10px;text-align:right;box-sizing:border-box">SUBTOTAL SERVICIO:</td>
+          <td style="padding:8px 10px;text-align:right;box-sizing:border-box" id="pdfSubtotal">$48.500</td>
+        </tr>
+        <tr id="pdfRowEstacionamiento" style="background:#f8fafc;color:#0f766e;display:none">
+          <td colspan="2" style="padding:8px 10px;text-align:right;box-sizing:border-box">REEMBOLSO ESTACIONAMIENTO / PARKING:</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;box-sizing:border-box" id="pdfEstacionamiento">$0</td>
         </tr>
         <tr style="color:#0f766e">
-          <td colspan="2" style="padding:8px 12px;text-align:right">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
-          <td style="padding:8px 14px;text-align:right;white-space:nowrap;min-width:140px" id="pdfAbono">-$24.250</td>
+          <td colspan="2" style="padding:8px 10px;text-align:right;box-sizing:border-box">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
+          <td style="padding:8px 10px;text-align:right;box-sizing:border-box" id="pdfAbono">-$24.250</td>
         </tr>
         <tr style="background:#f1f5f9;font-size:.92rem;color:#0f766e">
-          <td colspan="2" style="padding:10px 12px;text-align:right;font-weight:800">SALDO FINAL PAGADO AL CIERRE:</td>
-          <td style="padding:10px 14px;text-align:right;font-weight:800;font-size:1.02rem;white-space:nowrap;min-width:140px" id="pdfSaldoFinal">$24.250</td>
+          <td colspan="2" style="padding:10px 10px;text-align:right;font-weight:800;box-sizing:border-box">SALDO FINAL PAGADO AL CIERRE:</td>
+          <td style="padding:10px 10px;text-align:right;font-weight:800;font-size:1.02rem;box-sizing:border-box" id="pdfSaldoFinal">$24.250</td>
         </tr>
       </tfoot>
     </table>
@@ -318,50 +322,95 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 </div>
 
 <div id="modalFinalizarAtencionAdmin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--card);max-width:500px;width:100%;border-radius:14px;border:1.5px solid var(--bd);box-shadow:0 10px 35px rgba(0,0,0,.25);padding:22px 24px;box-sizing:border-box">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <h3 style="margin:0;font-size:1.15rem;color:var(--pri);display:flex;align-items:center;gap:8px">
-        <span>🏁</span> Finalizar Atención y Boleta PDF
+  <div style="background:var(--card);max-width:540px;width:100%;border-radius:14px;border:1.5px solid var(--bd);box-shadow:0 10px 35px rgba(0,0,0,.25);padding:22px 24px;box-sizing:border-box;max-height:92vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0;font-size:1.18rem;color:var(--pri);display:flex;align-items:center;gap:8px">
+        <span>🏁</span> Finalizar Atención y Liquidación en Terreno
       </h3>
       <button type="button" onclick="cerrarModalFinalizarAtencionAdmin()" style="background:transparent;border:0;font-size:1.2rem;cursor:pointer;color:var(--mut)">✕</button>
     </div>
-    <p style="font-size:.86rem;color:var(--mut);margin:0 0 16px;line-height:1.4">
-      Confirme los datos reales de cierre para liquidar el saldo, generar la boleta PDF oficial y notificar al cliente vía WhatsApp:
-    </p>
 
-    <div style="display:flex;flex-direction:column;gap:12px;font-size:.88rem">
+    <div id="adm_co_service_summary" style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;line-height:1.45"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:10px">
       <div>
-        <label for="adm_horaCierreReal" style="font-weight:700;display:block;margin-bottom:4px">Hora Real de Cierre del Servicio *</label>
-        <input type="time" id="adm_horaCierreReal" style="width:100%;padding:9px 12px">
-        <small style="color:var(--mut);font-size:.78rem">Si hubo retraso en destino, se recalcula automáticamente el tiempo adicional ($6.000 / $4.000 / $15.000 por bloque de 30 min).</small>
+        <label for="adm_horaCierreReal" style="font-weight:700;display:block;margin-bottom:4px">Hora Real de Cierre *</label>
+        <input type="time" id="adm_horaCierreReal" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
-
       <div>
-        <label for="adm_rutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Para la Boleta) *</label>
-        <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:9px 12px">
-      </div>
-
-      <div>
-        <label for="adm_medioPago" style="font-weight:700;display:block;margin-bottom:4px">Medio de Pago del Saldo Final *</label>
-        <select id="adm_medioPago" style="width:100%;padding:9px 12px">
-          <option value="Transferencia Electrónica" selected>Transferencia Electrónica</option>
-          <option value="Efectivo en terreno">Efectivo en terreno</option>
-          <option value="Tarjeta Débito / Crédito (Terminal POS)">Tarjeta Débito / Crédito (Terminal POS)</option>
-        </select>
-      </div>
-
-      <div>
-        <label for="adm_folioSII" style="font-weight:700;display:block;margin-bottom:4px">N° de Boleta Electrónica SII</label>
-        <input type="text" id="adm_folioSII" placeholder="Ej: B-1082 (Opcional)" value="" style="width:100%;padding:9px 12px">
-        <small style="color:var(--mut);font-size:.78rem;display:block;margin-top:3px">(Opcional: Si aún no la emites en la app del SII, déjalo en blanco)</small>
+        <label for="adm_parking_expense" style="font-weight:700;display:block;margin-bottom:4px">Gasto Estacionamiento / Parking ($)</label>
+        <input type="number" id="adm_parking_expense" min="0" step="500" value="0" placeholder="0" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
     </div>
 
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
-      <button type="button" onclick="cerrarModalFinalizarAtencionAdmin()" style="padding:9px 16px">Cancelar</button>
-      <button type="button" class="p" id="btnConfirmarDescargarPdfAdmin" onclick="ejecutarFinalizacionYDescargaPdfAdmin()" style="background:#15803d;border-color:#15803d;padding:9px 18px;display:inline-flex;align-items:center;gap:6px">
-        📄 Descargar Boleta PDF y WhatsApp
-      </button>
+    <!-- CUADRO REACTIVO DESTACADO EN TAMAÑO GRANDE CON EL DESGLOSE EN TIEMPO REAL -->
+    <div id="adm_co_breakdown_box" style="background:#f8fafc;border:2px solid #0f766e;border-radius:10px;padding:14px 16px;margin:12px 0;box-sizing:border-box">
+      <div style="font-size:11.5px;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span>📊 Liquidación Financiera en Tiempo Real</span>
+        <span id="adm_co_lbl_tiempo" style="font-size:11px;color:#64748b;font-weight:600"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="color:#475569">Subtotal Servicio:</span>
+        <b id="adm_co_subtotal_servicio" style="color:#0f172a">$0</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="color:#475569">Gasto Estacionamiento Recinto:</span>
+        <b id="adm_co_parking_amount" style="color:#059669">+$0</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+        <span style="color:#475569">Menos Abono 50% ya pagado:</span>
+        <b id="adm_co_abono_previo" style="color:#dc2626">-$0</b>
+      </div>
+      <div style="border-top:1.5px dashed #cbd5e1;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13.5px;font-weight:800;color:#0f766e">👉 TOTAL SALDO PENDIENTE A LIQUIDAR:</span>
+        <span id="adm_co_saldo_final" style="font-size:1.45rem;font-weight:900;color:#0f766e">$0</span>
+      </div>
+      <div id="adm_co_extra_note" style="display:none;font-size:11.5px;color:#b45309;margin-top:6px;font-weight:600"></div>
+      <div id="adm_co_floor_note" style="display:none;font-size:11.5px;color:#0f766e;margin-top:6px;font-weight:600"></div>
+    </div>
+
+    <!-- DATOS COMPLEMENTARIOS PARA LA BOLETA -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:12px">
+      <div>
+        <label for="adm_rutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Boleta) *</label>
+        <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+      </div>
+      <div>
+        <label for="adm_medioPago" style="font-weight:700;display:block;margin-bottom:4px">Medio de Pago del Saldo *</label>
+        <select id="adm_medioPago" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+          <option value="Transferencia Electrónica" selected>Transferencia Electrónica</option>
+          <option value="Tarjeta Débito / Crédito (POS CompraAquí)">Tarjeta Débito / Crédito (POS CompraAquí)</option>
+          <option value="Efectivo en terreno">Efectivo en terreno</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px;font-size:13px">
+      <label for="adm_folioSII" style="font-weight:700;display:block;margin-bottom:4px">N° de Boleta Electrónica SII (Opcional)</label>
+      <input type="text" id="adm_folioSII" placeholder="Ej: B-1082 (Dejar en blanco si aún no la emites en e-Boleta)" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+    </div>
+
+    <div id="adm_co_payment_sent_alert" style="display:none;background:#ecfdf5;border:1.5px solid #10b981;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#065f46;margin-bottom:14px;line-height:1.45"></div>
+
+    <!-- ACCIONES EN 2 PASOS -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;border-top:1px solid var(--bd);padding-top:14px">
+      <div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;align-items:center">
+        <button type="button" onclick="cerrarModalFinalizarAtencionAdmin()" style="padding:9px 14px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);color:var(--mut);font-weight:600">
+          Cancelar
+        </button>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <!-- ACCIÓN A: ENVIAR SOLICITUD DE PAGO WHATSAPP -->
+          <button type="button" id="btnSolicitarPagoWhatsAppAdmin" onclick="solicitarPagoWhatsAppAdmin()" style="background:#25d366;border:1px solid #25d366;color:#ffffff;padding:9px 15px;font-weight:700;border-radius:8px;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            📲 Solicitar Pago vía WhatsApp
+          </button>
+
+          <!-- ACCIÓN B: CONFIRMAR PAGO Y EMITIR COMPROBANTE PDF -->
+          <button type="button" id="btnConfirmarDescargarPdfAdmin" onclick="ejecutarFinalizacionYDescargaPdfAdmin()" class="p" style="background:#0f766e;border:1px solid #0f766e;color:#ffffff;padding:9px 16px;font-weight:700;border-radius:8px;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            ✔ Confirmar Pago y Emitir Comprobante PDF
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -3756,7 +3805,8 @@ function onFieldCheckoutRecalc(){
 
   const hInicio = ($('#adm_horaInicioReal') && $('#adm_horaInicioReal').value) || s.startActualTime || fm(s.start || 540);
   const hCierre = ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || s.endActualTime || '12:00';
-  const parkingAmount = ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0;
+  const parkingInput = ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0;
+  const parkingAmount = Math.max(0, parseInt(parkingInput, 10) || 0);
 
   const startMin = s.start || 540;
   const durMin = s.dur || 120;
@@ -3774,9 +3824,21 @@ function onFieldCheckoutRecalc(){
   currentCheckoutCalc = calc;
 
   if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').textContent = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${calc.elapsedMin}m en lugar)`;
+  if($('#adm_co_subtotal_servicio')) $('#adm_co_subtotal_servicio').textContent = $c(calc.cobroTotal);
   if($('#adm_co_total_servicio')) $('#adm_co_total_servicio').textContent = $c(calc.cobroTotal);
+  if($('#adm_co_parking_amount')) $('#adm_co_parking_amount').textContent = '+' + $c(calc.parking);
   if($('#adm_co_abono_previo')) $('#adm_co_abono_previo').textContent = '-' + $c(calc.abono);
   if($('#adm_co_saldo_final')) $('#adm_co_saldo_final').textContent = $c(calc.saldoFinal);
+
+  const extraNote = $('#adm_co_extra_note');
+  if(extraNote){
+    if(calc.diffMin > 0){
+      extraNote.style.display = 'block';
+      extraNote.textContent = `⏱️ Retraso en terreno: +${calc.diffMin} min (${calc.extraBlocks * 30} min facturados = +${$c(calc.extraCost)})`;
+    } else {
+      extraNote.style.display = 'none';
+    }
+  }
 
   const badgePiso = $('#adm_co_badge_piso');
   const floorNote = $('#adm_co_floor_note');
@@ -3790,6 +3852,54 @@ function onFieldCheckoutRecalc(){
     }
   }
 }
+
+function solicitarPagoWhatsAppAdmin(){
+  onFieldCheckoutRecalc();
+  const s = D.svcs.find(item => item.id === currentClosingSvcId);
+  if(!s){ alert('Servicio no encontrado'); return; }
+
+  const calc = currentCheckoutCalc || calculateFieldLiquidation(s, s.dur || 120, ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0);
+  const clientName = s.coord || s.pat || 'Estimado(a)';
+  const patName = s.pat || 'el paciente';
+  const cleanFolio = formatFolioMSA(s.folio, s.id);
+  const phRaw = s.ph || '';
+  const digits = phRaw.replace(/\D/g, '');
+  const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
+
+  const parkingTxt = calc.parking > 0 ? ` (incluye ${$c(calc.parking)} de estacionamiento en recinto clínico)` : '';
+
+  const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA.
+
+Hemos finalizado exitosamente el servicio de atención y traslado de ${patName} (Folio #${cleanFolio}).
+
+💰 *DETALLE DE SALDO A LIQUIDAR:*
+• Subtotal Servicio: ${$c(calc.cobroTotal)}
+• Estacionamiento / Parking: ${$c(calc.parking)}
+• Abono 50% previo registrado: -${$c(calc.abono)}
+👉 *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
+
+🏦 *DATOS BANCARIOS PARA TRANSFERENCIA:*
+• Banco: Scotiabank
+• Tipo de Cuenta: Cuenta Corriente
+• N° de Cuenta: 994989122
+• R.U.T.: 78.521.776-4
+• Titular: Movilidad y Salud Asistida SpA
+• Correo de comprobantes: movilidadysaludasistida@gmail.com
+
+*(Si el saldo se cancela en terreno, disponemos de terminal POS CompraAquí para tarjeta de débito/crédito o efectivo)*.
+
+Agradecemos remitir el comprobante de transferencia a este mismo chat para generar y enviar de inmediato su Comprobante de Atención y Liquidación timbrado en PDF. ¡Muchas gracias!`;
+
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+  try { window.open(waUrl, '_blank'); } catch(e){}
+
+  const alertBox = $('#adm_co_payment_sent_alert');
+  if(alertBox){
+    alertBox.style.display = 'block';
+    alertBox.innerHTML = `📲 <b>Solicitud de pago por ${$c(calc.saldoFinal)} enviada vía WhatsApp a ${clientName} (+${cleanPhone}).</b><br>Una vez constatada la transferencia bancaria o realizado el cobro en el POS CompraAquí, presione el botón verde <b>"✔ Confirmar Pago y Emitir Comprobante PDF"</b>.`;
+  }
+}
+window.solicitarPagoWhatsAppAdmin = solicitarPagoWhatsAppAdmin;
 
 function abrirModalFinalizarAtencionAdmin(svcId, options){
   currentClosingSvcId = svcId;
@@ -3816,6 +3926,7 @@ function abrirModalFinalizarAtencionAdmin(svcId, options){
   if($('#adm_horaCierreReal')) $('#adm_horaCierreReal').value = endStr;
   if($('#adm_parking_expense')) $('#adm_parking_expense').value = (options && options.parking !== undefined) ? options.parking : (s.parkingExpense || 0);
 
+  if($('#adm_co_payment_sent_alert')) $('#adm_co_payment_sent_alert').style.display = 'none';
   if($('#adm_rutPaciente')) $('#adm_rutPaciente').value = (options && options.rutPaciente) || s.patRut || '12.345.678-9';
   if($('#adm_medioPago') && options && options.medioPago) $('#adm_medioPago').value = options.medioPago;
   if($('#adm_folioSII')) $('#adm_folioSII').value = (options && options.folioSII !== undefined) ? options.folioSII : (s.folioSII || '');
@@ -3849,6 +3960,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if(!s){ alert('Servicio no encontrado'); return; }
 
   const folio = s.id;
+  const cleanFolio = formatFolioMSA(s.folio, s.id);
   const patName = s.pat || 'Paciente';
   const patAge = s.age || '75';
   const patDx = s.dx || 'Atención médica';
@@ -3870,13 +3982,19 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount);
   currentCheckoutCalc = calc;
 
-  // Actualizar servicio con liquidación
-  s.st = 'Finalizado';
+  // Actualizar servicio con liquidación y estado completada
+  s.st = 'completada';
   s.patRut = rutPaciente;
   s.endedAt = s.endedAt || new Date().toISOString();
+  s.completedAt = new Date().toISOString();
   s.endActualTime = horaCierre;
   s.parkingExpense = calc.parking;
   s.folioSII = folioSII;
+  s.fare = calc.cobroTotal + calc.parking;
+  s.paid = calc.cobroTotal + calc.parking;
+  s.saldoPendiente = 0;
+  s.medioPago = medioPago;
+  s.obs = (s.obs ? s.obs + ' · ' : '') + `Servicio liquidado y pagado (${medioPago}). Saldo terreno: ${$c(calc.saldoFinal)} (Estacionamiento: ${$c(calc.parking)}).`;
   s.liquidation = {
     subtotalReal: calc.subtotalReal,
     cobroTotal: calc.cobroTotal,
@@ -3901,7 +4019,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const saldoFinal = calc.saldoFinal;
 
   // Llenar datos de la boleta PDF
-  if($('#pdfFolio')) $('#pdfFolio').textContent = `FOLIO: #MSA-${folio}`;
+  if($('#pdfFolio')) $('#pdfFolio').textContent = `FOLIO: #${cleanFolio}`;
   if($('#pdfFechaEmision')) $('#pdfFechaEmision').textContent = `Fecha Emisión: ${TODAY}`;
   if($('#pdfPatNombre')) $('#pdfPatNombre').textContent = patName;
   if($('#pdfPatRut')) $('#pdfPatRut').textContent = rutPaciente;
@@ -3924,26 +4042,26 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if(itemsTbody){
     let itemsHtml = `
       <tr>
-        <td style="padding:8px 12px;border:1px solid #cbd5e1">1. Servicio y Asistencia Clínica Programada</td>
-        <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center">${(durMin/60).toFixed(1)} hrs</td>
-        <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;white-space:nowrap;min-width:140px">${$c(baseFare)}</td>
+        <td style="padding:8px 10px;border:1px solid #cbd5e1;box-sizing:border-box">1. Servicio y Asistencia Clínica Programada</td>
+        <td style="padding:8px 8px;border:1px solid #cbd5e1;text-align:center;box-sizing:border-box">${(durMin/60).toFixed(1)} hrs</td>
+        <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box">${$c(calc.cobroTotal - calc.extraCost)}</td>
       </tr>
     `;
     if(diffMin > 0){
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
-          <td style="padding:8px 12px;border:1px solid #cbd5e1"><b>Tiempo Adicional Excedente en Terreno</b></td>
-          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">+${diffMin} min (${extraBlocks} bloques)</td>
-          <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;font-weight:700;white-space:nowrap;min-width:140px">${$c(extraCost)}</td>
+          <td style="padding:8px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
+          <td style="padding:8px 8px;border:1px solid #cbd5e1;text-align:center;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq)</td>
+          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box">${$c(extraCost)}</td>
         </tr>
       `;
     }
     if(calc.parking > 0){
       itemsHtml += `
         <tr style="background:#f8fafc;color:#0f766e">
-          <td style="padding:8px 12px;border:1px solid #cbd5e1"><b>Gastos de Estacionamiento a rendir</b></td>
-          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:center;font-weight:700">Terreno</td>
-          <td style="padding:8px 14px;border:1px solid #cbd5e1;text-align:right;font-weight:700;white-space:nowrap;min-width:140px">${$c(calc.parking)}</td>
+          <td style="padding:8px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Reembolso Estacionamiento / Parking</b></td>
+          <td style="padding:8px 8px;border:1px solid #cbd5e1;text-align:center;font-weight:700;box-sizing:border-box">Ruta / Terreno</td>
+          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box">${$c(calc.parking)}</td>
         </tr>
       `;
     }
@@ -3951,6 +4069,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   }
 
   if($('#pdfSubtotal')) $('#pdfSubtotal').textContent = $c(totalConExtra);
+  const rowEst = $('#pdfRowEstacionamiento');
+  if(rowEst){
+    if(calc.parking > 0){
+      rowEst.style.display = 'table-row';
+      if($('#pdfEstacionamiento')) $('#pdfEstacionamiento').textContent = '+' + $c(calc.parking);
+    } else {
+      rowEst.style.display = 'none';
+    }
+  }
   if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(abonoPrevio);
   if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(saldoFinal);
   if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
@@ -3971,10 +4098,10 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     pdfElement.style.display = 'block';
     if(typeof html2pdf !== 'undefined'){
       html2pdf().set({
-        margin: 10,
-        filename: `Comprobante_Atencion_${folio}.pdf`,
+        margin: [10, 10, 10, 10],
+        filename: `Comprobante_Atencion_${cleanFolio}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).from(pdfElement).save().then(() => {
         pdfElement.style.display = 'none';
@@ -3983,7 +4110,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         pdfElement.style.display = 'none';
       });
     } else {
-      console.log(`[html2pdf] Comprobante_Atencion_${folio}.pdf generado.`);
+      console.log(`[html2pdf] Comprobante_Atencion_${cleanFolio}.pdf generado.`);
       pdfElement.style.display = 'none';
     }
   }
@@ -3993,19 +4120,22 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const phRaw = s.ph || '';
   const digits = phRaw.replace(/\D/g, '');
   const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
-  const waMsg = `Hola ${clientName}, adjunto el comprobante digital de atención y respaldo de pago del servicio finalizado.`;
+  const waMsg = `Hola ${clientName}! Le adjuntamos su Comprobante de Atención y Liquidación Folio #${cleanFolio} en estado PAGADO Y LIQUIDADO (${medioPago}). Muchísimas gracias por confiar en Movilidad y Salud Asistida SpA.`;
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
 
   try { window.open(waUrl, '_blank'); } catch(e){}
 
-  // Actualizar estado en D.svcs
-  s.st = 'Finalizado';
-  s.fare = totalConExtra;
-  s.paid = totalConExtra;
-  s.patRut = rutPaciente;
-  s.medioPago = medioPago;
-  s.folioSII = folioSII;
+  // Persistir estado completada y sincronizar con base de datos
   save();
+  if(window.MsaBlocksService){
+    window.MsaBlocksService.updateReservaStatus(s.folio || s.id, 'completada', {
+      paid: s.paid,
+      saldoPendiente: 0,
+      completed_at: s.completedAt,
+      parking: calc.parking,
+      obs: s.obs
+    }).catch(err => console.warn('Error al actualizar liquidación en BD:', err));
+  }
 
   if(modal) modal.style.display = 'none';
   render();
@@ -4424,6 +4554,10 @@ async function liquidarSaldoReserva(id){
     if(typeof alert !== 'undefined') alert('No se encontró la reserva.');
     return;
   }
+  // Abrir el modal interactivo de liquidación para gestionar estacionamiento, solicitar pago vía WhatsApp y emitir comprobante PDF
+  abrirModalFinalizarAtencionAdmin(s.id);
+  return;
+
   const cleanFolio = formatFolioMSA(s.folio, s.id);
   const saldoPendiente = Math.max(0, (s.fare || 0) - (s.paid || 0));
 
