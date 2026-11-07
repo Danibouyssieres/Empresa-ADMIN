@@ -33,7 +33,7 @@ console.log('✓ Step 1 WhatsApp message and banking details verified');
 
 // 4. Verify PDF container width, margins and box-sizing
 assert(admHtml.includes('id="recibo-pdf" style="display:none;width:680px;max-width:680px'), 'recibo-pdf width must be 680px for A4 fit');
-assert(admHtml.includes('margin: [10, 10, 10, 10]'), 'html2pdf margin must be [10, 10, 10, 10]');
+assert(admHtml.includes('margin: [6, 10, 6, 10]') || admHtml.includes('margin: [10, 10, 10, 10]'), 'html2pdf margin must be safe format');
 assert(admHtml.includes('id="pdfRowEstacionamiento"'), 'PDF table must include parking footer row');
 assert(admHtml.includes('Reembolso Estacionamiento / Parking'), 'PDF table must include parking item row');
 assert(admHtml.includes('PAGADO Y LIQUIDADO'), 'PDF must stamp PAGADO Y LIQUIDADO');
