@@ -210,6 +210,7 @@ export default async function handler(req) {
         depto: String(body.depto || '').trim(),
         dx: String(body.dx || '').trim(),
         mob: String(body.mob || '').trim(),
+        ayuda_tecnica: String(body.ayudaTecnica || body.ayuda_tecnica || '').trim(),
         conciencia: String(body.conciencia || 'Alerta').trim(),
         alergias: String(body.alergias || 'No').trim(),
         medicamentos: String(body.medicamentos || 'No informado').trim(),
@@ -248,8 +249,12 @@ export default async function handler(req) {
             const fallbackReserva = {
               ...newReserva,
               st: 'Pre-reserva pendiente',
-              obs: (newReserva.obs ? newReserva.obs + ' · ' : '') + `[Estado: pendiente_abono | Expira: ${expiresAt}]`
+              obs: (newReserva.obs ? newReserva.obs + ' · ' : '') + 
+                   (newReserva.ayuda_tecnica ? `[Ayuda Técnica: ${newReserva.ayuda_tecnica}] · ` : '') +
+                   `[Estado: pendiente_abono | Expira: ${expiresAt}]`
             };
+            // Si la columna ayuda_tecnica no existe en tabla Supabase, se remueve para evitar error 400
+            delete fallbackReserva.ayuda_tecnica;
             sbRes = await fetch(`${supabaseUrl}/rest/v1/reservas`, {
               method: 'POST',
               headers: {
