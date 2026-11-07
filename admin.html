@@ -129,97 +129,127 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 <!-- =========================================================================
      PLANTILLA OCULTA: BOLETA / COMPROBANTE MÉDICO DE ATENCIÓN EN PDF (html2pdf)
      ========================================================================= -->
-<div id="recibo-pdf" style="display:none;width:680px;max-width:680px;background:#ffffff;color:#1e293b;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:24px 28px;box-sizing:border-box;border:1px solid #cbd5e1;margin:0 auto">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0f766e;padding-bottom:16px;margin-bottom:18px">
-    <div style="display:flex;gap:14px;align-items:center">
-      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida" style="height:56px;width:auto">
+<div id="recibo-pdf" style="display:none;width:680px;max-width:680px;background:#ffffff;color:#0f172a;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:16px 20px;box-sizing:border-box;border:1px solid #cbd5e1;margin:0 auto;page-break-inside:avoid;page-break-after:avoid">
+  <!-- ENCABEZADO OFICIAL -->
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:8px;margin-bottom:8px;box-sizing:border-box">
+    <div style="display:flex;gap:12px;align-items:center">
+      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida" style="height:44px;width:auto">
       <div>
-        <h1 style="font-size:1.2rem;font-weight:800;color:#0f766e;margin:0;letter-spacing:-.01em;font-family:Georgia,serif">MOVILIDAD Y SALUD ASISTIDA SpA</h1>
-        <div style="font-size:.84rem;color:#475569;margin-top:2px;font-weight:600">Servicios Integrales de Asistencia Clínica, Cuidados y Traslados</div>
-        <div style="font-size:.8rem;color:#64748b;margin-top:1px">R.U.T.: <b>78.521.776-4</b> · Región Metropolitana</div>
-        <div style="font-size:.78rem;color:#64748b">WhatsApp Oficial: <b>+56 9 2999 0095</b> · www.movilidadysaludasistida.cl</div>
+        <h1 style="font-size:1.05rem;font-weight:800;color:#0f766e;margin:0;letter-spacing:-.01em;font-family:Georgia,serif">MOVILIDAD Y SALUD ASISTIDA SpA</h1>
+        <div style="font-size:.74rem;color:#475569;margin-top:1px;font-weight:600">Servicios Integrales de Asistencia Clínica, Cuidados y Traslados</div>
+        <div style="font-size:.70rem;color:#64748b">R.U.T.: <b>78.521.776-4</b> · WhatsApp: <b>+56 9 2999 0095</b> · www.movilidadysaludasistida.cl</div>
       </div>
     </div>
-    <div style="border:2px solid #0f766e;border-radius:8px;padding:10px 14px;text-align:center;min-width:240px;background:#f8fafc">
-      <div style="font-size:.76rem;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.03em;line-height:1.3">COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN EN TERRENO</div>
-      <div style="font-size:1.05rem;font-weight:800;color:#0f766e;margin:5px 0" id="pdfFolio">FOLIO: #MSA-101</div>
-      <div style="font-size:.76rem;color:#475569" id="pdfFechaEmision">Fecha Emisión: 01/11/2026</div>
+    <div style="border:1.5px solid #0f766e;border-radius:6px;padding:5px 10px;text-align:center;min-width:210px;background:#f8fafc;box-sizing:border-box">
+      <div style="font-size:.66rem;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.02em;line-height:1.2">COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN</div>
+      <div style="font-size:1rem;font-weight:800;color:#0f766e;margin:2px 0" id="pdfFolio">FOLIO: #MSA-001</div>
+      <div style="font-size:.68rem;color:#475569" id="pdfFechaEmision">Fecha Emisión: 07/11/2026</div>
     </div>
   </div>
 
-  <div style="background:#f1f5f9;border-radius:8px;padding:14px 16px;margin-bottom:18px;border:1px solid #cbd5e1">
-    <div style="font-weight:800;color:#0f766e;font-size:.85rem;text-transform:uppercase;margin-bottom:8px;letter-spacing:.02em">
-      📋 Identificación del Paciente y Datos del Servicio
+  <!-- BLOQUE PERSONAS: PACIENTE, CONTRATANTE Y TENS -->
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:7px 10px;margin-bottom:7px;box-sizing:border-box">
+    <div style="font-weight:800;color:#0f766e;font-size:.74rem;text-transform:uppercase;margin-bottom:4px;letter-spacing:.02em">
+      👤 Identificación del Paciente, Contratante y Profesional TENS
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:.84rem;line-height:1.45">
-      <div><b>Nombre del Paciente:</b> <span id="pdfPatNombre">Rosa Medina</span></div>
-      <div><b>RUT del Paciente:</b> <span id="pdfPatRut">12.345.678-9</span></div>
-      <div><b>Edad / Diagnóstico:</b> <span id="pdfPatEdadDx">82 años · Control cardiológico</span></div>
-      <div><b>Modalidad:</b> <span id="pdfSvcModalidad">1. Servicio Integral (Asistencia + Traslado)</span></div>
-      <div><b>Fecha del Servicio:</b> <span id="pdfFechaServicio">07/11/2026</span></div>
-      <div><b>Horario Pactado:</b> <span id="pdfHorarioPactado">09:45 hrs a 11:15 hrs</span></div>
-      <div><b>Dirección de Origen (A):</b> <span id="pdfDirOrigen">Av. Pajaritos 1450, Maipú</span></div>
-      <div><b>Dirección Destino (B):</b> <span id="pdfDirDestino">Clínica Santa María, Providencia</span></div>
-      <div style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:2px">
-        <b>Hora Real de Cierre:</b> <span id="pdfHoraCierreReal">11:15 hrs</span>
-        <span style="margin-left:14px;color:#0f766e;font-weight:700" id="pdfDesfaseExtraText">Atención finalizada en horario estándar</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 10px;font-size:.74rem;line-height:1.35">
+      <div>
+        <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Paciente</div>
+        <div><b>Nombre:</b> <span id="pdfPatNombre">Rosa Medina</span></div>
+        <div><b>RUT:</b> <span id="pdfPatRut">12.345.678-9</span></div>
+        <div><b>Edad / Dx:</b> <span id="pdfPatEdad">82 años</span> · <span id="pdfPatDx">Control cardiológico</span></div>
+      </div>
+      <div>
+        <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Contratante / Responsable</div>
+        <div><b>Nombre:</b> <span id="pdfCoordNombre">Andrea Medina</span></div>
+        <div><b>RUT:</b> <span id="pdfCoordRut">15.987.654-3</span></div>
+        <div><b>Teléfono:</b> <span id="pdfCoordTel">+56 9 7777 8888</span></div>
+      </div>
+      <div>
+        <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Profesional TENS a Cargo</div>
+        <div><b>Nombre:</b> <span id="pdfTensNombre">Daniela González Bouyssieres</span></div>
+        <div><b>Reg. SIS:</b> <span id="pdfTensSis">Nº 442762</span></div>
+        <div><b>Móvil/Unidad:</b> <span id="pdfTensVeh">Unidad 1 · Clase A2</span></div>
       </div>
     </div>
   </div>
 
-  <div style="margin-bottom:18px">
-    <div style="font-weight:800;color:#0f766e;font-size:.85rem;text-transform:uppercase;margin-bottom:8px;letter-spacing:.02em">
+  <!-- BLOQUE LOGÍSTICA Y ATENCIÓN -->
+  <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:7px 10px;margin-bottom:7px;box-sizing:border-box">
+    <div style="font-weight:800;color:#0f766e;font-size:.74rem;text-transform:uppercase;margin-bottom:4px;letter-spacing:.02em">
+      📍 Detalle de Trayecto, Ayuda Técnica y Horarios en Terreno
+    </div>
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:4px 12px;font-size:.74rem;line-height:1.35">
+      <div>
+        <div><b>Origen:</b> <span id="pdfDirOrigen">Av. Pajaritos 1450, Maipú</span> (<b id="pdfAnilloComunal" style="color:#0f766e">Anillo 1</b>)</div>
+        <div><b>Destino:</b> <span id="pdfDirDestino">Clínica Santa María, Providencia</span></div>
+        <div><b>Modalidad:</b> <span id="pdfSvcModalidad">1. Servicio Integral (Asistencia + Traslado)</span></div>
+      </div>
+      <div>
+        <div><b>Ayuda Técnica:</b> <span id="pdfAyudaTecnica" style="font-weight:700;color:#0f766e">Silla de Ruedas del servicio</span></div>
+        <div><b>Fecha Atención:</b> <span id="pdfFechaServicio">07/11/2026</span></div>
+        <div><b>Horario Pactado:</b> <span id="pdfHorarioPactado">09:00 a 11:00 hrs</span> · <b>Cierre Real:</b> <span id="pdfHoraCierreReal">11:00 hrs</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOQUE ECONÓMICO: TABLA DE LIQUIDACIÓN -->
+  <div style="margin-bottom:7px;box-sizing:border-box">
+    <div style="font-weight:800;color:#0f766e;font-size:.74rem;text-transform:uppercase;margin-bottom:3px;letter-spacing:.02em">
       💰 Desglose Económico de la Liquidación
     </div>
-    <table style="width:100%;max-width:100%;border-collapse:collapse;font-size:.82rem;border:1px solid #cbd5e1;box-sizing:border-box">
+    <table style="width:100%;max-width:100%;border-collapse:collapse;font-size:.74rem;border:1px solid #cbd5e1;box-sizing:border-box">
       <thead>
         <tr style="background:#0f766e;color:#ffffff;text-align:left">
-          <th style="padding:8px 10px;border:1px solid #0f766e;width:56%;box-sizing:border-box">Concepto / Ítem</th>
-          <th style="padding:8px 8px;border:1px solid #0f766e;text-align:center;width:18%;box-sizing:border-box">Métrica</th>
-          <th style="padding:8px 10px;border:1px solid #0f766e;text-align:right;width:26%;box-sizing:border-box">Subtotal</th>
+          <th style="padding:4px 8px;border:1px solid #0f766e;width:58%;box-sizing:border-box">Concepto / Ítem de Atención</th>
+          <th style="padding:4px 6px;border:1px solid #0f766e;text-align:center;width:18%;box-sizing:border-box">Métrica / Alcance</th>
+          <th style="padding:4px 8px;border:1px solid #0f766e;text-align:right;width:24%;box-sizing:border-box">Subtotal</th>
         </tr>
       </thead>
       <tbody id="pdfTablaItems"></tbody>
       <tfoot style="font-weight:700">
-        <tr style="background:#f8fafc;border-top:2px solid #cbd5e1">
-          <td colspan="2" style="padding:8px 10px;text-align:right;box-sizing:border-box">SUBTOTAL SERVICIO:</td>
-          <td style="padding:8px 10px;text-align:right;box-sizing:border-box" id="pdfSubtotal">$48.500</td>
+        <tr style="background:#f8fafc;border-top:1.5px solid #cbd5e1">
+          <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">SUBTOTAL SERVICIO:</td>
+          <td style="padding:3px 8px;text-align:right;box-sizing:border-box" id="pdfSubtotal">$46.000</td>
         </tr>
         <tr id="pdfRowEstacionamiento" style="background:#f8fafc;color:#0f766e;display:none">
-          <td colspan="2" style="padding:8px 10px;text-align:right;box-sizing:border-box">REEMBOLSO ESTACIONAMIENTO / PARKING:</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;box-sizing:border-box" id="pdfEstacionamiento">$0</td>
+          <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">REEMBOLSO ESTACIONAMIENTO / PARKING:</td>
+          <td style="padding:3px 8px;text-align:right;font-weight:700;box-sizing:border-box" id="pdfEstacionamiento">+$4.500</td>
         </tr>
-        <tr style="color:#0f766e">
-          <td colspan="2" style="padding:8px 10px;text-align:right;box-sizing:border-box">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
-          <td style="padding:8px 10px;text-align:right;box-sizing:border-box" id="pdfAbono">-$24.250</td>
+        <tr style="background:#f1f5f9;color:#0f766e">
+          <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">TOTAL SERVICIO LIQUIDADO:</td>
+          <td style="padding:3px 8px;text-align:right;font-weight:800;box-sizing:border-box" id="pdfTotalLiquidado">$50.500</td>
         </tr>
-        <tr style="background:#f1f5f9;font-size:.92rem;color:#0f766e">
-          <td colspan="2" style="padding:10px 10px;text-align:right;font-weight:800;box-sizing:border-box">SALDO FINAL PAGADO AL CIERRE:</td>
-          <td style="padding:10px 10px;text-align:right;font-weight:800;font-size:1.02rem;box-sizing:border-box" id="pdfSaldoFinal">$24.250</td>
+        <tr style="color:#b91c1c">
+          <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
+          <td style="padding:3px 8px;text-align:right;box-sizing:border-box" id="pdfAbono">-$20.000</td>
+        </tr>
+        <tr style="background:#0f766e;color:#ffffff;font-size:.80rem">
+          <td colspan="2" style="padding:5px 8px;text-align:right;font-weight:800;box-sizing:border-box">SALDO FINAL PAGADO AL CIERRE:</td>
+          <td style="padding:5px 8px;text-align:right;font-weight:800;font-size:.88rem;box-sizing:border-box" id="pdfSaldoFinal">$30.500</td>
         </tr>
       </tfoot>
     </table>
   </div>
 
-  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:16px">
-    <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:12px;background:#f8fafc;font-size:.82rem;line-height:1.5">
-      <div style="font-weight:800;color:#0f766e;margin-bottom:6px;text-transform:uppercase">🧾 Respaldo de Pago y Registro SII</div>
-      <div><b>Medio de Pago Saldo:</b> <span id="pdfMedioPago">Transferencia Electrónica</span></div>
-      <div id="pdfFolioSIIContainer"><b>Documento Tributario:</b> <span id="pdfFolioSII">Boleta Electrónica Exenta emitida vía e-Boleta SII</span></div>
+  <!-- BLOQUE RESPALDO SII Y FIRMAS -->
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-bottom:6px;box-sizing:border-box">
+    <div style="border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;background:#f8fafc;font-size:.72rem;line-height:1.35">
+      <div style="font-weight:800;color:#0f766e;margin-bottom:2px;text-transform:uppercase;font-size:.68rem">🧾 Respaldo de Pago y Registro Tributario</div>
+      <div><b>Medio de Pago:</b> <span id="pdfMedioPago">Transferencia Electrónica</span></div>
+      <div id="pdfFolioSIIContainer"><b>Documento Tributario:</b> <span id="pdfFolioSII">En trámite e-Boleta SII</span></div>
       <div><b>Estado de Pago:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span></div>
-      <div style="margin-top:6px;font-size:.76rem;color:#64748b">
-        Atención ejecutada conforme a protocolos de seguridad clínica y traslado asistido de Movilidad y Salud Asistida SpA.
-      </div>
     </div>
-    <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:12px;text-align:center;display:flex;flex-direction:column;justify-content:flex-end">
-      <div style="border-bottom:1px solid #475569;margin:0 18px 6px"></div>
-      <div style="font-size:.82rem;font-weight:700;color:#1e293b">Firma y Recepción Conforme</div>
-      <div style="font-size:.75rem;color:#64748b">Paciente o Familiar Responsable</div>
+    <div style="border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;text-align:center;display:flex;flex-direction:column;justify-content:flex-end">
+      <div style="border-bottom:1px solid #475569;margin:0 14px 4px"></div>
+      <div style="font-size:.72rem;font-weight:700;color:#1e293b">Firma y Recepción Conforme</div>
+      <div style="font-size:.66rem;color:#64748b">Paciente / Contratante Responsable</div>
     </div>
   </div>
 
-  <div style="font-size:.72rem;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px;line-height:1.4">
-    Servicios médicos, asistenciales y de enfermería exentos de IVA de conformidad con las disposiciones del D.L. 825 de 1974 (Ley sobre Impuesto a las Ventas y Servicios), Art. 8° y Art. 12° Letra E N° 1. Comprobante válido para reembolsos en Isapres, Seguros Complementarios y registros contables.
+  <!-- GLOSA LEGAL TRIBUTARIA (EXENCIÓN DE IVA) -->
+  <div style="font-size:.64rem;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;padding-top:4px;line-height:1.25;box-sizing:border-box">
+    Servicios médicos, asistenciales y de enfermería exentos de IVA conforme al D.L. 825 de 1974 (Ley sobre Impuesto a las Ventas y Servicios), Art. 8° y Art. 12° Letra E N° 1. Comprobante timbrado válido para reembolsos en Isapres, Seguros Complementarios y registros contables.
   </div>
 </div>
 
@@ -332,41 +362,49 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 
     <div id="adm_co_service_summary" style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;line-height:1.45"></div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12.5px;margin-bottom:10px">
       <div>
-        <label for="adm_horaCierreReal" style="font-weight:700;display:block;margin-bottom:4px">Hora Real de Cierre *</label>
+        <label for="adm_horaCierreReal" style="font-weight:700;display:block;margin-bottom:4px">Hora Real Cierre *</label>
         <input type="time" id="adm_horaCierreReal" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
       <div>
-        <label for="adm_parking_expense" style="font-weight:700;display:block;margin-bottom:4px">Gasto Estacionamiento / Parking ($)</label>
+        <label for="adm_parking_expense" style="font-weight:700;display:block;margin-bottom:4px">Gasto Estacionamiento ($)</label>
         <input type="number" id="adm_parking_expense" min="0" step="500" value="0" placeholder="0" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+      </div>
+      <div>
+        <label for="adm_abono_previo_input" style="font-weight:700;display:block;margin-bottom:4px">Abono 50% Previo ($) *</label>
+        <input type="number" id="adm_abono_previo_input" min="0" step="1000" value="0" placeholder="20000" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
     </div>
 
     <!-- CUADRO REACTIVO DESTACADO EN TAMAÑO GRANDE CON EL DESGLOSE EN TIEMPO REAL -->
-    <div id="adm_co_breakdown_box" style="background:#f8fafc;border:2px solid #0f766e;border-radius:10px;padding:14px 16px;margin:12px 0;box-sizing:border-box">
-      <div style="font-size:11.5px;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+    <div id="adm_co_breakdown_box" style="background:#f8fafc;border:2px solid #0f766e;border-radius:10px;padding:12px 14px;margin:10px 0;box-sizing:border-box">
+      <div style="font-size:11.5px;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
         <span>📊 Liquidación Financiera en Tiempo Real</span>
         <span id="adm_co_lbl_tiempo" style="font-size:11px;color:#64748b;font-weight:600"></span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-        <span style="color:#475569">Subtotal Servicio:</span>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
+        <span style="color:#475569">Subtotal Servicio (Base + Extras):</span>
         <b id="adm_co_subtotal_servicio" style="color:#0f172a">$0</b>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
         <span style="color:#475569">Gasto Estacionamiento Recinto:</span>
         <b id="adm_co_parking_amount" style="color:#059669">+$0</b>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px;border-top:1px dashed #cbd5e1;padding-top:4px">
+        <span style="color:#0f766e;font-weight:700">Total Servicio Liquidado:</span>
+        <b id="adm_co_total_servicio" style="color:#0f766e;font-weight:800">$0</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
         <span style="color:#475569">Menos Abono 50% ya pagado:</span>
         <b id="adm_co_abono_previo" style="color:#dc2626">-$0</b>
       </div>
-      <div style="border-top:1.5px dashed #cbd5e1;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13.5px;font-weight:800;color:#0f766e">👉 TOTAL SALDO PENDIENTE A LIQUIDAR:</span>
-        <span id="adm_co_saldo_final" style="font-size:1.45rem;font-weight:900;color:#0f766e">$0</span>
+      <div style="border-top:1.5px solid #0f766e;padding-top:6px;margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:800;color:#0f766e">👉 TOTAL SALDO PENDIENTE A LIQUIDAR:</span>
+        <span id="adm_co_saldo_final" style="font-size:1.4rem;font-weight:900;color:#0f766e">$0</span>
       </div>
-      <div id="adm_co_extra_note" style="display:none;font-size:11.5px;color:#b45309;margin-top:6px;font-weight:600"></div>
-      <div id="adm_co_floor_note" style="display:none;font-size:11.5px;color:#0f766e;margin-top:6px;font-weight:600"></div>
+      <div id="adm_co_extra_note" style="display:none;font-size:11px;color:#b45309;margin-top:4px;font-weight:600"></div>
+      <div id="adm_co_floor_note" style="display:none;font-size:11px;color:#0f766e;margin-top:4px;font-weight:600"></div>
     </div>
 
     <!-- DATOS COMPLEMENTARIOS PARA LA BOLETA -->
@@ -3674,7 +3712,7 @@ function card(s){
 let currentClosingSvcId = null;
 let currentCheckoutCalc = null;
 
-function calculateFieldLiquidation(s, elapsedMin, parkingAmount){
+function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono){
   const mode = s.svcType || '1';
   const dateVal = s.date || TODAY;
   const startMin = s.start || 540;
@@ -3700,9 +3738,12 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount){
   let timeCost = 0;
   let subtotalReal = 0;
 
-  if(s.fare && s.fare > 0){
-    subtotalReal = s.fare + extraCost;
-    timeCost = subtotalReal - (kmCost || 0);
+  // Base contract fare preservation
+  const baseContractFare = s.baseFare || s.fareOrig || s.fare || 40000;
+
+  if(baseContractFare && baseContractFare > 0){
+    subtotalReal = baseContractFare + extraCost;
+    timeCost = Math.max(0, subtotalReal - (kmCost || 0));
   } else if(mode === '1'){
     const idaMin = s.idaMin || adminRouteIdaMin || Math.max(15, Math.round((kmTot / 2) * 1.3));
     const retornoMin = s.vueltaMin || adminRouteVueltaMin || idaMin;
@@ -3722,7 +3763,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount){
     timeCost = (jornada === 'nocturno' && billedMin >= 360) ? 96000 : Math.round((billedMin / 60) * hourlyRate);
     subtotalReal = timeCost;
   } else {
-    subtotalReal = (s.fare || 65000) + extraCost;
+    subtotalReal = baseContractFare + extraCost;
     timeCost = subtotalReal;
   }
 
@@ -3739,9 +3780,28 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount){
     floorApplied = true;
   }
 
-  const abono = (s.paid !== undefined && s.paid !== null) ? s.paid : (s.fare ? Math.round(s.fare * 0.5) : Math.round((cobroTotal * 0.5) / 50) * 50);
-  const parking = Math.max(0, parseInt(parkingAmount || 0, 10) || 0);
-  const saldoFinal = Math.max(0, cobroTotal - abono + parking);
+  // REGLA ARITMÉTICA ESTRICTA:
+  // 1. Subtotal Servicio (base + extras)
+  const subtotalServicio = cobroTotal;
+  // 2. Gasto de estacionamiento
+  const montoEstacionamiento = Math.max(0, parseInt(parkingAmount || 0, 10) || 0);
+  // 3. Total del servicio liquidado
+  const totalServicio = subtotalServicio + montoEstacionamiento;
+
+  // 4. Abono previo del 50%
+  let abonoPrevio = 0;
+  if(customAbono !== undefined && customAbono !== null && !isNaN(customAbono)){
+    abonoPrevio = Math.max(0, parseInt(customAbono, 10) || 0);
+  } else if(s.abono !== undefined && s.abono !== null && s.abono > 0){
+    abonoPrevio = s.abono;
+  } else if(s.paid !== undefined && s.paid !== null && s.paid > 0 && s.paid < totalServicio){
+    abonoPrevio = s.paid;
+  } else {
+    abonoPrevio = Math.round((baseContractFare || subtotalServicio) * 0.5);
+  }
+
+  // 5. Saldo final = totalServicio - abonoPrevio
+  const saldoFinal = Math.max(0, totalServicio - abonoPrevio);
 
   return {
     mode,
@@ -3758,10 +3818,14 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount){
     subtotalReal,
     ringName: ring.name,
     ringFloor,
-    cobroTotal,
+    cobroTotal: subtotalServicio,
+    subtotalServicio,
+    montoEstacionamiento,
+    totalServicio,
     floorApplied,
-    abono,
-    parking,
+    abono: abonoPrevio,
+    abonoPrevio,
+    parking: montoEstacionamiento,
     saldoFinal
   };
 }
@@ -3807,6 +3871,7 @@ function onFieldCheckoutRecalc(){
   const hCierre = ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || s.endActualTime || '12:00';
   const parkingInput = ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0;
   const parkingAmount = Math.max(0, parseInt(parkingInput, 10) || 0);
+  const customAbonoInput = $('#adm_abono_previo_input') ? parseInt($('#adm_abono_previo_input').value, 10) : undefined;
 
   const startMin = s.start || 540;
   const durMin = s.dur || 120;
@@ -3820,14 +3885,14 @@ function onFieldCheckoutRecalc(){
     elapsedMin = (cierreMin + 1440) - startMin;
   }
 
-  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount);
+  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbonoInput);
   currentCheckoutCalc = calc;
 
   if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').textContent = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${calc.elapsedMin}m en lugar)`;
-  if($('#adm_co_subtotal_servicio')) $('#adm_co_subtotal_servicio').textContent = $c(calc.cobroTotal);
-  if($('#adm_co_total_servicio')) $('#adm_co_total_servicio').textContent = $c(calc.cobroTotal);
+  if($('#adm_co_subtotal_servicio')) $('#adm_co_subtotal_servicio').textContent = $c(calc.subtotalServicio);
+  if($('#adm_co_total_servicio')) $('#adm_co_total_servicio').textContent = $c(calc.totalServicio);
   if($('#adm_co_parking_amount')) $('#adm_co_parking_amount').textContent = '+' + $c(calc.parking);
-  if($('#adm_co_abono_previo')) $('#adm_co_abono_previo').textContent = '-' + $c(calc.abono);
+  if($('#adm_co_abono_previo')) $('#adm_co_abono_previo').textContent = '-' + $c(calc.abonoPrevio);
   if($('#adm_co_saldo_final')) $('#adm_co_saldo_final').textContent = $c(calc.saldoFinal);
 
   const extraNote = $('#adm_co_extra_note');
@@ -3873,9 +3938,10 @@ function solicitarPagoWhatsAppAdmin(){
 Hemos finalizado exitosamente el servicio de atención y traslado de ${patName} (Folio #${cleanFolio}).
 
 💰 *DETALLE DE SALDO A LIQUIDAR:*
-• Subtotal Servicio: ${$c(calc.cobroTotal)}
+• Subtotal Servicio: ${$c(calc.subtotalServicio)}
 • Estacionamiento / Parking: ${$c(calc.parking)}
-• Abono 50% previo registrado: -${$c(calc.abono)}
+• Total Servicio Liquidado: ${$c(calc.totalServicio)}
+• Abono 50% previo registrado: -${$c(calc.abonoPrevio)}
 👉 *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
 
 🏦 *DATOS BANCARIOS PARA TRANSFERENCIA:*
@@ -3924,7 +3990,12 @@ function abrirModalFinalizarAtencionAdmin(svcId, options){
 
   if($('#adm_horaInicioReal')) $('#adm_horaInicioReal').value = startStr;
   if($('#adm_horaCierreReal')) $('#adm_horaCierreReal').value = endStr;
+  if(!s.baseFare) s.baseFare = s.fare || 40000;
   if($('#adm_parking_expense')) $('#adm_parking_expense').value = (options && options.parking !== undefined) ? options.parking : (s.parkingExpense || 0);
+  const initAbono = (options && options.abono !== undefined) 
+    ? options.abono 
+    : (s.abono || (s.paid && s.paid < (s.fare || 40000) ? s.paid : Math.round((s.baseFare || s.fare || 40000) * 0.5)));
+  if($('#adm_abono_previo_input')) $('#adm_abono_previo_input').value = initAbono;
 
   if($('#adm_co_payment_sent_alert')) $('#adm_co_payment_sent_alert').style.display = 'none';
   if($('#adm_rutPaciente')) $('#adm_rutPaciente').value = (options && options.rutPaciente) || s.patRut || '12.345.678-9';
@@ -3979,7 +4050,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     elapsedMin = (cierreMin + 1440) - startMin;
   }
 
-  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount);
+  const customAbono = $('#adm_abono_previo_input') ? parseInt($('#adm_abono_previo_input').value, 10) : undefined;
+  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono);
   currentCheckoutCalc = calc;
 
   // Actualizar servicio con liquidación y estado completada
@@ -4023,52 +4095,66 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if($('#pdfFechaEmision')) $('#pdfFechaEmision').textContent = `Fecha Emisión: ${TODAY}`;
   if($('#pdfPatNombre')) $('#pdfPatNombre').textContent = patName;
   if($('#pdfPatRut')) $('#pdfPatRut').textContent = rutPaciente;
-  if($('#pdfPatEdadDx')) $('#pdfPatEdadDx').textContent = `${patAge} años · ${patDx}`;
-  if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = `Modalidad ${mode}`;
-  if($('#pdfFechaServicio')) $('#pdfFechaServicio').textContent = s.date;
-  if($('#pdfHorarioPactado')) $('#pdfHorarioPactado').textContent = `${fm(startMin)} hrs a ${endPactadoStr} hrs`;
-  if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = s.from;
-  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = s.to;
-  if($('#pdfHoraCierreReal')) $('#pdfHoraCierreReal').textContent = `${horaCierre} hrs`;
-  if($('#pdfDesfaseExtraText')){
-    $('#pdfDesfaseExtraText').textContent = diffMin > 0
-      ? `⚠️ Excedente en terreno: +${diffMin} min (${extraBlocks * 30} min facturados)`
-      : 'Atención finalizada en horario estándar';
-    $('#pdfDesfaseExtraText').style.color = diffMin > 0 ? '#b91c1c' : '#0f766e';
-  }
+  if($('#pdfPatEdad')) $('#pdfPatEdad').textContent = `${patAge} años`;
+  if($('#pdfPatDx')) $('#pdfPatDx').textContent = patDx;
 
-  // Tabla de items
+  if($('#pdfCoordNombre')) $('#pdfCoordNombre').textContent = s.coord || patName;
+  if($('#pdfCoordRut')) $('#pdfCoordRut').textContent = s.coordRut || s.rut || 'No registra / Familiar';
+  if($('#pdfCoordTel')) $('#pdfCoordTel').textContent = s.ph || '+56 9 2999 0095';
+
+  const tech = (D.techs && D.techs.find(t => t.id === s.tid)) || (D.techs && D.techs[0]) || { nom: 'Daniela González Bouyssieres', rut: 'Registro SIS Nº 442762', veh: 'Unidad 1 · Clase A2' };
+  if($('#pdfTensNombre')) $('#pdfTensNombre').textContent = tech.nom;
+  if($('#pdfTensSis')) $('#pdfTensSis').textContent = tech.rut;
+  if($('#pdfTensVeh')) $('#pdfTensVeh').textContent = tech.veh || 'Unidad 1 · Clase A2';
+
+  if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = s.from;
+  if($('#pdfAnilloComunal')) $('#pdfAnilloComunal').textContent = calc.ringName || 'Anillo 1';
+  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = s.to || s.from;
+  if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = `Modalidad ${mode}`;
+  if($('#pdfAyudaTecnica')) $('#pdfAyudaTecnica').textContent = s.ayudaTecnica || s.ayuda_tecnica || 'Ninguna (autovalente / no requiere implementos)';
+  if($('#pdfFechaServicio')) $('#pdfFechaServicio').textContent = s.date;
+  if($('#pdfHorarioPactado')) $('#pdfHorarioPactado').textContent = `${fm(startMin)} a ${endPactadoStr} hrs`;
+  if($('#pdfHoraCierreReal')) $('#pdfHoraCierreReal').textContent = `${horaCierre} hrs`;
+
+  // Tabla de items con desglose: KM / Tarifa Base + Asistencia TENS
   const itemsTbody = $('#pdfTablaItems');
   if(itemsTbody){
+    const trasladoCost = calc.kmCost || Math.round(calc.subtotalServicio * 0.4);
+    const baseClinicaCost = Math.max(0, calc.subtotalServicio - trasladoCost - calc.extraCost);
     let itemsHtml = `
       <tr>
-        <td style="padding:8px 10px;border:1px solid #cbd5e1;box-sizing:border-box">1. Servicio y Asistencia Clínica Programada</td>
-        <td style="padding:8px 8px;border:1px solid #cbd5e1;text-align:center;box-sizing:border-box">${(durMin/60).toFixed(1)} hrs</td>
-        <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box">${$c(calc.cobroTotal - calc.extraCost)}</td>
+        <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (KM / Tarifa Base Comunal)</td>
+        <td style="padding:4px 6px;border:1px solid #cbd5e1;text-align:center;box-sizing:border-box">${(calc.kmTot).toFixed(1)} km ida/vuelta</td>
+        <td style="padding:4px 8px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box">${$c(trasladoCost)}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box">Asistencia Clínica TENS (Tiempo pactado + soporte)</td>
+        <td style="padding:4px 6px;border:1px solid #cbd5e1;text-align:center;box-sizing:border-box">${(durMin/60).toFixed(1)} hrs base</td>
+        <td style="padding:4px 8px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box">${$c(baseClinicaCost)}</td>
       </tr>
     `;
     if(diffMin > 0){
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
-          <td style="padding:8px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
-          <td style="padding:8px 8px;border:1px solid #cbd5e1;text-align:center;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq)</td>
-          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box">${$c(extraCost)}</td>
+          <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
+          <td style="padding:4px 6px;border:1px solid #cbd5e1;text-align:center;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq)</td>
+          <td style="padding:4px 8px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box">${$c(extraCost)}</td>
         </tr>
       `;
     }
     if(calc.parking > 0){
       itemsHtml += `
         <tr style="background:#f8fafc;color:#0f766e">
-          <td style="padding:8px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Reembolso Estacionamiento / Parking</b></td>
-          <td style="padding:8px 8px;border:1px solid #cbd5e1;text-align:center;font-weight:700;box-sizing:border-box">Ruta / Terreno</td>
-          <td style="padding:8px 10px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box">${$c(calc.parking)}</td>
+          <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Reembolso Estacionamiento / Parking</b></td>
+          <td style="padding:4px 6px;border:1px solid #cbd5e1;text-align:center;font-weight:700;box-sizing:border-box">Ruta / Terreno</td>
+          <td style="padding:4px 8px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box">${$c(calc.parking)}</td>
         </tr>
       `;
     }
     itemsTbody.innerHTML = itemsHtml;
   }
 
-  if($('#pdfSubtotal')) $('#pdfSubtotal').textContent = $c(totalConExtra);
+  if($('#pdfSubtotal')) $('#pdfSubtotal').textContent = $c(calc.subtotalServicio);
   const rowEst = $('#pdfRowEstacionamiento');
   if(rowEst){
     if(calc.parking > 0){
@@ -4078,18 +4164,13 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       rowEst.style.display = 'none';
     }
   }
-  if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(abonoPrevio);
-  if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(saldoFinal);
+  if($('#pdfTotalLiquidado')) $('#pdfTotalLiquidado').textContent = $c(calc.totalServicio);
+  if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(calc.abonoPrevio);
+  if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(calc.saldoFinal);
   if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
   const folioContainer = $('#pdfFolioSIIContainer');
   if(folioContainer){
-    if(folioSII){
-      folioContainer.innerHTML = `<b>Boleta Electrónica SII N°:</b> <span id="pdfFolioSII">${folioSII}</span>`;
-    } else {
-      folioContainer.innerHTML = `<b>Documento Tributario:</b> <span id="pdfFolioSII">Boleta Electrónica Exenta emitida vía e-Boleta SII</span>`;
-    }
-  } else if($('#pdfFolioSII')) {
-    $('#pdfFolioSII').textContent = folioSII || 'Boleta Electrónica Exenta emitida vía e-Boleta SII';
+    folioContainer.innerHTML = `<b>Documento Tributario:</b> <span id="pdfFolioSII">${folioSII ? ('Boleta Electrónica SII N° ' + folioSII) : 'En trámite e-Boleta SII'}</span>`;
   }
 
   // Generación y descarga con html2pdf
@@ -4098,11 +4179,12 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     pdfElement.style.display = 'block';
     if(typeof html2pdf !== 'undefined'){
       html2pdf().set({
-        margin: [10, 10, 10, 10],
+        margin: [6, 10, 6, 10],
         filename: `Comprobante_Atencion_${cleanFolio}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       }).from(pdfElement).save().then(() => {
         pdfElement.style.display = 'none';
       }).catch(err => {
