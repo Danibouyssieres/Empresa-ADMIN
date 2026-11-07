@@ -1156,6 +1156,7 @@ function openDbConfigModal(){
     syncCentralizedBlocksAdmin();
   }
 }
+window.openDbConfigModal = openDbConfigModal;
 
 let blocksListFilter = 'all'; // 'all' | 'selected'
 function setBlocksListFilter(m){
@@ -1232,18 +1233,11 @@ function blocksView(){
         <div>
           <h2 style="margin:0">🔒 Gestión de Disponibilidad y Bloqueos Manuales</h2>
           <div style="font-size:13px;color:var(--mut);margin-top:2px">
-            Bloquee días completos o turnos específicos (días libres, mantención de móvil o trámites). Sincroniza en tiempo real con <b>reservar.html</b>.
+            Bloquee días completos o turnos específicos (días libres, mantención de móvil o trámites) para inhabilitar la agenda pública en tiempo real.
           </div>
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin:8px 0 12px;font-size:13px">
-        <div>
-          <b>Persistencia Centralizada:</b>
-          <span id="admDbStatus" style="color:#16a34a;font-weight:700">🟢 En línea (Supabase &amp; Vercel API sincronizados)</span>
-        </div>
-        <button type="button" class="b" style="margin:0;padding:4px 10px;font-size:12px" onclick="openDbConfigModal()">⚙️ Configurar Supabase</button>
-      </div>
       <div class="blk-layout" style="margin-top:12px">
         <div class="card" style="margin:0">
           <div class="row" style="justify-content:space-between;margin-bottom:10px">
@@ -1355,7 +1349,7 @@ function blocksView(){
               <td><b>${e(b.date)}</b> ${b.date === U.date ? '<span style="font-size:10px;color:var(--pri);font-weight:700">◀ Seleccionada</span>' : ''}</td>
               <td><span class="badge" style="background:${b.type==='full'?'#EF4444':'#F59E0B'}">${b.type==='manana'?'☀️ Mañana':b.type==='tarde'?'⛅ Tarde':b.type==='noche'?'🌙 Noche':'🔴 Día completo'}</span></td>
               <td>${e(b.reason || '—')}</td>
-              <td style="font-size:12px;color:var(--mut)">Inhabilita selección en reservar.html</td>
+              <td style="font-size:12px;color:var(--mut)">Inhabilita agenda pública</td>
               <td><button type="button" class="unlock-btn" onclick="event.stopPropagation(); removeManualBlock('${b.id || (b.date + '_' + b.type)}')">🔓 Desbloquear</button></td>
             </tr>
           `).join('')}
@@ -4211,7 +4205,7 @@ function inboxView(){
             <span>📥</span> Bandeja de Entrada · Solicitudes y Reservas Web
           </h2>
           <div style="font-size:12px;color:var(--mut);margin-top:2px">
-            Control de ciclo de vida, confirmación de abono del 50%, desbloqueos y persistencia centralizada.
+            Control de ciclo de vida, confirmación de abono del 50% y gestión de servicios.
           </div>
         </div>
         <button type="button" class="unlock-btn" onclick="syncCentralizedBlocksAdmin(); alert('Bandeja de entrada actualizada.')" style="padding:7px 14px;font-size:12px;font-weight:700">
