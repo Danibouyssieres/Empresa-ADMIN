@@ -309,6 +309,7 @@ footer a{color:#fff}
       </p>
 
       <input id="b_date" type="hidden" required>
+      <input id="hora_recogida" name="hora_recogida" type="hidden" value="">
 
       <div class="sched-layout">
         <!-- COLUMNA IZQUIERDA: CALENDARIO INTERACTIVO -->
@@ -2195,9 +2196,10 @@ function validarFormulario() {
     return { ok: false, field: targetBlockBtn, error: 'block' };
   }
 
-  // 5. Hora en Paso 2 (b_time)
+  // 5. Hora en Paso 2 (b_time / hora_recogida)
   const timeEl = $('#b_time');
-  const timeVal = (timeEl && timeEl.value.trim()) || '';
+  const hRecHidden = document.getElementById('hora_recogida');
+  const timeVal = (timeEl && timeEl.value.trim()) || (hRecHidden && hRecHidden.value.trim()) || (typeof window.hora_recogida !== 'undefined' && window.hora_recogida) || (window._msaFormState && window._msaFormState.time) || '';
   if (!timeVal) {
     const isTransfer = (mode === '1' || mode === '2' || mode === '5');
     const msg = isTransfer
@@ -2205,6 +2207,10 @@ function validarFormulario() {
       : 'Por favor seleccione la hora de inicio de la atención antes de continuar.';
     highlightFieldError(timeEl || $('#selStayDestino') || $('#timeSectionTitle'), msg);
     return { ok: false, field: timeEl, error: 'time' };
+  } else {
+    if (timeEl && !timeEl.value && timeVal) timeEl.value = timeVal;
+    if (hRecHidden && !hRecHidden.value && timeVal) hRecHidden.value = timeVal;
+    window.hora_recogida = timeVal;
   }
 
   // 6. Nombre del Paciente
@@ -2723,6 +2729,31 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)`;
 
     const formulaDesc = `Circuito completo del servicio: ${abordajeMin} min abordaje (asistencia inicial) + ${effIdaMin} min viaje de ida + ${fmtHoursClean(eventStayMin)} de permanencia en el evento${extraM > 0 ? ` (${h}h base + ${extraM}m extra)` : ''} + ${effRetornoMin} min viaje de regreso = <b>${fmtHoursClean(totalCircuitoMin)} (${totalCircuitoMin} min)</b> estimados de dedicación exclusiva.<br><span style="display:inline-block;margin-top:6px;color:var(--ink);font-weight:600">Nota: Las ${h} horas base contratadas${extraM > 0 ? ` más ${extraM} min adicionales` : ''} corresponden a permanencia continua y efectiva en el evento. Los traslados de ida y regreso se suman como tiempo de viaje adicional, garantizando que el paciente disfrute su fiesta completa.</span>`;
+    if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
+    return;
+  }
+
+  if(mode === '4' && !isEventConTraslado){
+    let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+    if(h >= 6) h = 6;
+    else h = 4;
+    const extraM = (+$('#selMins34').value) || 0;
+    const eventStayMin = h * 60 + extraM;
+    const terminoEventoMin = startMin + eventStayMin;
+
+    if($('#tlBadge')) $('#tlBadge').textContent = 'Solo Atención Continua en Recinto (Sin Traslado)';
+    if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Llegada al evento / Inicio atención:';
+    if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
+    if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Permanencia en el recinto:';
+    if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fmtHoursClean(eventStayMin)} efectivas`;
+    if($('#tlTiempoDestinoLabel')) $('#tlTiempoDestinoLabel').textContent = 'Término de la atención:';
+    if($('#tlTiempoDestino')) $('#tlTiempoDestino').textContent = `${fm(terminoEventoMin % 1440)} hrs`;
+    if($('#tlHoraRetornoLabel')) $('#tlHoraRetornoLabel').textContent = 'Formato contratado:';
+    if($('#tlHoraRetorno')) $('#tlHoraRetorno').textContent = 'Tarifa Plana Cerrada RM';
+    if($('#tlHorasEfectivasLabel')) $('#tlHorasEfectivasLabel').textContent = 'Total tiempo de atención:';
+    if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(eventStayMin)} (${eventStayMin} min)`;
+
+    const formulaDesc = `Atención continua y exclusiva en el recinto del evento por <b>${fmtHoursClean(eventStayMin)} (${eventStayMin} min)</b> efectivas (Inicio: ${curTime} hrs → Término: ${fm(terminoEventoMin % 1440)} hrs). El paciente cuenta con acompañamiento y soporte clínico TENS ininterrumpido en el salón.`;
     if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
     return;
   }
@@ -4494,8 +4525,11 @@ function selectShiftBlock(blockId){
 }
 
 function onPickupTimeChange(){
-  const curTime = $('#b_time') ? $('#b_time').value : '';
+  const curTime = ($('#b_time') && $('#b_time').value) || (document.getElementById('hora_recogida') && document.getElementById('hora_recogida').value) || (window.hora_recogida || '') || '';
   if(curTime){
+    const hRecEl = document.getElementById('hora_recogida');
+    if(hRecEl) hRecEl.value = curTime;
+    window.hora_recogida = curTime;
     window._msaFormState = window._msaFormState || {};
     window._msaFormState.time = curTime;
   }
@@ -4975,7 +5009,8 @@ function updateSlots(keepCurrentTime = true){
 
   // Poblar desplegable #b_time según el bloque activo
   const timeSelect = $('#b_time');
-  const prevTime = (timeSelect ? timeSelect.value : '') || (window._msaFormState && window._msaFormState.time) || '';
+  const hRecHiddenEl = document.getElementById('hora_recogida');
+  const prevTime = (timeSelect ? timeSelect.value : '') || (hRecHiddenEl ? hRecHiddenEl.value : '') || (typeof window.hora_recogida !== 'undefined' && window.hora_recogida) || (window._msaFormState && window._msaFormState.time) || '';
   const dur = getSelectedTotalMinutes();
   const stBox = $('#availStatus');
   const tensSelect = $('#b_tens');
@@ -5080,6 +5115,8 @@ function updateSlots(keepCurrentTime = true){
             timeSelect.innerHTML += `<option value="${prevTime}">${prevTime} hrs</option>`;
           }
           timeSelect.value = prevTime;
+          if(hRecHiddenEl) hRecHiddenEl.value = prevTime;
+          window.hora_recogida = prevTime;
           window._msaFormState = window._msaFormState || {};
           window._msaFormState.time = prevTime;
         } else {
@@ -5724,7 +5761,12 @@ function calcSuggestedPickup(source){
     selectedBlock = targetBlock;
     updateSlots(true);
 
-    // 4. FIJAR LA HORA OFICIAL DE RECOGIDA EN #b_time
+    // 4. FIJAR LA HORA OFICIAL DE RECOGIDA EN #b_time Y EN #hora_recogida
+    const hRecPersist = document.getElementById('hora_recogida');
+    if(hRecPersist) hRecPersist.value = targetSlotStr;
+    window.hora_recogida = targetSlotStr;
+    window._msaFormState = window._msaFormState || {};
+    window._msaFormState.time = targetSlotStr;
     const timeSel = $('#b_time');
     if(timeSel){
       if(timeSel.options && typeof timeSel.options[Symbol.iterator] === 'function'){
@@ -6010,7 +6052,11 @@ async function submitBooking(ev){
   recalcAll();
 
   const date = $('#b_date').value;
-  const timeStr = $('#b_time').value;
+  const hRecSub = document.getElementById('hora_recogida');
+  const timeStr = ($('#b_time') && $('#b_time').value) || (hRecSub && hRecSub.value) || (typeof window.hora_recogida !== 'undefined' && window.hora_recogida) || (window._msaFormState && window._msaFormState.time) || '';
+  if($('#b_time') && !$('#b_time').value && timeStr) $('#b_time').value = timeStr;
+  if(hRecSub && !hRecSub.value && timeStr) hRecSub.value = timeStr;
+  window.hora_recogida = timeStr;
   const dur = getSelectedTotalMinutes();
 
   if(!selectedBlock && timeStr && !isInter){
@@ -6469,7 +6515,9 @@ async function submitBooking(ev){
           : `• Jornada: ${getJornadaLabel(currentJornada, mode)}\n`)) +
     `• Fecha: ${formatHumanDate(date)} (${date})\n` +
     `• Turno / Bloque: ${blockHuman}\n` +
-    `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n` +
+    (mode === '4' && selectedEventSubMode === 'sin_traslado'
+      ? `• Horario de Atención: Llegada al evento / Inicio atención: ${timeStr} hrs → Término atención: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`
+      : `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
     (isMiddayCase ? `• ⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.\n` : '') +
     `• Dirección: ${from}${depto ? ` (${depto})` : ''}\n` +
     (showDest ? `• Destino / Recinto: ${to}\n` : '') +
@@ -6510,7 +6558,9 @@ async function submitBooking(ev){
         ${mode === '5' ? `<li><span>🗺️ <b>Región del Programa:</b></span> <span><b>${e(selectedInterRegion)}</b></span></li>` : ''}
         <li><span>📅 <b>Fecha Reservada:</b></span> <span><b>${e(formatHumanDate(date))}</b></span></li>
         <li><span>🌅 <b>Bloque de Agenda:</b></span> <span><b>${e(blockHuman)}</b></span></li>
-        <li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>
+        ${(mode === '4' && selectedEventSubMode === 'sin_traslado')
+          ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al evento / Inicio atención: <b>${e(timeStr)} hrs</b> → Término atención: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
+          : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
         ${isMiddayCase ? `<li style="background:#FEF2F2;border:1px solid #EF4444;color:#B91C1C"><span>⚠️ <b>Observación de Horario:</b></span> <b>⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.</b></li>` : ''}
         ${endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : ''}
         ${mode === '5' ? `<li><span>🛡️ <b>Seguridad Vial y Descanso:</b></span> <span>Bloquea jornada completa de la fecha y el Turno Noche de la víspera (noche anterior)</span></li>` : ''}
@@ -6658,12 +6708,22 @@ let _msaResizeDebounceTimer = null;
 window.addEventListener('resize', () => {
   if(_msaResizeDebounceTimer) clearTimeout(_msaResizeDebounceTimer);
   _msaResizeDebounceTimer = setTimeout(() => {
+    // Blindaje UX: Únicamente redibujar canvas del mapa, sin alterar ni resetear inputs ni variables horarias del formulario
     if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function'){
       try {
         map.invalidateSize({ pan: false });
       } catch(e){}
     }
   }, 120);
+});
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function'){
+      try {
+        map.invalidateSize({ pan: false });
+      } catch(e){}
+    }
+  }, 150);
 });
 
 
