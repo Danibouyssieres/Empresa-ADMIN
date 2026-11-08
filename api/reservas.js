@@ -468,7 +468,7 @@ export default async function handler(req) {
 
       const date = url.searchParams.get('date');
       const st = url.searchParams.get('st');
-
+      let sbDiag = null;
       if (supabaseUrl && (supabaseAnonKey || supabaseServiceKey)) {
         const readKey = supabaseServiceKey || supabaseAnonKey;
         try {
@@ -488,7 +488,6 @@ export default async function handler(req) {
             },
           });
 
-          let sbDiag = null;
           if (sbRes.ok) {
             let data = await sbRes.json();
             if (Array.isArray(data)) {
