@@ -487,6 +487,7 @@ export default async function handler(req) {
             },
           });
 
+          let sbDiag = null;
           if (sbRes.ok) {
             let data = await sbRes.json();
             if (Array.isArray(data)) {
@@ -505,7 +506,10 @@ export default async function handler(req) {
               { status: 200, headers: corsHeaders }
             );
           }
-        } catch (eGet) {}
+        } else {
+            sbDiag = { status: sbRes.status, text: await sbRes.text().catch(() => '') };
+          }
+        } catch (eGet) { sbDiag = { exception: eGet.message }; }
       }
 
       // Fallback a edgeReservasStore
@@ -522,7 +526,7 @@ export default async function handler(req) {
         };
       });
       return new Response(
-        JSON.stringify({ ok: true, source: 'edge-store', data: normalizedResults }),
+        JSON.stringify({ ok: true, source: 'edge-store', data: normalizedResults, sbDiag: sbDiag }),
         { status: 200, headers: corsHeaders }
       );
     }

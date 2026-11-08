@@ -166,8 +166,9 @@ export default async function handler(req) {
       });
 
       if (!sbRes.ok) {
+        const errText = await sbRes.text().catch(() => '');
         return new Response(
-          JSON.stringify({ ok: false, error: 'Error al consultar disponibilidad' }),
+          JSON.stringify({ ok: false, error: 'Error al consultar disponibilidad', sbStatus: sbRes.status, sbError: errText, sbUrl }),
           { status: 500, headers: corsHeaders }
         );
       }
