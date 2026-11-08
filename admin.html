@@ -129,35 +129,34 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 <!-- =========================================================================
      PLANTILLA OCULTA: BOLETA / COMPROBANTE MÉDICO DE ATENCIÓN EN PDF (html2pdf)
      ========================================================================= -->
-<div id="recibo-pdf" style="display:none;width:640px;max-width:640px;background:#ffffff;color:#0f172a;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:14px 22px;box-sizing:border-box;border:1px solid #cbd5e1;margin:0 auto;page-break-inside:avoid;page-break-after:avoid">
+<div id="recibo-pdf" style="display:none;width:100%;max-width:190mm;margin:12mm auto;padding:0;background:#ffffff;color:#0f172a;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-sizing:border-box;page-break-inside:avoid;page-break-after:avoid">
   <!-- ENCABEZADO OFICIAL -->
-  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:8px;margin-bottom:8px;box-sizing:border-box">
-    <div style="display:flex;gap:12px;align-items:center">
-      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida" style="height:44px;width:auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:10px;margin-bottom:10px;box-sizing:border-box">
+    <div style="display:flex;gap:14px;align-items:center">
+      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida" style="height:52px;width:auto">
       <div>
-        <h1 style="font-size:1.05rem;font-weight:800;color:#0f766e;margin:0;letter-spacing:-.01em;font-family:Georgia,serif">MOVILIDAD Y SALUD ASISTIDA SpA</h1>
-        <div style="font-size:.74rem;color:#475569;margin-top:1px;font-weight:600">Servicios Integrales de Asistencia Clínica, Cuidados y Traslados</div>
-        <div style="font-size:.70rem;color:#64748b">R.U.T.: <b>78.521.776-4</b> · WhatsApp: <b>+56 9 2999 0095</b> · www.movilidadysaludasistida.cl</div>
+        <div style="font-size:.86rem;font-weight:800;color:#0f766e;letter-spacing:-.01em;line-height:1.3">Servicios Integrales de Asistencia Clínica, Cuidados y Traslados SpA</div>
+        <div style="font-size:.74rem;color:#475569;margin-top:3px;line-height:1.3">R.U.T.: <b>78.521.776-4</b> &nbsp;|&nbsp; WhatsApp: <b>+56 9 2999 0095</b> &nbsp;|&nbsp; www.movilidadysaludasistida.cl</div>
       </div>
     </div>
-    <div style="border:1.5px solid #0f766e;border-radius:6px;padding:5px 10px;text-align:center;min-width:210px;background:#f8fafc;box-sizing:border-box">
+    <div style="border:1.5px solid #0f766e;border-radius:6px;padding:6px 12px;text-align:center;min-width:215px;background:#f8fafc;box-sizing:border-box">
       <div style="font-size:.66rem;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.02em;line-height:1.2">COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN</div>
-      <div style="font-size:1rem;font-weight:800;color:#0f766e;margin:2px 0" id="pdfFolio">FOLIO: #MSA-001</div>
-      <div style="font-size:.68rem;color:#475569" id="pdfFechaEmision">Fecha Emisión: 07/11/2026</div>
+      <div style="font-size:1.05rem;font-weight:800;color:#0f766e;margin:2px 0" id="pdfFolio">FOLIO: #MSA-001</div>
+      <div style="font-size:.70rem;color:#475569" id="pdfFechaEmision">Fecha Emisión: 07/11/2026</div>
     </div>
   </div>
 
   <!-- BLOQUE PERSONAS: PACIENTE, CONTRATANTE Y TENS -->
-  <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:7px 10px;margin-bottom:7px;box-sizing:border-box">
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box">
     <div style="font-weight:800;color:#0f766e;font-size:.74rem;text-transform:uppercase;margin-bottom:4px;letter-spacing:.02em">
       👤 Identificación del Paciente, Contratante y Profesional TENS
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 10px;font-size:.74rem;line-height:1.35">
+    <div style="display:grid;grid-template-columns:1.05fr 1fr 0.95fr;gap:4px 12px;font-size:.74rem;line-height:1.35">
       <div>
         <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Paciente</div>
         <div><b>Nombre:</b> <span id="pdfPatNombre">Rosa Medina</span></div>
         <div><b>RUT:</b> <span id="pdfPatRut">12.345.678-9</span></div>
-        <div><b>Edad / Dx:</b> <span id="pdfPatEdad">82 años</span> · <span id="pdfPatDx">Control cardiológico</span></div>
+        <div><b>Edad:</b> <span id="pdfPatEdad">82 años</span> &nbsp;|&nbsp; <b>Motivo/Dx:</b> <span id="pdfPatDx">Control cardiológico</span></div>
       </div>
       <div>
         <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Contratante / Responsable</div>
@@ -169,19 +168,18 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
         <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Profesional TENS a Cargo</div>
         <div><b>Nombre:</b> <span id="pdfTensNombre">Daniela González Bouyssieres</span></div>
         <div><b>Reg. SIS:</b> <span id="pdfTensSis">Nº 442762</span></div>
-        <div><b>Móvil/Unidad:</b> <span id="pdfTensVeh">Unidad 1 · Clase A2</span></div>
       </div>
     </div>
   </div>
 
   <!-- BLOQUE LOGÍSTICA Y ATENCIÓN -->
-  <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:7px 10px;margin-bottom:7px;box-sizing:border-box">
+  <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box">
     <div style="font-weight:800;color:#0f766e;font-size:.74rem;text-transform:uppercase;margin-bottom:4px;letter-spacing:.02em">
       📍 Detalle de Trayecto, Ayuda Técnica y Horarios en Terreno
     </div>
     <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:4px 12px;font-size:.74rem;line-height:1.35">
       <div>
-        <div><b>Origen:</b> <span id="pdfDirOrigen">Av. Pajaritos 1450, Maipú</span> (<b id="pdfAnilloComunal" style="color:#0f766e">Anillo 1</b>)</div>
+        <div><b>Origen:</b> <span id="pdfDirOrigen">Av. Pajaritos 1450, Maipú</span></div>
         <div><b>Destino:</b> <span id="pdfDirDestino">Clínica Santa María, Providencia</span></div>
         <div><b>Modalidad:</b> <span id="pdfSvcModalidad">1. Servicio Integral (Asistencia + Traslado)</span></div>
       </div>
@@ -229,10 +227,8 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
   </div>
 
   <!-- LÍNEA COMPACTA DE ESTADO Y LIQUIDACIÓN -->
-  <div style="margin-top:6px;padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;font-size:.76rem;text-align:center;box-sizing:border-box">
+  <div style="margin-top:8px;padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;text-align:center;box-sizing:border-box">
     <b>ESTADO:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span>
-    <span style="color:#94a3b8;margin:0 8px">|</span>
-    <b>Medio:</b> <span id="pdfMedioPago">Transferencia Electrónica</span>
   </div>
 </div>
 
@@ -399,19 +395,9 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     </div>
 
     <!-- DATOS COMPLEMENTARIOS PARA LA BOLETA -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:12px">
-      <div>
-        <label for="adm_rutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Boleta) *</label>
-        <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)" maxlength="12" autocomplete="off" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)">
-      </div>
-      <div>
-        <label for="adm_medioPago" style="font-weight:700;display:block;margin-bottom:4px">Medio de Pago del Saldo *</label>
-        <select id="adm_medioPago" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
-          <option value="Transferencia Electrónica" selected>Transferencia Electrónica</option>
-          <option value="Tarjeta Débito / Crédito (POS CompraAquí)">Tarjeta Débito / Crédito (POS CompraAquí)</option>
-          <option value="Efectivo en terreno">Efectivo en terreno</option>
-        </select>
-      </div>
+    <div style="margin-bottom:12px;font-size:13px">
+      <label for="adm_rutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Boleta) *</label>
+      <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)" maxlength="12" autocomplete="off" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)">
     </div>
 
     <div style="margin-bottom:14px;font-size:13px">
@@ -4504,7 +4490,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   s.paid = calc.cobroTotal + calc.parking;
   s.saldoPendiente = 0;
   s.medioPago = medioPago;
-  s.obs = (s.obs ? s.obs + ' · ' : '') + `Servicio liquidado y pagado (${medioPago}). Saldo terreno: ${$c(calc.saldoFinal)} (Estacionamiento: ${$c(calc.parking)}).`;
+  s.obs = (s.obs ? s.obs + ' · ' : '') + `Servicio liquidado y pagado en terreno. Saldo: ${$c(calc.saldoFinal)}${calc.parking ? ` (Estacionamiento: ${$c(calc.parking)})` : ''}.`;
   s.liquidation = {
     subtotalReal: calc.subtotalReal,
     cobroTotal: calc.cobroTotal,
@@ -4545,7 +4531,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if($('#pdfTensSis')) $('#pdfTensSis').textContent = tech.rut;
   if($('#pdfTensVeh')) $('#pdfTensVeh').textContent = tech.veh || 'Unidad 1 · Clase A2';
 
-  if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = s.from;
+  const cleanOrigen = (s.from || '').replace(/\s*\([^)]*anillo[^)]*\)/gi, '').trim();
+  if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = cleanOrigen;
   if($('#pdfAnilloComunal')) $('#pdfAnilloComunal').textContent = calc.ringName || 'Anillo 1';
   if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = s.to || s.from;
   if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = `Modalidad ${mode}`;
@@ -4648,7 +4635,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const phRaw = s.ph || '';
   const digits = phRaw.replace(/\D/g, '');
   const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
-  const waMsg = `Hola ${clientName}! Le adjuntamos su Comprobante de Atención y Liquidación Folio #${cleanFolio} en estado PAGADO Y LIQUIDADO (${medioPago}). Muchísimas gracias por confiar en Movilidad y Salud Asistida SpA.`;
+  const waMsg = `Hola ${clientName}! Le adjuntamos su Comprobante de Atención y Liquidación Folio #${cleanFolio} en estado PAGADO Y LIQUIDADO. Muchísimas gracias por confiar en Movilidad y Salud Asistida SpA.`;
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
 
   try { window.open(waUrl, '_blank'); } catch(e){}
