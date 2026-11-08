@@ -1686,7 +1686,7 @@ function detail(){
     <a href="https://wa.me/${(s.ph||'').replace(/\D/g,'').startsWith('56')?(s.ph||'').replace(/\D/g,''):'56'+(s.ph||'').replace(/\D/g,'')}?text=${encodeURIComponent('Hola ' + (s.coord||s.pat) + ', le contactamos de Movilidad y Salud Asistida respecto a su atención Folio #MSA-' + s.id)}" target="_blank" rel="noopener" style="background:#25D366;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">💬 WhatsApp</a>
     <a href="https://waze.com/ul?q=${encodeURIComponent(s.to)}" target="_blank" rel="noopener" style="background:#0284c7;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">🚙 Waze</a>
     <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.to)}" target="_blank" rel="noopener" style="background:#475569;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">🗺️ Google Maps</a>
-    <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-weight:700;font-size:12px">🏁 Liquidar / Finalizar Atención</button>
+    <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${s.id}')" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-weight:700;font-size:12px">🏁 Liquidar / Finalizar Atención</button>
     <button type="button" onclick="eliminarServicioDelCalendarioAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#dc2626;border:1px solid #b91c1c;color:#ffffff;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="Anular o eliminar este servicio del calendario">🗑️ Anular / Eliminar del Calendario</button>
   </div>
   <div class=row style="margin-top:10px">
@@ -3933,7 +3933,7 @@ function abrirMenuContextualServicio(svcId){
       <a href="${mapsDestUrl}" target="_blank" rel="noopener" style="background:#475569;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
         🗺️ Google Maps
       </a>
-      <button type="button" class="p" onclick="cerrarModalContextualServicioAdmin(); abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#0f766e;border-color:#0f766e;padding:8px 14px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+      <button type="button" class="p" onclick="cerrarModalContextualServicioAdmin(); abrirModalFinalizarAtencionAdmin('${s.id}')" style="background:#0f766e;border-color:#0f766e;padding:8px 14px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
         🏁 Liquidar / Finalizar Atención
       </button>
       <button type="button" onclick="cerrarModalContextualServicioAdmin(); cancelReservation('${formatFolioMSA(s.folio, s.id)}')" style="background:#ef4444;border:1px solid #ef4444;color:#ffffff;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
@@ -4066,7 +4066,7 @@ function card(s){
         ${isSvcCompleted(s.st) ? `
           <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px">
             <span style="font-size:12.5px;color:#334155;font-weight:700">🏁 Servicio Finalizado y Liquidado</span>
-            <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+            <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${s.id}')" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
               📄 Ver Comprobante y Liquidación
             </button>
           </div>
@@ -4074,7 +4074,7 @@ function card(s){
           <div style="background:rgba(15,118,110,0.1);border:1px solid #0f766e;border-radius:6px;padding:6px 10px;font-size:12px;color:#0f766e;font-weight:700;margin-bottom:8px">
             ⏱️ Atención en curso iniciada a las ${s.startActualTime || fm(s.start || 540)} hrs
           </div>
-          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#15803d;border-color:#15803d;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${s.id}')" style="background:#15803d;border-color:#15803d;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
             🏁 Finalizar Servicio y Cobro en Terreno
           </button>
         ` : (s.st === 'En Ruta' || s.st === 'en_ruta') ? `
@@ -4082,7 +4082,7 @@ function card(s){
             🩺 Iniciar Atención / En Domicilio
           </button>
         ` : (s.st === 'Finalizado') ? `
-          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#475569;border-color:#475569;width:100%;padding:9px 14px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${s.id}')" style="background:#475569;border-color:#475569;width:100%;padding:9px 14px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
             📄 Ver Comprobante y Liquidación
           </button>
         ` : `
@@ -4268,7 +4268,7 @@ function renderFieldCheckoutSummary(s){
 }
 
 function onFieldCheckoutRecalc(){
-  const s = D.svcs.find(item => item.id === currentClosingSvcId);
+  const s = findReserva(currentClosingSvcId) || (D.svcs || []).find(item => item && (item.id === currentClosingSvcId || item.id == currentClosingSvcId || String(item.id) === String(currentClosingSvcId)));
   if(!s) return;
 
   const hInicio = ($('#adm_horaInicioReal') && $('#adm_horaInicioReal').value) || s.startActualTime || fm(s.start || 540);
@@ -4336,7 +4336,7 @@ function onFieldCheckoutRecalc(){
 
 function solicitarPagoWhatsAppAdmin(){
   onFieldCheckoutRecalc();
-  const s = D.svcs.find(item => item.id === currentClosingSvcId);
+  const s = findReserva(currentClosingSvcId) || (D.svcs || []).find(item => item && (item.id === currentClosingSvcId || item.id == currentClosingSvcId || String(item.id) === String(currentClosingSvcId)));
   if(!s){ alert('Servicio no encontrado'); return; }
 
   const calc = currentCheckoutCalc || calculateFieldLiquidation(s, s.dur || 120, ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0);
@@ -4384,12 +4384,15 @@ Agradecemos remitir el comprobante de transferencia a este mismo chat para gener
 window.solicitarPagoWhatsAppAdmin = solicitarPagoWhatsAppAdmin;
 
 function abrirModalFinalizarAtencionAdmin(svcId, options){
-  currentClosingSvcId = svcId;
   const modal = $('#modalFinalizarAtencionAdmin');
   if(!modal) return;
 
-  const s = D.svcs.find(item => item.id === svcId);
-  if(!s) return;
+  const s = findReserva(svcId) || (D.svcs || []).find(item => item && (item.id === svcId || item.id == svcId || String(item.id) === String(svcId)));
+  if(!s){
+    console.error('abrirModalFinalizarAtencionAdmin: no service found for', svcId);
+    return;
+  }
+  currentClosingSvcId = s.id;
 
   if(!s.endedAt){
     s.endedAt = new Date().toISOString();
@@ -4443,7 +4446,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const folioSII = (customOpts && customOpts.folioSII !== undefined) ? customOpts.folioSII : ($('#adm_folioSII') ? $('#adm_folioSII').value.trim() : '');
   const parkingAmount = (customOpts && customOpts.parking !== undefined) ? customOpts.parking : (($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0);
 
-  const s = D.svcs.find(item => item.id === currentClosingSvcId);
+  const s = findReserva(currentClosingSvcId) || (D.svcs || []).find(item => item && (item.id === currentClosingSvcId || item.id == currentClosingSvcId || String(item.id) === String(currentClosingSvcId)));
   if(!s){ alert('Servicio no encontrado'); return; }
 
   const folio = s.id;
