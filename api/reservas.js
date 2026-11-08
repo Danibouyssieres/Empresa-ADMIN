@@ -506,11 +506,12 @@ export default async function handler(req) {
               JSON.stringify({ ok: true, source: 'supabase', data }),
               { status: 200, headers: corsHeaders }
             );
-          }
-        } else {
+          } else {
             sbDiag = { status: sbRes.status, text: await sbRes.text().catch(() => '') };
           }
-        } catch (eGet) { sbDiag = { exception: eGet.message }; }
+        } catch (eGet) {
+          sbDiag = { exception: eGet.message };
+        }
       }
 
       // Fallback a edgeReservasStore
