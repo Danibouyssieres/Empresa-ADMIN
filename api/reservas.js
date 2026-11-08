@@ -139,8 +139,8 @@ export default async function handler(req) {
 
       const patName = String(body.paciente || body.pat || body.pat_name || '').trim();
       const coordPhone = String(body.contacto || body.ph || body.coord_phone || '').trim();
-      const fromAddr = String(body.origen || body.from || body.from_addr || '').trim();
-      const toAddr = String(body.destino || body.to || body.to_addr || '').trim();
+      const fromAddr = String(body.origen || body.from || body.from_addr || body.direccion_domicilio || body.recinto_direccion || '').trim();
+      const toAddr = String(body.destino || body.to || body.to_addr || body.recinto_direccion || body.destino_interregional || '').trim();
       const mode = String(body.modalidad || body.svcType || body.svc_type || '1').trim();
       const turno = String(body.turno || body.block || 'manana').trim();
       const fare = Number(body.total || body.fare || 0);
@@ -270,12 +270,43 @@ export default async function handler(req) {
       const folio = 'MSA-' + String(nextNum).padStart(3, '0');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
+      // Parámetros adaptativos por modalidad
+      const ruta = String(body.ruta || '').trim();
+      const km = Number(body.km || 0);
+      const horaCita = String(body.hora_cita || body.appTime || '').trim();
+      const horaRecogida = String(body.hora_recogida || body.time || body.hora || '10:00').trim();
+      const horaInicioAtencion = String(body.hora_inicio_atencion || body.time || '').trim();
+      const duracion = String(body.duracion || '').trim();
+      const recintoDir = String(body.recinto_direccion || toAddr || fromAddr).trim();
+      const packSel = String(body.pack_seleccionado || '').trim();
+      const destinoInter = String(body.destino_interregional || toAddr).trim();
+      const salidaMat = String(body.salida_matutina || body.time || '07:00').trim();
+
+      let metaObs = '';
+      if (mode === '1' || mode === '2') {
+        metaObs = `[Modalidad ${mode}: Ruta ${ruta || fromAddr + ' ↔ ' + toAddr} | ${km} km | Cita: ${horaCita || 'N/A'} | Recogida: ${horaRecogida}]`;
+      } else if (mode === '3') {
+        metaObs = `[Modalidad 3 (Cuidados Domicilio): ${body.direccion_domicilio || fromAddr} | Inicio: ${horaInicioAtencion || '10:00'} | Duración: ${duracion || '2 hrs'}]`;
+      } else if (mode === '4') {
+        metaObs = `[Modalidad 4 (Eventos): Recinto ${recintoDir} | Pack: ${packSel || 'Plan Base'} | Inicio: ${horaInicioAtencion || '10:00'}]`;
+      } else if (mode === '5') {
+        metaObs = `[Modalidad 5 (Interregional): Destino ${destinoInter} | Salida: ${salidaMat}]`;
+      }
+
+      const combinedObs = [
+        String(body.obs || '').trim(),
+        metaObs
+      ].filter(Boolean).join(' · ');
+
+      const timeVal = String(body.time || horaRecogida || horaInicioAtencion || salidaMat || body.hora || '10:00').trim();
+      const durVal = Number(body.dur || body.dur_min || 120);
+
       const newReserva = {
         folio: folio,
         date: date,
-        time: String(body.time || body.hora || '10:00').trim(),
+        time: timeVal,
         start_min: Number(body.start || body.start_min || 600),
-        dur_min: Number(body.dur || body.dur_min || 120),
+        dur_min: durVal,
         svc_type: mode,
         block: turno,
         pat_name: patName,
@@ -299,7 +330,7 @@ export default async function handler(req) {
         abono: abono,
         paid: Number(body.paid || 0),
         tax_doc: typeof body.taxDoc === 'object' ? JSON.stringify(body.taxDoc) : String(body.tax_doc || ''),
-        obs: String(body.obs || '').trim(),
+        obs: combinedObs,
         st: 'pendiente_abono',
         created_at: new Date().toISOString()
       };

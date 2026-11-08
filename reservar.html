@@ -2344,6 +2344,11 @@ function onStayDestinoChange(){
 window.onStayDestinoChange = onStayDestinoChange;
 
 function onAppTimeChange(){
+  const curApp = ($('#appTimeInput') && $('#appTimeInput').value) || ($('#hora-cita-medica') && $('#hora-cita-medica').value) || '';
+  if(curApp){
+    window._msaFormState = window._msaFormState || {};
+    window._msaFormState.appTime = curApp;
+  }
   recalcularTodoElServicio('appTime');
 }
 window.onAppTimeChange = onAppTimeChange;
@@ -4201,11 +4206,15 @@ function selectShiftBlock(blockId){
 }
 
 function onPickupTimeChange(){
+  const curTime = $('#b_time') ? $('#b_time').value : '';
+  if(curTime){
+    window._msaFormState = window._msaFormState || {};
+    window._msaFormState.time = curTime;
+  }
   updateSlots(true);
   actualizarTarifaSegunAgenda();
   const mode = $('#b_svc_type') ? $('#b_svc_type').value : '1';
   if(mode === '4'){
-    const curTime = $('#b_time') ? $('#b_time').value : '';
     const evSelect = $('#selEventStart1');
     if(evSelect && curTime && [...evSelect.options].some(o => o.value === curTime)){
       evSelect.value = curTime;
@@ -4466,7 +4475,7 @@ function renderCalendar(){
   grid.innerHTML = html;
 }
 
-function updateSlots(keepCurrentTime = false){
+function updateSlots(keepCurrentTime = true){
   D = load() || D;
   const mode = $('#b_svc_type').value;
   const isInter = mode === '5';
@@ -4678,7 +4687,7 @@ function updateSlots(keepCurrentTime = false){
 
   // Poblar desplegable #b_time según el bloque activo
   const timeSelect = $('#b_time');
-  const prevTime = timeSelect ? timeSelect.value : '';
+  const prevTime = (timeSelect ? timeSelect.value : '') || (window._msaFormState && window._msaFormState.time) || '';
   const dur = getSelectedTotalMinutes();
   const stBox = $('#availStatus');
   const tensSelect = $('#b_tens');
@@ -4777,17 +4786,19 @@ function updateSlots(keepCurrentTime = false){
       let prevTimeExceededShift = false;
       const isTransfer = (mode === '1' || mode === '2');
       if(keepCurrentTime && prevTime){
-        if(validChoices.includes(prevTime) || (isTransfer && (window.isMiddaySpecial || prevTime)) || mode === '3' || mode === '4'){
+        if(validChoices.includes(prevTime) || isTransfer || mode === '3' || mode === '4' || mode === '5' || window.isMiddaySpecial){
           const hasOpt = timeSelect.options ? [...timeSelect.options].some(o => o.value === prevTime) : false;
-          if(!hasOpt && (isTransfer || mode === '3' || mode === '4')){
+          if(!hasOpt){
             timeSelect.innerHTML += `<option value="${prevTime}">${prevTime} hrs</option>`;
           }
           timeSelect.value = prevTime;
+          window._msaFormState = window._msaFormState || {};
+          window._msaFormState.time = prevTime;
         } else {
           timeSelect.value = '';
           prevTimeExceededShift = true;
         }
-      } else {
+      } else if(!keepCurrentTime){
         timeSelect.value = '';
       }
 
@@ -5511,7 +5522,7 @@ window.applySuggestedPickup = recalcularTodoElServicio;
 function populateAppTimeOptions(mode){
   const appTimeSel = $('#appTimeInput') || $('#hora-cita-medica');
   if(!appTimeSel) return;
-  const currentVal = appTimeSel.value;
+  const currentVal = appTimeSel.value || (window._msaFormState && window._msaFormState.appTime) || '';
   const isInter = (mode === '5');
 
   let startMin = 6 * 60;
@@ -5967,92 +5978,142 @@ async function submitBooking(ev){
     submitBtn.innerHTML = '⏳ Conectando con servidor y asegurando cupo...';
   }
 
-  const abonoVal = lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50;
-  const destinoVal = showDest ? to : (mode === '4' ? 'Atención en recinto del evento (Sin traslado)' : 'Atención en domicilio');
-  const turnoVal = isInter ? 'full' : selectedBlock;
-
-  const payload = {
-    modalidad: mode,
-    fecha: date,
-    turno: turnoVal,
-    paciente: pat,
-    contacto: ph,
-    origen: from + (depto ? ` (${depto})` : ''),
-    destino: destinoVal,
-    total: lastFinalTotal,
-    abono_requerido: abonoVal,
-
-    // Parámetros canónicos para ficha clínica completa
-    date: date,
-    time: timeStr || '10:00',
-    start: start,
-    dur: dur,
-    pat: pat,
-    patPhone: patPhone,
-    age: age,
-    dx: fullDx,
-    coord: coord,
-    coordType: isSameAsPatient ? 'paciente' : 'familiar',
-    ph: ph,
-    from: from,
-    depto: depto,
-    to: destinoVal,
-    mob: mob,
-    ayuda_tecnica: ayudaTecnica,
-    ayudaTecnica: ayudaTecnica,
-    conciencia: conciencia,
-    alergias: allergyText,
-    medicamentos: medsText,
-    patologias: pathologies,
-    obs: obs,
-    taxDoc: {
-      type: taxDocType,
-      label: isInvoice ? 'Factura Electrónica Exenta' : 'Boleta Electrónica Exenta',
-      rs: taxRS,
-      rut: taxRUT,
-      giro: taxGiro,
-      dir: taxDir
-    },
-    fare: lastFinalTotal,
-    abono: abonoVal,
-    st: 'pendiente_abono',
-    svcType: mode,
-    block: turnoVal
-  };
-
-  function formatFolioMSA(folio, id) {
-  const str = String(folio || id || '').trim();
-  if (!str) return 'MSA-001';
-  const m = str.match(/(\d+)/);
-  if (m) {
-    const n = parseInt(m[1], 10);
-    if (!isNaN(n) && n > 0) return 'MSA-' + String(n).padStart(3, '0');
-  }
-  return 'MSA-001';
-}
-window.formatFolioMSA = formatFolioMSA;
-
-  let apiOk = false;
-  let realFolio = '';
-  let apiErrorMsg = '';
-
-  const clientConf = (window.MsaBlocksService && typeof window.MsaBlocksService.getConfig === 'function')
-    ? window.MsaBlocksService.getConfig()
-    : { url: '', key: '' };
-
-  const reqHeaders = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  };
-  if (clientConf.url) reqHeaders['x-supabase-url'] = clientConf.url;
-  if (clientConf.key) reqHeaders['x-supabase-key'] = clientConf.key;
+  let submissionSucceeded = false;
+  let abortController = null;
+  let abortTimer = null;
 
   try {
+    // Timeout de seguridad de 10 segundos
+    if(typeof AbortController !== 'undefined'){
+      abortController = new AbortController();
+      abortTimer = setTimeout(() => {
+        try { abortController.abort(); } catch(e){}
+      }, 10000);
+    }
+
+    const abonoVal = lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50;
+    const destinoVal = showDest ? to : (mode === '4' ? 'Atención en recinto del evento (Sin traslado)' : 'Atención en domicilio');
+    const turnoVal = isInter ? 'full' : selectedBlock;
+    const appTimeVal = ($('#appTimeInput') && $('#appTimeInput').value) || ($('#hora-cita-medica') && $('#hora-cita-medica').value) || '';
+
+    // Payload adaptativo por modalidad
+    let adaptivePayload = {};
+    if(mode === '1' || mode === '2'){
+      adaptivePayload = {
+        ruta: `${from} ↔ ${to} (${modeLabel})`,
+        km: Number(lastTotalKm.toFixed(1)),
+        hora_cita: appTimeVal,
+        hora_recogida: timeStr
+      };
+    } else if(mode === '3'){
+      adaptivePayload = {
+        direccion_domicilio: from + (depto ? ` (${depto})` : ''),
+        hora_inicio_atencion: timeStr,
+        duracion: fmtHoursClean(dur)
+      };
+    } else if(mode === '4'){
+      adaptivePayload = {
+        recinto_direccion: (isConEvento ? `${from} → ${to}` : from) + (depto ? ` (${depto})` : ''),
+        pack_seleccionado: durationText,
+        hora_inicio: timeStr
+      };
+    } else if(mode === '5'){
+      adaptivePayload = {
+        destino_interregional: selectedInterRegion || 'Interregional',
+        salida_matutina: timeStr
+      };
+    }
+
+    const payload = {
+      modalidad: mode,
+      fecha: date,
+      turno: turnoVal,
+      paciente: pat,
+      contacto: ph,
+      origen: from + (depto ? ` (${depto})` : ''),
+      destino: destinoVal,
+      total: lastFinalTotal,
+      abono_requerido: abonoVal,
+
+      // Inyección adaptativa
+      ...adaptivePayload,
+
+      // Parámetros canónicos para ficha clínica completa
+      date: date,
+      time: timeStr || '10:00',
+      start: start,
+      dur: dur,
+      pat: pat,
+      patPhone: patPhone,
+      age: age,
+      dx: fullDx,
+      coord: coord,
+      coordType: isSameAsPatient ? 'paciente' : 'familiar',
+      ph: ph,
+      from: from,
+      depto: depto,
+      to: destinoVal,
+      mob: mob,
+      ayuda_tecnica: ayudaTecnica,
+      ayudaTecnica: ayudaTecnica,
+      conciencia: conciencia,
+      alergias: allergyText,
+      medicamentos: medsText,
+      patologias: pathologies,
+      obs: obs,
+      taxDoc: {
+        type: taxDocType,
+        label: isInvoice ? 'Factura Electrónica Exenta' : 'Boleta Electrónica Exenta',
+        rs: taxRS,
+        rut: taxRUT,
+        giro: taxGiro,
+        dir: taxDir
+      },
+      fare: lastFinalTotal,
+      abono: abonoVal,
+      st: 'pendiente_abono',
+      svcType: mode,
+      block: turnoVal
+    };
+
+    function formatFolioMSA(folio, id) {
+      const str = String(folio || id || '').trim();
+      if (!str) return 'MSA-001';
+      const m = str.match(/(\d+)/);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!isNaN(n) && n > 0) return 'MSA-' + String(n).padStart(3, '0');
+      }
+      return 'MSA-001';
+    }
+    window.formatFolioMSA = formatFolioMSA;
+
+    let apiOk = false;
+    let realFolio = '';
+    let apiErrorMsg = '';
+
+    const clientConf = (window.MsaBlocksService && typeof window.MsaBlocksService.getConfig === 'function')
+      ? window.MsaBlocksService.getConfig()
+      : { url: '', key: '' };
+
+    const reqHeaders = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    if (clientConf.url) reqHeaders['x-supabase-url'] = clientConf.url;
+    if (clientConf.key) reqHeaders['x-supabase-key'] = clientConf.key;
+
     const resp = await fetch('/api/reservas', {
       method: 'POST',
       headers: reqHeaders,
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: abortController ? abortController.signal : undefined
     });
+
+    if(abortTimer){
+      clearTimeout(abortTimer);
+      abortTimer = null;
+    }
 
     const respData = await resp.json().catch(() => ({}));
     if (resp.status === 409 || (respData && respData.code === 'CONFLICT_NEXT_MORNING_REST')) {
@@ -6061,25 +6122,18 @@ window.formatFolioMSA = formatFolioMSA;
     } else if (resp.ok && (resp.status === 200 || resp.status === 201) && respData && respData.ok !== false) {
       apiOk = true;
       realFolio = formatFolioMSA(respData.folio || (respData.data && respData.data.folio));
-    } else {
-      // Si la API devolvió folio aun con código 200/aviso o en fallback
-      realFolio = formatFolioMSA(respData && respData.folio);
+    } else if (resp.ok && respData && respData.folio) {
+      realFolio = formatFolioMSA(respData.folio);
       apiOk = true;
+    } else {
+      apiOk = false;
+      apiErrorMsg = (respData && respData.error) || `Error del servidor (${resp.status || 'desconocido'}).`;
     }
-  } catch (fetchErr) {
-    // Resiliencia móvil / offline: asegurar folio estandarizado MSA-XXX y gatillar WhatsApp
-    realFolio = formatFolioMSA(Date.now() % 1000 || '001');
-    apiOk = true;
-  }
 
-  if (!apiOk) {
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = 'Confirmar Pre-Reserva y Continuar';
+    if (!apiOk) {
+      alert(`❌ Error al registrar su pre-reserva:\n\n${apiErrorMsg}\n\nPor favor revise los datos e inténtelo nuevamente.`);
+      return;
     }
-    alert(`❌ Error al registrar su pre-reserva:\n\n${apiErrorMsg}\n\nPor favor revise su conexión a internet e inténtelo nuevamente.`);
-    return;
-  }
 
   const newSvc = {
     id: realFolio,
@@ -6292,29 +6346,60 @@ window.formatFolioMSA = formatFolioMSA;
     </section>
   `;
   window.scrollTo({top:0,behavior:'smooth'});
+    submissionSucceeded = true;
+  } catch(err) {
+    if(abortTimer){
+      clearTimeout(abortTimer);
+      abortTimer = null;
+    }
+    console.error('Error durante la pre-reserva:', err);
+    alert('No se pudo conectar con el servidor. Por favor intente nuevamente.');
+  } finally {
+    if(abortTimer){
+      clearTimeout(abortTimer);
+      abortTimer = null;
+    }
+    if(!submissionSucceeded && submitBtn){
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Confirmar Pre-Reserva y Continuar';
+    }
+  }
 }
 
 addEventListener('storage', ev => {
   if (ev.key === K || ev.key === 'msa-last-block-update' || ev.key === 'msa_blocks') {
     D = load() || D;
-    updateSlots();
+    updateSlots(true);
     if (typeof renderCalendar === 'function') renderCalendar();
   }
   if (ev.key === TM_K) applyTheme(ev.newValue);
 });
 
-
 window.addEventListener('msa-blocks-updated', () => {
   D = load() || D;
-  updateSlots();
+  updateSlots(true);
   if (typeof renderCalendar === 'function') renderCalendar();
   if(typeof syncCentralizedBlocks === "function") syncCentralizedBlocks();
 });
+
 window.addEventListener('focus', () => {
   D = load() || D;
-  if (typeof updateSlots === 'function') updateSlots();
+  if (typeof updateSlots === 'function') updateSlots(true);
   if (typeof renderCalendar === 'function') renderCalendar();
   if (typeof syncCentralizedBlocks === 'function') syncCentralizedBlocks();
+});
+
+// Aislamiento completo de redibujado de mapa ante zoom/resize de ventana
+let _msaResizeDebounceTimer = null;
+window.addEventListener('resize', () => {
+  if(_msaResizeDebounceTimer) clearTimeout(_msaResizeDebounceTimer);
+  _msaResizeDebounceTimer = setTimeout(() => {
+    if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function'){
+      try {
+        map.invalidateSize({ pan: false });
+      } catch(e){}
+    }
+  }, 120);
 });
 
 
