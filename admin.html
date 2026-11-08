@@ -129,43 +129,43 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 <!-- =========================================================================
      PLANTILLA OCULTA: BOLETA / COMPROBANTE MÉDICO DE ATENCIÓN EN PDF (html2pdf)
      ========================================================================= -->
-<div id="recibo-pdf" style="display:none;width:100%;max-width:190mm;margin:12mm auto;padding:0;background:#ffffff;color:#0f172a;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-sizing:border-box;page-break-inside:avoid;page-break-after:avoid">
+<div id="recibo-pdf" style="display:none;width:100%;max-width:185mm;margin:0 auto;padding:8mm 10mm;background:#ffffff;color:#0f172a;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10.5pt;line-height:1.4;box-sizing:border-box">
   <!-- ENCABEZADO OFICIAL -->
-  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:10px;margin-bottom:10px;box-sizing:border-box">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:10px;margin-bottom:12px;box-sizing:border-box;width:100%">
     <div style="display:flex;gap:14px;align-items:center">
-      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida" style="height:52px;width:auto">
+      <img src="Logo de Movilidad y Salud Asistida.png" alt="Logo Movilidad y Salud Asistida" style="height:54px;width:auto">
       <div>
-        <div style="font-size:.86rem;font-weight:800;color:#0f766e;letter-spacing:-.01em;line-height:1.3">Servicios Integrales de Asistencia Clínica, Cuidados y Traslados SpA</div>
-        <div style="font-size:.74rem;color:#475569;margin-top:3px;line-height:1.3">R.U.T.: <b>78.521.776-4</b> &nbsp;|&nbsp; WhatsApp: <b>+56 9 2999 0095</b> &nbsp;|&nbsp; www.movilidadysaludasistida.cl</div>
+        <div style="font-size:11pt;font-weight:800;color:#0f766e;letter-spacing:-.01em;line-height:1.25">Servicios Integrales de Asistencia Clínica, Cuidados y Traslados SpA</div>
+        <div style="font-size:9pt;color:#475569;margin-top:3px;line-height:1.3">R.U.T.: <b>78.521.776-4</b> &nbsp;|&nbsp; WhatsApp: <b>+56 9 2999 0095</b> &nbsp;|&nbsp; www.movilidadysaludasistida.cl</div>
       </div>
     </div>
-    <div style="border:1.5px solid #0f766e;border-radius:6px;padding:6px 12px;text-align:center;min-width:215px;background:#f8fafc;box-sizing:border-box">
-      <div style="font-size:.66rem;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.02em;line-height:1.2">COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN</div>
-      <div style="font-size:1.05rem;font-weight:800;color:#0f766e;margin:2px 0" id="pdfFolio">FOLIO: #MSA-001</div>
-      <div style="font-size:.70rem;color:#475569" id="pdfFechaEmision">Fecha Emisión: 07/11/2026</div>
+    <div style="border:1.5px solid #0f766e;border-radius:6px;padding:6px 14px;text-align:center;min-width:215px;background:#f8fafc;box-sizing:border-box">
+      <div style="font-size:8.5pt;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.02em;line-height:1.2">COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN</div>
+      <div style="font-size:12pt;font-weight:800;color:#0f766e;margin:2px 0" id="pdfFolio">FOLIO: #MSA-001</div>
+      <div style="font-size:9pt;color:#475569" id="pdfFechaEmision">Fecha Emisión: 07/11/2026</div>
     </div>
   </div>
 
   <!-- BLOQUE PERSONAS: PACIENTE, CONTRATANTE Y TENS -->
-  <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box">
-    <div style="font-weight:800;color:#0f766e;font-size:.74rem;text-transform:uppercase;margin-bottom:4px;letter-spacing:.02em">
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;margin-bottom:10px;box-sizing:border-box;width:100%">
+    <div style="font-weight:800;color:#0f766e;font-size:12pt;margin-bottom:6px;letter-spacing:.01em">
       👤 Identificación del Paciente, Contratante y Profesional TENS
     </div>
-    <div style="display:grid;grid-template-columns:1.05fr 1fr 0.95fr;gap:4px 12px;font-size:.74rem;line-height:1.35">
+    <div style="display:grid;grid-template-columns:1.05fr 1fr 0.95fr;gap:6px 14px;font-size:10pt;line-height:1.4">
       <div>
-        <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Paciente</div>
+        <div style="color:#0f766e;font-size:8.5pt;text-transform:uppercase;font-weight:800;margin-bottom:2px">Paciente</div>
         <div><b>Nombre:</b> <span id="pdfPatNombre">Rosa Medina</span></div>
         <div><b>RUT:</b> <span id="pdfPatRut">12.345.678-9</span></div>
         <div><b>Edad:</b> <span id="pdfPatEdad">82 años</span> &nbsp;|&nbsp; <b>Motivo/Dx:</b> <span id="pdfPatDx">Control cardiológico</span></div>
       </div>
       <div>
-        <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Contratante / Responsable</div>
+        <div style="color:#0f766e;font-size:8.5pt;text-transform:uppercase;font-weight:800;margin-bottom:2px">Contratante / Responsable</div>
         <div><b>Nombre:</b> <span id="pdfCoordNombre">Andrea Medina</span></div>
         <div><b>RUT:</b> <span id="pdfCoordRut">15.987.654-3</span></div>
         <div><b>Teléfono:</b> <span id="pdfCoordTel">+56 9 7777 8888</span></div>
       </div>
       <div>
-        <div style="color:#0f766e;font-size:.66rem;text-transform:uppercase;font-weight:800">Profesional TENS a Cargo</div>
+        <div style="color:#0f766e;font-size:8.5pt;text-transform:uppercase;font-weight:800;margin-bottom:2px">Profesional TENS a Cargo</div>
         <div><b>Nombre:</b> <span id="pdfTensNombre">Daniela González Bouyssieres</span></div>
         <div><b>Reg. SIS:</b> <span id="pdfTensSis">Nº 442762</span></div>
       </div>
@@ -173,11 +173,11 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
   </div>
 
   <!-- BLOQUE LOGÍSTICA Y ATENCIÓN -->
-  <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box">
-    <div style="font-weight:800;color:#0f766e;font-size:.74rem;text-transform:uppercase;margin-bottom:4px;letter-spacing:.02em">
+  <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;margin-bottom:10px;box-sizing:border-box;width:100%">
+    <div style="font-weight:800;color:#0f766e;font-size:12pt;margin-bottom:6px;letter-spacing:.01em">
       📍 Detalle de Trayecto, Ayuda Técnica y Horarios en Terreno
     </div>
-    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:4px 12px;font-size:.74rem;line-height:1.35">
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:6px 14px;font-size:10pt;line-height:1.4">
       <div>
         <div><b>Origen:</b> <span id="pdfDirOrigen">Av. Pajaritos 1450, Maipú</span></div>
         <div><b>Destino:</b> <span id="pdfDirDestino">Clínica Santa María, Providencia</span></div>
@@ -192,43 +192,43 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
   </div>
 
   <!-- BLOQUE ECONÓMICO: TABLA DE LIQUIDACIÓN -->
-  <div style="margin-bottom:7px;box-sizing:border-box">
-    <div style="font-weight:800;color:#0f766e;font-size:.74rem;text-transform:uppercase;margin-bottom:3px;letter-spacing:.02em">
+  <div style="margin-bottom:8px;box-sizing:border-box;width:100%">
+    <div style="font-weight:800;color:#0f766e;font-size:12pt;margin-bottom:6px;letter-spacing:.01em">
       💰 Desglose Económico de la Liquidación
     </div>
-    <table style="width:100%;max-width:100%;border-collapse:collapse;font-size:.74rem;border:1px solid #cbd5e1;box-sizing:border-box">
+    <table style="width:100%;max-width:100%;border-collapse:collapse;font-size:10pt;border:1px solid #cbd5e1;box-sizing:border-box">
       <thead>
-        <tr style="background:#0f766e;color:#ffffff;text-align:left">
-          <th style="padding:4px 8px;border:1px solid #0f766e;width:40%;box-sizing:border-box">Concepto</th>
-          <th style="padding:4px 8px;border:1px solid #0f766e;width:40%;box-sizing:border-box">Cálculo / Detalle</th>
-          <th style="padding:4px 12px;border:1px solid #0f766e;text-align:right;width:20%;box-sizing:border-box;white-space:nowrap">Monto ($)</th>
+        <tr style="background:#0f766e;color:#ffffff;text-align:left;font-size:10pt;font-weight:700">
+          <th style="padding:6px 10px;border:1px solid #0f766e;width:40%;box-sizing:border-box">Concepto</th>
+          <th style="padding:6px 10px;border:1px solid #0f766e;width:40%;box-sizing:border-box">Cálculo / Detalle</th>
+          <th style="padding:6px 12px;border:1px solid #0f766e;text-align:right;width:20%;box-sizing:border-box;white-space:nowrap">Monto ($)</th>
         </tr>
       </thead>
       <tbody id="pdfTablaItems"></tbody>
-      <tfoot style="font-weight:700">
+      <tfoot style="font-weight:700;font-size:10pt">
         <tr style="background:#f8fafc;border-top:1.5px solid #cbd5e1">
-          <td colspan="2" style="padding:4px 8px;text-align:right;box-sizing:border-box">SUBTOTAL SERVICIO LIQUIDADO:</td>
-          <td style="padding:4px 12px;text-align:right;font-weight:800;box-sizing:border-box;white-space:nowrap" id="pdfTotalLiquidado">$37.900</td>
+          <td colspan="2" style="padding:6px 10px;text-align:right;box-sizing:border-box">SUBTOTAL SERVICIO LIQUIDADO:</td>
+          <td style="padding:6px 12px;text-align:right;font-weight:800;box-sizing:border-box;white-space:nowrap" id="pdfTotalLiquidado">$37.900</td>
         </tr>
         <tr style="color:#b91c1c;background:#ffffff">
-          <td colspan="2" style="padding:4px 8px;text-align:right;box-sizing:border-box">ABONO 50% PREVIO DE RESERVA:</td>
-          <td style="padding:4px 12px;text-align:right;box-sizing:border-box;white-space:nowrap" id="pdfAbono">-$18.950</td>
+          <td colspan="2" style="padding:6px 10px;text-align:right;box-sizing:border-box">ABONO 50% PREVIO DE RESERVA:</td>
+          <td style="padding:6px 12px;text-align:right;box-sizing:border-box;white-space:nowrap" id="pdfAbono">-$18.950</td>
         </tr>
         <tr id="pdfRowDescuento" style="background:#f8fafc;color:#dc2626;display:none">
-          <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">AJUSTE / DESCUENTO EN TERRENO:</td>
-          <td style="padding:3px 12px;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap" id="pdfDescuento">-$0</td>
+          <td colspan="2" style="padding:5px 10px;text-align:right;box-sizing:border-box">AJUSTE / DESCUENTO EN TERRENO:</td>
+          <td style="padding:5px 12px;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap" id="pdfDescuento">-$0</td>
         </tr>
-        <tr style="background:#0f766e;color:#ffffff;font-size:.80rem">
-          <td colspan="2" style="padding:6px 8px;text-align:right;font-weight:800;box-sizing:border-box">👉 SALDO FINAL LIQUIDADO EN TERRENO:</td>
-          <td style="padding:6px 12px;text-align:right;font-weight:800;font-size:.92rem;box-sizing:border-box;white-space:nowrap" id="pdfSaldoFinal">$18.950</td>
+        <tr style="background:#0f766e;color:#ffffff;font-size:10.5pt">
+          <td colspan="2" style="padding:8px 10px;text-align:right;font-weight:800;box-sizing:border-box">👉 SALDO FINAL LIQUIDADO EN TERRENO:</td>
+          <td style="padding:8px 12px;text-align:right;font-weight:900;font-size:12pt;box-sizing:border-box;white-space:nowrap" id="pdfSaldoFinal">$18.950</td>
         </tr>
       </tfoot>
     </table>
   </div>
 
   <!-- LÍNEA COMPACTA DE ESTADO Y LIQUIDACIÓN -->
-  <div style="margin-top:8px;padding:6px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;text-align:center;box-sizing:border-box">
-    <b>ESTADO:</b> <span style="color:#15803d;font-weight:800">PAGADO Y LIQUIDADO</span>
+  <div style="margin-top:10px;padding:8px 12px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;font-size:11pt;text-align:center;box-sizing:border-box;width:100%">
+    <b>ESTADO:</b> <span style="color:#15803d;font-weight:800;letter-spacing:.02em">PAGADO Y LIQUIDADO</span>
   </div>
 </div>
 
@@ -4551,31 +4551,31 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
 
     let itemsHtml = `
       <tr>
-        <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (Kilometraje)</td>
-        <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.kmTot.toFixed(1)} km ida/vuelta × $1.000/km${calc.floorApplied ? ` (Piso Mínimo Comunal ${calc.ringName}: ${$c(calc.ringFloor)})` : ''}</td>
-        <td style="padding:4px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
+        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (Kilometraje)</td>
+        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.kmTot.toFixed(1)} km ida/vuelta × $1.000/km${calc.floorApplied ? ` (Piso Mínimo Comunal ${calc.ringName}: ${$c(calc.ringFloor)})` : ''}</td>
+        <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
       </tr>
       <tr>
-        <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box">Asistencia Clínica TENS (Tiempo Base)</td>
-        <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1)} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
-        <td style="padding:4px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
+        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Asistencia Clínica TENS (Tiempo Base)</td>
+        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1)} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
+        <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
       </tr>
     `;
     if(diffMin > 0 && calc.extraCost > 0){
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
-          <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
-          <td style="padding:4px 8px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq × 30 min) × ${$c(calc.extraBlockRate)}</td>
-          <td style="padding:4px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">${$c(extraCost)}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq × 30 min) × ${$c(calc.extraBlockRate)}</td>
+          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">${$c(extraCost)}</td>
         </tr>
       `;
     }
     if(calc.parking > 0){
       itemsHtml += `
         <tr style="background:#f8fafc;color:#0f766e">
-          <td style="padding:4px 8px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Gasto Estacionamiento Recinto Clínico</b></td>
-          <td style="padding:4px 8px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">Recinto / Parking (según ticket en terreno)</td>
-          <td style="padding:4px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">+${$c(calc.parking)}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Gasto Estacionamiento Recinto Clínico</b></td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">Recinto / Parking (según ticket en terreno)</td>
+          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">+${$c(calc.parking)}</td>
         </tr>
       `;
     }
@@ -4612,12 +4612,11 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     pdfElement.style.display = 'block';
     if(typeof html2pdf !== 'undefined'){
       html2pdf().set({
-        margin: [8, 10, 8, 10],
+        margin: [6, 12.5, 6, 12.5],
         filename: `Comprobante_Atencion_${cleanFolio}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).from(pdfElement).save().then(() => {
         pdfElement.style.display = 'none';
       }).catch(err => {
