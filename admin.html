@@ -398,7 +398,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:12px">
       <div>
         <label for="adm_rutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Boleta) *</label>
-        <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+        <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)" maxlength="12" autocomplete="off" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)">
       </div>
       <div>
         <label for="adm_medioPago" style="font-weight:700;display:block;margin-bottom:4px">Medio de Pago del Saldo *</label>
@@ -1991,7 +1991,7 @@ function form(){
             </div>
             <div>
               <label for="aq_tax_rut" style="font-size:11.5px">RUT Empresa *</label>
-              <input type="text" id="aq_tax_rut" placeholder="Ej: 76.123.456-7" style="font-size:12px">
+              <input type="text" id="aq_tax_rut" placeholder="Ej: 76.123.456-7" style="font-size:12px" maxlength="12" autocomplete="off" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)">
             </div>
             <div>
               <label for="aq_tax_giro" style="font-size:11.5px">Giro Comercial *</label>
@@ -2027,6 +2027,67 @@ function form(){
     </form>
   `;
 }
+
+
+// Formateo y validación Módulo 11 de RUT Chileno
+function formatRut(val) {
+  let clean = String(val || '').replace(/[^0-9kK]/g, '').toUpperCase();
+  if (clean.length > 9) clean = clean.slice(0, 9);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean;
+  const dv = clean.slice(-1);
+  const body = clean.slice(0, -1);
+  let fmt = '';
+  for (let i = body.length - 1, c = 0; i >= 0; i--, c++) {
+    if (c > 0 && c % 3 === 0) fmt = '.' + fmt;
+    fmt = body[i] + fmt;
+  }
+  return fmt + '-' + dv;
+}
+window.formatRut = formatRut;
+
+function validateRut(rutStr) {
+  if (!rutStr) return false;
+  const clean = String(rutStr).replace(/[^0-9kK]/g, '').toUpperCase();
+  if (clean.length < 8 || clean.length > 9) return false;
+  const dv = clean.slice(-1);
+  const body = clean.slice(0, -1);
+  let sum = 0;
+  let mul = 2;
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body[i], 10) * mul;
+    mul = mul === 7 ? 2 : mul + 1;
+  }
+  const expNum = 11 - (sum % 11);
+  const expDv = expNum === 11 ? '0' : (expNum === 10 ? 'K' : String(expNum));
+  return dv === expDv;
+}
+window.validateRut = validateRut;
+
+function handleAdminRutInput(el) {
+  if (!el) return;
+  el.value = formatRut(el.value);
+  const clean = el.value.replace(/[^0-9kK]/g, '');
+  if (clean.length >= 8) {
+    const isValid = validateRut(el.value);
+    el.style.borderColor = isValid ? '#10b981' : '#dc2626';
+  } else {
+    el.style.borderColor = '';
+  }
+}
+window.handleAdminRutInput = handleAdminRutInput;
+
+function handleAdminRutBlur(el) {
+  if (!el) return;
+  const val = el.value.trim();
+  if (!val) {
+    el.style.borderColor = '';
+    return;
+  }
+  const isValid = validateRut(val);
+  el.style.borderColor = isValid ? '' : '#dc2626';
+}
+window.handleAdminRutBlur = handleAdminRutBlur;
 
 function saveAdminQuoterDraft(){
   try {
@@ -3367,6 +3428,17 @@ function saveAdminBooking(ev, forceConfirm = false){
     const inpRS = $('#aq_tax_rs');
     if(inpRS) inpRS.focus();
     return { error: 'Factura fields required' };
+  }
+  if(isFactura && !validateRut(taxRUT)){
+    if(typeof alert !== 'undefined'){
+      alert('⚠️ El RUT Empresa ingresado (' + taxRUT + ') es inválido según el algoritmo oficial Módulo 11. Por favor revise el número y dígito verificador.');
+    }
+    const inpRUT = $('#aq_tax_rut');
+    if(inpRUT) {
+      inpRUT.style.borderColor = '#dc2626';
+      inpRUT.focus();
+    }
+    return { error: 'Invalid Factura RUT' };
   }
 
   const taxDoc = {

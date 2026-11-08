@@ -992,7 +992,8 @@ footer a{color:#fff}
             </div>
             <div>
               <label for="b_tax_rut">RUT Empresa *</label>
-              <input id="b_tax_rut" type="text" placeholder="Ej: 76.123.456-7">
+              <input id="b_tax_rut" type="text" placeholder="Ej: 76.123.456-7" maxlength="12" autocomplete="off" oninput="handleRutInput(this)" onblur="handleRutBlur(this)">
+              <small id="b_tax_rut_err" style="display:none;color:#dc2626;font-size:11.5px;font-weight:700;margin-top:3px"></small>
             </div>
             <div>
               <label for="b_tax_giro">Giro Comercial *</label>
@@ -1025,7 +1026,7 @@ footer a{color:#fff}
 
       <div style="margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
         <a class="btn ghost" href="index.html">Cancelar</a>
-        <button type="submit" id="submitBtn" class="btn" style="font-size:1.05rem;padding:14px 30px">💬 Solicitar Pre-Reserva vía WhatsApp</button>
+        <button type="submit" id="submitBtn" class="btn" style="font-size:1.05rem;padding:14px 30px">Confirmar Pre-Reserva y Continuar</button>
       </div>
     </section>
   </form>
@@ -2000,6 +2001,111 @@ function getSelectedPathologies(){
   return list;
 }
 
+
+// =========================================================================
+// FORMATEO Y VALIDACIÓN DE RUT CHILENO (ALGORITMO MÓDULO 11)
+// =========================================================================
+function formatRut(val) {
+  let clean = String(val || '').replace(/[^0-9kK]/g, '').toUpperCase();
+  if (clean.length > 9) clean = clean.slice(0, 9);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean;
+  const dv = clean.slice(-1);
+  const body = clean.slice(0, -1);
+  let fmt = '';
+  for (let i = body.length - 1, c = 0; i >= 0; i--, c++) {
+    if (c > 0 && c % 3 === 0) fmt = '.' + fmt;
+    fmt = body[i] + fmt;
+  }
+  return fmt + '-' + dv;
+}
+window.formatRut = formatRut;
+
+function validateRut(rutStr) {
+  if (!rutStr) return false;
+  const clean = String(rutStr).replace(/[^0-9kK]/g, '').toUpperCase();
+  if (clean.length < 8 || clean.length > 9) return false;
+  const dv = clean.slice(-1);
+  const body = clean.slice(0, -1);
+  let sum = 0;
+  let mul = 2;
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body[i], 10) * mul;
+    mul = mul === 7 ? 2 : mul + 1;
+  }
+  const expNum = 11 - (sum % 11);
+  const expDv = expNum === 11 ? '0' : (expNum === 10 ? 'K' : String(expNum));
+  return dv === expDv;
+}
+window.validateRut = validateRut;
+
+function handleRutInput(el) {
+  if (!el) return;
+  const oldVal = el.value;
+  const fmt = formatRut(oldVal);
+  el.value = fmt;
+
+  const errEl = $('#b_tax_rut_err');
+  const subBtn = $('#submitBtn');
+  const clean = fmt.replace(/[^0-9kK]/g, '');
+
+  if (clean.length >= 8) {
+    const isValid = validateRut(fmt);
+    if (!isValid) {
+      el.style.borderColor = '#dc2626';
+      el.style.boxShadow = '0 0 0 2px rgba(220,38,38,0.2)';
+      if (errEl) {
+        errEl.textContent = '⚠️ RUT inválido (revise número y dígito verificador)';
+        errEl.style.display = 'block';
+      }
+      if (subBtn) subBtn.disabled = true;
+    } else {
+      el.style.borderColor = '#10b981';
+      el.style.boxShadow = '0 0 0 2px rgba(16,185,129,0.2)';
+      if (errEl) {
+        errEl.style.display = 'none';
+      }
+      if (subBtn) subBtn.disabled = false;
+    }
+  } else {
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+    if (errEl) errEl.style.display = 'none';
+    if (subBtn) subBtn.disabled = false;
+  }
+}
+window.handleRutInput = handleRutInput;
+
+function handleRutBlur(el) {
+  if (!el) return;
+  const errEl = $('#b_tax_rut_err');
+  const subBtn = $('#submitBtn');
+  const val = el.value.trim();
+  if (!val) {
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+    if (errEl) errEl.style.display = 'none';
+    if (subBtn) subBtn.disabled = false;
+    return;
+  }
+  const isValid = validateRut(val);
+  if (!isValid) {
+    el.style.borderColor = '#dc2626';
+    el.style.boxShadow = '0 0 0 2px rgba(220,38,38,0.2)';
+    if (errEl) {
+      errEl.textContent = '⚠️ RUT inválido (revise número y dígito verificador)';
+      errEl.style.display = 'block';
+    }
+    if (subBtn) subBtn.disabled = true;
+  } else {
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+    if (errEl) errEl.style.display = 'none';
+    if (subBtn) subBtn.disabled = false;
+  }
+}
+window.handleRutBlur = handleRutBlur;
+
 function toggleTaxDocFields(val){
   const box = $('#invoiceFieldsBox');
   const isFactura = val === 'factura';
@@ -2009,9 +2115,17 @@ function toggleTaxDocFields(val){
     const el = $('#' + id);
     if(el){
       el.required = isFactura;
-      if(!isFactura) el.value = '';
+      if(!isFactura){
+        el.value = '';
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      }
     }
   });
+  const errEl = $('#b_tax_rut_err');
+  if(errEl && !isFactura) errEl.style.display = 'none';
+  const subBtn = $('#submitBtn');
+  if(subBtn && !isFactura) subBtn.disabled = false;
 }
 
 function toggleCoordSameAsPatient(isChecked){
@@ -5817,6 +5931,27 @@ async function submitBooking(ev){
     return;
   }
 
+  if(isInvoice && !validateRut(taxRUT)){
+    const submitAlert = $('#submitBlockAlert');
+    if(submitAlert){
+      submitAlert.style.display = 'block';
+      submitAlert.innerHTML = `<span>⚠️ <b>RUT Empresa Inválido:</b> El RUT ingresado para la Factura Electrónica Exenta (<b>${e(taxRUT)}</b>) no es válido según el algoritmo oficial Módulo 11. Por favor verifique el número y dígito verificador.</span>`;
+    }
+    const rutInp = $('#b_tax_rut');
+    if(rutInp){
+      rutInp.style.borderColor = '#dc2626';
+      rutInp.style.boxShadow = '0 0 0 2px rgba(220,38,38,0.2)';
+      const errEl = $('#b_tax_rut_err');
+      if(errEl){
+        errEl.textContent = '⚠️ RUT inválido (revise número y dígito verificador)';
+        errEl.style.display = 'block';
+      }
+      rutInp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      rutInp.focus();
+    }
+    return;
+  }
+
   const isRoundTrip = true;
   const modeLabel = 'Ida y Vuelta (A → B → A)';
   const fmtTotalKm = showMap ? (lastTotalKm.toFixed(1).replace('.', ',') + ' km') : 'No aplica';
@@ -5940,7 +6075,7 @@ window.formatFolioMSA = formatFolioMSA;
   if (!apiOk) {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '💬 Solicitar Pre-Reserva vía WhatsApp';
+      submitBtn.innerHTML = 'Confirmar Pre-Reserva y Continuar';
     }
     alert(`❌ Error al registrar su pre-reserva:\n\n${apiErrorMsg}\n\nPor favor revise su conexión a internet e inténtelo nuevamente.`);
     return;
@@ -6045,9 +6180,8 @@ window.formatFolioMSA = formatFolioMSA;
     taxDocWa +
     `Adjunto comprobante del abono del 50% (${$c(lastAbono50)}) transferido a Scotiabank Cta Cte 994989122.`;
   const waUrl = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waText)}`;
-  try {
-    window.open(waUrl, '_blank');
-  } catch(e) {}
+  // Flujo lineal en 2 pasos: NO abrir WhatsApp aquí al confirmar el formulario.
+  // La vista de éxito se despliega inmediatamente y el usuario envía los datos mediante el botón verde oficial.
 
   $('#mainContent').innerHTML = `
     <section class="card" style="text-align:center;padding:36px 24px">
@@ -6146,10 +6280,14 @@ window.formatFolioMSA = formatFolioMSA;
         2. Presione el botón verde a continuación para enviar los detalles de la reserva y adjuntar su comprobante vía WhatsApp (+56 9 2999 0095).
       </div>
 
-      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px">
-        <a class="btn" href="${waUrl}" target="_blank" rel="noopener">💬 Confirmar y Enviar Comprobante por WhatsApp</a>
-        <a class="btn ghost" href="reservar.html">📅 Agendar otra hora</a>
-        <a class="btn ghost" href="index.html">← Volver al inicio</a>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:26px">
+        <a class="btn" href="${waUrl}" target="_blank" rel="noopener" style="background:#25D366;border-color:#25D366;font-size:1.1rem;padding:15px 32px;box-shadow:0 4px 16px rgba(37,211,102,0.35);display:inline-flex;align-items:center;gap:10px;text-decoration:none">
+          📲 Enviar Pre-Reserva por WhatsApp
+        </a>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:6px">
+          <a class="btn ghost" href="reservar.html" style="font-size:.85rem;padding:8px 16px">📅 Agendar otra hora</a>
+          <a class="btn ghost" href="index.html" style="font-size:.85rem;padding:8px 16px">← Volver al inicio</a>
+        </div>
       </div>
     </section>
   `;
