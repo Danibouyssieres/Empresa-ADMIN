@@ -12,6 +12,12 @@ export const config = {
 // Almacén en memoria persistente Edge para resiliencia total
 let edgeReservasStore = [];
 
+function getNextDay(dateStr) {
+  const parts = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + 1));
+  return dt.toISOString().slice(0, 10);
+}
+
 // Validación estricta de fecha formato YYYY-MM-DD
 function isValidDate(dateStr) {
   if (typeof dateStr !== 'string') return false;
@@ -145,6 +151,79 @@ export default async function handler(req) {
           JSON.stringify({ ok: false, error: 'Nombre de paciente, teléfono de contacto y dirección son requeridos' }),
           { status: 400, headers: corsHeaders }
         );
+      }
+
+      // =========================================================================
+      // VALIDACIÓN ATÓMICA DE RETRO-BLOQUEO (TURNO NOCHE VS TURNO MAÑANA D+1)
+      // =========================================================================
+      const startMinVal = Number(body.start || body.start_min || 600);
+      const isNightShift = turno.toLowerCase() === 'noche' || startMinVal >= 20 * 60 || startMinVal < 4 * 60;
+      if (isNightShift) {
+        const nextDate = getNextDay(date);
+
+        // 1. Comprobar en almacén en memoria
+        const memConflict = edgeReservasStore.some(r => {
+          const rDate = String(r.date || r.fecha || '');
+          if (rDate !== nextDate) return false;
+          const rSt = String(r.st || r.estado || '').toLowerCase();
+          const isCancelled = rSt === 'cancelado' || rSt === 'cancelada' || rSt === 'expirada_cancelada';
+          if (isCancelled) return false;
+          const rTurno = String(r.block || r.turno || '').toLowerCase();
+          const rStart = Number(r.start_min || r.start || 600);
+          return rTurno === 'manana' || rTurno === 'mañana' || rTurno === 'full' || (rStart < 12 * 60);
+        });
+
+        if (memConflict) {
+          return new Response(
+            JSON.stringify({
+              ok: false,
+              error: 'Conflicto de descanso operativo con turno siguiente: existe una atención en Turno Mañana el día siguiente.',
+              code: 'CONFLICT_NEXT_MORNING_REST',
+              conflictingDate: nextDate
+            }),
+            { status: 409, headers: corsHeaders }
+          );
+        }
+
+        // 2. Comprobar en Supabase (SELECT id FROM reservas WHERE fecha = [D + 1] AND turno = 'mañana' AND estado IN ('confirmada', 'pendiente_abono'))
+        if (supabaseUrl && (supabaseAnonKey || supabaseServiceKey)) {
+          const readKey = supabaseServiceKey || supabaseAnonKey;
+          try {
+            const queryUrl = `${supabaseUrl}/rest/v1/reservas?select=id,folio,st,estado,block,turno,date,fecha,start_min&or=(date.eq.${nextDate},fecha.eq.${nextDate})&limit=50`;
+            const checkRes = await fetch(queryUrl, {
+              headers: {
+                apikey: readKey,
+                Authorization: `Bearer ${readKey}`,
+              },
+            });
+            if (checkRes.ok) {
+              const records = await checkRes.json();
+              if (Array.isArray(records)) {
+                const hasMorningConflict = records.some(r => {
+                  const rSt = String(r.st || r.estado || '').toLowerCase();
+                  const isCancelled = rSt === 'cancelado' || rSt === 'cancelada' || rSt === 'expirada_cancelada';
+                  if (isCancelled) return false;
+                  const rTurno = String(r.block || r.turno || '').toLowerCase();
+                  const rStart = Number(r.start_min || 600);
+                  return rTurno === 'manana' || rTurno === 'mañana' || rTurno === 'full' || (rStart < 12 * 60);
+                });
+                if (hasMorningConflict) {
+                  return new Response(
+                    JSON.stringify({
+                      ok: false,
+                      error: 'Conflicto de descanso operativo con turno siguiente: existe una atención en Turno Mañana el día siguiente.',
+                      code: 'CONFLICT_NEXT_MORNING_REST',
+                      conflictingDate: nextDate
+                    }),
+                    { status: 409, headers: corsHeaders }
+                  );
+                }
+              }
+            }
+          } catch (errCheck) {
+            console.warn('Error validando retro-bloqueo en Supabase:', errCheck);
+          }
+        }
       }
 
       // Generación estandarizada de Folio correlativo único y secuencial: MSA-001, MSA-002, etc.

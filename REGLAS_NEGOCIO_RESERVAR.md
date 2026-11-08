@@ -159,8 +159,9 @@ El día operativo se organiza en tres bloques de atención:
 * Entre el término de un servicio confirmado y el inicio del siguiente por parte de un mismo móvil/TENS debe existir una separación mínima obligatoria de **3 horas (180 minutos)** (`BUF = 180`).
 * Este tiempo cubre el retorno del vehículo, sanitización clínica, reporte técnico y eventuales demoras en recintos asistenciales.
 
-### 5.4. Regla de Descanso Biológico Post-Nocturno
-* **Regla:** Si un servicio finaliza **después de las 22:00 hrs** (ej. servicio nocturno o de tarde extendida hasta las 23:00), la unidad operativa involucrada queda inhabilitada para operar en el **Turno Mañana (06:00 a 12:00 hrs) del día calendario siguiente**, garantizando el descanso legal y biológico de la TENS.
+### 5.4. Regla de Descanso Biológico Post-Nocturno y Retro-Bloqueo Bidireccional
+* **Bloqueo Hacia Adelante:** Si un servicio finaliza **después de las 22:00 hrs** (ej. servicio nocturno o de tarde extendida hasta las 23:00), la unidad operativa involucrada queda inhabilitada para operar en el **Turno Mañana (06:00 a 12:00 hrs) del día calendario siguiente**, garantizando el descanso legal y biológico de la TENS.
+* **Retro-Bloqueo Hacia Atrás:** Si una fecha [D + 1] tiene una reserva activa (o pre-reserva) en **Turno Mañana**, el **Turno Noche de la fecha previa [D] queda estrictamente inhabilitado** en agenda pública ("No disponible (Servicio matutino agendado al día siguiente)") y validado atómicamente en backend (`/api/reservas`), abortando cualquier inserción con error HTTP 409, dado que entre el fin del Turno Noche (04:00 hrs) y el inicio del Turno Mañana (06:00 hrs) solo existen 2 horas, vulnerando el buffer y descanso obligatorio.
 
 ### 5.5. Manejo de Feriados Oficiales de Chile
 El sistema cuenta con un motor interno de feriados chilenos (`isChileHoliday`):

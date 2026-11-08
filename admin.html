@@ -988,7 +988,7 @@ async function checkDateReservasConflict(dateStr, type) {
   }
 
   // Filtrar según el turno específico
-  return activeDateSvcs.filter(s => {
+  const conflictsOnDate = activeDateSvcs.filter(s => {
     if (s.fullDay || s.block === 'full') return true;
     const sBlock = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
     if (sBlock === type) return true;
@@ -1003,6 +1003,28 @@ async function checkDateReservasConflict(dateStr, type) {
     }
     return false;
   });
+
+  // Regla de retro-bloqueo bidireccional: al evaluar Turno Noche en [D], verificar si [D + 1] tiene Turno Mañana activo
+  if (type === 'noche') {
+    const nextDate = addDaysYMD(dateStr, 1);
+    const nextDayMorningSvcs = allSvcs.filter(s => {
+      if (s.date !== nextDate) return false;
+      const isCancelled = s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada';
+      if (isCancelled) return false;
+      const sBlock = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+      return sBlock === 'manana' || sBlock === 'full' || (s.start < 720 && (s.start + (s.dur || 120)) > 360);
+    });
+    nextDayMorningSvcs.forEach(nms => {
+      if (!conflictsOnDate.some(c => c.id === nms.id)) {
+        conflictsOnDate.push({
+          ...nms,
+          obs: (nms.obs ? nms.obs + ' · ' : '') + `Conflicto retro-bloqueo: Mañana día siguiente (${nextDate})`
+        });
+      }
+    });
+  }
+
+  return conflictsOnDate;
 }
 window.checkDateReservasConflict = checkDateReservasConflict;
 
@@ -3075,7 +3097,31 @@ function populateAdminTechs(){
         exceeds04 = true;
       }
     }
-    nightAlert.style.display = (isNight && exceeds04) ? 'block' : 'none';
+    // Validación bidireccional retro-bloqueo: si es Turno Noche, verificar si D + 1 tiene Turno Mañana
+    let hasNextMorningConflict = false;
+    let nextMorningDesc = '';
+    if(isNight){
+      const nextDateStr = addDaysYMD(U.date, 1);
+      const nextMornSvc = (D.svcs || []).find(s => {
+        if(s.date !== nextDateStr || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
+        const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+        return blk === 'manana' || blk === 'full' || s.start < 720;
+      });
+      if(nextMornSvc){
+        hasNextMorningConflict = true;
+        nextMorningDesc = `⚠️ Conflicto de descanso operativo: El día siguiente (${nextDateStr}) registra un servicio matutino en Turno Mañana (${nextMornSvc.pat} · ${fm(nextMornSvc.start)} hrs). Incompatible por descanso biológico (solo 2 hrs de separación entre 04:00 y 06:00 hrs).`;
+      }
+    }
+
+    if(hasNextMorningConflict){
+      nightAlert.style.display = 'block';
+      nightAlert.innerHTML = nextMorningDesc;
+    } else if(isNight && exceeds04){
+      nightAlert.style.display = 'block';
+      nightAlert.innerHTML = '⚠️ Atención: El servicio se extiende fuera del horario del Turno Noche (04:00 hrs). El buffer de descanso podría solaparse con el Turno Mañana.';
+    } else {
+      nightAlert.style.display = 'none';
+    }
   }
 }
 
@@ -3372,12 +3418,34 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   const bookingData = { tid, date, time: bookingTime, start, dur, pat, age, dx, coord, ph, from, to, mob, ayudaTecnica, ayuda_tecnica: ayudaTecnica, req, alergias, medicamentos, compDesc, taxDoc, patologias };
 
-  // Verificación de advertencia preventiva de buffer de 2 horas (120 minutos)
+  // Verificación de advertencia preventiva de buffer de 2 horas y descanso bidireccional
   if(!forceConfirm){
-    const conflictSvc = D.svcs.find(s => {
+    let conflictSvc = D.svcs.find(s => {
       if(s.tid !== tid || s.date !== date || s.st === 'Cancelado') return false;
       return (start < s.start + s.dur + 120) && (s.start < start + dur + 120);
     });
+
+    // Validación bidireccional: si se intenta agendar Turno Noche en [D], chequear Turno Mañana en [D + 1]
+    const isNightBooking = (start >= 20 * 60 || start < 4 * 60 || qState.jornada === 'nocturno');
+    if(!conflictSvc && isNightBooking){
+      const nextDate = addDaysYMD(date, 1);
+      conflictSvc = D.svcs.find(s => {
+        if(s.date !== nextDate || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
+        const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+        return blk === 'manana' || blk === 'full' || s.start < 720;
+      });
+    }
+
+    // Validación inversa: si se intenta agendar Turno Mañana en [D], chequear Turno Noche en [D - 1]
+    const isMorningBooking = (start < 12 * 60 && start >= 6 * 60);
+    if(!conflictSvc && isMorningBooking){
+      const prevDate = addDaysYMD(date, -1);
+      conflictSvc = D.svcs.find(s => {
+        if(s.date !== prevDate || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
+        const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+        return blk === 'noche' || s.start >= 20 * 60 || (s.start + (s.dur || 120)) > 22 * 60;
+      });
+    }
 
     if(conflictSvc){
       pendingAdminBooking = bookingData;

@@ -3804,6 +3804,12 @@ function evaluateDateCapacity(dateStr){
     // Regla 3: Descanso biológico post-nocturno si el día anterior hubo servicio en Turno Noche o finalizado > 22:00 hrs
     const prevNightRestBlock = prevUnitSvcs.some(s => doesServiceEndAfter22(s));
 
+    // Regla 3b: Retro-bloqueo bidireccional. Si el día siguiente [D + 1] tiene una reserva activa (o pre-reserva) en Turno Mañana, el Turno Noche en [D] queda inhabilitado por descanso obligatorio y buffer de seguridad (solo 2 horas entre 04:00 y 06:00 hrs).
+    const nextMorningServiceBlock = nextUnitSvcs.some(s => {
+      const blk = inferServiceBlock(s);
+      return blk === 'manana' || blk === 'full' || s.block === 'manana' || s.block === 'full' || s.turno === 'mañana' || s.turno === 'manana' || (s.start !== undefined && s.start < 12 * 60);
+    });
+
     // Regla de Seguridad Vial / Descanso Pre-Interregional: Bloqueo de noche previa si al día siguiente la unidad tiene un Programa Interregional
     const nextInterregionalBlock = nextUnitSvcs.some(s => s.svcType === '5' || s.blocksPrevNight);
 
@@ -3869,6 +3875,9 @@ function evaluateDateCapacity(dateStr){
     } else if(nextInterregionalBlock){
       nFree = false;
       reasonNocheList.push('Bloqueado por protocolo de seguridad vial y descanso: la profesional tiene un viaje interregional de larga distancia la madrugada siguiente');
+    } else if(nextMorningServiceBlock){
+      nFree = false;
+      reasonNocheList.push('No disponible (Servicio matutino agendado al día siguiente)');
     } else if(hasNoche){
       nFree = false;
       reasonNocheList.push('Turno Noche ya reservado en esta fecha');
@@ -4535,6 +4544,9 @@ function updateSlots(keepCurrentTime = false){
         if(isSelN){
           badgeN.className = 'block-badge selected';
           badgeN.textContent = '✔ Seleccionado';
+        } else if(!okN && ev.noche && ev.noche.reason && ev.noche.reason.includes('Servicio matutino agendado al día siguiente')){
+          badgeN.className = 'block-badge occ';
+          badgeN.textContent = 'No disponible';
         } else {
           badgeN.className = 'block-badge ' + (okN ? 'ok' : 'occ');
           badgeN.textContent = okN ? `Disponible (${ev.noche.free} ${ev.noche.free===1?'cupo':'cupos'})` : 'Agotado';
@@ -5908,7 +5920,10 @@ window.formatFolioMSA = formatFolioMSA;
     });
 
     const respData = await resp.json().catch(() => ({}));
-    if (resp.ok && (resp.status === 200 || resp.status === 201) && respData && respData.ok !== false) {
+    if (resp.status === 409 || (respData && respData.code === 'CONFLICT_NEXT_MORNING_REST')) {
+      apiOk = false;
+      apiErrorMsg = respData.error || 'Conflicto de descanso operativo con turno siguiente: existe una atención en Turno Mañana el día siguiente.';
+    } else if (resp.ok && (resp.status === 200 || resp.status === 201) && respData && respData.ok !== false) {
       apiOk = true;
       realFolio = formatFolioMSA(respData.folio || (respData.data && respData.data.folio));
     } else {
