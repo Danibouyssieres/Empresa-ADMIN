@@ -817,7 +817,7 @@ footer a{color:#fff}
           <label for="b_pat_phone">Teléfono móvil del paciente (+569)</label>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-weight:700;padding:10px 12px;background:var(--mist);border:1px solid var(--line);border-radius:10px;color:var(--teal)">+569</span>
-            <input id="b_pat_phone" type="tel" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678" oninput="this.value=this.value.replace(/\D/g,'').slice(0,8);onPatientFieldInput()" onchange="this.value=this.value.replace(/\D/g,'').slice(0,8);onPatientFieldInput()">
+            <input id="b_pat_phone" type="tel" inputmode="numeric" maxlength="15" placeholder="12345678 o 912345678" oninput="cleanPhoneInput(this);onPatientFieldInput()" onchange="cleanPhoneInput(this);onPatientFieldInput()">
           </div>
         </div>
         <div>
@@ -963,7 +963,7 @@ footer a{color:#fff}
           <label for="b_ph">Teléfono móvil / WhatsApp (+569) *</label>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-weight:700;padding:10px 12px;background:var(--mist);border:1px solid var(--line);border-radius:10px;color:var(--teal)">+569</span>
-            <input id="b_ph" type="tel" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678" required oninput="this.value=this.value.replace(/\D/g,'').slice(0,8);onCoordManualInput()" onchange="this.value=this.value.replace(/\D/g,'').slice(0,8);onCoordManualInput()">
+            <input id="b_ph" type="tel" inputmode="numeric" maxlength="15" placeholder="12345678 o 912345678" required oninput="cleanPhoneInput(this);onCoordManualInput()" onchange="cleanPhoneInput(this);onCoordManualInput()">
           </div>
         </div>
       </div>
@@ -2039,6 +2039,300 @@ function validateRut(rutStr) {
 }
 window.validateRut = validateRut;
 
+function cleanPhoneInput(el) {
+  if (!el) return '';
+  let cleaned = String(el.value || '').replace(/\D/g, '').replace(/^56/, '');
+  if (cleaned.length > 9) cleaned = cleaned.slice(0, 9);
+  el.value = cleaned;
+  return cleaned;
+}
+window.cleanPhoneInput = cleanPhoneInput;
+
+function highlightFieldError(inputEl, message) {
+  if (!inputEl) return;
+  const submitAlert = $('#submitBlockAlert');
+  if (submitAlert && message) {
+    submitAlert.style.display = 'block';
+    submitAlert.innerHTML = `<span>⚠️ <b>Dato requerido o incompleto:</b> ${message}</span>`;
+  }
+  inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  inputEl.focus();
+  inputEl.style.transition = 'box-shadow 0.3s, border-color 0.3s, transform 0.2s';
+  inputEl.style.borderColor = '#dc2626';
+  inputEl.style.boxShadow = '0 0 0 4px rgba(220, 38, 38, 0.4)';
+  setTimeout(() => {
+    inputEl.style.boxShadow = '';
+    inputEl.style.borderColor = '#dc2626';
+  }, 2500);
+}
+window.highlightFieldError = highlightFieldError;
+
+function validarCampoIndividual(el) {
+  if (!el) return true;
+  const id = el.id || '';
+  const val = String(el.value || '').trim();
+
+  if (val) {
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+  }
+
+  if (id === 'b_pat' || id === 'paciente_nombre') {
+    const cb = $('#cbCoordSameAsPatient');
+    if (cb && cb.checked) {
+      const coordInp = $('#b_coord');
+      if (coordInp) coordInp.value = val;
+    }
+    return Boolean(val);
+  }
+
+  if (id === 'b_pat_phone' || id === 'paciente_telefono') {
+    cleanPhoneInput(el);
+    const cb = $('#cbCoordSameAsPatient');
+    if (cb && cb.checked) {
+      const phInp = $('#b_ph');
+      if (phInp) phInp.value = el.value;
+    }
+    const clean = el.value;
+    return !clean || clean.length === 8 || clean.length === 9;
+  }
+
+  if (id === 'b_coord' || id === 'contacto_nombre') {
+    return Boolean(val);
+  }
+
+  if (id === 'b_ph' || id === 'contacto_telefono') {
+    cleanPhoneInput(el);
+    const clean = el.value;
+    return clean.length === 8 || clean.length === 9;
+  }
+
+  if (id === 'b_tax_rut' || id === 'rut') {
+    handleRutInput(el);
+    return !val || validateRut(val);
+  }
+
+  if (id === 'b_age') {
+    if (typeof onAgeChange === 'function') onAgeChange();
+    return Boolean(val && +val >= 0);
+  }
+
+  if (id === 'b_dx') {
+    return Boolean(val);
+  }
+
+  return true;
+}
+window.validarCampoIndividual = validarCampoIndividual;
+
+function setupAutofillAndChangeListeners() {
+  const inputs = document.querySelectorAll('input, select, textarea');
+  inputs.forEach(el => {
+    el.addEventListener('change', () => {
+      validarCampoIndividual(el);
+    });
+    el.addEventListener('input', () => {
+      validarCampoIndividual(el);
+    });
+    el.addEventListener('animationstart', (e) => {
+      if (e.animationName && (e.animationName.includes('auto-fill') || e.animationName.includes('autofill'))) {
+        validarCampoIndividual(el);
+      }
+    });
+  });
+}
+window.setupAutofillAndChangeListeners = setupAutofillAndChangeListeners;
+
+function validarFormulario() {
+  // 1. Términos y condiciones
+  const termsChk = $('#b_terms');
+  if (termsChk && !termsChk.checked) {
+    highlightFieldError(termsChk, 'Debe leer y aceptar los Términos y Condiciones del Servicio antes de confirmar.');
+    return { ok: false, field: termsChk, error: 'terms' };
+  }
+
+  const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+  const showMap = isMapEnabledForCurrentState();
+  const isConEvento = (mode === '4' && selectedEventSubMode === 'con_traslado');
+  const showDest = (mode === '1' || mode === '2' || mode === '5' || isConEvento);
+
+  // 2. Dirección de origen (b_from)
+  const fromEl = $('#b_from');
+  const fromVal = (fromEl && fromEl.value.trim()) || '';
+  if (!fromVal) {
+    highlightFieldError(fromEl, 'Por favor ingrese su dirección de inicio en el Paso 2 antes de confirmar.');
+    return { ok: false, field: fromEl, error: 'from' };
+  }
+
+  // 3. Dirección de destino si aplica (b_to)
+  if (showDest) {
+    const toEl = $('#b_to');
+    const toVal = (toEl && toEl.value.trim()) || '';
+    if (!toVal) {
+      highlightFieldError(toEl, 'Por favor ingrese la dirección de destino o recinto.');
+      return { ok: false, field: toEl, error: 'to' };
+    }
+    if (showMap && (!ptFrom || !ptTo)) {
+      const targetInp = (!ptFrom ? fromEl : toEl) || $('#routeLayoutBox');
+      highlightFieldError(targetInp, 'Por favor verifique las direcciones de Inicio (A) y Destino (B) en el mapa para continuar.');
+      return { ok: false, field: targetInp, error: 'map_points' };
+    }
+  }
+
+  // 4. Fecha y Turno en Sección 1
+  const dateEl = $('#b_date');
+  const dateVal = (dateEl && dateEl.value.trim()) || '';
+  if (!dateVal) {
+    highlightFieldError(dateEl || $('#calGrid'), 'Por favor seleccione una fecha en el calendario del Paso 1.');
+    return { ok: false, field: dateEl, error: 'date' };
+  }
+
+  const isInter = mode === '5';
+  if (!selectedBlock && !isInter) {
+    const targetBlockBtn = $('#btnBlock_manana') || $('#shiftsBox');
+    highlightFieldError(targetBlockBtn, 'Por favor seleccione un turno (Mañana, Tarde o Noche) en la agenda antes de continuar.');
+    return { ok: false, field: targetBlockBtn, error: 'block' };
+  }
+
+  // 5. Hora en Paso 2 (b_time)
+  const timeEl = $('#b_time');
+  const timeVal = (timeEl && timeEl.value.trim()) || '';
+  if (!timeVal) {
+    const isTransfer = (mode === '1' || mode === '2' || mode === '5');
+    const msg = isTransfer
+      ? 'Por favor seleccione la hora de su cita médica en destino para fijar automáticamente la hora de recogida de su reserva.'
+      : 'Por favor seleccione la hora de inicio de la atención antes de continuar.';
+    highlightFieldError(timeEl || $('#selStayDestino') || $('#timeSectionTitle'), msg);
+    return { ok: false, field: timeEl, error: 'time' };
+  }
+
+  // 6. Nombre del Paciente
+  const patEl = $('#b_pat') || document.getElementById('paciente_nombre');
+  const patVal = (patEl && patEl.value.trim()) || '';
+  if (!patVal) {
+    highlightFieldError(patEl, 'Por favor ingrese el nombre completo del paciente.');
+    return { ok: false, field: patEl, error: 'patient_name' };
+  }
+
+  // 7. Teléfono del Paciente (opcional, pero si tiene valor debe ser 8 o 9 dígitos)
+  const patPhoneEl = $('#b_pat_phone') || document.getElementById('paciente_telefono');
+  if (patPhoneEl) {
+    cleanPhoneInput(patPhoneEl);
+    const patPhoneRaw = patPhoneEl.value.trim();
+    if (patPhoneRaw && patPhoneRaw.length !== 8 && patPhoneRaw.length !== 9) {
+      highlightFieldError(patPhoneEl, 'El teléfono del paciente debe tener 8 o 9 dígitos.');
+      return { ok: false, field: patPhoneEl, error: 'patient_phone' };
+    }
+  }
+
+  // 8. Edad del Paciente
+  const ageEl = $('#b_age');
+  const ageVal = (ageEl && ageEl.value.trim()) || '';
+  if (!ageVal || isNaN(+ageVal) || +ageVal < 0) {
+    highlightFieldError(ageEl, 'Por favor ingrese una edad válida para el paciente.');
+    return { ok: false, field: ageEl, error: 'age' };
+  }
+
+  // 9. Acompañante menor de edad
+  const age = +ageVal;
+  const compValCheck = ($('#b_comp') && $('#b_comp').value) || '';
+  if (mode !== '3' && age < 18 && compValCheck.toLowerCase().includes('solo')) {
+    const compEl = $('#b_comp');
+    highlightFieldError(compEl, 'Por normativa legal y términos del servicio, el paciente menor de 18 años debe viajar obligatoriamente acompañado de manera continua por su padre, madre o tutor legal provisto del SRI correspondiente.');
+    return { ok: false, field: compEl, error: 'minor_companion' };
+  }
+
+  // 10. Motivo de atención
+  const dxEl = $('#b_dx');
+  const dxVal = (dxEl && dxEl.value.trim()) || '';
+  if (!dxVal) {
+    highlightFieldError(dxEl, 'Por favor indique el motivo de la atención o diagnóstico de traslado.');
+    return { ok: false, field: dxEl, error: 'diagnosis' };
+  }
+
+  // 11. Alergias
+  const allergyRadio = document.querySelector('input[name="b_allergy_radio"]:checked');
+  const hasAllergy = allergyRadio ? allergyRadio.value === 'si' : false;
+  const allergyDetailEl = $('#b_allergy_detail');
+  const allergyDetail = hasAllergy ? (allergyDetailEl && allergyDetailEl.value.trim()) || '' : '';
+  if (hasAllergy && !allergyDetail) {
+    highlightFieldError(allergyDetailEl, 'Ha indicado que el paciente presenta alergias conocidas. Por favor especifíquelas.');
+    return { ok: false, field: allergyDetailEl, error: 'allergy' };
+  }
+
+  // 12. Medicamentos
+  const medsRadio = document.querySelector('input[name="b_meds_radio"]:checked');
+  const hasMeds = medsRadio ? medsRadio.value === 'si' : false;
+  const medsDetailEl = $('#b_meds_detail');
+  const medsDetail = hasMeds ? (medsDetailEl && medsDetailEl.value.trim()) || '' : '';
+  if (hasMeds && !medsDetail) {
+    highlightFieldError(medsDetailEl, 'Ha indicado que el paciente toma medicamentos habituales. Por favor indíquelos o escriba "Revisar recetas en terreno".');
+    return { ok: false, field: medsDetailEl, error: 'meds' };
+  }
+
+  // 13. Otra Patología
+  const cbOtra = $('#cbPatOtra');
+  if (cbOtra && cbOtra.checked) {
+    const otherInp = $('#b_pathology_other');
+    if (otherInp && !otherInp.value.trim()) {
+      highlightFieldError(otherInp, 'Ha marcado la opción "Otra patología". Por favor especifíquela por escrito.');
+      return { ok: false, field: otherInp, error: 'other_pathology' };
+    }
+  }
+
+  // 14. Nombre del Coordinador
+  const coordEl = $('#b_coord') || document.getElementById('contacto_nombre');
+  const coordVal = (coordEl && coordEl.value.trim()) || '';
+  if (!coordVal) {
+    highlightFieldError(coordEl, 'Por favor ingrese el nombre del familiar o coordinador responsable.');
+    return { ok: false, field: coordEl, error: 'coord_name' };
+  }
+
+  // 15. Teléfono del Coordinador
+  const phEl = $('#b_ph') || document.getElementById('contacto_telefono');
+  if (phEl) cleanPhoneInput(phEl);
+  const phRaw = (phEl && phEl.value.trim()) || '';
+  const phClean = phRaw.replace(/\D/g, '').replace(/^56/, '');
+  if (!phClean || (phClean.length !== 8 && phClean.length !== 9)) {
+    highlightFieldError(phEl, 'Por favor ingrese un número de teléfono móvil de contacto válido de 8 o 9 dígitos.');
+    return { ok: false, field: phEl, error: 'coord_phone' };
+  }
+
+  // 16. Datos de Factura si corresponde
+  const taxDocRadio = document.querySelector('input[name="b_tax_doc"]:checked');
+  const isInvoice = taxDocRadio && taxDocRadio.value === 'factura';
+  if (isInvoice) {
+    const taxRS = ($('#b_tax_rs') && $('#b_tax_rs').value.trim()) || '';
+    const taxRUT = ($('#b_tax_rut') && $('#b_tax_rut').value.trim()) || '';
+    const taxGiro = ($('#b_tax_giro') && $('#b_tax_giro').value.trim()) || '';
+    const taxDir = ($('#b_tax_dir') && $('#b_tax_dir').value.trim()) || '';
+
+    if (!taxRS) {
+      highlightFieldError($('#b_tax_rs'), 'Por favor complete la Razón Social para la Factura Electrónica Exenta.');
+      return { ok: false, field: $('#b_tax_rs'), error: 'invoice_rs' };
+    }
+    if (!taxRUT) {
+      highlightFieldError($('#b_tax_rut'), 'Por favor ingrese el RUT Empresa para la Factura Electrónica Exenta.');
+      return { ok: false, field: $('#b_tax_rut'), error: 'invoice_rut' };
+    }
+    if (!validateRut(taxRUT)) {
+      highlightFieldError($('#b_tax_rut'), `El RUT ingresado (${taxRUT}) no es válido según el algoritmo oficial Módulo 11.`);
+      return { ok: false, field: $('#b_tax_rut'), error: 'invoice_rut_invalid' };
+    }
+    if (!taxGiro) {
+      highlightFieldError($('#b_tax_giro'), 'Por favor ingrese el Giro Comercial para la Factura Electrónica Exenta.');
+      return { ok: false, field: $('#b_tax_giro'), error: 'invoice_giro' };
+    }
+    if (!taxDir) {
+      highlightFieldError($('#b_tax_dir'), 'Por favor ingrese la Dirección Tributaria para la Factura Electrónica Exenta.');
+      return { ok: false, field: $('#b_tax_dir'), error: 'invoice_dir' };
+    }
+  }
+
+  return { ok: true };
+}
+window.validarFormulario = validarFormulario;
+
 function handleRutInput(el) {
   if (!el) return;
   const oldVal = el.value;
@@ -2046,7 +2340,6 @@ function handleRutInput(el) {
   el.value = fmt;
 
   const errEl = $('#b_tax_rut_err');
-  const subBtn = $('#submitBtn');
   const clean = fmt.replace(/[^0-9kK]/g, '');
 
   if (clean.length >= 8) {
@@ -2058,20 +2351,17 @@ function handleRutInput(el) {
         errEl.textContent = '⚠️ RUT inválido (revise número y dígito verificador)';
         errEl.style.display = 'block';
       }
-      if (subBtn) subBtn.disabled = true;
     } else {
       el.style.borderColor = '#10b981';
       el.style.boxShadow = '0 0 0 2px rgba(16,185,129,0.2)';
       if (errEl) {
         errEl.style.display = 'none';
       }
-      if (subBtn) subBtn.disabled = false;
     }
   } else {
     el.style.borderColor = '';
     el.style.boxShadow = '';
     if (errEl) errEl.style.display = 'none';
-    if (subBtn) subBtn.disabled = false;
   }
 }
 window.handleRutInput = handleRutInput;
@@ -2079,13 +2369,11 @@ window.handleRutInput = handleRutInput;
 function handleRutBlur(el) {
   if (!el) return;
   const errEl = $('#b_tax_rut_err');
-  const subBtn = $('#submitBtn');
   const val = el.value.trim();
   if (!val) {
     el.style.borderColor = '';
     el.style.boxShadow = '';
     if (errEl) errEl.style.display = 'none';
-    if (subBtn) subBtn.disabled = false;
     return;
   }
   const isValid = validateRut(val);
@@ -2096,12 +2384,10 @@ function handleRutBlur(el) {
       errEl.textContent = '⚠️ RUT inválido (revise número y dígito verificador)';
       errEl.style.display = 'block';
     }
-    if (subBtn) subBtn.disabled = true;
   } else {
     el.style.borderColor = '';
     el.style.boxShadow = '';
     if (errEl) errEl.style.display = 'none';
-    if (subBtn) subBtn.disabled = false;
   }
 }
 window.handleRutBlur = handleRutBlur;
@@ -5557,6 +5843,7 @@ window.populateAppTimeOptions = populateAppTimeOptions;
 
 async function initForm(){
   applyTheme(getTheme());
+  setupAutofillAndChangeListeners();
   // Ocultamiento por defecto de Secciones 3 y 4 al inicio
   if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility(); // initForm start
   const firstDate = findFirstAvailableDate();
@@ -5672,17 +5959,11 @@ async function submitBooking(ev){
   ev.preventDefault();
   D = load() || D;
 
+  // Validación DOM exhaustiva con feedback visual y scroll al primer error
+  const formCheck = validarFormulario();
+  if(!formCheck.ok) return;
+
   const termsChk = $('#b_terms');
-  if(termsChk && !termsChk.checked){
-    const submitAlert = $('#submitBlockAlert');
-    if(submitAlert){
-      submitAlert.style.display = 'block';
-      submitAlert.innerHTML = `<span>⚠️ <b>Términos y Condiciones requeridos:</b> Debe leer y aceptar los Términos y Condiciones del Servicio para confirmar su hora.</span>`;
-    }
-    termsChk.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    termsChk.focus();
-    return;
-  }
 
   const mode = $('#b_svc_type').value;
   const isConEvento = (mode === '4' && selectedEventSubMode === 'con_traslado');
@@ -5785,38 +6066,15 @@ async function submitBooking(ev){
     return;
   }
 
-  // Validaciones de datos en Sección 3
-  const pat = $('#b_pat').value.trim();
+  // Validaciones de datos en Sección 3 (Lectura directa del DOM con sanitización)
+  const pat = ($('#b_pat') || document.getElementById('paciente_nombre')).value.trim();
   const patPhoneRaw = ($('#b_pat_phone') && $('#b_pat_phone').value.trim()) || '';
-  const patPhone = patPhoneRaw ? ('+569' + patPhoneRaw) : '';
-  if(!pat){
-    $('#b_pat').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('#b_pat').focus();
-    return;
-  }
+  const patClean = patPhoneRaw.replace(/\D/g, '').replace(/^56/, '');
+  const patPhone = patClean ? ('+569' + ((patClean.length === 9 && patClean.startsWith('9')) ? patClean.slice(1) : patClean)) : '';
+
   const age = +$('#b_age').value;
-  if(!$('#b_age').value || age < 0){
-    $('#b_age').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('#b_age').focus();
-    return;
-  }
   const compValCheck = ($('#b_comp') && $('#b_comp').value) || '';
-  if(mode !== '3' && age < 18 && compValCheck.toLowerCase().includes('solo')){
-    $('#b_comp').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('#b_comp').focus();
-    const submitAlert = $('#submitBlockAlert');
-    if(submitAlert){
-      submitAlert.style.display = 'block';
-      submitAlert.innerHTML = '<span>⚠️ <b>Acompañante obligatorio para menor de edad:</b> Por normativa legal y términos del servicio, el paciente menor de 18 años debe viajar obligatoriamente acompañado de manera continua por su padre, madre o tutor legal provisto del SRI correspondiente.</span>';
-    }
-    return;
-  }
   const dxInput = $('#b_dx').value.trim();
-  if(!dxInput){
-    $('#b_dx').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('#b_dx').focus();
-    return;
-  }
 
   // Validación de Alerta Clínica de Alergias
   const allergyRadio = document.querySelector('input[name="b_allergy_radio"]:checked');
@@ -5877,20 +6135,11 @@ async function submitBooking(ev){
   const pathologies = getSelectedPathologies();
   const pathologiesText = pathologies.join(', ');
 
-  const coord = $('#b_coord').value.trim();
-  if(!coord){
-    $('#b_coord').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('#b_coord').focus();
-    return;
-  }
-  const phVal = $('#b_ph').value.trim();
-  if(!phVal || phVal.length !== 8){
-    if(typeof alert !== 'undefined') alert('Por favor ingrese un número de teléfono móvil de contacto válido de exactamente 8 dígitos.');
-    $('#b_ph').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('#b_ph').focus();
-    return;
-  }
-  const ph = '+569' + phVal;
+  const coord = ($('#b_coord') || document.getElementById('contacto_nombre')).value.trim();
+  const phRaw = ($('#b_ph') && $('#b_ph').value.trim()) || '';
+  const phClean = phRaw.replace(/\D/g, '').replace(/^56/, '');
+  const phCleanDigits = (phClean.length === 9 && phClean.startsWith('9')) ? phClean.slice(1) : phClean;
+  const ph = '+569' + phCleanDigits;
   const isSameAsPatient = ($('#cbCoordSameAsPatient') && $('#cbCoordSameAsPatient').checked) || (coord.toLowerCase() === pat.toLowerCase());
 
   const isNightShift = (selectedBlock === 'noche');
@@ -6412,10 +6661,15 @@ if(typeof syncCentralizedBlocks === "function") syncCentralizedBlocks();
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', () => {
     if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility();
+    if(typeof setupAutofillAndChangeListeners === 'function') setupAutofillAndChangeListeners();
   });
 } else {
   if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility();
+  if(typeof setupAutofillAndChangeListeners === 'function') setupAutofillAndChangeListeners();
 }
+setTimeout(() => {
+  if(typeof setupAutofillAndChangeListeners === 'function') setupAutofillAndChangeListeners();
+}, 300);
 </script>
 </body>
 </html>
