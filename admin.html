@@ -1596,7 +1596,7 @@ function blk(s){
   const timeText = `${fm(s.start)}–${fm((s.start+s.dur)%1440)}`;
 
   return (c?'':`<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`)+
-    `<div class="sv ${c?'c':''}" style="top:${top}px;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor}" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Clic para ver ficha clínica y acciones rápidas">
+    `<div class="sv ${c?'c':''}" style="top:${top}px;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor}" onclick="event.stopPropagation(); abrirMenuContextualServicio('${s.id}')" title="Clic para ver ficha clínica y acciones rápidas">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
         <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">${s.folio ? (s.folio.startsWith('#') ? s.folio : '#' + s.folio) : '#MSA-' + s.id}</span>
         <b style="color:#ffffff">${timeText}</b>
@@ -1619,7 +1619,7 @@ function blkOvernightRem(s){
   const stIcon = s.st === 'En Ruta' ? '🚗 ' : s.st === 'En Atención' ? '🩺 ' : '';
 
   return (c ? '' : `<div class=buf style="top:${bt}px;height:${bh}px">Buffer operativo 2h</div>`) +
-    `<div class="sv ${c?'c':''}" style="top:0;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor};opacity:.88" onclick="event.stopPropagation(); abrirMenuContextualServicio(${s.id})" title="Continuación de atención nocturna iniciada el día anterior">
+    `<div class="sv ${c?'c':''}" style="top:0;height:${h}px;background:linear-gradient(0deg,${stBg},${stBg}),rgba(15,23,42,0.88);border-left:4px solid ${stColor};opacity:.88" onclick="event.stopPropagation(); abrirMenuContextualServicio('${s.id}')" title="Continuación de atención nocturna iniciada el día anterior">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
         <span style="color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:0.5px">#${formatFolioMSA(s.folio, s.id)}</span>
         <b style="color:#ffffff">00:00–${fm(remDur)}</b>
@@ -1672,16 +1672,29 @@ function detail(){
     <button type="button" onclick="eliminarServicioDelCalendarioAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#dc2626;border:1px solid #b91c1c;color:#ffffff;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="Anular o eliminar este servicio del calendario">🗑️ Anular / Eliminar del Calendario</button>
   </div>
   <div class=row style="margin-top:10px">
-  <div><label>Reasignar a</label><select onchange="reasg(${s.id},this.value)">${opts.map(t=>`<option value="${t.id}" ${t.id==s.tid?'selected':''}>${e(t.nom)}</option>`).join('')}</select></div>
-  <div><label>Estado</label><select onchange="setSt(${s.id},this.value)">${ST.map(x=>`<option ${x==s.st?'selected':''}>${x}</option>`).join('')}</select></div>
-  <div><label>Tarifa ($)</label><input type=number min=0 value="${s.fare}" style="width:110px" onchange="setPay(${s.id},'fare',this.value)"></div>
-  <div><label>Abono ($)</label><input type=number min=0 value="${s.paid}" style="width:110px" onchange="setPay(${s.id},'paid',this.value)"></div>
+  <div><label>Reasignar a</label><select onchange="reasg('${s.id}',this.value)">${opts.map(t=>`<option value="${t.id}" ${t.id==s.tid?'selected':''}>${e(t.nom)}</option>`).join('')}</select></div>
+  <div><label>Estado</label><select onchange="setSt('${s.id}',this.value)">${ST.map(x=>`<option ${x==s.st?'selected':''}>${x}</option>`).join('')}</select></div>
+  <div><label>Tarifa ($)</label><input type=number min=0 value="${s.fare}" style="width:110px" onchange="setPay('${s.id}','fare',this.value)"></div>
+  <div><label>Abono ($)</label><input type=number min=0 value="${s.paid}" style="width:110px" onchange="setPay('${s.id}','paid',this.value)"></div>
   <button onclick="U.sel=null;render()">Cerrar</button></div></div>`;
 }
 
-function reasg(id,tid){const s=D.svcs.find(x=>x.id==id);if(!avail(tid,s.date,s.start,s.dur,id)){if(!confirm('⚠️ Ese TENS cuenta con un margen menor al buffer estándar de 2 horas. ¿Deseas reasignar de todas formas?')){return}}s.tid=tid;save();render()}
+function reasg(id,tid){
+  const s = (typeof findReserva === 'function' ? findReserva(id) : null) || (D.svcs && D.svcs.find(x => x && (x.id == id || x.folio == id)));
+  if(!s) return;
+  if(!avail(tid,s.date,s.start,s.dur,s.id)){
+    if(!confirm('⚠️ Ese TENS cuenta con un margen menor al buffer estándar de 2 horas. ¿Deseas reasignar de todas formas?')){
+      return;
+    }
+  }
+  s.tid = tid;
+  save();
+  render();
+}
+window.reasg = reasg;
+
 function setSt(id,v){
-  const s = D.svcs.find(x => x.id == id);
+  const s = (typeof findReserva === 'function' ? findReserva(id) : null) || (D.svcs && D.svcs.find(x => x && (x.id == id || x.folio == id)));
   if(!s) return;
   s.st = v;
   const nowIso = new Date().toISOString();
@@ -1705,21 +1718,36 @@ function setSt(id,v){
     });
   }
 }
+window.setSt = setSt;
 
 function iniciarAtencionTerreno(id){
-  const s = D.svcs.find(x => x.id == id);
+  const s = (typeof findReserva === 'function' ? findReserva(id) : null) || (D.svcs && D.svcs.find(x => x && (x.id == id || x.folio == id)));
   if(!s) return;
   s.st = 'En Atención';
   s.startedAt = new Date().toISOString();
   s.startActualTime = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
   save();
   render();
+  if(window.MsaBlocksService && typeof window.MsaBlocksService.updateReservaStatus === 'function'){
+    window.MsaBlocksService.updateReservaStatus(s.folio || s.id, 'En Atención').catch(err => {
+      console.warn('Error al actualizar estado de reserva en BD:', err);
+    });
+  }
   if(typeof alert !== 'undefined'){
     alert('🩺 ¡Atención iniciada con ' + s.pat + '! Se registró hora de inicio oficial: ' + s.startActualTime + ' hrs.');
   }
 }
 window.iniciarAtencionTerreno = iniciarAtencionTerreno;
-function setPay(id,k,v){const s=D.svcs.find(x=>x.id==id);if(s){s[k]=+v||0;save();render()}}
+
+function setPay(id,k,v){
+  const s = (typeof findReserva === 'function' ? findReserva(id) : null) || (D.svcs && D.svcs.find(x => x && (x.id == id || x.folio == id)));
+  if(s){
+    s[k] = +v || 0;
+    save();
+    render();
+  }
+}
+window.setPay = setPay;
 
 // =========================================================================
 // =========================================================================
@@ -3860,7 +3888,7 @@ window.confirmarGuardarConConflictoAdmin = confirmarGuardarConConflictoAdmin;
 
 function abrirMenuContextualServicio(svcId){
   U.sel = svcId;
-  const s = D.svcs.find(x => x.id === svcId);
+  const s = (typeof findReserva === 'function' ? findReserva(svcId) : null) || (D.svcs && D.svcs.find(x => x && (x.id == svcId || x.folio == svcId)));
   if(!s) return;
 
   const modal = $('#modalContextualServicioAdmin');
@@ -4083,7 +4111,7 @@ function card(s){
             🏁 Finalizar Servicio y Cobro en Terreno
           </button>
         ` : (s.st === 'En Ruta' || s.st === 'en_ruta') ? `
-          <button type="button" class="p" onclick="iniciarAtencionTerreno(${s.id})" style="background:#0f766e;border-color:#0f766e;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+          <button type="button" class="p" onclick="iniciarAtencionTerreno('${s.id}')" style="background:#0f766e;border-color:#0f766e;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
             🩺 Iniciar Atención / En Domicilio
           </button>
         ` : (s.st === 'Finalizado') ? `
@@ -4091,7 +4119,7 @@ function card(s){
             📄 Ver Comprobante y Liquidación
           </button>
         ` : `
-          <button type="button" class="p" onclick="setSt(${s.id},'En Ruta')" style="background:#0284c7;border-color:#0284c7;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+          <button type="button" class="p" onclick="setSt('${s.id}','En Ruta')" style="background:#0284c7;border-color:#0284c7;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
             🚗 Salir a Terreno / En Ruta
           </button>
         `}
