@@ -367,7 +367,7 @@ export default async function handler(req) {
             body: JSON.stringify({
               date: date,
               type: blockType,
-              reason: `Pre-reserva pendiente #${folio} (${patName})`,
+              reason: 'Horario reservado',
               tid: 'all',
               status: 'temporal_60m',
               reserva_id: folio,
@@ -389,7 +389,7 @@ export default async function handler(req) {
               body: JSON.stringify({
                 date: date,
                 type: blockType,
-                reason: `Pre-reserva pendiente #${folio} (${patName})`,
+                reason: 'Horario reservado',
                 tid: 'all',
                 created_at: new Date().toISOString(),
               }),

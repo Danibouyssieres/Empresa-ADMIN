@@ -700,6 +700,61 @@ function formatFolioMSA(folio, id){
 }
 window.formatFolioMSA = formatFolioMSA;
 
+function findReserva(key){
+  if (key === undefined || key === null || key === '') return null;
+  const target = String(key).trim();
+  const canon = formatFolioMSA(target);
+  const targetNum = (target.match(/\d+/) || [])[0];
+
+  // 1. Direct match on id, folio, or remoteId
+  let s = (D.svcs || []).find(x => x && (String(x.id) === target || String(x.folio) === target || String(x.remoteId) === target));
+  if (s) return s;
+
+  // 2. Canonical folio match (e.g. MSA-024)
+  s = (D.svcs || []).find(x => x && (formatFolioMSA(x.folio, x.id) === canon));
+  if (s) return s;
+
+  // 3. Numeric match (e.g. 24 matches MSA-024)
+  if (targetNum) {
+    s = (D.svcs || []).find(x => {
+      if (!x) return false;
+      const fNum = (String(x.folio || '').match(/\d+/) || [])[0];
+      const idNum = (String(x.id || '').match(/\d+/) || [])[0];
+      return (fNum && fNum === targetNum) || (idNum && idNum === targetNum);
+    });
+    if (s) return s;
+  }
+  return null;
+}
+window.findReserva = findReserva;
+
+function getNormalizedReservaCategory(s){
+  if (!s) return 'cancelled';
+  const rawSt = String(s.st || s.estado || '').toLowerCase().trim();
+  if (rawSt === 'cancelado' || rawSt === 'cancelada' || rawSt === 'expirada_cancelada' || rawSt === 'anulado' || rawSt === 'anulada') {
+    return 'cancelled';
+  }
+  if (rawSt === 'pre-reserva pendiente' || rawSt === 'pendiente_abono' || rawSt === 'pendiente') {
+    const remSec = getReservationRemainingSeconds(s);
+    if (remSec !== null && remSec <= 0) {
+      s.st = 'Cancelado';
+      return 'cancelled';
+    }
+    return 'pending';
+  }
+  if (rawSt === 'confirmado' || rawSt === 'confirmada') {
+    return 'confirmed';
+  }
+  if (rawSt === 'en ruta' || rawSt === 'en atención' || rawSt === 'en atencion' || rawSt === 'en terreno') {
+    return 'terreno';
+  }
+  if (rawSt === 'finalizado' || rawSt === 'finalizada' || rawSt === 'completada' || rawSt === 'completado') {
+    return 'completed';
+  }
+  return 'pending';
+}
+window.getNormalizedReservaCategory = getNormalizedReservaCategory;
+
 function deduplicateAndNormalizeSvcs(svcs){
   if(!Array.isArray(svcs)) return [];
   const seenFolios = new Map();
@@ -724,6 +779,10 @@ function deduplicateAndNormalizeSvcs(svcs){
     }
     seenFolios.set(clean, true);
     s.folio = clean;
+    if(!s.id || s.id === 1 || s.id === '1' || String(s.id).startsWith('blk_') || seenFolios.has('id_' + s.id)){
+      s.id = clean;
+    }
+    seenFolios.set('id_' + s.id, true);
   });
   return svcs;
 }
@@ -3662,20 +3721,20 @@ function abrirMenuContextualServicio(svcId){
   const isCtxPending = s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono';
   let quickDepositBtn = '';
   if(isCtxPending){
-    const abonoVal = s.abono || Math.round((s.fare||0)*0.5);
+    const ctxFolio = formatFolioMSA(s.folio, s.id);
     quickDepositBtn = `
       <div class="reservation-actions" style="margin:0 0 10px;width:100%">
         <button 
           class="btn-confirm-deposit" 
-          data-reserva-id="${s.id}" 
-          onclick="cerrarModalContextualServicioAdmin(); openConfirmModal('${s.id}', '${e(s.pat).replace(/'/g, "\\'")}', ${abonoVal})"
+          data-reserva-id="${ctxFolio}" 
+          onclick="cerrarModalContextualServicioAdmin(); openConfirmModal('${ctxFolio}')"
         >
           ✔ Confirmar Abono 50%
         </button>
         <button 
           class="btn-cancel-reservation" 
-          data-reserva-id="${s.id}" 
-          onclick="cerrarModalContextualServicioAdmin(); cancelReservation('${s.id}')"
+          data-reserva-id="${ctxFolio}" 
+          onclick="cerrarModalContextualServicioAdmin(); cancelReservation('${ctxFolio}')"
         >
           ✕ Anular / Liberar Cupo
         </button>
@@ -4426,19 +4485,21 @@ function onInboxSearch(q){
 window.onInboxSearch = onInboxSearch;
 
 function renderReservaCard(s){
-  const isPending = s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono' || s.st === 'Pendiente';
-  const isConfirmed = s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada';
-  const isInField = s.st === 'En Ruta' || s.st === 'En Atención' || s.st === 'En Terreno';
-  const isCompleted = s.st === 'Finalizado' || s.st === 'completada' || s.st === 'Completada';
-  const abonoVal = s.abono || Math.round((s.fare || 0) * 0.5);
+  const cat = getNormalizedReservaCategory(s);
+  const isPending = cat === 'pending';
+  const isConfirmed = cat === 'confirmed';
+  const isInField = cat === 'terreno';
+  const isCompleted = cat === 'completed';
+  const isCancelled = cat === 'cancelled';
   const displayFolio = formatFolioMSA(s.folio, s.id);
+  const svcKey = displayFolio;
 
   const cleanPh = (s.ph || '').replace(/\D/g, '');
   const waPh = cleanPh.startsWith('56') ? cleanPh : ('56' + (cleanPh.startsWith('9') ? cleanPh : cleanPh));
   const waLink = waPh.length >= 8 ? `https://wa.me/${waPh}?text=${encodeURIComponent(`Hola ${s.coord || s.pat}, le contactamos de Movilidad y Salud Asistida respecto a su atención Folio #${displayFolio}.`)}` : '';
 
   return `
-    <div class="res-card" style="border-left:5px solid ${COL[s.st] || '#64748B'}">
+    <div class="res-card" style="border-left:5px solid ${COL[s.st] || (isCancelled ? '#EF4444' : '#64748B')}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px">
         <div>
           <span style="font-size:11px;font-weight:800;color:var(--mut);letter-spacing:0.5px">FOLIO #${displayFolio}</span>
@@ -4471,16 +4532,16 @@ function renderReservaCard(s){
         <div class="reservation-actions">
           <button 
             class="btn-confirm-deposit" 
-            data-reserva-id="${s.id}" 
-            onclick="openConfirmModal('${s.id}', '${e(s.pat).replace(/'/g, "\\'")}', ${abonoVal})"
+            data-reserva-id="${svcKey}" 
+            onclick="openConfirmModal('${svcKey}')"
           >
             ✔ Confirmar Abono 50%
           </button>
 
           <button 
             class="btn-cancel-reservation" 
-            data-reserva-id="${s.id}" 
-            onclick="cancelReservation('${s.id}')"
+            data-reserva-id="${svcKey}" 
+            onclick="cancelReservation('${svcKey}')"
           >
             ✕ Anular / Liberar Cupo
           </button>
@@ -4491,7 +4552,7 @@ function renderReservaCard(s){
             type="button" 
             class="btn-confirm-deposit" 
             style="background:#0f766e;border-color:#0f766e;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer" 
-            onclick="liquidarSaldoReserva('${s.id}')"
+            onclick="liquidarSaldoReserva('${svcKey}')"
           >
             ✔ Liquidar Saldo y Finalizar
           </button>
@@ -4499,7 +4560,7 @@ function renderReservaCard(s){
             type="button" 
             class="btn-cancel-reservation" 
             style="padding:6px 10px;font-size:11px" 
-            onclick="cancelReservation('${s.id}')"
+            onclick="cancelReservation('${svcKey}')"
           >
             ✕ Anular / Liberar Cupo
           </button>
@@ -4510,7 +4571,7 @@ function renderReservaCard(s){
             type="button" 
             class="btn-confirm-deposit" 
             style="background:#0f766e;border-color:#0f766e;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer" 
-            onclick="liquidarSaldoReserva('${s.id}')"
+            onclick="liquidarSaldoReserva('${svcKey}')"
           >
             ✔ Liquidar Saldo y Finalizar
           </button>
@@ -4522,6 +4583,10 @@ function renderReservaCard(s){
         <div class="reservation-actions">
           <span style="font-size:12px;color:#64748b;font-weight:700">⚪ Atención finalizada en terreno · Saldo 100% liquidado (${$c(s.paid)})</span>
         </div>
+      ` : isCancelled ? `
+        <div class="reservation-actions">
+          <span style="font-size:12px;color:#ef4444;font-weight:700">🔴 Reserva cancelada / expirada por falta de abono (Cupo liberado)</span>
+        </div>
       ` : ''}
     </div>
   `;
@@ -4530,11 +4595,11 @@ window.renderReservaCard = renderReservaCard;
 
 function inboxView(){
   const allSvcs = D.svcs || [];
-  const pending = allSvcs.filter(s => s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono' || s.st === 'Pendiente');
-  const confirmed = allSvcs.filter(s => s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada');
-  const terreno = allSvcs.filter(s => s.st === 'En Ruta' || s.st === 'En Atención' || s.st === 'En Terreno');
-  const completed = allSvcs.filter(s => s.st === 'Finalizado' || s.st === 'completada' || s.st === 'Completada');
-  const cancelled = allSvcs.filter(s => s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada');
+  const pending = allSvcs.filter(s => getNormalizedReservaCategory(s) === 'pending');
+  const confirmed = allSvcs.filter(s => getNormalizedReservaCategory(s) === 'confirmed');
+  const terreno = allSvcs.filter(s => getNormalizedReservaCategory(s) === 'terreno');
+  const completed = allSvcs.filter(s => getNormalizedReservaCategory(s) === 'completed');
+  const cancelled = allSvcs.filter(s => getNormalizedReservaCategory(s) === 'cancelled');
 
   let filtered = allSvcs;
   if(inboxStatusFilter === 'pending'){
@@ -4645,25 +4710,33 @@ window.inboxView = inboxView;
 
 let pendingConfirmReservaId = null;
 
-function openConfirmModal(id, paciente, montoAbono){
-  pendingConfirmReservaId = id;
-  const s = D.svcs.find(x => x.id == id || x.folio == id);
-  const patName = paciente || (s && s.pat) || 'Paciente';
-  const abonoVal = montoAbono || (s && s.abono) || (s && Math.round(s.fare * 0.5)) || 0;
-  const fareVal = (s && s.fare) || (abonoVal * 2);
-  const saldoVal = Math.max(0, fareVal - abonoVal);
+function openConfirmModal(id){
+  const s = findReserva(id);
+  if(!s){
+    if(typeof alert !== 'undefined') alert(`No se encontró la reserva #${id}.`);
+    return;
+  }
+  const cleanFolio = formatFolioMSA(s.folio, s.id);
+  pendingConfirmReservaId = cleanFolio;
+
+  const patName = s.pat || 'Paciente';
+  const coordName = s.coord || '—';
+  const coordPhone = s.ph || '—';
+  const totalFare = Number(s.fare) || 0;
+  const abonoVal = Number(s.abono) || Math.round(totalFare * 0.5);
+  const saldoVal = Math.max(0, totalFare - abonoVal);
 
   const modal = $('#modalConfirmDepositAdmin');
   const details = $('#modalConfirmDepositDetails');
   if(details){
     details.innerHTML = `
       <div style="padding:10px 12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:8px;margin-bottom:10px">
-        <div><b>Folio:</b> ${s && s.folio ? (s.folio.startsWith('#') ? s.folio : '#' + s.folio) : '#MSA-' + id} ${s && s.date ? `· <b>Fecha:</b> ${s.date}` : ''}</div>
-        <div><b>Paciente:</b> <span style="color:var(--pri);font-weight:800">${e(patName)}</span></div>
-        <div><b>Contratante:</b> ${e((s && s.coord) || '—')} (${e((s && s.ph) || '—')})</div>
+        <div><b>Folio:</b> #${cleanFolio} ${s.date ? `· <b>Fecha:</b> ${s.date}` : ''}</div>
+        <div><b>Paciente:</b> <span style="color:var(--pri);font-weight:800">${e(patName)}</span> ${s.age ? `(${s.age} años)` : ''}</div>
+        <div><b>Contratante:</b> ${e(coordName)} (${e(coordPhone)})</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;background:var(--bg);padding:8px;border-radius:8px">
-        <div><small style="color:var(--mut);display:block">Total Cotizado</small><b>${$c(fareVal)}</b></div>
+        <div><small style="color:var(--mut);display:block">Total Cotizado</small><b>${$c(totalFare)}</b></div>
         <div><small style="color:var(--mut);display:block">Abono 50%</small><b style="color:#10b981">${$c(abonoVal)}</b></div>
         <div><small style="color:var(--mut);display:block">Saldo en Terreno</small><b style="color:#d97706">${$c(saldoVal)}</b></div>
       </div>
@@ -4674,7 +4747,7 @@ function openConfirmModal(id, paciente, montoAbono){
   }
   const btnSubmit = $('#btn_submit_confirm_deposit');
   if(btnSubmit){
-    btnSubmit.onclick = () => executeConfirmDeposit(id);
+    btnSubmit.onclick = () => executeConfirmDeposit(cleanFolio);
   }
   const _cInp = $('#confirmDepositVoucher') || $('#conf_deposit_comprobante'); if(_cInp) _cInp.value = '';
   if(modal) modal.style.display = 'flex';
@@ -4689,21 +4762,24 @@ function closeConfirmModal(){
 window.closeConfirmModal = closeConfirmModal;
 
 async function executeConfirmDeposit(id){
-  id = id || pendingConfirmReservaId;
-  const s = D.svcs.find(x => x.id == id || x.folio == id);
+  const cleanId = id || pendingConfirmReservaId;
+  const s = findReserva(cleanId);
   if(!s){
     if(typeof alert !== 'undefined') alert('No se encontró la reserva.');
     closeConfirmModal();
     return;
   }
+  const cleanFolio = formatFolioMSA(s.folio, s.id);
   const compInput = $('#confirmDepositVoucher') || $('#conf_deposit_comprobante');
   const comprobante = compInput ? compInput.value.trim() : '';
 
-  const abonoMonto = s.abono || Math.round((s.fare || 0) * 0.5);
+  const totalFare = Number(s.fare) || 0;
+  const abonoMonto = Number(s.abono) || Math.round(totalFare * 0.5);
+
   s.st = 'Confirmado';
   s.paid = abonoMonto;
   s.montoAbono = abonoMonto;
-  s.saldoPendiente = Math.max(0, (s.fare || 0) - abonoMonto);
+  s.saldoPendiente = Math.max(0, totalFare - abonoMonto);
   s.abonoConfirmado = true;
   s.confirmedAt = new Date().toISOString();
   if(comprobante){
@@ -4714,7 +4790,7 @@ async function executeConfirmDeposit(id){
 
   // Actualizar bloqueo local si existe
   if(D.blocks && Array.isArray(D.blocks)){
-    const b = D.blocks.find(x => x.reservaId == id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full'))));
+    const b = D.blocks.find(x => x.reservaId == cleanFolio || x.reservaId == s.id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full'))));
     if(b){
       b.status = 'definitivo';
       b.locked = true;
@@ -4726,17 +4802,20 @@ async function executeConfirmDeposit(id){
     MsaBlocksService.saveBlock({
       date: s.date,
       type: s.block || 'full',
-      reason: `Reserva confirmada #${s.folio || s.id} (${s.pat})`,
+      reason: `Reserva confirmada #${cleanFolio} (${s.pat})`,
       tid: s.tid || 'all'
     }).catch(err => console.warn('Error al persistir bloqueo permanente:', err));
 
     // 2. Actualizar estado y pago en tabla reservas
-    MsaBlocksService.updateReservaStatus(s.folio || s.id, 'Confirmado', {
+    MsaBlocksService.updateReservaStatus(cleanFolio, 'Confirmado', {
       paid: s.paid,
       confirmed_at: s.confirmedAt,
       obs: s.obs
     }).catch(err => console.warn('Error al actualizar reserva:', err));
   }
+
+  // Conmutar reactivamente la pestaña a 'Confirmadas'
+  inboxStatusFilter = 'confirmed';
 
   save();
   closeConfirmModal();
@@ -4745,9 +4824,10 @@ async function executeConfirmDeposit(id){
   if(typeof alert !== 'undefined'){
     alert(`✅ ¡Abono del 50% (${$c(abonoMonto)}) confirmado exitosamente!
 
-• Reserva Folio #${formatFolioMSA(s.folio, s.id)} confirmada de forma persistente.
+• Reserva Folio #${cleanFolio} (${s.pat}) confirmada de forma persistente.
+• Estado transferido a la pestaña "Confirmadas".
 • Bloqueo atómico activo en la agenda.
-• Saldo pendiente en terreno: ${$c(s.fare - s.paid)}.`);
+• Saldo pendiente en terreno: ${$c(totalFare - abonoMonto)}.`);
   }
   return { success: true, service: s };
 }
@@ -4797,10 +4877,14 @@ async function liquidarSaldoReserva(id){
 window.liquidarSaldoReserva = liquidarSaldoReserva;
 
 async function cancelReservation(id){
-  const s = D.svcs.find(x => x.id == id || x.folio == id);
-  if(!s) return;
+  const s = findReserva(id);
+  if(!s){
+    if(typeof alert !== 'undefined') alert('No se encontró la reserva.');
+    return;
+  }
+  const cleanFolio = formatFolioMSA(s.folio, s.id);
   if(typeof confirm !== 'undefined'){
-    if(!confirm(`¿Está seguro de anular la reserva Folio #${formatFolioMSA(s.folio, s.id)} de ${s.pat} y liberar el cupo en la agenda?\n\nEsta acción eliminará el bloqueo y devolverá la disponibilidad al calendario público.`)) return;
+    if(!confirm(`¿Está seguro de anular la reserva Folio #${cleanFolio} de ${s.pat} y liberar el cupo en la agenda?\n\nEsta acción eliminará el bloqueo y devolverá la disponibilidad al calendario público.`)) return;
   }
 
   s.st = 'Cancelado';
@@ -4808,12 +4892,12 @@ async function cancelReservation(id){
   s.obs = (s.obs ? s.obs + ' · ' : '') + 'Anulada por administrador / cupo liberado';
 
   if(D.blocks && Array.isArray(D.blocks)){
-    D.blocks = D.blocks.filter(x => !(x.reservaId == id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
+    D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == s.id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
   }
 
   if(window.MsaBlocksService){
     MsaBlocksService.removeBlock(s.date, s.block || 'full').catch(err => console.warn('Error al liberar bloqueo:', err));
-    MsaBlocksService.updateReservaStatus(s.folio || s.id, 'Cancelado', {
+    MsaBlocksService.updateReservaStatus(cleanFolio, 'Cancelado', {
       cancelled_at: s.cancelledAt,
       obs: s.obs
     }).catch(err => console.warn('Error al actualizar reserva cancelada:', err));
@@ -4822,27 +4906,29 @@ async function cancelReservation(id){
   save();
   render();
   if(typeof alert !== 'undefined'){
-    alert(`🗑️ Reserva Folio #${formatFolioMSA(s.folio, s.id)} anulada y cupo liberado exitosamente en la agenda.`);
+    alert(`🗑️ Reserva Folio #${cleanFolio} anulada y cupo liberado exitosamente en la agenda.`);
   }
   return { success: true, service: s };
 }
 window.cancelReservation = cancelReservation;
 
 async function autoExpireReservation(id, triggerRender = true){
-  const s = D.svcs.find(x => (x.id == id || x.folio == id) && (x.st === 'Pre-reserva pendiente' || x.st === 'pendiente_abono'));
+  const s = findReserva(id);
   if(!s) return;
+  if(s.st === 'Cancelado' || s.st === 'expirada_cancelada') return;
+  const cleanFolio = formatFolioMSA(s.folio, s.id);
   s.st = 'Cancelado';
   s.expiredAt = new Date().toISOString();
   s.obs = (s.obs ? s.obs + ' · ' : '') + 'Expirada automáticamente por falta de abono (TTL 60 min)';
 
   if(D.blocks && Array.isArray(D.blocks)){
-    D.blocks = D.blocks.filter(x => !(x.reservaId == id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
+    D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == s.id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
   }
 
   save();
   if(window.MsaBlocksService){
     MsaBlocksService.removeBlock(s.date, s.block || 'full').catch(()=>{});
-    MsaBlocksService.updateReservaStatus(s.folio || s.id, 'Cancelado', {
+    MsaBlocksService.updateReservaStatus(cleanFolio, 'Cancelado', {
       obs: s.obs,
       expired_at: s.expiredAt
     }).catch(()=>{});
@@ -4870,7 +4956,7 @@ function initReservationCountdownTimer(){
         el.textContent = '🔴 Cancelada / Expirada';
         el.removeAttribute('data-expires-ms');
         el.classList.remove('res-countdown');
-        autoExpireReservation(id, false);
+        autoExpireReservation(id, true);
       } else {
         const mm = String(Math.floor(diffSec / 60)).padStart(2, '0');
         const ss = String(diffSec % 60).padStart(2, '0');

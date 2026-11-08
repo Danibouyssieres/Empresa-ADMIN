@@ -4376,7 +4376,7 @@ function renderCalendar(){
       tagText = 'Bloqueado';
       clickable = false;
       const fBlock = dateManualBlocks.find(b => b.type === 'full');
-      titleTip = '🔒 Fecha bloqueada por administración' + (fBlock && fBlock.reason && fBlock.reason !== 'Sin motivo especificado' ? ': ' + fBlock.reason : '');
+      titleTip = '🔒 Horario reservado (Fecha no disponible en agenda)';
     } else if(!ev.inRange){
       stClass = 'st-off';
       tagText = dateStr <= todayStr ? '< 24h' : '> 30d';
@@ -4581,7 +4581,7 @@ function updateSlots(keepCurrentTime = false){
       badgeM.className = 'block-badge blocked';
       badgeM.textContent = 'Bloqueado / No disponible (0 cupos)';
       reasonM.style.display = 'block';
-      reasonM.textContent = '🔒 Bloqueado por administración' + (blockM && blockM.reason && blockM.reason !== 'Sin motivo especificado' ? ': ' + blockM.reason : '');
+      reasonM.textContent = '🔒 Horario reservado';
     } else {
       btnM.classList.remove('shift-manual-blocked');
       btnM.disabled = !okM;
@@ -4607,7 +4607,7 @@ function updateSlots(keepCurrentTime = false){
       badgeT.className = 'block-badge blocked';
       badgeT.textContent = 'Bloqueado / No disponible (0 cupos)';
       reasonT.style.display = 'block';
-      reasonT.textContent = '🔒 Bloqueado por administración' + (blockT && blockT.reason && blockT.reason !== 'Sin motivo especificado' ? ': ' + blockT.reason : '');
+      reasonT.textContent = '🔒 Horario reservado';
     } else {
       btnT.classList.remove('shift-manual-blocked');
       btnT.disabled = !okT;
@@ -4635,7 +4635,7 @@ function updateSlots(keepCurrentTime = false){
         badgeN.className = 'block-badge blocked';
         badgeN.textContent = 'Bloqueado / No disponible (0 cupos)';
         reasonN.style.display = 'block';
-        reasonN.textContent = '🔒 Bloqueado por administración' + (blockN && blockN.reason && blockN.reason !== 'Sin motivo especificado' ? ': ' + blockN.reason : '');
+        reasonN.textContent = '🔒 Horario reservado';
       } else if(!allowsNight){
         // Modalidades 1 y 2: Bloquear Turno Noche para servicios con traslado vehicular
         btnN.classList.remove('shift-manual-blocked');
@@ -6137,7 +6137,7 @@ window.formatFolioMSA = formatFolioMSA;
     date: date,
     type: turnoVal,
     shift: turnoVal,
-    reason: `Pre-reserva pendiente #${realFolio} (${pat})`,
+    reason: 'Horario reservado',
     status: 'temporal_60m',
     expiresAt: newSvc.expiresAt
   });
