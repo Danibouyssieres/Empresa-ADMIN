@@ -224,6 +224,10 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
           <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">ABONO 50% PREVIO (PAGADO PARA RESERVAR):</td>
           <td style="padding:3px 12px;text-align:right;box-sizing:border-box;white-space:nowrap" id="pdfAbono">-$20.000</td>
         </tr>
+        <tr id="pdfRowDescuento" style="background:#f8fafc;color:#dc2626;display:none">
+          <td colspan="2" style="padding:3px 8px;text-align:right;box-sizing:border-box">AJUSTE / DESCUENTO EN TERRENO:</td>
+          <td style="padding:3px 12px;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap" id="pdfDescuento">-$0</td>
+        </tr>
         <tr style="background:#0f766e;color:#ffffff;font-size:.80rem">
           <td colspan="2" style="padding:6px 8px;text-align:right;font-weight:800;box-sizing:border-box">👉 SALDO FINAL LIQUIDADO EN TERRENO:</td>
           <td style="padding:6px 12px;text-align:right;font-weight:800;font-size:.92rem;box-sizing:border-box;white-space:nowrap" id="pdfSaldoFinal">$30.500</td>
@@ -349,18 +353,22 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 
     <div id="adm_co_service_summary" style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;line-height:1.45"></div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12.5px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:10px;font-size:12.5px;margin-bottom:10px">
       <div>
-        <label for="adm_horaCierreReal" style="font-weight:700;display:block;margin-bottom:4px">Hora Real Cierre *</label>
+        <label for="adm_horaCierreReal" style="font-weight:700;display:block;margin-bottom:4px">Hora Cierre *</label>
         <input type="time" id="adm_horaCierreReal" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
       <div>
-        <label for="adm_parking_expense" style="font-weight:700;display:block;margin-bottom:4px">Gasto Estacionamiento ($)</label>
+        <label for="adm_parking_expense" style="font-weight:700;display:block;margin-bottom:4px">Parking ($)</label>
         <input type="number" id="adm_parking_expense" min="0" step="500" value="0" placeholder="0" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
       <div>
-        <label for="adm_abono_previo_input" style="font-weight:700;display:block;margin-bottom:4px">Abono 50% Previo ($) *</label>
+        <label for="adm_abono_previo_input" style="font-weight:700;display:block;margin-bottom:4px">Abono 50% ($) *</label>
         <input type="number" id="adm_abono_previo_input" min="0" step="1000" value="0" placeholder="20000" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+      </div>
+      <div>
+        <label for="adm_descuento_ajuste" style="font-weight:700;display:block;margin-bottom:4px">Ajuste / Desc. ($)</label>
+        <input type="number" id="adm_descuento_ajuste" min="0" step="500" value="0" placeholder="0" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
     </div>
 
@@ -385,6 +393,10 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
       <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
         <span style="color:#475569">Menos Abono 50% ya pagado:</span>
         <b id="adm_co_abono_previo" style="color:#dc2626">-$0</b>
+      </div>
+      <div id="adm_co_row_descuento" style="display:none;justify-content:space-between;font-size:12.5px;margin-bottom:5px;color:#dc2626">
+        <span>Menos Ajuste / Descuento Manual:</span>
+        <b id="adm_co_descuento_val">-$0</b>
       </div>
       <div style="border-top:1.5px solid #0f766e;padding-top:6px;margin-top:4px;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:13px;font-weight:800;color:#0f766e">👉 TOTAL SALDO PENDIENTE A LIQUIDAR:</span>
@@ -829,7 +841,7 @@ function load(){
       } catch(e){}
       if(Array.isArray(parsed.svcs)) deduplicateAndNormalizeSvcs(parsed.svcs);
       if(Array.isArray(parsed.techs)){
-        parsed.techs = parsed.techs.filter(t => t.id !== 't2' && !t.nom.includes('TENS 2'));
+        parsed.techs = parsed.techs.filter(t => t && t.id !== 't2' && !/tens\s*2|respaldo/i.test(t.nom || '') && t.rut !== '15.987.654-3' && !/unidad\s*2/i.test(t.veh || ''));
       }
       return parsed;
     }
@@ -866,7 +878,7 @@ function logout(){
 const nowInit=new Date();
 let D=load()||seed();
 if(Array.isArray(D.techs)){
-  D.techs = D.techs.filter(t => t.id !== 't2' && !t.nom.includes('TENS 2'));
+  D.techs = D.techs.filter(t => t && t.id !== 't2' && !/tens\s*2|respaldo/i.test(t.nom || '') && t.rut !== '15.987.654-3' && !/unidad\s*2/i.test(t.veh || ''));
 }
 let U={view:'admin',tab:'blocks',date:addDaysYMD(TODAY,1),calYear:nowInit.getFullYear(),calMonth:nowInit.getMonth(),blkType:'full',tens:'t1',sel:null,edit:null};
 save();
@@ -1535,8 +1547,8 @@ function cal(){
   const cob=live.reduce((a,s)=>a+s.paid,0),sal=live.reduce((a,s)=>a+s.fare-s.paid,0);
   const H=(S1-S0)*PX/60;let hrs='';for(let m=S0;m<S1;m+=60)hrs+=`<div>${fm(m)}</div>`;
   const cols=act.map(t=>{
-    const unitSvcs = ss.filter(s=>s.tid==t.id);
-    const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id);
+    const unitSvcs = ss.filter(s=>s.tid==t.id && s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada');
+    const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id && s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada');
     return `<div class=col><div class=ch style="border-color:${t.col}">${e(t.nom)}</div><div class=cb style="height:${H}px;cursor:pointer" onclick="onCalGridClick(event, '${t.id}', '${U.date}')" title="Clic en cualquier espacio vacío para agendar a esta hora">${prevUnitOvernight.map(blkOvernightRem).join('')}${unitSvcs.map(blk).join('')}</div></div>`;
   }).join('');
   let pendingSection = '';
@@ -1566,6 +1578,7 @@ function cal(){
 }
 
 function blk(s){
+  if(s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return '';
   const top=(s.start-S0)*PX/60;
   const rawH=s.dur*PX/60;
   const maxH=(S1-S0)*PX/60 - top;
@@ -1591,6 +1604,7 @@ function blk(s){
 }
 
 function blkOvernightRem(s){
+  if(s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return '';
   const remDur = (s.start + s.dur) - 1440;
   const top = 0;
   const h = remDur * PX / 60;
@@ -1651,7 +1665,8 @@ function detail(){
     <a href="https://wa.me/${(s.ph||'').replace(/\D/g,'').startsWith('56')?(s.ph||'').replace(/\D/g,''):'56'+(s.ph||'').replace(/\D/g,'')}?text=${encodeURIComponent('Hola ' + (s.coord||s.pat) + ', le contactamos de Movilidad y Salud Asistida respecto a su atención Folio #MSA-' + s.id)}" target="_blank" rel="noopener" style="background:#25D366;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">💬 WhatsApp</a>
     <a href="https://waze.com/ul?q=${encodeURIComponent(s.to)}" target="_blank" rel="noopener" style="background:#0284c7;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">🚙 Waze</a>
     <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.to)}" target="_blank" rel="noopener" style="background:#475569;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">🗺️ Google Maps</a>
-    <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-weight:700;font-size:12px">🏁 Liquidar / Finalizar Atención</button>
+    <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-weight:700;font-size:12px">🏁 Liquidar / Finalizar Atención</button>
+    <button type="button" onclick="cancelReservation('${formatFolioMSA(s.folio, s.id)}')" style="background:#ef4444;border:1px solid #ef4444;color:#ffffff;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="Anular este servicio y liberar el bloque del móvil">🗑️ Anular / Eliminar Reserva</button>
   </div>
   <div class=row style="margin-top:10px">
   <div><label>Reasignar a</label><select onchange="reasg(${s.id},this.value)">${opts.map(t=>`<option value="${t.id}" ${t.id==s.tid?'selected':''}>${e(t.nom)}</option>`).join('')}</select></div>
@@ -1857,13 +1872,6 @@ function form(){
           <label for="aq_to"><b id="lbl_aq_to">Dirección Destino (B) *</b></label>
           <input type="text" id="aq_to" placeholder="Ej: Clínica Santa María, Providencia" value="Clínica Santa María, Providencia" oninput="onAdminAddressInput('to')">
           <div id="suggest_to" class="suggest-list"></div>
-          <div id="quick_dest_wrap" style="margin-top:4px">
-            <label style="font-size:11px;color:var(--mut)">O elija un destino frecuente:</label>
-            <select id="aq_quick_dest" onchange="onQuickDestSelect(this.value)" style="font-size:12px;padding:4px 8px">
-              <option value="">-- Centros Médicos Frecuentes --</option>
-              ${MEDICAL_PLACES.map((m, idx) => `<option value="${idx}">${m.name} (${m.km} km)</option>`).join('')}
-            </select>
-          </div>
         </div>
 
         <div id="col_km">
@@ -3255,6 +3263,21 @@ function fmtDurationClean(min){
 
 function sendAdminQuoteWhatsApp(){
   calcAdminQuote();
+
+  const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || '';
+  if(!pat){
+    if(typeof alert !== 'undefined') alert('⚠️ Por favor ingrese el nombre del paciente antes de enviar la cotización.');
+    if($('#aq_pat')) $('#aq_pat').focus();
+    return;
+  }
+
+  const from = ($('#aq_from') && $('#aq_from').value.trim()) || '';
+  if(!from){
+    if(typeof alert !== 'undefined') alert('⚠️ Por favor ingrese la dirección de origen.');
+    if($('#aq_from')) $('#aq_from').focus();
+    return;
+  }
+
   const phoneDigits = (($('#aq_ph') && $('#aq_ph').value) || '').replace(/\D/g, '').slice(0, 8);
   const cleanPhone = phoneDigits ? ('569' + phoneDigits) : '56929990095';
 
@@ -3266,16 +3289,27 @@ function sendAdminQuoteWhatsApp(){
     '5': '5. Programas Interregionales'
   };
 
-  const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
   const ayudaTecnica = (qState.mode !== '3' && $('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
-  const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || 'Estimado(a)';
+  const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || pat;
   const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
-  const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Origen';
-  const to = ($('#aq_to') && $('#aq_to').value.trim()) || 'Destino';
+  const to = ($('#aq_to') && $('#aq_to').value.trim()) || from;
   const durMin = qState.durationMin || 120;
   const startMin = (qState.mode === '5' && qState.pickupMin !== undefined) ? qState.pickupMin : tm(time);
+
+  // Calcular correlativo único oficial de Folio
+  let maxNum = 0;
+  (D.svcs || []).forEach(item => {
+    const m = String(item.folio || item.id || '').match(/(\d+)/);
+    if(m){
+      const n = parseInt(m[1], 10);
+      if(!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  });
+  const nextNum = Math.max(maxNum + 1, (D.nid || 1));
+  const cleanFolio = 'MSA-' + String(nextNum).padStart(3, '0');
+  D.nid = nextNum + 1;
 
   // Cálculo de cronograma desglosado
   let salidaDomicilio = (qState.mode === '5' && qState.pickupMin !== undefined) ? fm(qState.pickupMin) : time;
@@ -3405,9 +3439,9 @@ function sendAdminQuoteWhatsApp(){
   const medsDetail = ($('#aq_meds_detail') && $('#aq_meds_detail').value.trim()) || '';
   const medsText = hasMeds ? (medsDetail || 'Sí (Revisar recetas en terreno)') : 'No toma medicamentos habituales';
 
-  const msg = `Hola ${coord}! Le escribimos de Movilidad y Salud Asistida SpA. Le compartimos el detalle oficial de su cotización requerida:
+  const msg = `Hola ${coord}! Le escribimos de Movilidad y Salud Asistida SpA. Le compartimos el detalle oficial de su cotización requerida (Folio #${cleanFolio}):
 
-📋 *DETALLE DEL SERVICIO SOLICITADO:*
+📋 *DETALLE DEL SERVICIO SOLICITADO (FOLIO #${cleanFolio}):*
 • *Paciente:* ${pat}
 • *Servicio:* ${modeNames[qState.mode]}
 • *Fecha:* ${date}
@@ -3431,9 +3465,133 @@ ${breakdown}• *TOTAL COTIZADO:* ${$c(qState.totalFare)}
 Quedamos atentos para reservar su cupo exclusivo!`;
 
   const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+
+  // Auto-guardado en almacén y Supabase
+  const tid = ($('#aq_tens') && $('#aq_tens').value) || (D.techs[0] && D.techs[0].id) || 't1';
+  const ageVal = parseInt(($('#aq_age') && $('#aq_age').value) || 0, 10) || 75;
+  const dxVal = ($('#aq_dx') && $('#aq_dx').value.trim()) || 'Cotización vía WhatsApp';
+  const blockType = (startMin < 720 ? 'manana' : startMin < 1200 ? 'tarde' : 'noche');
+
+  const isInvoice = (typeof document !== 'undefined' && document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value === 'factura');
+  const taxDocObj = isInvoice ? {
+    type: 'factura',
+    label: 'Factura Electrónica Exenta',
+    razonSocial: ($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || 'Empresa',
+    rut: ($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '',
+    giro: ($('#aq_tax_giro') && $('#aq_tax_giro').value.trim()) || '',
+    dir: ($('#aq_tax_dir') && $('#aq_tax_dir').value.trim()) || ''
+  } : {
+    type: 'boleta',
+    label: 'Boleta Electrónica Exenta'
+  };
+
+  const newSvc = {
+    id: cleanFolio,
+    folio: cleanFolio,
+    tid: tid,
+    date: date,
+    time: salidaDomicilio,
+    start: startMin,
+    dur: durMin,
+    pat: pat,
+    age: ageVal,
+    dx: dxVal,
+    coord: coord,
+    ph: phoneDigits ? ('+569' + phoneDigits) : '+56929990095',
+    from: from,
+    to: to,
+    mob: mob,
+    ayudaTecnica: ayudaTecnica,
+    ayuda_tecnica: ayudaTecnica,
+    req: [],
+    comp: false,
+    compDesc: '',
+    taxDoc: taxDocObj,
+    patologias: [dxVal],
+    fare: qState.totalFare,
+    abono: qState.abono50,
+    paid: 0,
+    st: 'pendiente_abono',
+    svcType: qState.mode,
+    block: blockType,
+    alergias: alergiasText,
+    medicamentos: medsText,
+    conciencia: 'Lúcido / Orientado',
+    obs: `Cotización enviada vía WhatsApp (Folio #${cleanFolio}) · Pendiente recepción de abono 50%`,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+  };
+
+  D.svcs.push(newSvc);
+
+  if(!Array.isArray(D.blocks)) D.blocks = [];
+  D.blocks.push({
+    id: 'blk_' + cleanFolio,
+    reservaId: cleanFolio,
+    date: date,
+    type: newSvc.block,
+    shift: newSvc.block,
+    reason: 'Horario reservado',
+    status: 'temporal_60m',
+    expiresAt: newSvc.expiresAt
+  });
+
+  if(window.MsaBlocksService){
+    MsaBlocksService.saveBlock({
+      date: date,
+      type: newSvc.block,
+      reason: 'Horario reservado',
+      tid: tid
+    }).catch(err => console.warn('Error al persistir bloqueo de cotización:', err));
+
+    fetch('/api/reservas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        folio: cleanFolio,
+        date: date,
+        time: salidaDomicilio,
+        start: startMin,
+        dur: durMin,
+        mode: qState.mode,
+        turno: newSvc.block,
+        pat: pat,
+        patPhone: newSvc.ph,
+        age: ageVal,
+        coord: coord,
+        coordPhone: newSvc.ph,
+        from: from,
+        to: to,
+        dx: dxVal,
+        mob: mob,
+        ayudaTecnica: ayudaTecnica,
+        alergias: alergiasText,
+        medicamentos: medsText,
+        fare: qState.totalFare,
+        abono: qState.abono50,
+        paid: 0,
+        st: 'pendiente_abono',
+        taxDoc: taxDocObj,
+        obs: newSvc.obs
+      })
+    }).catch(err => console.warn('Error al persistir cotización en API:', err));
+  }
+
+  save();
+  clearAdminQuoterDraft();
+  resetAdminQuoterForm();
+
   if(typeof window !== 'undefined' && window.open){
     window.open(url, '_blank');
   }
+
+  if(typeof alert !== 'undefined'){
+    alert(`✅ ¡Cotización registrada exitosamente como Pre-Reserva Folio #${cleanFolio}!\n\n• Ha quedado registrada en la pestaña "Pendientes" de la Bandeja de Entrada.\n• El formulario ha quedado limpio y listo para la siguiente cotización.`);
+  }
+
+  U.tab = 'inbox';
+  inboxStatusFilter = 'pending';
+  render();
 }
 window.sendAdminQuoteWhatsApp = sendAdminQuoteWhatsApp;
 let pendingAdminBooking = null;
@@ -3754,8 +3912,11 @@ function abrirMenuContextualServicio(svcId){
       <a href="${mapsDestUrl}" target="_blank" rel="noopener" style="background:#475569;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
         🗺️ Google Maps
       </a>
-      <button type="button" class="p" onclick="cerrarModalContextualServicioAdmin(); abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#0f766e;border-color:#0f766e;padding:8px 14px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
+      <button type="button" class="p" onclick="cerrarModalContextualServicioAdmin(); abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#0f766e;border-color:#0f766e;padding:8px 14px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px">
         🏁 Liquidar / Finalizar Atención
+      </button>
+      <button type="button" onclick="cerrarModalContextualServicioAdmin(); cancelReservation('${formatFolioMSA(s.folio, s.id)}')" style="background:#ef4444;border:1px solid #ef4444;color:#ffffff;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.84rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+        🗑️ Anular / Eliminar Reserva
       </button>
       <button type="button" onclick="cerrarModalContextualServicioAdmin()" style="padding:8px 14px;font-size:.84rem">
         Cerrar
@@ -3898,7 +4059,7 @@ function card(s){
 let currentClosingSvcId = null;
 let currentCheckoutCalc = null;
 
-function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono){
+function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, descuentoManual){
   const mode = s.svcType || '1';
   const dateVal = s.date || TODAY;
   const startMin = s.start || 540;
@@ -3912,12 +4073,22 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono){
 
   const pactadaMin = s.dur || 120;
   const diffMin = elapsedMin > pactadaMin ? (elapsedMin - pactadaMin) : 0;
-  const extraBlocks = diffMin > 0 ? Math.ceil(diffMin / 30) : 0;
+  
+  // Regla de tiempo extra estricta (Cero cortesía: si supera por 1 minuto o más, gatilla bloque de 30 min)
+  const extraBlocks = diffMin >= 1 ? Math.ceil(diffMin / 30) : 0;
 
+  // Tarifas por bloque de 30 min:
+  // Interregional: $15.000 / Nocturno o Festivo: $9.000 / Fin de semana: $7.500 / Hábil: $6.000
   let extraBlockRate = 6000;
-  if(mode === '2') extraBlockRate = 4000;
-  else if(mode === '4') extraBlockRate = 7500;
-  else if(mode === '5') extraBlockRate = 15000;
+  if(mode === '5'){
+    extraBlockRate = 15000;
+  } else if(jornada === 'nocturno'){
+    extraBlockRate = 9000;
+  } else if(jornada === 'finde' || jornada === 'tarde'){
+    extraBlockRate = 7500;
+  } else {
+    extraBlockRate = 6000;
+  }
 
   const extraCost = extraBlocks * extraBlockRate;
   let billedMin = pactadaMin + (extraBlocks * 30);
@@ -3986,13 +4157,17 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono){
     abonoPrevio = Math.round((baseContractFare || subtotalServicio) * 0.5);
   }
 
-  // 5. Saldo a Liquidar = Total Servicio - Abono Previo 50%
-  const saldoFinal = Math.max(0, totalServicio - abonoPrevio);
+  // 5. Descuento / Ajuste Manual en terreno
+  const descManual = Math.max(0, parseInt(descuentoManual || 0, 10) || 0);
+
+  // 6. Saldo a Liquidar = (Total Servicio - Abono Previo 50%) - Descuento Manual
+  const saldoFinal = Math.max(0, (totalServicio - abonoPrevio) - descManual);
 
   return {
     mode,
     jornada,
     hourlyRate,
+    extraBlockRate,
     kmTot,
     kmCost,
     elapsedMin,
@@ -4012,6 +4187,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono){
     abono: abonoPrevio,
     abonoPrevio,
     parking: montoEstacionamiento,
+    descuentoManual: descManual,
     saldoFinal
   };
 }
@@ -4071,7 +4247,8 @@ function onFieldCheckoutRecalc(){
     elapsedMin = (cierreMin + 1440) - startMin;
   }
 
-  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbonoInput);
+  const descInput = $('#adm_descuento_ajuste') ? parseInt($('#adm_descuento_ajuste').value, 10) : 0;
+  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbonoInput, descInput);
   currentCheckoutCalc = calc;
 
   if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').textContent = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${calc.elapsedMin}m en lugar)`;
@@ -4079,6 +4256,17 @@ function onFieldCheckoutRecalc(){
   if($('#adm_co_total_servicio')) $('#adm_co_total_servicio').textContent = $c(calc.totalServicio);
   if($('#adm_co_parking_amount')) $('#adm_co_parking_amount').textContent = '+' + $c(calc.parking);
   if($('#adm_co_abono_previo')) $('#adm_co_abono_previo').textContent = '-' + $c(calc.abonoPrevio);
+
+  const rowDesc = $('#adm_co_row_descuento');
+  if(rowDesc){
+    if(calc.descuentoManual > 0){
+      rowDesc.style.display = 'flex';
+      if($('#adm_co_descuento_val')) $('#adm_co_descuento_val').textContent = '-' + $c(calc.descuentoManual);
+    } else {
+      rowDesc.style.display = 'none';
+    }
+  }
+
   if($('#adm_co_saldo_final')) $('#adm_co_saldo_final').textContent = $c(calc.saldoFinal);
 
   const extraNote = $('#adm_co_extra_note');
@@ -4352,6 +4540,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   }
   if($('#pdfTotalLiquidado')) $('#pdfTotalLiquidado').textContent = $c(calc.totalServicio);
   if($('#pdfAbono')) $('#pdfAbono').textContent = '-' + $c(calc.abonoPrevio);
+  const rowDesc = $('#pdfRowDescuento');
+  if(rowDesc){
+    if(calc.descuentoManual > 0){
+      rowDesc.style.display = 'table-row';
+      if($('#pdfDescuento')) $('#pdfDescuento').textContent = '-' + $c(calc.descuentoManual);
+    } else {
+      rowDesc.style.display = 'none';
+    }
+  }
   if($('#pdfSaldoFinal')) $('#pdfSaldoFinal').textContent = $c(calc.saldoFinal);
   if($('#pdfMedioPago')) $('#pdfMedioPago').textContent = medioPago;
 
@@ -4884,7 +5081,10 @@ async function cancelReservation(id){
   }
   const cleanFolio = formatFolioMSA(s.folio, s.id);
   if(typeof confirm !== 'undefined'){
-    if(!confirm(`¿Está seguro de anular la reserva Folio #${cleanFolio} de ${s.pat} y liberar el cupo en la agenda?\n\nEsta acción eliminará el bloqueo y devolverá la disponibilidad al calendario público.`)) return;
+    if(!confirm('¿Desea anular este servicio y liberar el bloque del móvil?')) return;
+  }
+  if(U.sel == s.id || U.sel == s.folio || formatFolioMSA(s.folio, s.id) == formatFolioMSA(U.sel)){
+    U.sel = null;
   }
 
   s.st = 'Cancelado';
