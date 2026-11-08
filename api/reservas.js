@@ -97,7 +97,7 @@ export default async function handler(req) {
   }
 
   // Detección exhaustiva de variables de entorno de Supabase en Vercel y headers
-  const supabaseUrl = (
+  const rawSupabaseUrl = (
     process.env.SUPABASE_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.SUPABASE_PROJECT_URL ||
@@ -105,6 +105,7 @@ export default async function handler(req) {
     req.headers.get('x-supabase-url') ||
     ''
   ).trim();
+  const supabaseUrl = rawSupabaseUrl.replace(/\/+$/, '');
 
   const supabaseAnonKey = (
     process.env.SUPABASE_ANON_KEY ||

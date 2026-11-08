@@ -90,7 +90,7 @@ export default async function handler(req) {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
-  const supabaseUrl = (
+  const rawSupabaseUrl = (
     process.env.SUPABASE_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.SUPABASE_PROJECT_URL ||
@@ -98,6 +98,7 @@ export default async function handler(req) {
     req.headers.get('x-supabase-url') ||
     ''
   ).trim();
+  const supabaseUrl = rawSupabaseUrl.replace(/\/+$/, '');
 
   const supabaseAnonKey = (
     process.env.SUPABASE_ANON_KEY ||
@@ -167,9 +168,10 @@ export default async function handler(req) {
 
       if (!sbRes.ok) {
         const errText = await sbRes.text().catch(() => '');
+        console.warn('Advertencia al consultar Supabase bloqueos:', sbRes.status, errText);
         return new Response(
-          JSON.stringify({ ok: false, error: 'Error al consultar disponibilidad', sbStatus: sbRes.status, sbError: errText, sbUrl }),
-          { status: 500, headers: corsHeaders }
+          JSON.stringify({ ok: true, source: 'fallback-on-error', data: [], sbStatus: sbRes.status, sbError: errText }),
+          { status: 200, headers: corsHeaders }
         );
       }
 
