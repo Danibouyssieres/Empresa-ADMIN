@@ -807,21 +807,13 @@ const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 const $c=n=>'$'+Math.round(n).toLocaleString('es-CL');
 
 function seed(){
-  const dMananaOcupada = addDaysYMD(TODAY, 3);
-  const dInterregional = addDaysYMD(TODAY, 5);
-  const dEventoNocturno = addDaysYMD(TODAY, 8);
-  const sv=(id,tid,date,start,dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,extra={})=>({id,tid,date,start:tm(start),dur,pat,age,dx,coord,ph,from,to,mob,req,comp,fare,paid,st,...extra});
   return{
-    seedVersion: 3,
-    nid:14,
+    seedVersion: 4,
+    nid: 1,
     techs:[
       {id:'t1',nom:'Daniela González Bouyssieres',rut:'18.926.396-1',tel:'+56929990095',veh:'Unidad 1 · Vehículo Acondicionado Clase A2',col:'#0f766e',act:true}
     ],
-    svcs:[
-      sv(1,'t1',dMananaOcupada,'08:30',120,'Rosa Medina',82,'1. Servicio Integral · Control cardiológico','Andrea Medina','+56977778888','Maipú, Av. Los Pajaritos 1450','Clínica Santa María, Providencia','Silla de ruedas plegable',['Acompañamiento en box médico','Control de signos vitales'],true,42000,21000,'Confirmado',{block:'manana',svcType:'1'}),
-      sv(2,'t1',dInterregional,'08:00',360,'Jorge Salas',76,'5. Programas Interregionales (Región de Valparaíso) · Control Oncológico','Luis Salas','+56966665555','Viña del Mar, Av. Libertad 450','Instituto Nacional del Cáncer, Santiago','Camina con asistencia/bastón',['Acompañamiento en box médico','Control de signos vitales'],true,300000,150000,'Confirmado',{block:'full',fullDay:true,svcType:'5'}),
-      sv(3,'t1',dEventoNocturno,'16:30',360,'María Opazo',84,'4. Acompañamiento a Eventos Sociales · Matrimonio familiar','Pía Opazo','+56944443333','Maipú, Camino a Rinconada 800','Centro de Eventos, Calera de Tango','Silla de ruedas plegable',['Control de signos vitales','Asistencia de higiene/confort'],true,80000,40000,'Confirmado',{block:'tarde',svcType:'4',blocksNextMorning:true})
-    ],
+    svcs:[],
     blocks:[]
   };
 }

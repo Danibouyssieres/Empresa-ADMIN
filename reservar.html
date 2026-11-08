@@ -4065,10 +4065,14 @@ async function syncCentralizedBlocks(targetDate){
 function load(){
   try{
     const parsed = JSON.parse(localStorage.getItem(K));
-    if(parsed && (parsed.seedVersion === 3 || parsed.seedVersion === 2)){
+    if(parsed && (parsed.seedVersion === 4 || parsed.seedVersion === 3 || parsed.seedVersion === 2)){
       if(!Array.isArray(parsed.blocks)) parsed.blocks = [];
       if(Array.isArray(parsed.techs)){
         parsed.techs = parsed.techs.filter(t => t.id !== 't2' && !t.nom.includes('TENS 2'));
+      }
+      if(Array.isArray(parsed.svcs)){
+        // Purgar de forma permanente los registros de demostración iniciales
+        parsed.svcs = parsed.svcs.filter(s => s && s.pat !== 'Rosa Medina' && s.pat !== 'Jorge Salas' && s.pat !== 'María Opazo' && s.pat !== 'Héctor Muñoz' && s.pat !== 'Elena Valdés');
       }
       try {
         const dedicated = JSON.parse(localStorage.getItem('msa_blocks'));
@@ -4080,6 +4084,7 @@ function load(){
           });
         }
       } catch(e){}
+      parsed.seedVersion = 4;
       return parsed;
     }
     return null;
