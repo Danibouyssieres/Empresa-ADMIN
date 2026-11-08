@@ -712,6 +712,27 @@ function formatFolioMSA(folio, id){
 }
 window.formatFolioMSA = formatFolioMSA;
 
+function isSvcCancelled(st){
+  if(!st) return false;
+  const s = String(st).toLowerCase().trim();
+  return s.includes('cancelad') || s === 'expirada_cancelada';
+}
+window.isSvcCancelled = isSvcCancelled;
+
+function isSvcCompleted(st){
+  if(!st) return false;
+  const s = String(st).toLowerCase().trim();
+  return s === 'completada' || s === 'completado' || s === 'finalizado' || s === 'finalizada';
+}
+window.isSvcCompleted = isSvcCompleted;
+
+function isSvcActiveTerreno(st){
+  if(!st) return false;
+  const s = String(st).toLowerCase().trim();
+  return s === 'confirmado' || s === 'confirmada' || s === 'en ruta' || s === 'en_ruta' || s === 'en atención' || s === 'en atencion' || s === 'en_atencion';
+}
+window.isSvcActiveTerreno = isSvcActiveTerreno;
+
 function findReserva(key){
   if (key === undefined || key === null || key === '') return null;
   const target = String(key).trim();
@@ -1541,13 +1562,15 @@ function blocksView(){
 
 function cal(){
   const allPendingPreReservas = (D.svcs || []).filter(s => s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono');
-  const ss=D.svcs.filter(s=>s.date==U.date),act=D.techs.filter(t=>t.act),live=ss.filter(s=>s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada');
+  const ss=D.svcs.filter(s=>s.date==U.date),act=D.techs.filter(t=>t.act),live=ss.filter(s=>!isSvcCancelled(s.st));
   const prevDate = addDaysYMD(U.date, -1);
-  const prevOvernightSvcs = D.svcs.filter(s => s.date == prevDate && s.st != 'Cancelado' && (s.start + s.dur > 1440));
+  const prevDate = addDaysYMD(U.date, -1);
+  const prevOvernightSvcs = D.svcs.filter(s => s.date == prevDate && !isSvcCancelled(s.st) && (s.start + s.dur > 1440));
   const cob=live.reduce((a,s)=>a+s.paid,0),sal=live.reduce((a,s)=>a+s.fare-s.paid,0);
   const H=(S1-S0)*PX/60;let hrs='';for(let m=S0;m<S1;m+=60)hrs+=`<div>${fm(m)}</div>`;
   const cols=act.map(t=>{
-    const unitSvcs = ss.filter(s=>s.tid==t.id && s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada');
+    const unitSvcs = ss.filter(s=>s.tid==t.id && !isSvcCancelled(s.st));
+    const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id && !isSvcCancelled(s.st));
     const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id && s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada');
     return `<div class=col><div class=ch style="border-color:${t.col}">${e(t.nom)}</div><div class=cb style="height:${H}px;cursor:pointer" onclick="onCalGridClick(event, '${t.id}', '${U.date}')" title="Clic en cualquier espacio vacío para agendar a esta hora">${prevUnitOvernight.map(blkOvernightRem).join('')}${unitSvcs.map(blk).join('')}</div></div>`;
   }).join('');
@@ -1666,7 +1689,7 @@ function detail(){
     <a href="https://waze.com/ul?q=${encodeURIComponent(s.to)}" target="_blank" rel="noopener" style="background:#0284c7;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">🚙 Waze</a>
     <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.to)}" target="_blank" rel="noopener" style="background:#475569;color:#ffffff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:4px">🗺️ Google Maps</a>
     <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-weight:700;font-size:12px">🏁 Liquidar / Finalizar Atención</button>
-    <button type="button" onclick="cancelReservation('${formatFolioMSA(s.folio, s.id)}')" style="background:#ef4444;border:1px solid #ef4444;color:#ffffff;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="Anular este servicio y liberar el bloque del móvil">🗑️ Anular / Eliminar Reserva</button>
+    <button type="button" onclick="eliminarServicioDelCalendarioAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#dc2626;border:1px solid #b91c1c;color:#ffffff;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px" title="Anular o eliminar este servicio del calendario">🗑️ Anular / Eliminar del Calendario</button>
   </div>
   <div class=row style="margin-top:10px">
   <div><label>Reasignar a</label><select onchange="reasg(${s.id},this.value)">${opts.map(t=>`<option value="${t.id}" ${t.id==s.tid?'selected':''}>${e(t.nom)}</option>`).join('')}</select></div>
@@ -3972,7 +3995,10 @@ function tens(){
   const isAdmin = sess && sess.role === 'admin';
   const act=D.techs.filter(t=>t.act);
   if(!act.some(t=>t.id==U.tens))U.tens=(act[0]||{}).id;
-  const ss=D.svcs.filter(s=>s.tid==U.tens&&s.date==U.date&&s.st!='Cancelado').sort((a,b)=>a.start-b.start);
+  const ss=D.svcs.filter(s=>s.tid==U.tens&&s.date==U.date&&!isSvcCancelled(s.st)).sort((a,b)=>a.start-b.start);
+  const activeSvcs=ss.filter(s=>isSvcActiveTerreno(s.st));
+  const completedSvcs=ss.filter(s=>isSvcCompleted(s.st));
+
   return `<div class=card>
     ${isAdmin ? `
       <label>Supervisar Conducción / TENS específico:</label>
@@ -3981,7 +4007,18 @@ function tens(){
       <div style="font-weight:700;color:var(--pri)">🩺 Servicios de Hoy Asignados a: ${e(sess.name)}</div>
     `}
   </div>${dateNav()}
-  ${ss.map(card).join('')||'<div class=card style="text-align:center;padding:26px;color:var(--mut)">✅ Sin servicios asignados para este día.</div>'}`;
+  ${activeSvcs.map(card).join('')||'<div class=card style="text-align:center;padding:26px;color:var(--mut)">✅ Sin servicios activos pendientes para este día.</div>'}
+  ${completedSvcs.length > 0 ? `
+    <details class="card" style="margin-top:14px;border:1px solid var(--bd);background:var(--bg)">
+      <summary style="font-weight:700;color:var(--pri);cursor:pointer;padding:6px 0;display:flex;align-items:center;justify-content:space-between">
+        <span>🏁 Servicios Finalizados del Día (${completedSvcs.length})</span>
+        <span style="font-size:12px;color:var(--mut);font-weight:normal">Ver detalles ▾</span>
+      </summary>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px">
+        ${completedSvcs.map(card).join('')}
+      </div>
+    </details>
+  ` : ''}`;
 }
 
 function card(s){
@@ -3992,10 +4029,10 @@ function card(s){
   const saldoFinal = (s.fare || 0) - (s.paid || 0);
 
   return `
-    <div class="card" style="border-left:5px solid ${COL[s.st]};margin-bottom:14px">
+    <div class="card" style="border-left:5px solid ${COL[s.st] || '#64748B'};margin-bottom:14px">
       <div class="row" style="justify-content:space-between;border-bottom:1px solid var(--bd);padding-bottom:6px">
         <b>⏰ ${fm(s.start)} – ${fm(s.start+s.dur)} hrs</b>
-        <span class="badge" style="background:${COL[s.st]}">${s.st}</span>
+        <span class="badge" style="background:${COL[s.st] || '#64748B'}">${s.st}</span>
       </div>
 
       <h2 style="margin:8px 0 2px;color:var(--pri)">${e(s.pat)} (${s.age} años)</h2>
@@ -4023,24 +4060,31 @@ function card(s){
 
       <div style="background:var(--bg);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:13.5px;display:flex;justify-content:space-between">
         <span>Tarifa Total: <b>${$c(s.fare)}</b> (Abonado: ${$c(s.paid)})</span>
-        <span style="color:#b45309;font-weight:800">Saldo Pendiente: ${$c(saldoFinal)}</span>
+        <span style="color:#b45309;font-weight:800">Saldo Pendiente: ${$c(isSvcCompleted(s.st) ? 0 : saldoFinal)}</span>
       </div>
 
       <!-- ACCIONES DINÁMICAS SEGÚN ESTADO OPERATIVO -->
       <div style="margin-top:10px">
-        ${s.st === 'En Atención' ? `
+        ${isSvcCompleted(s.st) ? `
+          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px">
+            <span style="font-size:12.5px;color:#334155;font-weight:700">🏁 Servicio Finalizado y Liquidado</span>
+            <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#0f766e;border-color:#0f766e;padding:7px 12px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+              📄 Ver Comprobante y Liquidación
+            </button>
+          </div>
+        ` : (s.st === 'En Atención' || s.st === 'en_atencion') ? `
           <div style="background:rgba(15,118,110,0.1);border:1px solid #0f766e;border-radius:6px;padding:6px 10px;font-size:12px;color:#0f766e;font-weight:700;margin-bottom:8px">
             ⏱️ Atención en curso iniciada a las ${s.startActualTime || fm(s.start || 540)} hrs
           </div>
-          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#15803d;border-color:#15803d;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#15803d;border-color:#15803d;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
             🏁 Finalizar Servicio y Cobro en Terreno
           </button>
-        ` : s.st === 'En Ruta' ? `
+        ` : (s.st === 'En Ruta' || s.st === 'en_ruta') ? `
           <button type="button" class="p" onclick="iniciarAtencionTerreno(${s.id})" style="background:#0f766e;border-color:#0f766e;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
             🩺 Iniciar Atención / En Domicilio
           </button>
-        ` : s.st === 'Finalizado' ? `
-          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin(${s.id})" style="background:#475569;border-color:#475569;width:100%;padding:9px 14px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+        ` : (s.st === 'Finalizado') ? `
+          <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${formatFolioMSA(s.folio, s.id)}')" style="background:#475569;border-color:#475569;width:100%;padding:9px 14px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
             📄 Ver Comprobante y Liquidación
           </button>
         ` : `
@@ -5073,32 +5117,42 @@ async function liquidarSaldoReserva(id){
 }
 window.liquidarSaldoReserva = liquidarSaldoReserva;
 
-async function cancelReservation(id){
+async function eliminarServicioDelCalendarioAdmin(id){
   const s = findReserva(id);
   if(!s){
-    if(typeof alert !== 'undefined') alert('No se encontró la reserva.');
+    if(typeof alert !== 'undefined') alert('No se encontró el registro.');
     return;
   }
   const cleanFolio = formatFolioMSA(s.folio, s.id);
   if(typeof confirm !== 'undefined'){
-    if(!confirm('¿Desea anular este servicio y liberar el bloque del móvil?')) return;
+    if(!confirm('¿Desea anular/eliminar este registro de forma permanente?')) return;
+  }
+  if(typeof cerrarModalContextualServicioAdmin === 'function'){
+    cerrarModalContextualServicioAdmin();
   }
   if(U.sel == s.id || U.sel == s.folio || formatFolioMSA(s.folio, s.id) == formatFolioMSA(U.sel)){
     U.sel = null;
   }
 
+  const cancelledIso = new Date().toISOString();
   s.st = 'Cancelado';
-  s.cancelledAt = new Date().toISOString();
-  s.obs = (s.obs ? s.obs + ' · ' : '') + 'Anulada por administrador / cupo liberado';
+  s.status = 'cancelada';
+  s.cancelledAt = cancelledIso;
+  s.obs = (s.obs ? s.obs + ' · ' : '') + 'Anulada/eliminada permanentemente por administrador';
 
+  // 1. Remover bloques de agenda en D.blocks
   if(D.blocks && Array.isArray(D.blocks)){
     D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == s.id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
   }
 
+  // 2. Remover de D.svcs para asegurar que no se renderice ningún bloque oscuro en el cronograma
+  D.svcs = D.svcs.filter(x => x && x.id !== s.id && formatFolioMSA(x.folio, x.id) !== cleanFolio);
+
+  // 3. Sincronizar con Supabase / Backend
   if(window.MsaBlocksService){
     MsaBlocksService.removeBlock(s.date, s.block || 'full').catch(err => console.warn('Error al liberar bloqueo:', err));
-    MsaBlocksService.updateReservaStatus(cleanFolio, 'Cancelado', {
-      cancelled_at: s.cancelledAt,
+    MsaBlocksService.updateReservaStatus(cleanFolio, 'cancelada', {
+      cancelled_at: cancelledIso,
       obs: s.obs
     }).catch(err => console.warn('Error al actualizar reserva cancelada:', err));
   }
@@ -5106,9 +5160,14 @@ async function cancelReservation(id){
   save();
   render();
   if(typeof alert !== 'undefined'){
-    alert(`🗑️ Reserva Folio #${cleanFolio} anulada y cupo liberado exitosamente en la agenda.`);
+    alert(`🗑️ Registro Folio #${cleanFolio} eliminado del calendario y bloque horario liberado exitosamente.`);
   }
   return { success: true, service: s };
+}
+window.eliminarServicioDelCalendarioAdmin = eliminarServicioDelCalendarioAdmin;
+
+async function cancelReservation(id){
+  return eliminarServicioDelCalendarioAdmin(id);
 }
 window.cancelReservation = cancelReservation;
 
