@@ -1564,14 +1564,12 @@ function cal(){
   const allPendingPreReservas = (D.svcs || []).filter(s => s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono');
   const ss=D.svcs.filter(s=>s.date==U.date),act=D.techs.filter(t=>t.act),live=ss.filter(s=>!isSvcCancelled(s.st));
   const prevDate = addDaysYMD(U.date, -1);
-  const prevDate = addDaysYMD(U.date, -1);
   const prevOvernightSvcs = D.svcs.filter(s => s.date == prevDate && !isSvcCancelled(s.st) && (s.start + s.dur > 1440));
   const cob=live.reduce((a,s)=>a+s.paid,0),sal=live.reduce((a,s)=>a+s.fare-s.paid,0);
   const H=(S1-S0)*PX/60;let hrs='';for(let m=S0;m<S1;m+=60)hrs+=`<div>${fm(m)}</div>`;
   const cols=act.map(t=>{
     const unitSvcs = ss.filter(s=>s.tid==t.id && !isSvcCancelled(s.st));
     const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id && !isSvcCancelled(s.st));
-    const prevUnitOvernight = prevOvernightSvcs.filter(s=>s.tid==t.id && s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada');
     return `<div class=col><div class=ch style="border-color:${t.col}">${e(t.nom)}</div><div class=cb style="height:${H}px;cursor:pointer" onclick="onCalGridClick(event, '${t.id}', '${U.date}')" title="Clic en cualquier espacio vacío para agendar a esta hora">${prevUnitOvernight.map(blkOvernightRem).join('')}${unitSvcs.map(blk).join('')}</div></div>`;
   }).join('');
   let pendingSection = '';
