@@ -1287,6 +1287,7 @@ let lastKmCost = 0;
 let lastFinalTotal = 0;
 let lastAbono50 = 0;
 let lastTimeCost = 0;
+let durationText = '';
 let lastRouteIdaMin = 0;
 let lastRouteVueltaMin = 0;
 let lastRouteTotalMin = 0;
@@ -2041,7 +2042,7 @@ window.validateRut = validateRut;
 
 function cleanPhoneInput(el) {
   if (!el) return '';
-  let cleaned = String(el.value || '').replace(/\D/g, '').replace(/^56/, '');
+  let cleaned = String(el.value || '').replace(/\D/g, '').replace(/^56/, '').replace(/^0/, '');
   if (cleaned.length > 9) cleaned = cleaned.slice(0, 9);
   el.value = cleaned;
   return cleaned;
@@ -2218,7 +2219,7 @@ function validarFormulario() {
   const patPhoneEl = $('#b_pat_phone') || document.getElementById('paciente_telefono');
   if (patPhoneEl) {
     cleanPhoneInput(patPhoneEl);
-    const patPhoneRaw = patPhoneEl.value.trim();
+    const patPhoneRaw = patPhoneEl.value.trim().replace(/^0/, '');
     if (patPhoneRaw && patPhoneRaw.length !== 8 && patPhoneRaw.length !== 9) {
       highlightFieldError(patPhoneEl, 'El teléfono del paciente debe tener 8 o 9 dígitos.');
       return { ok: false, field: patPhoneEl, error: 'patient_phone' };
@@ -2292,7 +2293,7 @@ function validarFormulario() {
   const phEl = $('#b_ph') || document.getElementById('contacto_telefono');
   if (phEl) cleanPhoneInput(phEl);
   const phRaw = (phEl && phEl.value.trim()) || '';
-  const phClean = phRaw.replace(/\D/g, '').replace(/^56/, '');
+  const phClean = phRaw.replace(/\D/g, '').replace(/^56/, '').replace(/^0/, '');
   if (!phClean || (phClean.length !== 8 && phClean.length !== 9)) {
     highlightFieldError(phEl, 'Por favor ingrese un número de teléfono móvil de contacto válido de 8 o 9 dígitos.');
     return { ok: false, field: phEl, error: 'coord_phone' };
@@ -2855,7 +2856,8 @@ function recalcAll(){
   }
 
   let timeCost = 0;
-  let durationText = '';
+  durationText = '';
+  window.durationText = durationText;
 
   if(mode === '1'){
     const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
@@ -6069,7 +6071,7 @@ async function submitBooking(ev){
   // Validaciones de datos en Sección 3 (Lectura directa del DOM con sanitización)
   const pat = ($('#b_pat') || document.getElementById('paciente_nombre')).value.trim();
   const patPhoneRaw = ($('#b_pat_phone') && $('#b_pat_phone').value.trim()) || '';
-  const patClean = patPhoneRaw.replace(/\D/g, '').replace(/^56/, '');
+  const patClean = patPhoneRaw.replace(/\D/g, '').replace(/^56/, '').replace(/^0/, '');
   const patPhone = patClean ? ('+569' + ((patClean.length === 9 && patClean.startsWith('9')) ? patClean.slice(1) : patClean)) : '';
 
   const age = +$('#b_age').value;
@@ -6137,7 +6139,7 @@ async function submitBooking(ev){
 
   const coord = ($('#b_coord') || document.getElementById('contacto_nombre')).value.trim();
   const phRaw = ($('#b_ph') && $('#b_ph').value.trim()) || '';
-  const phClean = phRaw.replace(/\D/g, '').replace(/^56/, '');
+  const phClean = phRaw.replace(/\D/g, '').replace(/^56/, '').replace(/^0/, '');
   const phCleanDigits = (phClean.length === 9 && phClean.startsWith('9')) ? phClean.slice(1) : phClean;
   const ph = '+569' + phCleanDigits;
   const isSameAsPatient = ($('#cbCoordSameAsPatient') && $('#cbCoordSameAsPatient').checked) || (coord.toLowerCase() === pat.toLowerCase());
@@ -6245,6 +6247,13 @@ async function submitBooking(ev){
     const turnoVal = isInter ? 'full' : selectedBlock;
     const appTimeVal = ($('#appTimeInput') && $('#appTimeInput').value) || ($('#hora-cita-medica') && $('#hora-cita-medica').value) || '';
 
+    // Determinar texto descriptivo de duración de forma 100% segura
+    const currentDurationText = (typeof durationText !== 'undefined' && durationText)
+      ? durationText
+      : (mode === '4'
+          ? ((isConEvento) ? 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)' : 'Plan Base (4 hrs continuas en recinto)')
+          : (mode === '5' ? (lastInterBreakdown || 'Programa Estándar') : `${fmtHoursClean(dur)} efectivas`));
+
     // Payload adaptativo por modalidad
     let adaptivePayload = {};
     if(mode === '1' || mode === '2'){
@@ -6263,7 +6272,7 @@ async function submitBooking(ev){
     } else if(mode === '4'){
       adaptivePayload = {
         recinto_direccion: (isConEvento ? `${from} → ${to}` : from) + (depto ? ` (${depto})` : ''),
-        pack_seleccionado: durationText,
+        pack_seleccionado: currentDurationText,
         hora_inicio: timeStr
       };
     } else if(mode === '5'){
@@ -6454,7 +6463,7 @@ async function submitBooking(ev){
   const waText = `Hola, deseo solicitar una Pre-Reserva vía WhatsApp (Folio #${realFolio}):\n` +
     `• Modalidad: ${svcName}\n` +
     (mode === '4'
-      ? `• Formato y Plan: ${durationText}\n• Tarifa: Plana paquetizada cerrada para toda la RM\n`
+      ? `• Formato y Plan: ${currentDurationText}\n• Tarifa: Plana paquetizada cerrada para toda la RM\n`
       : (mode === '5'
           ? `• Región de origen: ${selectedInterRegion}\n• Programa y desglose: ${lastInterBreakdown}\n`
           : `• Jornada: ${getJornadaLabel(currentJornada, mode)}\n`)) +
@@ -6497,7 +6506,7 @@ async function submitBooking(ev){
 
       <ul class="summary-list" style="max-width:660px;margin:20px auto;text-align:left">
         <li><span>🛎️ <b>Modalidad de Servicio:</b></span> <span>${e(svcName)}</span></li>
-        ${mode === '4' ? `<li><span>🎉 <b>Formato y Plan de Evento:</b></span> <span><b>${e(durationText)} · Tarifa Plana Cerrada RM</b></span></li>` : ''}
+        ${mode === '4' ? `<li><span>🎉 <b>Formato y Plan de Evento:</b></span> <span><b>${e(currentDurationText)} · Tarifa Plana Cerrada RM</b></span></li>` : ''}
         ${mode === '5' ? `<li><span>🗺️ <b>Región del Programa:</b></span> <span><b>${e(selectedInterRegion)}</b></span></li>` : ''}
         <li><span>📅 <b>Fecha Reservada:</b></span> <span><b>${e(formatHumanDate(date))}</b></span></li>
         <li><span>🌅 <b>Bloque de Agenda:</b></span> <span><b>${e(blockHuman)}</b></span></li>
@@ -6511,7 +6520,7 @@ async function submitBooking(ev){
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
           <li><span>🛣️ <b>Kilómetros (${e(modeLabel)}):</b></span> <span><b>${e(fmtTotalKm)}</b> (${$c(lastKmCost)})</span></li>
         ` : ''}
-        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : (mode === '4' ? 'Plan de Cobertura:' : 'Jornada y Tiempo:')}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : (mode === '4' ? `${e(durationText)} · Tarifa Plana Cerrada` : `${e(getJornadaLabel(currentJornada, mode))} · ${dur} min (${$c(lastTimeCost)})`)}</span></li>
+        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : (mode === '4' ? 'Plan de Cobertura:' : 'Jornada y Tiempo:')}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : (mode === '4' ? `${e(currentDurationText)} · Tarifa Plana Cerrada` : `${e(getJornadaLabel(currentJornada, mode))} · ${dur} min (${$c(lastTimeCost)})`)}</span></li>
         <li style="background:var(--mist);border-color:var(--teal)">
           <span>💰 <b>VALOR REAL TOTAL A PAGAR:</b></span> <span style="font-size:1.15rem;font-weight:800;color:var(--teal)">${$c(lastFinalTotal)}</span>
         </li>
@@ -6602,7 +6611,13 @@ async function submitBooking(ev){
       abortTimer = null;
     }
     console.error('Error durante la pre-reserva:', err);
-    alert('No se pudo conectar con el servidor. Por favor intente nuevamente.');
+    if(err && err.name === 'AbortError'){
+      alert('El servidor tardó más de 10 segundos en responder. Por favor intente nuevamente.');
+    } else if(typeof navigator !== 'undefined' && navigator.onLine === false){
+      alert('Sin conexión a internet. Por favor revise su red e intente nuevamente.');
+    } else {
+      alert(`No se pudo registrar la pre-reserva: ${err && err.message ? err.message : 'Error de comunicación'}. Por favor intente nuevamente.`);
+    }
   } finally {
     if(abortTimer){
       clearTimeout(abortTimer);
