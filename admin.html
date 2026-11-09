@@ -4699,14 +4699,82 @@ window.ejecutarFinalizacionYDescargaPdfAdmin = ejecutarFinalizacionYDescargaPdfA
 // =========================================================================
 // MOTOR DE CONFIRMACIÓN DE ABONO, PERSISTENCIA Y TRANSICIÓN DE ESTADOS
 // =========================================================================
-function getReservationExpiresMs(s){
-  if(s.expiresAt || s.expires_at){
-    const ms = new Date(s.expiresAt || s.expires_at).getTime();
-    if(!isNaN(ms)) return ms;
+
+// =========================================================================
+// CÁLCULO CANÓNICO DE EXPIRACIÓN DE RESERVAS (120 min diurno / Pausa nocturna 10:00 AM)
+// =========================================================================
+function computeReservationExpiration(createdDate) {
+  try {
+    const validDate = (createdDate instanceof Date && !isNaN(createdDate.getTime()))
+      ? createdDate
+      : (createdDate ? new Date(createdDate) : new Date());
+    const safeDate = (!isNaN(validDate.getTime())) ? validDate : new Date();
+
+    const chileFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santiago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const parts = chileFormatter.formatToParts(safeDate).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+    const hour = parseInt(parts.hour, 10);
+    const isNight = (hour >= 21 || hour < 8);
+
+    let expiresAt;
+    if (isNight) {
+      const d = new Date(Date.UTC(parseInt(parts.year, 10), parseInt(parts.month, 10) - 1, parseInt(parts.day, 10), 10, 0, 0));
+      if (hour >= 21) {
+        d.setUTCDate(d.getUTCDate() + 1);
+      }
+      const targetYMD = d.toISOString().slice(0, 10);
+      const sampleUtc = new Date(targetYMD + 'T14:00:00Z');
+      const sampleSantiagoHour = parseInt(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', hour: '2-digit', hour12: false }).format(sampleUtc), 10);
+      const offsetHours = 14 - sampleSantiagoHour;
+      expiresAt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 10 + offsetHours, 0, 0));
+    } else {
+      expiresAt = new Date(safeDate.getTime() + 120 * 60 * 1000);
+    }
+
+    return {
+      expiresAt: expiresAt.toISOString(),
+      expiresMs: expiresAt.getTime(),
+      isNight,
+      hour
+    };
+  } catch (err) {
+    const fallbackMs = Date.now() + 120 * 60 * 1000;
+    return {
+      expiresAt: new Date(fallbackMs).toISOString(),
+      expiresMs: fallbackMs,
+      isNight: false,
+      hour: 12
+    };
   }
-  const created = s.createdAt || s.created_at;
-  const createdDate = created ? new Date(created) : new Date();
-  return computeReservationExpiration(createdDate).expiresMs;
+}
+if (typeof window !== 'undefined') {
+  window.computeReservationExpiration = computeReservationExpiration;
+}
+
+function getReservationExpiresMs(s){
+  try {
+    if(s && (s.expiresAt || s.expires_at)){
+      const ms = new Date(s.expiresAt || s.expires_at).getTime();
+      if(!isNaN(ms)) return ms;
+    }
+    const created = s ? (s.createdAt || s.created_at) : null;
+    const createdDate = created ? new Date(created) : new Date();
+    if(typeof computeReservationExpiration === 'function'){
+      const res = computeReservationExpiration(createdDate);
+      if(res && res.expiresMs) return res.expiresMs;
+    }
+    return (createdDate.getTime() || Date.now()) + (120 * 60 * 1000);
+  } catch(e) {
+    return Date.now() + (120 * 60 * 1000);
+  }
 }
 
 function getReservationRemainingSeconds(s){
@@ -4716,6 +4784,8 @@ function getReservationRemainingSeconds(s){
 }
 
 function renderReservaStateBadge(s){
+  try {
+    if(!s) return '';
   const isPending = s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono';
   if(isPending){
     const remSec = getReservationRemainingSeconds(s);
@@ -4745,6 +4815,9 @@ function renderReservaStateBadge(s){
     return `<span class="res-badge res-badge-terreno" style="font-weight:700">🩺 En Atención (En Terreno)</span>`;
   }
   return `<span class="res-badge" style="background:rgba(100,116,139,0.15);color:#475569">${e(s.st)}</span>`;
+  } catch(eBadge){
+    return `<span class="res-badge res-badge-pending">${(s && s.st) || "Pendiente"}</span>`;
+  }
 }
 window.renderReservaStateBadge = renderReservaStateBadge;
 

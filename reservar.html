@@ -6004,6 +6004,66 @@ async function initForm(){
   actualizarTarifaSegunAgenda();
 }
 
+
+// =========================================================================
+// CÁLCULO CANÓNICO DE EXPIRACIÓN DE RESERVAS (120 min diurno / Pausa nocturna 10:00 AM)
+// =========================================================================
+function computeReservationExpiration(createdDate) {
+  try {
+    const validDate = (createdDate instanceof Date && !isNaN(createdDate.getTime()))
+      ? createdDate
+      : (createdDate ? new Date(createdDate) : new Date());
+    const safeDate = (!isNaN(validDate.getTime())) ? validDate : new Date();
+
+    const chileFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santiago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const parts = chileFormatter.formatToParts(safeDate).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+    const hour = parseInt(parts.hour, 10);
+    const isNight = (hour >= 21 || hour < 8);
+
+    let expiresAt;
+    if (isNight) {
+      const d = new Date(Date.UTC(parseInt(parts.year, 10), parseInt(parts.month, 10) - 1, parseInt(parts.day, 10), 10, 0, 0));
+      if (hour >= 21) {
+        d.setUTCDate(d.getUTCDate() + 1);
+      }
+      const targetYMD = d.toISOString().slice(0, 10);
+      const sampleUtc = new Date(targetYMD + 'T14:00:00Z');
+      const sampleSantiagoHour = parseInt(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', hour: '2-digit', hour12: false }).format(sampleUtc), 10);
+      const offsetHours = 14 - sampleSantiagoHour;
+      expiresAt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 10 + offsetHours, 0, 0));
+    } else {
+      expiresAt = new Date(safeDate.getTime() + 120 * 60 * 1000);
+    }
+
+    return {
+      expiresAt: expiresAt.toISOString(),
+      expiresMs: expiresAt.getTime(),
+      isNight,
+      hour
+    };
+  } catch (err) {
+    const fallbackMs = Date.now() + 120 * 60 * 1000;
+    return {
+      expiresAt: new Date(fallbackMs).toISOString(),
+      expiresMs: fallbackMs,
+      isNight: false,
+      hour: 12
+    };
+  }
+}
+if (typeof window !== 'undefined') {
+  window.computeReservationExpiration = computeReservationExpiration;
+}
+
 async function submitBooking(ev){
   ev.preventDefault();
   D = load() || D;
@@ -6483,7 +6543,7 @@ async function submitBooking(ev){
     paid: 0,
     st: 'pendiente_abono',
     createdAt: new Date().toISOString(),
-    expiresAt: (function(){ const exp = computeReservationExpiration(new Date()); return exp.expiresAt; })(),
+    expiresAt: (function(){ try { if(typeof computeReservationExpiration === 'function'){ return computeReservationExpiration(new Date()).expiresAt; } } catch(e){} return new Date(Date.now() + 120 * 60 * 1000).toISOString(); })(),
     svcType: mode,
     block: turnoVal,
     fullDay: isInter,
@@ -6510,7 +6570,7 @@ async function submitBooking(ev){
     ? `• Documento Tributario: Factura Electrónica Exenta\n  - Razón Social: ${taxRS}\n  - RUT: ${taxRUT}\n  - Giro: ${taxGiro}\n  - Dirección Tributaria: ${taxDir}\n`
     : `• Documento Tributario: Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)\n`;
 
-  const expInfo = computeReservationExpiration(new Date());
+  let expInfo; try { expInfo = (typeof computeReservationExpiration === 'function') ? computeReservationExpiration(new Date()) : { expiresAt: new Date(Date.now() + 120 * 60 * 1000).toISOString(), expiresMs: Date.now() + 120 * 60 * 1000, isNight: false }; } catch(eExp) { expInfo = { expiresAt: new Date(Date.now() + 120 * 60 * 1000).toISOString(), expiresMs: Date.now() + 120 * 60 * 1000, isNight: false }; }
   const isNightIntake = expInfo.isNight;
   const expiresMs = expInfo.expiresMs;
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};
