@@ -197,8 +197,10 @@ export default async function handler(req) {
       // =========================================================================
       // VALIDACIÓN ATÓMICA DE RETRO-BLOQUEO (TURNO NOCHE VS TURNO MAÑANA D+1)
       // =========================================================================
+      const reqDurVal = Number(body.dur || body.dur_min || 0);
+      const isPackTotalEvent = (mode === '4' && reqDurVal >= 360 && (turno.toLowerCase() === 'tarde' || turno.toLowerCase() === 'noche'));
       const startMinVal = Number(body.start || body.start_min || 600);
-      const isNightShift = turno.toLowerCase() === 'noche' || startMinVal >= 20 * 60 || startMinVal < 4 * 60;
+      const isNightShift = turno.toLowerCase() === 'noche' || startMinVal >= 20 * 60 || startMinVal < 4 * 60 || isPackTotalEvent;
       if (isNightShift) {
         const nextDate = getNextDay(date);
 
@@ -430,15 +432,8 @@ export default async function handler(req) {
 
           // 2. Inserción atómica en tabla bloqueos asociada al folio
           const blockType = turno;
-          let blkRes = await fetch(`${supabaseUrl}/rest/v1/bloqueos`, {
-            method: 'POST',
-            headers: {
-              apikey: writeKey,
-              Authorization: `Bearer ${writeKey}`,
-              'Content-Type': 'application/json',
-              Prefer: 'resolution=merge-duplicates',
-            },
-            body: JSON.stringify({
+          const blocksToInsert = [
+            {
               date: date,
               type: blockType,
               reason: 'Horario reservado',
@@ -447,11 +442,54 @@ export default async function handler(req) {
               reserva_id: folio,
               expires_at: expiresAt,
               created_at: new Date().toISOString(),
-            }),
+            }
+          ];
+
+          if (isPackTotalEvent) {
+            const nextDate = getNextDay(date);
+            const otherNightShift = (turno.toLowerCase() === 'tarde') ? 'noche' : 'tarde';
+            blocksToInsert.push({
+              date: date,
+              type: otherNightShift,
+              reason: 'Bloqueado por Pack Total Eventos (Jornada Vespertina/Nocturna)',
+              tid: 'all',
+              status: 'temporal_120m',
+              reserva_id: folio,
+              expires_at: expiresAt,
+              created_at: new Date().toISOString(),
+            });
+            blocksToInsert.push({
+              date: nextDate,
+              type: 'manana',
+              reason: 'Bloqueado por descanso biológico profesional (Pack Total Eventos)',
+              tid: 'all',
+              status: 'temporal_120m',
+              reserva_id: folio,
+              expires_at: expiresAt,
+              created_at: new Date().toISOString(),
+            });
+          }
+
+          let blkRes = await fetch(`${supabaseUrl}/rest/v1/bloqueos`, {
+            method: 'POST',
+            headers: {
+              apikey: writeKey,
+              Authorization: `Bearer ${writeKey}`,
+              'Content-Type': 'application/json',
+              Prefer: 'resolution=merge-duplicates',
+            },
+            body: JSON.stringify(blocksToInsert),
           });
 
           // Si bloqueos solo tiene columnas base (date, type, reason, tid, created_at)
           if (!blkRes.ok) {
+            const basicBlocks = blocksToInsert.map(b => ({
+              date: b.date,
+              type: b.type,
+              reason: b.reason,
+              tid: b.tid,
+              created_at: b.created_at,
+            }));
             await fetch(`${supabaseUrl}/rest/v1/bloqueos`, {
               method: 'POST',
               headers: {
@@ -460,13 +498,7 @@ export default async function handler(req) {
                 'Content-Type': 'application/json',
                 Prefer: 'resolution=merge-duplicates',
               },
-              body: JSON.stringify({
-                date: date,
-                type: blockType,
-                reason: 'Horario reservado',
-                tid: 'all',
-                created_at: new Date().toISOString(),
-              }),
+              body: JSON.stringify(basicBlocks),
             });
           }
         } catch (eSb) {

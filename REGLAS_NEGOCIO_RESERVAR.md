@@ -74,6 +74,13 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
   * +1 hora 30 min extra: +\$22.500
   * +2 horas extras: +\$30.000 (Tope máximo)
 * **Regla Tarifaria Especial:** Precios planos cerrados que absorben horario hábil, tarde, festivos y nocturno sin recargos adicionales.
+* **Flexibilidad Operativa de Ventana y Límite Nocturno en Modalidad Con Traslado (D.2):**
+  * **Exención de Ventana Rígida:** Modalidad D.2 (en especial Pack Total de 6 horas en evento + traslados de ida y vuelta, con duración circuito de 7h 15m a 8h) está **exenta de la restricción de ventana rígida de un solo turno**.
+  * **Horarios de Inicio y Retorno Máximo:** El servicio puede agendarse iniciando en **Turno Tarde** o en **Turno Noche**, siempre que la hora calculada de regreso al domicilio no supere las **04:30 AM**.
+  * **Triple Inhabilitación Automática en Base de Datos:** Al reservarse el Pack Total (6 hrs) de eventos en Turno Tarde o Noche, el sistema inhabilita atómicamente:
+    1. El **Turno Tarde** de la fecha del evento [D].
+    2. El **Turno Noche** de la fecha del evento [D] (jornada vespertina/nocturna completa bloqueada).
+    3. El bloque del **Turno Mañana** del día siguiente [D + 1] por descanso biológico legal y obligatorio de la profesional TENS.
 
 ### 2.5. Modalidad 5: Programas Interregionales
 * **Descripción:** Traslados clínicos de larga distancia desde o hacia regiones fuera de la Región Metropolitana (Valparaíso, O'Higgins, Maule, etc.) hacia centros de alta complejidad en Santiago.
@@ -162,6 +169,7 @@ El día operativo se organiza en tres bloques de atención:
 ### 5.4. Regla de Descanso Biológico Post-Nocturno y Retro-Bloqueo Bidireccional
 * **Bloqueo Hacia Adelante:** Si un servicio finaliza **después de las 22:00 hrs** (ej. servicio nocturno o de tarde extendida hasta las 23:00), la unidad operativa involucrada queda inhabilitada para operar en el **Turno Mañana (06:00 a 12:00 hrs) del día calendario siguiente**, garantizando el descanso legal y biológico de la TENS.
 * **Retro-Bloqueo Hacia Atrás:** Si una fecha [D + 1] tiene una reserva activa (o pre-reserva) en **Turno Mañana**, el **Turno Noche de la fecha previa [D] queda estrictamente inhabilitado** en agenda pública ("No disponible (Servicio matutino agendado al día siguiente)") y validado atómicamente en backend (`/api/reservas`), abortando cualquier inserción con error HTTP 409, dado que entre el fin del Turno Noche (04:00 hrs) y el inicio del Turno Mañana (06:00 hrs) solo existen 2 horas, vulnerando el buffer y descanso obligatorio.
+* **Regla Especial Modalidad D.2 (Pack Total Eventos):** Cuando se reserva el Pack Total (6 hrs de evento + traslados) en Turno Tarde o Noche, la jornada del evento abarca la tarde y noche completa. Por normativa de descanso biológico, el sistema bloquea tanto la tarde y la noche de la fecha [D], como el Turno Mañana del día siguiente [D + 1].
 
 ### 5.5. Manejo de Feriados Oficiales de Chile
 El sistema cuenta con un motor interno de feriados chilenos (`isChileHoliday`):
@@ -201,6 +209,7 @@ El sistema cuenta con una función maestra de cálculo (`evaluarSemaforoTurno` y
 * **Turno Mañana:** 12:00 hrs.
 * **Turno Tarde:** 20:00 hrs.
 * **Turno Noche:** 04:00 hrs.
+* **Modalidad D.2 (Eventos Con Traslado en Tarde/Noche):** Límite nominal 04:00 hrs con tolerancia extendida hasta las **04:30 AM** (techo máximo improrrogable).
 
 #### 2. Comportamiento según el Estado del Semáforo:
 * **A) ESTADO VERDE (Dentro del horario nominal):**
