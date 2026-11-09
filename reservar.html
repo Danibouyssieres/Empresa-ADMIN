@@ -257,6 +257,73 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 footer{background:#0A363F;color:#c9dcd8;font-size:.9rem;padding:28px 0;margin-top:40px;text-align:center}
 footer a{color:#fff}
 </style>
+
+<script>
+// =========================================================================
+// DEFINICIÓN GLOBAL INMEDIATA EN <HEAD>: CÁLCULO DE EXPIRACIÓN DE RESERVAS
+// 120 min Diurno (08:00 a 20:59 hrs) / Pausa Nocturna hasta 10:00 AM (21:00 a 07:59 hrs)
+// =========================================================================
+(function(){
+  function calcExpiration(createdDate){
+    try {
+      var validDate = (createdDate instanceof Date && !isNaN(createdDate.getTime()))
+        ? createdDate
+        : (createdDate ? new Date(createdDate) : new Date());
+      var safeDate = (!isNaN(validDate.getTime())) ? validDate : new Date();
+
+      var chileFormatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      var parts = chileFormatter.formatToParts(safeDate).reduce(function(acc, p){ acc[p.type] = p.value; return acc; }, {});
+      var hour = parseInt(parts.hour, 10);
+      var isNight = (hour >= 21 || hour < 8);
+
+      var expiresAt;
+      if (isNight) {
+        var d = new Date(Date.UTC(parseInt(parts.year, 10), parseInt(parts.month, 10) - 1, parseInt(parts.day, 10), 10, 0, 0));
+        if (hour >= 21) {
+          d.setUTCDate(d.getUTCDate() + 1);
+        }
+        var targetYMD = d.toISOString().slice(0, 10);
+        var sampleUtc = new Date(targetYMD + 'T14:00:00Z');
+        var sampleSantiagoHour = parseInt(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', hour: '2-digit', hour12: false }).format(sampleUtc), 10);
+        var offsetHours = 14 - sampleSantiagoHour;
+        expiresAt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 10 + offsetHours, 0, 0));
+      } else {
+        expiresAt = new Date(safeDate.getTime() + 120 * 60 * 1000);
+      }
+
+      return {
+        expiresAt: expiresAt.toISOString(),
+        expiresMs: expiresAt.getTime(),
+        isNight: isNight,
+        hour: hour
+      };
+    } catch (e) {
+      var fallback = Date.now() + 120 * 60 * 1000;
+      return {
+        expiresAt: new Date(fallback).toISOString(),
+        expiresMs: fallback,
+        isNight: false,
+        hour: 12
+      };
+    }
+  }
+
+  window.computeReservationExpiration = calcExpiration;
+  if (typeof globalThis !== 'undefined') {
+    globalThis.computeReservationExpiration = calcExpiration;
+  }
+})();
+</script>
+
 </head>
 <body>
 
@@ -6543,7 +6610,14 @@ async function submitBooking(ev){
     paid: 0,
     st: 'pendiente_abono',
     createdAt: new Date().toISOString(),
-    expiresAt: (function(){ try { if(typeof computeReservationExpiration === 'function'){ return computeReservationExpiration(new Date()).expiresAt; } } catch(e){} return new Date(Date.now() + 120 * 60 * 1000).toISOString(); })(),
+    expiresAt: (function(){
+      try {
+        if(typeof window.computeReservationExpiration === 'function'){
+          return window.computeReservationExpiration(new Date()).expiresAt;
+        }
+      } catch(e){}
+      return new Date(Date.now() + 120 * 60 * 1000).toISOString();
+    })(),
     svcType: mode,
     block: turnoVal,
     fullDay: isInter,
@@ -6570,7 +6644,12 @@ async function submitBooking(ev){
     ? `• Documento Tributario: Factura Electrónica Exenta\n  - Razón Social: ${taxRS}\n  - RUT: ${taxRUT}\n  - Giro: ${taxGiro}\n  - Dirección Tributaria: ${taxDir}\n`
     : `• Documento Tributario: Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)\n`;
 
-  let expInfo; try { expInfo = (typeof computeReservationExpiration === 'function') ? computeReservationExpiration(new Date()) : { expiresAt: new Date(Date.now() + 120 * 60 * 1000).toISOString(), expiresMs: Date.now() + 120 * 60 * 1000, isNight: false }; } catch(eExp) { expInfo = { expiresAt: new Date(Date.now() + 120 * 60 * 1000).toISOString(), expiresMs: Date.now() + 120 * 60 * 1000, isNight: false }; }
+  let expInfo = { expiresAt: new Date(Date.now() + 120 * 60 * 1000).toISOString(), expiresMs: Date.now() + 120 * 60 * 1000, isNight: false };
+  try {
+    if(typeof window.computeReservationExpiration === 'function'){
+      expInfo = window.computeReservationExpiration(new Date());
+    }
+  } catch(eExp){}
   const isNightIntake = expInfo.isNight;
   const expiresMs = expInfo.expiresMs;
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};

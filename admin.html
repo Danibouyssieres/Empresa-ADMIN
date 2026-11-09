@@ -122,6 +122,73 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 .res-badge-terreno{background:rgba(2,132,199,0.14);color:#0284c7;border:1px solid rgba(2,132,199,0.35)}
 .res-econ-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px}
 </style>
+
+<script>
+// =========================================================================
+// DEFINICIÓN GLOBAL INMEDIATA EN <HEAD>: CÁLCULO DE EXPIRACIÓN DE RESERVAS
+// 120 min Diurno (08:00 a 20:59 hrs) / Pausa Nocturna hasta 10:00 AM (21:00 a 07:59 hrs)
+// =========================================================================
+(function(){
+  function calcExpiration(createdDate){
+    try {
+      var validDate = (createdDate instanceof Date && !isNaN(createdDate.getTime()))
+        ? createdDate
+        : (createdDate ? new Date(createdDate) : new Date());
+      var safeDate = (!isNaN(validDate.getTime())) ? validDate : new Date();
+
+      var chileFormatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      var parts = chileFormatter.formatToParts(safeDate).reduce(function(acc, p){ acc[p.type] = p.value; return acc; }, {});
+      var hour = parseInt(parts.hour, 10);
+      var isNight = (hour >= 21 || hour < 8);
+
+      var expiresAt;
+      if (isNight) {
+        var d = new Date(Date.UTC(parseInt(parts.year, 10), parseInt(parts.month, 10) - 1, parseInt(parts.day, 10), 10, 0, 0));
+        if (hour >= 21) {
+          d.setUTCDate(d.getUTCDate() + 1);
+        }
+        var targetYMD = d.toISOString().slice(0, 10);
+        var sampleUtc = new Date(targetYMD + 'T14:00:00Z');
+        var sampleSantiagoHour = parseInt(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', hour: '2-digit', hour12: false }).format(sampleUtc), 10);
+        var offsetHours = 14 - sampleSantiagoHour;
+        expiresAt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 10 + offsetHours, 0, 0));
+      } else {
+        expiresAt = new Date(safeDate.getTime() + 120 * 60 * 1000);
+      }
+
+      return {
+        expiresAt: expiresAt.toISOString(),
+        expiresMs: expiresAt.getTime(),
+        isNight: isNight,
+        hour: hour
+      };
+    } catch (e) {
+      var fallback = Date.now() + 120 * 60 * 1000;
+      return {
+        expiresAt: new Date(fallback).toISOString(),
+        expiresMs: fallback,
+        isNight: false,
+        hour: 12
+      };
+    }
+  }
+
+  window.computeReservationExpiration = calcExpiration;
+  if (typeof globalThis !== 'undefined') {
+    globalThis.computeReservationExpiration = calcExpiration;
+  }
+})();
+</script>
+
 </head>
 <body>
 <div id="app"></div>
@@ -4762,13 +4829,13 @@ if (typeof window !== 'undefined') {
 function getReservationExpiresMs(s){
   try {
     if(s && (s.expiresAt || s.expires_at)){
-      const ms = new Date(s.expiresAt || s.expires_at).getTime();
-      if(!isNaN(ms)) return ms;
+      var ms = new Date(s.expiresAt || s.expires_at).getTime();
+      if(!isNaN(ms) && ms > 0) return ms;
     }
-    const created = s ? (s.createdAt || s.created_at) : null;
-    const createdDate = created ? new Date(created) : new Date();
-    if(typeof computeReservationExpiration === 'function'){
-      const res = computeReservationExpiration(createdDate);
+    var created = s ? (s.createdAt || s.created_at) : null;
+    var createdDate = created ? new Date(created) : new Date();
+    if(typeof window.computeReservationExpiration === 'function'){
+      var res = window.computeReservationExpiration(createdDate);
       if(res && res.expiresMs) return res.expiresMs;
     }
     return (createdDate.getTime() || Date.now()) + (120 * 60 * 1000);
