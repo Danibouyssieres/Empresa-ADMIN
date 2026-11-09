@@ -638,6 +638,62 @@ export default async function handler(req) {
       );
     }
 
+    // =========================================================================
+    // 4. DELETE: Eliminar o purgar reservas (Protegido por admin)
+    // =========================================================================
+    if (method === 'DELETE') {
+      const auth = await verifyAdminAuth(req, supabaseUrl, supabaseAnonKey);
+      if (!auth.isAuth) {
+        return new Response(
+          JSON.stringify({ ok: false, error: 'No autorizado' }),
+          { status: 401, headers: corsHeaders }
+        );
+      }
+
+      const id = url.searchParams.get('id');
+      const folio = url.searchParams.get('folio');
+      const all = url.searchParams.get('all') === 'true';
+
+      if (!id && !folio && !all) {
+        return new Response(
+          JSON.stringify({ ok: false, error: 'Se requiere ID, Folio o all=true' }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
+      if (supabaseUrl && (supabaseAnonKey || supabaseServiceKey)) {
+        const writeKey = supabaseServiceKey || supabaseAnonKey;
+        try {
+          let delUrl = `${supabaseUrl}/rest/v1/reservas`;
+          if (all) {
+            delUrl += '?id=gt.0';
+          } else if (folio) {
+            delUrl += `?folio=eq.${encodeURIComponent(folio)}`;
+          } else if (id) {
+            delUrl += `?id=eq.${encodeURIComponent(id)}`;
+          }
+          await fetch(delUrl, {
+            method: 'DELETE',
+            headers: {
+              apikey: writeKey,
+              Authorization: `Bearer ${writeKey}`,
+            },
+          });
+        } catch (eDel) {}
+      }
+
+      if (all) {
+        edgeReservasStore = [];
+      } else {
+        edgeReservasStore = edgeReservasStore.filter(r => !(folio && r.folio === folio) && !(id && r.id == id));
+      }
+
+      return new Response(
+        JSON.stringify({ ok: true, deleted: true, message: all ? 'Todas las reservas purgadas' : 'Reserva eliminada' }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
     return new Response(
       JSON.stringify({ ok: false, error: 'Método no permitido' }),
       { status: 405, headers: corsHeaders }
