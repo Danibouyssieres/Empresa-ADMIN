@@ -816,11 +816,13 @@ function getNormalizedReservaCategory(s){
     return 'cancelled';
   }
   if (rawSt === 'pre-reserva pendiente' || rawSt === 'pendiente_abono' || rawSt === 'pendiente') {
-    const remSec = getReservationRemainingSeconds(s);
-    if (remSec !== null && remSec <= 0) {
-      s.st = 'Cancelado';
-      return 'cancelled';
-    }
+    try {
+      const remSec = (typeof getReservationRemainingSeconds === 'function') ? getReservationRemainingSeconds(s) : null;
+      if (remSec !== null && remSec <= 0) {
+        s.st = 'Cancelado';
+        return 'cancelled';
+      }
+    } catch(e) {}
     return 'pending';
   }
   if (rawSt === 'confirmado' || rawSt === 'confirmada') {
@@ -1055,7 +1057,10 @@ function dateNav(){return `<div class=row style="margin-bottom:10px"><button onc
 function mv(n){const d=new Date(U.date+'T12:00:00');d.setDate(d.getDate()+n);U.date=d.toISOString().slice(0,10);render()}
 
 function admin(){
-  const pendingCount = (D.svcs || []).filter(s => s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono').length;
+  let pendingCount = 0;
+  try {
+    pendingCount = (D.svcs || []).filter(s => s && (s.st === 'Pre-reserva pendiente' || s.st === 'pendiente_abono')).length;
+  } catch(e) {}
   const tabs=[
     ['inbox', `📥 Bandeja de Entrada${pendingCount > 0 ? ` (${pendingCount})` : ''}`],
     ['cal','📅 Calendario diario'],
@@ -1063,8 +1068,18 @@ function admin(){
     ['new','➕ Nueva reserva (Cotizador Auto)'],
     ['staff','Personal TENS']
   ];
-  return `<div class=row style="margin-bottom:10px">${tabs.map(t=>`<button class="${U.tab==t[0]?'on':''}" onclick="U.tab='${t[0]}';U.sel=null;${t[0]==='inbox'?'syncCentralizedBlocksAdmin();':''}render()">${t[1]}</button>`).join('')}</div>`+
-         (U.tab=='inbox'?inboxView():U.tab=='blocks'?blocksView():U.tab=='cal'?cal():U.tab=='new'?form():staff());
+  let bodyHtml = '';
+  try {
+    bodyHtml = (U.tab=='inbox'?inboxView():U.tab=='blocks'?blocksView():U.tab=='cal'?cal():U.tab=='new'?form():staff());
+  } catch(err) {
+    console.error('Error al renderizar pestaña:', err);
+    bodyHtml = `<div class="card" style="padding:20px;border-left:4px solid #ef4444;margin-top:10px">
+      <h3>⚠️ Advertencia al cargar la pestaña</h3>
+      <p style="color:var(--mut)">${err && err.message ? err.message : 'Error al procesar datos de la pestaña.'}</p>
+      <button onclick="render()">Reintentar</button>
+    </div>`;
+  }
+  return `<div class=row style="margin-bottom:10px">${tabs.map(t=>`<button class="${U.tab==t[0]?'on':''}" onclick="U.tab='${t[0]}';U.sel=null;${t[0]==='inbox'?'syncCentralizedBlocksAdmin();':''}render()">${t[1]}</button>`).join('')}</div>` + bodyHtml;
 }
 
 function changeAdminCalMonth(delta){
@@ -3124,12 +3139,7 @@ function calcAdminQuote(){
     const hourlyRate = rates[jornada] || rates.habil;
     qState.ratePerHour = hourlyRate;
 
-    // Beneficio especial: si es turno nocturno y 6 horas (360 min), pack noche cerrada = $96.000
-    if(jornada === 'nocturno' && stayMin >= 360){
-      timeCost = 96000;
-    } else {
-      timeCost = Math.round((stayMin / 60) * hourlyRate);
-    }
+    timeCost = Math.round((stayMin / 60) * hourlyRate);
     totalFare = timeCost;
     floorApplied = false;
   } else if(mode === '4'){

@@ -1189,10 +1189,10 @@ const RATES = {
     tarde:    { hour: 10000, half: 5000 },
     nocturno: { hour: 12000, half: 6000 }
   },
-  '3': { // c) Cuidados a domicilio (Sin Traslado Vehicular): 2h a 6h (tope de $96.000 en nocturno/festivo) + frac. 30m
+  '3': { // c) Cuidados a domicilio (Sin Traslado Vehicular): 2h a 6h + frac. 30m
     habil:    { hour: 12000, half: 6000 },
     tarde:    { hour: 15000, half: 7500 },
-    nocturno: { hour: 18000, half: 9000, pkg: { 6: 96000 }, savings: { 6: 12000 } }
+    nocturno: { hour: 18000, half: 9000 }
   },
   '4': { // d) Asistencia en eventos (Tarifas planas paquetizadas cerradas para toda la RM)
     sin_traslado: { 4: 65000, 6: 95000 },
@@ -2997,9 +2997,6 @@ function recalcAll(){
     }
     const extraHalfCost = (h < 6 && m === 30) ? r.half : 0;
     let basePkgCost = (r.pkg && r.pkg[h]) ? r.pkg[h] : (h * r.hour);
-    if(currentJornada === 'nocturno' && h === 6){
-      basePkgCost = 96000;
-    }
     timeCost = basePkgCost + extraHalfCost;
     durationText = `${h} h${extraHalfCost ? ' y 30 min' : ''} (${$c(basePkgCost)}${extraHalfCost ? ` + ${$c(extraHalfCost)} bloque 30m` : ''})`;
   } else if(mode === '4'){

@@ -55,7 +55,7 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
   * **Anillo 2 (Santiago Centro / pericentro):** Mínimo 3 horas.
   * **Anillo 3 (Sector Oriente y comunas extremas):** Mínimo 4 horas.
   * **Tope Máximo:** 6 horas continuas en todas las zonas. Si se seleccionan 6 horas, los minutos quedan bloqueados en `0`.
-* **Beneficio Nocturno / Paquete 6 Horas:** Tarifa plana tope de **\$96.000** en jornada nocturna/festiva (ahorro de \$12.000 respecto a la tarifa fraccionada).
+* **Tarifa 6 Horas en Horario Nocturno/Festivo:** Se liquida a la tarifa horaria completa de \$18.000/hr, alcanzando **\$108.000** (6 hrs x \$18.000), con un 50% de abono equivalente a **\$54.000**.
 * **Disponibilidad:** Habilitado para Turno Mañana, Turno Tarde y Turno Noche.
 
 ### 2.4. Modalidad 4: Acompañamiento en Eventos Sociales
@@ -131,7 +131,7 @@ El sistema categoriza la fecha y hora del servicio en **3 Jornadas Oficiales**:
 | :--- | :---: | :---: | :---: |
 | **1. Servicio Integral** | \$12.000 / \$6.000 | \$15.000 / \$7.500 | \$18.000 / \$9.000 |
 | **2. Traslado Exclusivo** | \$8.000 / \$4.000 | \$10.000 / \$5.000 | \$12.000 / \$6.000 |
-| **3. Cuidados a Domicilio** | \$12.000 / \$6.000 | \$15.000 / \$7.500 | \$18.000 / \$9.000 *(Tope 6h: \$96.000)* |
+| **3. Cuidados a Domicilio** | \$12.000 / \$6.000 | \$15.000 / \$7.500 | \$18.000 / \$9.000 *(6h: \$108.000)* |
 | **4. Eventos Sociales** | Tarifa Plana (\$65k - \$125k) | Tarifa Plana (\$65k - \$125k) | Tarifa Plana (\$65k - \$125k) |
 | **5. Interregional** | Tarifa Base (\$250k / \$300k) | Tarifa Base (\$250k / \$300k) | Tarifa Base (\$250k / \$300k) |
 
