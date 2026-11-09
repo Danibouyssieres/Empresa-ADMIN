@@ -871,6 +871,19 @@ function logout(){
 
 const nowInit=new Date();
 let D=load()||seed();
+// Auto-purga proactiva de registros demo legacy en el navegador del usuario
+if(D && Array.isArray(D.svcs)){
+  const legacyFolios = ['MSA-001', 'MSA-002', 'MSA-003'];
+  const legacyNames = ['Rosa Medina', 'Jorge Salas', 'María Opazo', 'Maria Opazo'];
+  const beforeLen = D.svcs.length;
+  D.svcs = D.svcs.filter(s => !(legacyFolios.includes(s.folio) || (legacyNames.includes(s.pat || s.pat_name) && ['1', '2', '3'].includes(String(s.id)))));
+  if(D.svcs.length !== beforeLen){
+    if(Array.isArray(D.blocks)){
+      D.blocks = D.blocks.filter(b => !legacyFolios.includes(b.reservaId));
+    }
+    save();
+  }
+}
 if(Array.isArray(D.techs)){
   D.techs = D.techs.filter(t => t && t.id !== 't2' && !/tens\s*2|respaldo/i.test(t.nom || '') && t.rut !== '15.987.654-3' && !/unidad\s*2/i.test(t.veh || ''));
   D.techs.forEach(t => { if(t && t.nom && t.nom.includes('Daniela') && (!t.rut || t.rut.includes('SIS'))) t.rut = '18.926.396-1'; });
@@ -4687,9 +4700,13 @@ window.ejecutarFinalizacionYDescargaPdfAdmin = ejecutarFinalizacionYDescargaPdfA
 // MOTOR DE CONFIRMACIÓN DE ABONO, PERSISTENCIA Y TRANSICIÓN DE ESTADOS
 // =========================================================================
 function getReservationExpiresMs(s){
+  if(s.expiresAt || s.expires_at){
+    const ms = new Date(s.expiresAt || s.expires_at).getTime();
+    if(!isNaN(ms)) return ms;
+  }
   const created = s.createdAt || s.created_at;
-  const createdMs = created ? new Date(created).getTime() : Date.now();
-  return createdMs + (60 * 60 * 1000); // 60 minutos TTL
+  const createdDate = created ? new Date(created) : new Date();
+  return computeReservationExpiration(createdDate).expiresMs;
 }
 
 function getReservationRemainingSeconds(s){
@@ -4705,10 +4722,12 @@ function renderReservaStateBadge(s){
     if(remSec !== null && remSec <= 0){
       return `<span class="res-badge res-badge-cancelled">🔴 Cancelada / Expirada</span>`;
     }
-    const mm = remSec !== null ? String(Math.floor(remSec / 60)).padStart(2, '0') : '60';
+    const hh = remSec !== null ? Math.floor(remSec / 3600) : 2;
+    const mm = remSec !== null ? String(Math.floor((remSec % 3600) / 60)).padStart(2, '0') : '00';
     const ss = remSec !== null ? String(remSec % 60).padStart(2, '0') : '00';
+    const timeFormatted = hh > 0 ? (String(hh).padStart(2, '0') + ':' + mm + ':' + ss) : (mm + ':' + ss);
     const expiresMs = getReservationExpiresMs(s);
-    return `<span class="res-badge res-badge-pending res-countdown" data-reserva-id="${s.id}" data-expires-ms="${expiresMs}">🟡 Pre-reserva Pendiente (Expira en: ${mm}:${ss})</span>`;
+    return `<span class="res-badge res-badge-pending res-countdown" data-reserva-id="${s.id}" data-expires-ms="${expiresMs}">🟡 Pre-reserva Pendiente (Expira en: ${timeFormatted})</span>`;
   }
   if(s.st === 'Confirmado' || s.st === 'confirmada' || s.st === 'Confirmada'){
     return `<span class="res-badge res-badge-confirmed">🟢 Confirmada / Bloqueo Activo</span>`;
@@ -5017,7 +5036,7 @@ function openConfirmModal(id){
         <div><small style="color:var(--mut);display:block">Saldo en Terreno</small><b style="color:#d97706">${$c(saldoVal)}</b></div>
       </div>
       <div style="font-size:12px;color:var(--mut);line-height:1.4">
-        🛡️ Al confirmar la recepción del abono, se anula el temporizador de expiración de 60 minutos, el bloqueo de la agenda en la base de datos pasa a ser permanente y atómico, y el saldo pendiente queda listo para liquidar en terreno.
+        🛡️ Al confirmar la recepción del abono, se anula el temporizador de expiración de 120 minutos, el bloqueo de la agenda en la base de datos pasa a ser permanente y atómico, y el saldo pendiente queda listo para liquidar en terreno.
       </div>
     `;
   }
@@ -5213,7 +5232,7 @@ async function autoExpireReservation(id, triggerRender = true){
   const cleanFolio = formatFolioMSA(s.folio, s.id);
   s.st = 'Cancelado';
   s.expiredAt = new Date().toISOString();
-  s.obs = (s.obs ? s.obs + ' · ' : '') + 'Expirada automáticamente por falta de abono (TTL 60 min)';
+  s.obs = (s.obs ? s.obs + ' · ' : '') + 'Expirada automáticamente por falta de abono (TTL 120 min / Pausa nocturna)';
 
   if(D.blocks && Array.isArray(D.blocks)){
     D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == s.id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
@@ -5252,9 +5271,11 @@ function initReservationCountdownTimer(){
         el.classList.remove('res-countdown');
         autoExpireReservation(id, true);
       } else {
-        const mm = String(Math.floor(diffSec / 60)).padStart(2, '0');
+        const hh = Math.floor(diffSec / 3600);
+        const mm = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
         const ss = String(diffSec % 60).padStart(2, '0');
-        el.textContent = `🟡 Pre-reserva Pendiente (Expira en: ${mm}:${ss})`;
+        const timeFormatted = hh > 0 ? (String(hh).padStart(2, '0') + ':' + mm + ':' + ss) : (mm + ':' + ss);
+        el.textContent = `🟡 Pre-reserva Pendiente (Expira en: ${timeFormatted})`;
       }
     });
   }, 1000);

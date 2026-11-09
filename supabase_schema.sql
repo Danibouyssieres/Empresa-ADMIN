@@ -130,8 +130,8 @@ TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
--- Actualizaciones de compatibilidad para ciclo de vida de abonos (60m TTL):
+-- Actualizaciones de compatibilidad para ciclo de vida de abonos (120m TTL y Pausa Nocturna):
 ALTER TABLE public.reservas ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
-ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'temporal_60m';
+ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'temporal_120m';
 ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
 ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS reserva_id VARCHAR(50);

@@ -295,6 +295,21 @@ $$\text{Costo Kilometraje} = \text{Distancia Total (Km)} \times \$1.000$$
    $$\text{Saldo Restante} = \text{Total Final} - \text{Abono de Reserva}$$
    * Se liquida directamente a la TENS al finalizar el servicio (efectivo o transferencia).
 
+### 7.4. Horario de Coordinación Administrativa y Temporizador de Pre-Reservas
+1. **Horario Oficial de Atención y Coordinación:**
+   * **Jornada de Atención:** Lunes a Domingo, de **08:00 a 21:00 hrs** continuado (7 días a la semana).
+   * **Franja Nocturna / Descanso Operativo:** **21:00 a 08:00 hrs** (7 días a la semana).
+2. **Ciclo de Expiración del Cupo Provisional (Temporizador 120 min y Pausa Nocturna):**
+   * **Rango Diurno (08:00 a 20:59 hrs):**
+     * Vigencia del cupo provisional: **120 minutos (2 horas)** exactos desde su emisión.
+     * Fórmula: $\text{expira\_at} = \text{created\_at} + 120\text{ minutos}$.
+   * **Rango Nocturno (21:00 a 07:59 hrs):**
+     * Al ingresar una pre-reserva nocturna, el cupo queda bloqueado inmediatamente en la base de datos para impedir colisiones.
+     * El temporizador queda pausado durante la noche y se fija automáticamente para las **10:00 hrs de la mañana** (08:00 hrs apertura + 120 minutos de vigencia).
+     * Si la reserva ingresa entre las 21:00 y las 23:59 hrs, expira a las 10:00 hrs del día siguiente. Si ingresa entre las 00:00 y las 07:59 hrs, expira a las 10:00 hrs de esa misma mañana.
+3. **Anulación de Expiración:**
+   * Al confirmar la recepción del abono del 50% en el panel administrativo, el temporizador de expiración de 120 minutos se anula, el bloqueo en la agenda pasa a ser permanente y atómico, y el saldo pendiente queda listo para liquidar en terreno.
+
 ---
 
 ## 8. Requerimientos Clínicos y Valoración del Paciente

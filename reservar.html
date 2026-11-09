@@ -6483,7 +6483,7 @@ async function submitBooking(ev){
     paid: 0,
     st: 'pendiente_abono',
     createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    expiresAt: (function(){ const exp = computeReservationExpiration(new Date()); return exp.expiresAt; })(),
     svcType: mode,
     block: turnoVal,
     fullDay: isInter,
@@ -6501,7 +6501,7 @@ async function submitBooking(ev){
     type: turnoVal,
     shift: turnoVal,
     reason: 'Horario reservado',
-    status: 'temporal_60m',
+    status: 'temporal_120m',
     expiresAt: newSvc.expiresAt
   });
   save();
@@ -6510,6 +6510,9 @@ async function submitBooking(ev){
     ? `• Documento Tributario: Factura Electrónica Exenta\n  - Razón Social: ${taxRS}\n  - RUT: ${taxRUT}\n  - Giro: ${taxGiro}\n  - Dirección Tributaria: ${taxDir}\n`
     : `• Documento Tributario: Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)\n`;
 
+  const expInfo = computeReservationExpiration(new Date());
+  const isNightIntake = expInfo.isNight;
+  const expiresMs = expInfo.expiresMs;
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};
   const waText = `Hola, deseo solicitar una Pre-Reserva vía WhatsApp (Folio #${realFolio}):\n` +
     `• Modalidad: ${svcName}\n` +
@@ -6543,6 +6546,9 @@ async function submitBooking(ev){
       ? `• Coordinación: Directa con el Paciente - ${coord} (${ph})\n`
       : `• Coordinación: Familiar / Tutor - ${coord} (${ph})${patPhone ? ` (Móvil paciente: ${patPhone})` : ''}\n`) +
     taxDocWa +
+    (isNightIntake
+      ? '• Plazo de confirmación: Horario nocturno protegido (Coordinación inicia 08:00 hrs · Plazo recepción comprobante: hasta las 10:00 hrs de la mañana)\n'
+      : '• Plazo de confirmación: Cupo reservado por 2 horas (120 min) para remitir comprobante de abono 50%\n') +
     `Adjunto comprobante del abono del 50% (${$c(lastAbono50)}) transferido a Scotiabank Cta Cte 994989122.`;
   const waUrl = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(waText)}`;
   // Flujo lineal en 2 pasos: NO abrir WhatsApp aquí al confirmar el formulario.
@@ -6553,6 +6559,20 @@ async function submitBooking(ev){
       <div style="font-size:3rem;margin-bottom:8px">🎉</div>
       <span class="step-tag">Solicitud Registrada Oficialmente · Folio #${realFolio}</span>
       <h2 style="margin-top:6px">¡Su Pre-Reserva ha sido registrada con éxito!</h2>
+
+      <div style="max-width:660px;margin:18px auto;padding:16px 20px;border-radius:12px;text-align:center;${isNightIntake ? 'background:#FFFBEB;border:2px solid #F59E0B;color:#92400E' : 'background:#ECFDF5;border:2px solid #10B981;color:#065F46'}">
+        <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">
+          ${isNightIntake ? '🌙 Solicitud Ingresada en Horario Nocturno' : '⏱️ Cupo Exclusivo Reservado Provisionalmente'}
+        </div>
+        <div style="font-size:.95rem;line-height:1.5;font-weight:600">
+          ${isNightIntake
+            ? '📌 Solicitud ingresada en horario nocturno: Su cupo queda protegido de forma exclusiva. La coordinación inicia a las 08:00 hrs y dispone hasta las 10:00 hrs de hoy para adjuntar su comprobante de abono.'
+            : 'Dispone de 2 horas (120 minutos) para realizar la transferencia del abono del 50% y remitir su comprobante.'}
+        </div>
+        <div style="margin-top:10px;display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,0.06);padding:6px 18px;border-radius:20px;font-family:monospace;font-size:1.25rem;font-weight:800">
+          ⏳ <span id="reserverCountdown">--:--:--</span>
+        </div>
+      </div>
       <p style="color:var(--mute);max-width:62ch;margin:8px auto 20px">
         Su solicitud quedó registrada en el sistema con estado <b>Pre-reserva pendiente</b>. A continuación encontrará el desglose de su atención y las <b>coordenadas bancarias oficiales</b> para transferir el abono del 50%.
       </p>
@@ -6637,7 +6657,7 @@ async function submitBooking(ev){
           </div>
         </div>
         <div style="margin-top:14px;font-size:.85rem;color:var(--mute);display:flex;align-items:center;gap:6px">
-          <span>📋</span> <span>El cupo se reserva temporalmente por 1 hora a la espera del comprobante. Consulte nuestros <a href="terminos.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600;text-decoration:underline">Términos y Condiciones</a>.</span>
+          <span>📋</span> <span>${isNightIntake ? '📌 Horario nocturno protegido: La coordinación inicia a las 08:00 hrs y dispone hasta las 10:00 hrs para adjuntar su comprobante de abono.' : 'El cupo se reserva provisionalmente por 2 horas (120 minutos) a la espera del comprobante.'} Consulte nuestros <a href="terminos.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600;text-decoration:underline">Términos y Condiciones</a>.</span>
         </div>
       </div>
 
@@ -6659,6 +6679,19 @@ async function submitBooking(ev){
     </section>
   `;
   window.scrollTo({top:0,behavior:'smooth'});
+    if (window._reserverCountdownInterval) clearInterval(window._reserverCountdownInterval);
+    function updateReserverCountdown() {
+      const diffSec = Math.max(0, Math.floor((expiresMs - Date.now()) / 1000));
+      const hh = String(Math.floor(diffSec / 3600)).padStart(2, '0');
+      const mm = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
+      const ss = String(diffSec % 60).padStart(2, '0');
+      const countdownEl = document.getElementById('reserverCountdown');
+      if (countdownEl) {
+        countdownEl.textContent = `${hh}:${mm}:${ss}`;
+      }
+    }
+    updateReserverCountdown();
+    window._reserverCountdownInterval = setInterval(updateReserverCountdown, 1000);
     submissionSucceeded = true;
   } catch(err) {
     if(abortTimer){

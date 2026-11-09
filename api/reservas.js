@@ -12,6 +12,46 @@ export const config = {
 // Almacén en memoria persistente Edge para resiliencia total
 let edgeReservasStore = [];
 
+// Helper: Cálculo de expiración según política comercial (120 min diurno / Pausa nocturna hasta 10:00 hrs)
+function computeReservationExpiration(createdDate = new Date()) {
+  const chileFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = chileFormatter.formatToParts(createdDate).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+  const hour = parseInt(parts.hour, 10);
+  const isNight = (hour >= 21 || hour < 8);
+
+  let expiresAt;
+  if (isNight) {
+    const d = new Date(Date.UTC(parseInt(parts.year, 10), parseInt(parts.month, 10) - 1, parseInt(parts.day, 10), 10, 0, 0));
+    if (hour >= 21) {
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+    const targetYMD = d.toISOString().slice(0, 10);
+    const sampleUtc = new Date(targetYMD + 'T14:00:00Z');
+    const sampleSantiagoHour = parseInt(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', hour: '2-digit', hour12: false }).format(sampleUtc), 10);
+    const offsetHours = 14 - sampleSantiagoHour;
+    expiresAt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 10 + offsetHours, 0, 0));
+  } else {
+    expiresAt = new Date(createdDate.getTime() + 120 * 60 * 1000);
+  }
+
+  return {
+    expiresAt: expiresAt.toISOString(),
+    expiresMs: expiresAt.getTime(),
+    isNight,
+    hour
+  };
+}
+
+
 function getNextDay(dateStr) {
   const parts = dateStr.split('-').map(Number);
   const dt = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + 1));
@@ -269,7 +309,9 @@ export default async function handler(req) {
       // Generar el nuevo folio secuencial correlativo MSA-XXX
       const nextNum = maxCorrelative + 1;
       const folio = 'MSA-' + String(nextNum).padStart(3, '0');
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      const expInfo = computeReservationExpiration(new Date());
+      const expiresAt = expInfo.expiresAt;
+      const isNightIntake = expInfo.isNight;
 
       // Parámetros adaptativos por modalidad
       const ruta = String(body.ruta || '').trim();
@@ -401,7 +443,7 @@ export default async function handler(req) {
               type: blockType,
               reason: 'Horario reservado',
               tid: 'all',
-              status: 'temporal_60m',
+              status: 'temporal_120m',
               reserva_id: folio,
               expires_at: expiresAt,
               created_at: new Date().toISOString(),
@@ -448,6 +490,8 @@ export default async function handler(req) {
           ok: true,
           folio: folio,
           source: persistSource,
+          expires_at: expiresAt,
+          is_night: isNightIntake,
           data: finalRecord
         }),
         { status: 200, headers: corsHeaders }
