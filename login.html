@@ -170,7 +170,7 @@ input:focus {
   <form id="loginForm" onsubmit="handleLogin(event)">
     <div class="form-group">
       <label for="u_user">Usuario / Correo Oficial</label>
-      <input type="text" id="u_user" value="movilidadysaludasistida@gmail.com" placeholder="movilidadysaludasistida@gmail.com" required autofocus>
+      <input type="text" id="u_user" value="contacto@movilidadysaludasistida.cl" placeholder="contacto@movilidadysaludasistida.cl" required autofocus>
     </div>
 
     <div class="form-group">
@@ -196,7 +196,7 @@ function handleLogin(e){
   errMsg.style.display = 'none';
 
   // Validación de credenciales maestras (Superadmin con acceso global unificado)
-  var isMaster = (u === 'movilidadysaludasistida@gmail.com' || u === 'admin' || u === 'supervisor') &&
+  var isMaster = (u === 'contacto@movilidadysaludasistida.cl' || u === 'movilidadysaludasistida@gmail.com' || u === 'admin' || u === 'supervisor') &&
                  (p === 'msa2026admin' || p === 'MSA2026Admin' || p === 'admin123' || p === 'msa2026' || p === 'admin');
 
   if(isMaster){
@@ -205,7 +205,7 @@ function handleLogin(e){
       role: 'admin',
       roleLabel: 'Superadmin',
       name: 'Supervisión Central y Operaciones',
-      user: 'movilidadysaludasistida@gmail.com',
+      user: 'contacto@movilidadysaludasistida.cl',
       permissions: ['all', 'gestion', 'finanzas', 'terreno', 'calendario', 'staff'],
       token: token,
       loginAt: new Date().toISOString()

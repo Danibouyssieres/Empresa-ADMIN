@@ -9,7 +9,7 @@ console.log('--- Testing Admin Module Restructuring & Integration ---');
 const loginHtml = fs.readFileSync(path.join(__dirname, '..', 'login.html'), 'utf8');
 assert(loginHtml.includes('id="u_user"'), 'login.html must have #u_user input');
 assert(loginHtml.includes('id="u_pass"'), 'login.html must have #u_pass input');
-assert(loginHtml.includes('movilidadysaludasistida@gmail.com'), 'login.html must include official admin email');
+assert(loginHtml.includes('contacto@movilidadysaludasistida.cl'), 'login.html must include official admin email');
 assert(loginHtml.includes('msa-admin-token'), 'login.html must store msa-admin-token');
 assert(loginHtml.includes('Iniciar Sesión en Plataforma'), 'login.html must have submit button');
 assert(!loginHtml.includes('quick-access'), 'login.html must NOT contain quick access section');
@@ -22,7 +22,7 @@ console.log('✓ login.html structure, single clean form, no shortcuts and Super
 // 1.1 Test login authentication logic in VM
 const loginDoc = {
   elements: {
-    u_user: { value: 'movilidadysaludasistida@gmail.com' },
+    u_user: { value: 'contacto@movilidadysaludasistida.cl' },
     u_pass: { value: 'MSA2026Admin' },
     errMsg: { style: { display: 'none' } },
     themeBtn: { textContent: '' }
