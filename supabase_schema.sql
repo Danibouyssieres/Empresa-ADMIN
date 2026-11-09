@@ -9,17 +9,22 @@ CREATE TABLE IF NOT EXISTS public.bloqueos (
     type VARCHAR(20) NOT NULL CHECK (type IN ('manana', 'tarde', 'noche', 'full')),
     reason TEXT NOT NULL DEFAULT 'Sin motivo especificado',
     tid VARCHAR(50) DEFAULT 'all',
+    status VARCHAR(50) DEFAULT 'temporal_120m',
+    reserva_id VARCHAR(50),
+    expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     CONSTRAINT bloqueos_date_type_key UNIQUE (date, type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_bloqueos_date ON public.bloqueos (date);
 CREATE INDEX IF NOT EXISTS idx_bloqueos_type ON public.bloqueos (type);
+CREATE INDEX IF NOT EXISTS idx_bloqueos_reserva_id ON public.bloqueos (reserva_id);
 
 -- Habilitar Row Level Security (RLS) en bloqueos
 ALTER TABLE public.bloqueos ENABLE ROW LEVEL SECURITY;
 
--- Política de lectura pública: Permite consultar fecha y tipo a cualquier usuario (anon y authenticated)
+-- Políticas de RLS para bloqueos:
+-- Lectura pública para el calendario
 DROP POLICY IF EXISTS "Permitir lectura publica de bloqueos" ON public.bloqueos;
 CREATE POLICY "Permitir lectura publica de bloqueos"
 ON public.bloqueos
@@ -27,18 +32,33 @@ FOR SELECT
 TO public, anon, authenticated
 USING (true);
 
--- Política de escritura administrativa: Solo usuarios autenticados o service_role pueden insertar/modificar
-DROP POLICY IF EXISTS "Permitir modificacion solo a administradores" ON public.bloqueos;
-CREATE POLICY "Permitir modificacion solo a administradores"
+-- Inserción de bloqueos (panel y cotizador web)
+DROP POLICY IF EXISTS "Permitir insercion de bloqueos" ON public.bloqueos;
+CREATE POLICY "Permitir insercion de bloqueos"
 ON public.bloqueos
-FOR ALL
-TO authenticated, service_role
+FOR INSERT
+TO public, anon, authenticated
+WITH CHECK (true);
+
+-- Actualización de bloqueos
+DROP POLICY IF EXISTS "Permitir actualizacion de bloqueos" ON public.bloqueos;
+CREATE POLICY "Permitir actualizacion de bloqueos"
+ON public.bloqueos
+FOR UPDATE
+TO public, anon, authenticated
 USING (true)
 WITH CHECK (true);
 
+-- Eliminación / liberación de cupos en bloqueos (al descartar o cancelar reservas)
+DROP POLICY IF EXISTS "Permitir eliminacion de bloqueos" ON public.bloqueos;
+CREATE POLICY "Permitir eliminacion de bloqueos"
+ON public.bloqueos
+FOR DELETE
+TO public, anon, authenticated
+USING (true);
+
 
 -- 2. FUNCIÓN ATÓMICA DE REEMPLAZO DE BLOQUEOS (set_bloqueo_atomico)
--- Evita condiciones de carrera al reemplazar turnos o día completo
 CREATE OR REPLACE FUNCTION public.set_bloqueo_atomico(
     p_date DATE,
     p_type VARCHAR(20),
@@ -103,6 +123,7 @@ CREATE TABLE IF NOT EXISTS public.reservas (
     obs TEXT,
     st VARCHAR(50) NOT NULL DEFAULT 'Pre-reserva pendiente',
     tens_id VARCHAR(50),
+    expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -113,24 +134,41 @@ CREATE INDEX IF NOT EXISTS idx_reservas_folio ON public.reservas (folio);
 -- Habilitar Row Level Security (RLS) en reservas
 ALTER TABLE public.reservas ENABLE ROW LEVEL SECURITY;
 
--- Política de inserción pública: Cualquier cliente web puede registrar una pre-reserva con estado inicial obligatorio
+-- Políticas de RLS en reservas:
+-- A) Inserción de pre-reservas
 DROP POLICY IF EXISTS "Permitir insercion publica de pre-reservas" ON public.reservas;
 CREATE POLICY "Permitir insercion publica de pre-reservas"
 ON public.reservas
 FOR INSERT
 TO public, anon, authenticated
-WITH CHECK (st IN ('Pre-reserva pendiente', 'pendiente_abono'));
+WITH CHECK (true);
 
--- Política de lectura y gestión: Solo administradores pueden consultar y gestionar las reservas (protección PHI / datos clínicos)
-DROP POLICY IF EXISTS "Acceso exclusivo a administradores para lectura y gestion" ON public.reservas;
-CREATE POLICY "Acceso exclusivo a administradores para lectura y gestion"
+-- B) Lectura de reservas (para sincronización de disponibilidad y panel administrativo)
+DROP POLICY IF EXISTS "Permitir lectura de reservas" ON public.reservas;
+CREATE POLICY "Permitir lectura de reservas"
 ON public.reservas
-FOR ALL
-TO authenticated, service_role
+FOR SELECT
+TO public, anon, authenticated
+USING (true);
+
+-- C) Actualización de reservas (para confirmar abono, cambiar estado a 'confirmada'/'cancelada', registrar saldo)
+DROP POLICY IF EXISTS "Permitir actualizacion de reservas" ON public.reservas;
+CREATE POLICY "Permitir actualizacion de reservas"
+ON public.reservas
+FOR UPDATE
+TO public, anon, authenticated
 USING (true)
 WITH CHECK (true);
 
--- Actualizaciones de compatibilidad para ciclo de vida de abonos (120m TTL y Pausa Nocturna):
+-- D) Eliminación de reservas (para descartar solicitudes y purgar registros)
+DROP POLICY IF EXISTS "Permitir eliminacion de reservas" ON public.reservas;
+CREATE POLICY "Permitir eliminacion de reservas"
+ON public.reservas
+FOR DELETE
+TO public, anon, authenticated
+USING (true);
+
+-- Compatibilidad adicional para columnas en tablas existentes:
 ALTER TABLE public.reservas ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
 ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'temporal_120m';
 ALTER TABLE public.bloqueos ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;

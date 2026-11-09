@@ -1355,6 +1355,13 @@ async function syncCentralizedBlocksAdmin(){
           if(!Array.isArray(D.svcs)) D.svcs = [];
           remoteReservas.forEach(r => {
             const canonicalFolio = formatFolioMSA(r.folio, r.id);
+            if(Array.isArray(D.discardedFolios) && D.discardedFolios.includes(canonicalFolio)){
+              return;
+            }
+            const rSt = String(r.st || r.estado || '').toLowerCase().trim();
+            if(rSt === 'cancelada' || rSt === 'cancelado' || rSt === 'descartada' || rSt === 'descartado' || rSt === 'expirada_cancelada'){
+              return;
+            }
             const exists = D.svcs.find(s => (s.folio && formatFolioMSA(s.folio, s.id) === canonicalFolio) || (r.id && s.remoteId === r.id));
             if(!exists){
               D.svcs.push({
@@ -5251,10 +5258,9 @@ async function executeConfirmDeposit(id){
       tid: s.tid || 'all'
     }).catch(err => console.warn('Error al persistir bloqueo permanente:', err));
 
-    // 2. Actualizar estado y pago en tabla reservas
+    // 2. Actualizar estado y pago en tabla reservas (sanitizado)
     MsaBlocksService.updateReservaStatus(cleanFolio, 'Confirmado', {
       paid: s.paid,
-      confirmed_at: s.confirmedAt,
       obs: s.obs
     }).catch(err => console.warn('Error al actualizar reserva:', err));
   }
@@ -5329,7 +5335,7 @@ async function eliminarServicioDelCalendarioAdmin(id){
   }
   const cleanFolio = formatFolioMSA(s.folio, s.id);
   if(typeof confirm !== 'undefined'){
-    if(!confirm('¿Desea anular/eliminar este registro de forma permanente?')) return;
+    if(!confirm(`¿Desea descartar la reserva Folio #${cleanFolio} (${s.pat}) y liberar de inmediato el cupo en el calendario público?`)) return;
   }
   if(typeof cerrarModalContextualServicioAdmin === 'function'){
     cerrarModalContextualServicioAdmin();
@@ -5339,32 +5345,42 @@ async function eliminarServicioDelCalendarioAdmin(id){
   }
 
   const cancelledIso = new Date().toISOString();
-  s.st = 'Cancelado';
+  s.st = 'cancelada';
   s.status = 'cancelada';
   s.cancelledAt = cancelledIso;
-  s.obs = (s.obs ? s.obs + ' · ' : '') + 'Anulada/eliminada permanentemente por administrador';
+  s.obs = (s.obs ? s.obs + ' · ' : '') + 'Descartada/anulada permanentemente por administrador';
+
+  // Registrar folio en lista persistente de descartados para que syncCentralizedBlocksAdmin nunca lo vuelva a resucitar
+  if(!Array.isArray(D.discardedFolios)) D.discardedFolios = [];
+  if(!D.discardedFolios.includes(cleanFolio)) D.discardedFolios.push(cleanFolio);
 
   // 1. Remover bloques de agenda en D.blocks
   if(D.blocks && Array.isArray(D.blocks)){
     D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == s.id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
   }
 
-  // 2. Remover de D.svcs para asegurar que no se renderice ningún bloque oscuro en el cronograma
+  // 2. Remover de D.svcs para asegurar que no se renderice en la bandeja ni en el cronograma
   D.svcs = D.svcs.filter(x => x && x.id !== s.id && formatFolioMSA(x.folio, x.id) !== cleanFolio);
-
-  // 3. Sincronizar con Supabase / Backend
-  if(window.MsaBlocksService){
-    MsaBlocksService.removeBlock(s.date, s.block || 'full').catch(err => console.warn('Error al liberar bloqueo:', err));
-    MsaBlocksService.updateReservaStatus(cleanFolio, 'cancelada', {
-      cancelled_at: cancelledIso,
-      obs: s.obs
-    }).catch(err => console.warn('Error al actualizar reserva cancelada:', err));
-  }
 
   save();
   render();
+
+  // 3. Sincronizar mutación atómica en Supabase / Backend (Eliminar de reservas y liberar bloqueos)
+  if(window.MsaBlocksService){
+    try {
+      if(typeof window.MsaBlocksService.deleteReserva === 'function'){
+        await window.MsaBlocksService.deleteReserva(cleanFolio, s.date, s.block || 'full');
+      } else {
+        await window.MsaBlocksService.removeBlock(s.date, s.block || 'full');
+        await window.MsaBlocksService.updateReservaStatus(cleanFolio, 'cancelada', { obs: s.obs });
+      }
+    } catch(err) {
+      console.warn('Error al descartar reserva en backend:', err);
+    }
+  }
+
   if(typeof alert !== 'undefined'){
-    alert(`🗑️ Registro Folio #${cleanFolio} eliminado del calendario y bloque horario liberado exitosamente.`);
+    alert(`🗑️ Reserva Folio #${cleanFolio} descartada exitosamente.\n\n• Registro eliminado de Supabase / Backend.\n• Cupo del día ${formatHumanDate(s.date)} liberado de inmediato en el calendario público.`);
   }
   return { success: true, service: s };
 }

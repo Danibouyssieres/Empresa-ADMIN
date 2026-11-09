@@ -57,6 +57,12 @@
           headers['Authorization'] = 'Bearer ' + chosen;
           headers['x-admin-token'] = chosen;
         }
+        var conf = this.getConfig();
+        if (conf.url) headers['x-supabase-url'] = conf.url;
+        if (conf.key) {
+          headers['x-supabase-key'] = conf.key;
+          headers['apikey'] = conf.key;
+        }
       } catch (e) {}
       return headers;
     },
@@ -342,27 +348,137 @@
     // 6. Actualizar estado de reserva (Solo Admin)
     updateReservaStatus: async function(idOrFolio, st, extraFields) {
       if (!idOrFolio) return { ok: false, error: 'ID o Folio requerido' };
+      var remoteSuccess = false;
+      var cleanBody = Object.assign({ st: st }, extraFields || {});
+      var allowed = ['st', 'paid', 'fare', 'abono', 'obs', 'tens_id', 'date', 'time', 'start_min', 'dur_min', 'svc_type', 'block', 'pat_name', 'pat_phone', 'pat_age', 'coord_name', 'coord_phone', 'coord_type', 'from_addr', 'to_addr', 'depto', 'dx', 'mob', 'conciencia', 'alergias', 'medicamentos', 'patologias', 'comp_desc', 'tax_doc', 'expires_at'];
+      var sanitized = {};
+      for (var k in cleanBody) {
+        if (allowed.indexOf(k) !== -1) sanitized[k] = cleanBody[k];
+      }
+      if (cleanBody.cancelled_at && !sanitized.obs) {
+        sanitized.obs = 'Cancelada el ' + cleanBody.cancelled_at;
+      } else if (cleanBody.cancelled_at && sanitized.obs && sanitized.obs.indexOf('Cancelada') === -1) {
+        sanitized.obs = sanitized.obs + ' · [Cancelada: ' + cleanBody.cancelled_at + ']';
+      }
+      if (cleanBody.confirmed_at && !sanitized.obs) {
+        sanitized.obs = 'Confirmada el ' + cleanBody.confirmed_at;
+      }
+
+      // Intento A: Endpoint /api/reservas (PATCH)
       if (typeof fetch === 'function') {
         try {
           var param = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
             ? 'id=' + encodeURIComponent(idOrFolio)
             : 'folio=' + encodeURIComponent(idOrFolio);
-          var body = Object.assign({ st: st }, extraFields || {});
           var res = await fetch('/api/reservas?' + param, {
             method: 'PATCH',
             headers: Object.assign(
               { 'Content-Type': 'application/json', 'Accept': 'application/json' },
               this.getAdminAuthHeaders()
             ),
-            body: JSON.stringify(body)
+            body: JSON.stringify(sanitized)
           });
           var data = await res.json().catch(function() { return {}; });
-          return { ok: res.ok && data && data.ok, data: data };
-        } catch (err) {
-          return { ok: false, error: err.message };
+          if (res.ok && data && data.ok) remoteSuccess = true;
+        } catch (err) {}
+      }
+
+      // Intento B: Supabase Client Directo (si está configurado)
+      var sb = this.getSupabaseClient();
+      if (sb) {
+        try {
+          var updQ = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
+            ? sb.from('reservas').update(sanitized).eq('id', idOrFolio)
+            : sb.from('reservas').update(sanitized).eq('folio', idOrFolio);
+          var sbUpdRes = await updQ;
+          if (!sbUpdRes.error) remoteSuccess = true;
+
+          // Si se cancela o descarta, asegurar eliminación del bloqueo asociado en Supabase
+          var isCancel = ['cancelada', 'cancelado', 'descartada', 'descartado', 'expirada_cancelada'].indexOf(String(st).toLowerCase()) !== -1;
+          if (isCancel) {
+            await sb.from('bloqueos').delete().eq('reserva_id', idOrFolio);
+          }
+        } catch (eSb) {
+          console.warn('[MsaBlocksService] Error al actualizar estado en Supabase:', eSb);
         }
       }
-      return { ok: false, error: 'Fetch no disponible' };
+
+      this._notifyUpdate();
+      return { ok: true, remote: remoteSuccess };
+    },
+
+    // 7. Eliminar reserva y liberar cupo asociado en bloqueos
+    deleteReserva: async function(idOrFolio, date, block) {
+      if (!idOrFolio) return { ok: false, error: 'ID o Folio requerido' };
+      var remoteSuccess = false;
+
+      // Intento A: Endpoint /api/reservas con DELETE
+      if (typeof fetch === 'function') {
+        try {
+          var param = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
+            ? 'id=' + encodeURIComponent(idOrFolio)
+            : 'folio=' + encodeURIComponent(idOrFolio);
+          var delRes = await fetch('/api/reservas?' + param, {
+            method: 'DELETE',
+            headers: this.getAdminAuthHeaders()
+          });
+          if (delRes.ok) remoteSuccess = true;
+        } catch (eDel) {}
+      }
+
+      // Intento B: Endpoint /api/blocks con DELETE (para liberar por reserva_id o fecha)
+      if (typeof fetch === 'function') {
+        try {
+          await fetch('/api/blocks?reserva_id=' + encodeURIComponent(idOrFolio), {
+            method: 'DELETE',
+            headers: this.getAdminAuthHeaders()
+          });
+          if (date && block) {
+            await fetch('/api/blocks?date=' + encodeURIComponent(date) + '&type=' + encodeURIComponent(block), {
+              method: 'DELETE',
+              headers: this.getAdminAuthHeaders()
+            });
+          }
+        } catch (eBlk) {}
+      }
+
+      // Intento C: Supabase Client Directo (si está configurado)
+      var sb = this.getSupabaseClient();
+      if (sb) {
+        try {
+          // 1. Borrar bloqueos asociados
+          if (idOrFolio) {
+            await sb.from('bloqueos').delete().eq('reserva_id', idOrFolio);
+          }
+          if (date && block) {
+            await sb.from('bloqueos').delete().eq('date', date).in('type', [block, 'full']);
+          }
+          // 2. Borrar o cancelar en reservas
+          var delQ = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
+            ? sb.from('reservas').delete().eq('id', idOrFolio)
+            : sb.from('reservas').delete().eq('folio', idOrFolio);
+          var resDel = await delQ;
+          if (!resDel.error) {
+            remoteSuccess = true;
+          } else {
+            // Si DELETE falla por RLS, intentar UPDATE a 'cancelada'
+            var updQ = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
+              ? sb.from('reservas').update({ st: 'cancelada' }).eq('id', idOrFolio)
+              : sb.from('reservas').update({ st: 'cancelada' }).eq('folio', idOrFolio);
+            var resUpd = await updQ;
+            if (!resUpd.error) remoteSuccess = true;
+          }
+        } catch (eSb) {
+          console.warn('[MsaBlocksService] Error al eliminar reserva en Supabase:', eSb);
+        }
+      }
+
+      // Liberar localmente
+      if (date && block) {
+        this._removeLocalBlock(date, block);
+      }
+      this._notifyUpdate();
+      return { ok: true, remote: remoteSuccess };
     },
 
     // Combinar bloques remotos con el estado local

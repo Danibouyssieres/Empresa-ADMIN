@@ -597,11 +597,56 @@ export default async function handler(req) {
         );
       }
 
-      const body = await req.json().catch(() => ({}));
+      const rawBody = await req.json().catch(() => ({}));
+      const ALLOWED_COLUMNS = [
+        'st', 'paid', 'fare', 'abono', 'obs', 'tens_id', 'date', 'time',
+        'start_min', 'dur_min', 'svc_type', 'block', 'pat_name', 'pat_phone',
+        'pat_age', 'coord_name', 'coord_phone', 'coord_type', 'from_addr',
+        'to_addr', 'depto', 'dx', 'mob', 'conciencia', 'alergias', 'medicamentos',
+        'patologias', 'comp_desc', 'tax_doc', 'expires_at'
+      ];
+      const body = {};
+      for (const k of ALLOWED_COLUMNS) {
+        if (rawBody[k] !== undefined) body[k] = rawBody[k];
+      }
+      if (rawBody.cancelled_at && !body.obs) {
+        body.obs = `Cancelada el ${rawBody.cancelled_at}`;
+      } else if (rawBody.cancelled_at && body.obs && !body.obs.includes('Cancelada')) {
+        body.obs = `${body.obs} · [Cancelada: ${rawBody.cancelled_at}]`;
+      }
+      if (rawBody.confirmed_at && !body.obs) {
+        body.obs = `Confirmada el ${rawBody.confirmed_at}`;
+      }
+
+      const isCancelOrDiscard = ['cancelada', 'cancelado', 'descartada', 'descartado', 'expirada_cancelada'].includes(String(body.st || '').toLowerCase());
 
       if (supabaseUrl && (supabaseAnonKey || supabaseServiceKey)) {
         const writeKey = supabaseServiceKey || supabaseAnonKey;
         try {
+          // 1. Si se cancela o descarta, liberar cupo en tabla bloqueos de Supabase
+          if (isCancelOrDiscard) {
+            if (folio) {
+              await fetch(`${supabaseUrl}/rest/v1/bloqueos?reserva_id=eq.${encodeURIComponent(folio)}`, {
+                method: 'DELETE',
+                headers: { apikey: writeKey, Authorization: `Bearer ${writeKey}` }
+              });
+            }
+            let qRes = `${supabaseUrl}/rest/v1/reservas?select=date,block&limit=1&`;
+            if (id) qRes += `id=eq.${encodeURIComponent(id)}`;
+            else qRes += `folio=eq.${encodeURIComponent(folio)}`;
+            const fRes = await fetch(qRes, { headers: { apikey: writeKey, Authorization: `Bearer ${writeKey}` } });
+            if (fRes.ok) {
+              const arr = await fRes.json();
+              if (Array.isArray(arr) && arr[0] && arr[0].date && arr[0].block) {
+                await fetch(`${supabaseUrl}/rest/v1/bloqueos?date=eq.${encodeURIComponent(arr[0].date)}&type=eq.${encodeURIComponent(arr[0].block)}`, {
+                  method: 'DELETE',
+                  headers: { apikey: writeKey, Authorization: `Bearer ${writeKey}` }
+                });
+              }
+            }
+          }
+
+          // 2. Actualizar estado en tabla reservas
           let patchUrl = `${supabaseUrl}/rest/v1/reservas?`;
           if (id) patchUrl += `id=eq.${encodeURIComponent(id)}`;
           else patchUrl += `folio=eq.${encodeURIComponent(folio)}`;
@@ -664,6 +709,35 @@ export default async function handler(req) {
       if (supabaseUrl && (supabaseAnonKey || supabaseServiceKey)) {
         const writeKey = supabaseServiceKey || supabaseAnonKey;
         try {
+          // 1. Eliminar bloqueos asociados de la tabla bloqueos
+          if (folio) {
+            await fetch(`${supabaseUrl}/rest/v1/bloqueos?reserva_id=eq.${encodeURIComponent(folio)}`, {
+              method: 'DELETE',
+              headers: { apikey: writeKey, Authorization: `Bearer ${writeKey}` }
+            });
+          }
+          if (all) {
+            await fetch(`${supabaseUrl}/rest/v1/bloqueos?reason=like.*reservad*`, {
+              method: 'DELETE',
+              headers: { apikey: writeKey, Authorization: `Bearer ${writeKey}` }
+            });
+          } else {
+            let qRes = `${supabaseUrl}/rest/v1/reservas?select=date,block&limit=1&`;
+            if (id) qRes += `id=eq.${encodeURIComponent(id)}`;
+            else if (folio) qRes += `folio=eq.${encodeURIComponent(folio)}`;
+            const fRes = await fetch(qRes, { headers: { apikey: writeKey, Authorization: `Bearer ${writeKey}` } });
+            if (fRes.ok) {
+              const arr = await fRes.json();
+              if (Array.isArray(arr) && arr[0] && arr[0].date && arr[0].block) {
+                await fetch(`${supabaseUrl}/rest/v1/bloqueos?date=eq.${encodeURIComponent(arr[0].date)}&type=eq.${encodeURIComponent(arr[0].block)}`, {
+                  method: 'DELETE',
+                  headers: { apikey: writeKey, Authorization: `Bearer ${writeKey}` }
+                });
+              }
+            }
+          }
+
+          // 2. Eliminar o cancelar en tabla reservas
           let delUrl = `${supabaseUrl}/rest/v1/reservas`;
           if (all) {
             delUrl += '?id=gt.0';
@@ -672,13 +746,28 @@ export default async function handler(req) {
           } else if (id) {
             delUrl += `?id=eq.${encodeURIComponent(id)}`;
           }
-          await fetch(delUrl, {
+          const delRes = await fetch(delUrl, {
             method: 'DELETE',
             headers: {
               apikey: writeKey,
               Authorization: `Bearer ${writeKey}`,
             },
           });
+          // Si DELETE es denegado por RLS, realizar fallback a UPDATE con st='cancelada'
+          if (!delRes.ok) {
+            let patchUrl = `${supabaseUrl}/rest/v1/reservas?`;
+            if (id) patchUrl += `id=eq.${encodeURIComponent(id)}`;
+            else if (folio) patchUrl += `folio=eq.${encodeURIComponent(folio)}`;
+            await fetch(patchUrl, {
+              method: 'PATCH',
+              headers: {
+                apikey: writeKey,
+                Authorization: `Bearer ${writeKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ st: 'cancelada', obs: 'Descartada por administrador' })
+            });
+          }
         } catch (eDel) {}
       }
 

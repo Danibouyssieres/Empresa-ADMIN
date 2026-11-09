@@ -304,17 +304,19 @@ export default async function handler(req) {
       const id = url.searchParams.get('id');
       const date = url.searchParams.get('date');
       const type = url.searchParams.get('type');
+      const reservaId = url.searchParams.get('reserva_id') || url.searchParams.get('reservaId');
 
       // Protección estricta contra truncado accidental:
-      // Debe especificarse un ID explícito, o bien la dupla exacta (date Y type).
+      // Debe especificarse un ID explícito, reserva_id explícito o bien la dupla exacta (date Y type).
       const hasValidId = id && (/^\d+$/.test(id) || /^[0-9a-f-]{36}$/i.test(id));
+      const hasValidReservaId = reservaId && String(reservaId).trim().length > 0;
       const hasValidDateTime = date && type && isValidDate(date) && VALID_TYPES.has(type);
 
-      if (!hasValidId && !hasValidDateTime) {
+      if (!hasValidId && !hasValidDateTime && !hasValidReservaId) {
         return new Response(
           JSON.stringify({
             ok: false,
-            error: 'Parámetros insuficientes o inválidos: DELETE requiere fecha y tipo explícitos (o un ID numérico/UUID) para prevenir el truncado accidental de la tabla.',
+            error: 'Parámetros insuficientes o inválidos: DELETE requiere fecha y tipo explícitos, reserva_id o ID numérico para prevenir el truncado accidental de la tabla.',
           }),
           { status: 400, headers: corsHeaders }
         );
@@ -322,7 +324,9 @@ export default async function handler(req) {
 
       const writeKey = supabaseServiceKey || supabaseAnonKey;
       let delUrl = `${supabaseUrl}/rest/v1/bloqueos?`;
-      if (hasValidId) {
+      if (hasValidReservaId) {
+        delUrl += `reserva_id=eq.${encodeURIComponent(reservaId.trim())}`;
+      } else if (hasValidId) {
         delUrl += `id=eq.${encodeURIComponent(id)}`;
       } else {
         delUrl += `date=eq.${encodeURIComponent(date)}&type=eq.${encodeURIComponent(type)}`;
