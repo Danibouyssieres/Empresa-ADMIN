@@ -297,6 +297,53 @@ footer {
 }
 footer a { color: #8FE0C0; text-decoration: none; }
 footer a:hover { text-decoration: underline; }
+
+@media print {
+  body {
+    background: #fff !important;
+    color: #111827 !important;
+    font-size: 10.5pt !important;
+    line-height: 1.5 !important;
+  }
+  header, .nav-actions, .btn-descarga-pdf, #btnDescargarPdf, footer a {
+    display: none !important;
+  }
+  .doc-header {
+    border-bottom: 2px solid #0E4A55 !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 14px !important;
+  }
+  .legal-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 14px !important;
+  }
+  .sub-card {
+    border: 1px solid #d1d5db !important;
+    background: #fafafa !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .alert-taxative {
+    border: 2px solid #b91c1c !important;
+    background: #fef2f2 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .bank-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  footer {
+    background: #f9fafb !important;
+    color: #4b5563 !important;
+    border-top: 1px solid #d1d5db !important;
+    font-size: 8.5pt !important;
+    padding: 10px !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -558,14 +605,21 @@ footer a:hover { text-decoration: underline; }
     </div>
   </section>
 
-  <!-- SECCIÓN 3: RESERVA DE AGENDA Y FORMAS DE PAGO -->
+  <!-- SECCIÓN 3: RESERVA DE AGENDA, CONDICIONES DE PAGO Y PAUSA NOCTURNA -->
   <section class="legal-section">
-    <h2>3. Reserva de Agenda y Formas de Pago</h2>
+    <h2>3. Reserva de Agenda, Condiciones de Pago y Pausa Nocturna</h2>
     <ul>
-      <li><b>Abono de Reserva (50%):</b> Obligatorio para confirmar y bloquear la agenda exclusiva del móvil y la profesional (calculado sobre el valor cotizado o piso mínimo según corresponda).</li>
-      <li><b>Plazo de Confirmación:</b> El cupo se bloquea temporalmente por un lapso máximo de 1 hora. La reserva se formaliza al recibir el comprobante de transferencia por WhatsApp (+56 9 2999 0095).</li>
-      <li><b>Liquidación del Saldo:</b> El 50% restante (más tiempos extras o estacionamientos) se cancela al término de la atención vía transferencia bancaria, efectivo o tarjeta de débito/crédito con terminal POS.</li>
-      <li><b>Comprobante Tributario:</b> Se emite boleta de ventas y servicios exenta de IVA al concluir la atención.</li>
+      <li><b>Abono de Reserva (50%):</b> Para confirmar y bloquear de manera exclusiva la agenda del vehículo y del profesional TENS en la fecha y turno solicitados, se requiere un abono obligatorio del 50% del valor total cotizado (calculado según la modalidad y jornada horaria; si el cálculo es inferior a la tarifa mínima garantizada comunal, el 50% se calcula sobre dicho piso mínimo garantizado).</li>
+      <li><b>Proceso de Pre-Reserva y Plazo de Confirmación (120 Minutos en Jornada Hábil):</b> La solicitud enviada a través de la plataforma web oficial (<a href="reservar.html" style="color:var(--teal);text-decoration:underline">reservar.html</a>) genera una pre-reserva provisional con bloqueo exclusivo de agenda. Para consolidar la reserva de manera atómica y definitiva, el solicitante dispone de un plazo perentorio de ciento veinte (120) minutos corridos (2 horas) desde su emisión para transferir el abono del 50% a la cuenta corriente institucional de la empresa y remitir el comprobante vía WhatsApp (+56 9 2999 0095). Vencido dicho plazo sin registrarse el comprobante de pago, el sistema ejecutará la caducidad automática de la solicitud, liberando de inmediato el cupo y el móvil en el cronograma público sin previo aviso.</li>
+      <li><b>Horario de Coordinación y Régimen de Pausa Nocturna (Lunes a Domingo):</b> La recepción formal de comprobantes, validación bancaria y coordinación administrativa opera de Lunes a Domingo, de 08:00 a 21:00 horas de forma continuada.
+        <ul style="margin-top:8px;padding-left:22px;display:flex;flex-direction:column;gap:6px">
+          <li><b>Congelamiento de cupo nocturno:</b> Toda pre-reserva ingresada entre las 21:00 hrs y las 07:59 hrs del día siguiente mantendrá el cupo bloqueado y protegido en la agenda durante toda la noche para impedir reservas duplicadas.</li>
+          <li><b>Cómputo matutino:</b> El temporizador de 120 minutos iniciará su cuenta regresiva a partir de las 08:00 horas.</li>
+          <li><b>Plazo límite:</b> El solicitante dispondrá impostergablemente hasta las 10:00 horas de la mañana para enviar su comprobante de transferencia. De no registrarse el pago a las 10:00 hrs, el cupo quedará desestimado y liberado al público.</li>
+        </ul>
+      </li>
+      <li><b>Liquidación del Saldo Restante en Terreno:</b> El 50% restante (ajustado con el tiempo real de asistencia o espera ejecutado, eventual tiempo adicional y los reembolsos efectivos de estacionamiento) se liquidará al término del servicio en terreno mediante transferencia bancaria, efectivo o tarjeta de débito/crédito a través del terminal POS CompraAquí a bordo del móvil.</li>
+      <li><b>Emisión de Comprobante Tributario y Respaldo Operativo:</b> Al finalizar la atención y liquidarse el saldo, el sistema emite un Comprobante de Atención y Liquidación interno en PDF con el desglose del servicio. Conforme a la normativa tributaria chilena, la empresa emitirá a personas particulares la respectiva Boleta Electrónica Exenta de IVA del SII. En caso de empresas, fundaciones, ELEAM o instituciones que requieran Factura Electrónica Exenta de IVA, deberán ingresar sus antecedentes tributarios completos (RUT, Razón Social, Giro y Domicilio Tributario) al momento de cotizar o coordinar la reserva.</li>
     </ul>
   </section>
 
