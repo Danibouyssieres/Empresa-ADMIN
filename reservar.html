@@ -4373,10 +4373,10 @@ function evaluateDateCapacity(dateStr){
     } else if(hasManualManana){
       mFree = false;
       manualBlockedM = true;
-      reasonMananaList.push('No disponible en agenda');
+      reasonMananaList.push('Cupo agotado en esta fecha');
     } else if(hasFullDay){
       mFree = false;
-      reasonMananaList.push('Día bloqueado por servicio extenso o Programa Interregional');
+      reasonMananaList.push('Cupo agotado por servicio extenso o Programa Interregional');
     } else if(prevNightRestBlock){
       mFree = false;
       reasonMananaList.push('Bloqueado por descanso biológico post-nocturno (atención nocturna el día anterior)');
@@ -4395,10 +4395,10 @@ function evaluateDateCapacity(dateStr){
     } else if(hasManualTarde){
       tFree = false;
       manualBlockedT = true;
-      reasonTardeList.push('No disponible en agenda');
+      reasonTardeList.push('Cupo agotado en esta fecha');
     } else if(hasFullDay){
       tFree = false;
-      reasonTardeList.push('Día bloqueado por servicio extenso o Programa Interregional');
+      reasonTardeList.push('Cupo agotado por servicio extenso o Programa Interregional');
     } else if(hasTarde){
       tFree = false;
       reasonTardeList.push('Turno Tarde ya reservado en esta fecha');
@@ -4414,10 +4414,10 @@ function evaluateDateCapacity(dateStr){
     } else if(hasManualNoche){
       nFree = false;
       manualBlockedN = true;
-      reasonNocheList.push('No disponible en agenda');
+      reasonNocheList.push('Cupo agotado en esta fecha');
     } else if(hasFullDay){
       nFree = false;
-      reasonNocheList.push('Día bloqueado por servicio extenso o Programa Interregional');
+      reasonNocheList.push('Cupo agotado por servicio extenso o Programa Interregional');
     } else if(nextInterregionalBlock){
       nFree = false;
       reasonNocheList.push('Bloqueado por protocolo de seguridad vial y descanso: la profesional tiene un viaje interregional de larga distancia la madrugada siguiente');
@@ -4812,10 +4812,10 @@ function renderCalendar(){
 
     if(isFullDayManualBlocked){
       stClass = 'st-full is-blocked-full';
-      tagText = 'Bloqueado';
+      tagText = 'Agotado';
       clickable = false;
       const fBlock = dateManualBlocks.find(b => b.type === 'full');
-      titleTip = '🔒 Horario reservado (Fecha no disponible en agenda)';
+      titleTip = 'Sin cupos disponibles (Agotado)';
     } else if(!ev.inRange){
       stClass = 'st-off';
       tagText = dateStr <= todayStr ? '< 24h' : '> 30d';
@@ -4853,9 +4853,9 @@ function renderCalendar(){
         titleTip = `Último cupo: solo Turno ${availList.join(' / ')} disponible`;
       } else if(ev.status === 'closed'){
         stClass = 'st-full';
-        tagText = 'No disponible';
+        tagText = 'Agotado';
         clickable = false;
-        titleTip = 'Fecha no disponible en agenda';
+        titleTip = 'Sin cupos disponibles (Agotado)';
       } else {
         stClass = 'st-disp';
         tagText = 'Disponible';
@@ -5017,10 +5017,10 @@ function updateSlots(keepCurrentTime = true){
       btnM.classList.remove('active');
       btnM.classList.add('shift-manual-blocked');
       btnM.classList.toggle('unselected', Boolean(selectedBlock));
-      badgeM.className = 'block-badge blocked';
-      badgeM.textContent = 'Bloqueado / No disponible (0 cupos)';
+      badgeM.className = 'block-badge blocked occ';
+      badgeM.textContent = 'Agotado (0 cupos)';
       reasonM.style.display = 'block';
-      reasonM.textContent = '🔒 Horario reservado';
+      reasonM.textContent = '🔒 Sin cupos disponibles en este turno';
     } else {
       btnM.classList.remove('shift-manual-blocked');
       btnM.disabled = !okM;
@@ -5043,10 +5043,10 @@ function updateSlots(keepCurrentTime = true){
       btnT.classList.remove('active');
       btnT.classList.add('shift-manual-blocked');
       btnT.classList.toggle('unselected', Boolean(selectedBlock));
-      badgeT.className = 'block-badge blocked';
-      badgeT.textContent = 'Bloqueado / No disponible (0 cupos)';
+      badgeT.className = 'block-badge blocked occ';
+      badgeT.textContent = 'Agotado (0 cupos)';
       reasonT.style.display = 'block';
-      reasonT.textContent = '🔒 Horario reservado';
+      reasonT.textContent = '🔒 Sin cupos disponibles en este turno';
     } else {
       btnT.classList.remove('shift-manual-blocked');
       btnT.disabled = !okT;
@@ -5071,10 +5071,10 @@ function updateSlots(keepCurrentTime = true){
         btnN.classList.remove('active');
         btnN.classList.add('shift-manual-blocked');
         btnN.classList.toggle('unselected', Boolean(selectedBlock));
-        badgeN.className = 'block-badge blocked';
-        badgeN.textContent = 'Bloqueado / No disponible (0 cupos)';
+        badgeN.className = 'block-badge blocked occ';
+        badgeN.textContent = 'Agotado (0 cupos)';
         reasonN.style.display = 'block';
-        reasonN.textContent = '🔒 Horario reservado';
+        reasonN.textContent = '🔒 Sin cupos disponibles en este turno';
       } else if(!allowsNight){
         // Modalidades 1 y 2: Bloquear Turno Noche para servicios con traslado vehicular
         btnN.classList.remove('shift-manual-blocked');
