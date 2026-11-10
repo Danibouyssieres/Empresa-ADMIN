@@ -78,19 +78,20 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
   * +1 hora 30 min extra: +\$22.500
   * +2 horas extras: +\$30.000 (Tope máximo)
 * **Regla Tarifaria Especial:** Precios planos cerrados que absorben horario hábil, tarde, festivos y nocturno sin recargos adicionales.
-* **Arquitectura de Jornada Exclusiva de Eventos: Regla Única (1 Evento por Día):**
-  * **Eliminación de Selectores de Turno Rígido:** La Modalidad 4 opera bajo el modelo de Jornada Exclusiva Única (1 servicio al día). Los tres selectores tradicionales (Mañana, Tarde, Noche) quedan inhabilitados/ocultos y se reemplazan por una única tarjeta informativa: *"Jornada Exclusiva de Eventos (Cobertura Dedicada - 1 servicio al día)"*.
-  * **Ventana Horaria Habilitada para Inicio:** Selección libre en desplegable entre las **08:00 AM y las 21:30 hrs** (a intervalos de 15 minutos).
-  * **Regla Única del Motor de Validación (Semáforo Operativo):**
-    * Se eliminan todos los chequeos cruzados de turnos parciales (12:00 o 20:00 hrs).
-    * Si la hora proyectada de término (en D.1) o retorno al domicilio (en D.2) es **menor o igual a las 04:30 AM** (1710 min), la solicitud se aprueba automáticamente (**Semáforo Verde**).
-    * Si la hora estimada de término supera las **04:30 AM**, el semáforo cambia a **Rojo**, inhabilitando el botón de reserva y derivando a coordinación manual por WhatsApp.
+* **Arquitectura de Jornada Exclusiva de Eventos: Regla Definitiva (1 Evento por Día):**
+  * **Selectores de Turno como Filtro de Inicio:** Se mantienen plenamente visibles y operativos los 3 selectores de turno (Turno Mañana, Turno Tarde y Turno Noche). El turno seleccionado opera exclusivamente como filtro de las opciones desplegables de hora de inicio (Mañana: 06:00 a 12:00, Tarde: 14:00 a 20:00, Noche: 22:00 a 04:00).
+  * **Regla Maestra del Validador (Semáforo Operativo):**
+    * Se anula en Modalidad 4 toda comparación contra la hora de cierre del turno seleccionado (se elimina el tope nominal de las 12:00 o 20:00 hrs que generaba alertas rojas artificiales).
+    * La única condición de validación para aprobar o rechazar la reserva es la hora estimada de término o retorno al domicilio:
+      a) **Término igual o anterior a las 04:00 AM:** **Semáforo VERDE** (Reserva aprobada).
+      b) **Término entre las 04:01 AM y las 04:30 AM:** **Semáforo AMARILLO** (Alerta preventiva de horario límite, permite reservar).
+      c) **Término posterior a las 04:30 AM:** **Semáforo ROJO** (Bloqueo por seguridad y descanso; deriva a WhatsApp).
   * **Matriz Atómica de Bloqueos en Base de Datos (Supabase / Almacén Local):**
-    * **Bloqueo del Día del Evento (D):** Al ingresar una reserva de Modalidad 4, se bloquea el **DÍA COMPLETO** (`full`: consume los 2 cupos diarios y cierra mañana, tarde y noche).
-    * **Regla de Descanso Obligatorio Post-Nocturno (D+1):**
-      - Si la hora calculada de término/retorno es **posterior a las 21:00 hrs** (> 1260 min): el sistema inserta automáticamente en la tabla `bloqueos` el **Turno Mañana** del día siguiente (`manana`: fecha D+1) por concepto legal de descanso biológico obligatorio.
-      - Si la hora de término/retorno es **menor o igual a las 21:00 hrs** ($\le$ 1260 min): el día D+1 queda **LIBRE** y habilitado para reservas normales.
-    * **Protección Backend:** La API aborta con error HTTP 409 Conflict si el día D ya tiene cualquier reserva activa, o si el evento finaliza después de las 21:00 hrs y el día D+1 ya cuenta con reservas matutinas.
+    * **Bloqueo del Día del Evento (D):** Al confirmarse una reserva de Modalidad 4 (independientemente del turno que haya seleccionado el usuario para iniciar), se bloquea el **DÍA COMPLETO** (`full`: consume la capacidad total de la jornada; no permite agendar otros turnos ese día).
+    * **Regla de Descanso Biológico y Seguridad Vial (D+1):**
+      - Si la hora final de término/retorno **supera las 22:00 hrs** (o concluye de madrugada): Bloquear **OBLIGATORIAMENTE** el **Turno Mañana** del día siguiente (`manana`: fecha D+1) por descanso biológico y seguridad vial.
+      - Si la hora final de término/retorno es **a las 22:00 hrs o antes:** El día siguiente (D+1) queda **completamente LIBRE** en todos sus turnos.
+    * **Protección Backend:** La API aborta con error HTTP 409 Conflict si el día D ya tiene cualquier reserva activa, o si el evento finaliza después de las 22:00 hrs y el día D+1 ya cuenta con reservas matutinas.
   * **Redacción y Mensajería según Sub-Modalidad:**
     * **Modalidad 4.1 (En Recinto - Sin Traslado):** Emplea *"Llegada al recinto / Inicio: [hora] — Término aprox: [hora]"*, omitiendo kilometraje y alertas de estiba vehicular.
     * **Modalidad 4.2 (Con Traslado Puerta a Puerta):** Mantiene *"Recogida en domicilio: [hora] — Retorno aprox: [hora]"*, incluyendo el cálculo de ruta de ida y vuelta.
@@ -222,7 +223,10 @@ El sistema cuenta con una función maestra de cálculo (`evaluarSemaforoTurno` y
 * **Turno Mañana:** 12:00 hrs.
 * **Turno Tarde:** 20:00 hrs.
 * **Turno Noche:** 04:00 hrs.
-* **Modalidad 4 (Eventos Sociales - Jornada Exclusiva Única D.1 y D.2):** Sin control de corte contra turnos nominales. Regla única de aprobación automática (**Semáforo Verde**) hasta las **04:30 AM** (1710 min). Solo conmuta a **Rojo** si el retorno calculado sobrepasa las 04:30 AM.
+* **Modalidad 4 (Eventos Sociales - Jornada Exclusiva con Filtro de Turno):** Sin control de corte contra los turnos nominales de inicio (12:00 o 20:00 hrs). Validación regida exclusivamente por la hora final de término/retorno:
+  - Término $\le$ 04:00 AM (1680 min): **Semáforo VERDE** (Reserva aprobada).
+  - Término entre 04:01 AM y 04:30 AM (1710 min): **Semáforo AMARILLO** (Alerta preventiva de horario límite, permite reservar).
+  - Término posterior a 04:30 AM: **Semáforo ROJO** (Bloqueo por seguridad y descanso; deriva a WhatsApp).
 
 #### 2. Comportamiento según el Estado del Semáforo:
 * **A) ESTADO VERDE (Dentro del horario nominal):**

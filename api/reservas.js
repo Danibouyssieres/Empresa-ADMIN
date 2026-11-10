@@ -201,19 +201,10 @@ export default async function handler(req) {
       const startMinVal = Number(body.start || body.start_min || 600);
 
       if (mode === '4') {
-        // 1. Horarios válidos de inicio: libre selección entre 08:00 y 21:30 hrs
-        if (startMinVal < 480 || startMinVal > 1290) {
-          return new Response(
-            JSON.stringify({
-              ok: false,
-              error: 'Horario fuera de rango: los servicios de eventos pueden iniciarse entre 08:00 y 21:30 hrs.',
-              code: 'EVENT_START_OUT_OF_RANGE'
-            }),
-            { status: 400, headers: corsHeaders }
-          );
-        }
-
-        // 2. Regla Maestra: Hora proyectada de término <= 04:30 AM (1710 min)
+        // 1. Regla Maestra Semáforo:
+        // a) Término <= 04:00 AM (1680 min) -> Semáforo VERDE (aprobada)
+        // b) Término entre 04:01 y 04:30 AM (1710 min) -> Semáforo AMARILLO (alerta preventiva, permite reservar)
+        // c) Término posterior a 04:30 AM -> Semáforo ROJO (bloqueo por seguridad y descanso; deriva a WhatsApp)
         let totalSpan = reqDurVal || 240;
         let effEndEvent = startMinVal + totalSpan;
         if (effEndEvent < 12 * 60) effEndEvent += 24 * 60;
@@ -229,7 +220,7 @@ export default async function handler(req) {
           );
         }
 
-        // 3. Validar conflicto en agenda:
+        // 2. Validar conflicto en agenda:
         // Jornada Exclusiva Única (1 evento por día): Día D debe estar completamente libre
         const memConflictDay = edgeReservasStore.some(r => {
           const rDate = String(r.date || r.fecha || '');
@@ -248,8 +239,8 @@ export default async function handler(req) {
           );
         }
 
-        // 4. Si la atención finaliza posterior a las 21:00 hrs, el día D+1 requiere Turno Mañana libre (descanso obligatorio)
-        if (effEndEvent > 21 * 60) {
+        // 3. Si la atención finaliza posterior a las 22:00 hrs (> 1320 min), el día D+1 requiere Turno Mañana libre (descanso obligatorio)
+        if (effEndEvent > 22 * 60) {
           const nextDate = getNextDay(date);
           const memConflictNextMorning = edgeReservasStore.some(r => {
             const rDate = String(r.date || r.fecha || '');
@@ -264,7 +255,7 @@ export default async function handler(req) {
             return new Response(
               JSON.stringify({
                 ok: false,
-                error: 'Conflicto de descanso operativo con turno siguiente: el evento finaliza después de las 21:00 hrs y existe una atención agendada en Turno Mañana el día siguiente.',
+                error: 'Conflicto de descanso operativo con turno siguiente: el evento finaliza después de las 22:00 hrs y existe una atención agendada en Turno Mañana el día siguiente.',
                 code: 'CONFLICT_NEXT_MORNING_REST',
                 conflictingDate: nextDate
               }),
@@ -523,17 +514,17 @@ export default async function handler(req) {
               created_at: new Date().toISOString(),
             });
 
-            // B) Si la hora calculada de término/retorno es posterior a las 21:00 hrs:
-            // Insertar bloqueo de Turno Mañana en D+1 por descanso obligatorio
+            // B) Si la hora final de término/retorno supera las 22:00 hrs (o concluye de madrugada):
+            // Bloquear OBLIGATORIAMENTE el Turno Mañana del día siguiente (D+1) por descanso biológico y seguridad vial
             let totalSpan = reqDurVal || 240;
             let effEndEvent = startMinVal + totalSpan;
             if (effEndEvent < 12 * 60) effEndEvent += 24 * 60;
-            if (effEndEvent > 21 * 60) {
+            if (effEndEvent > 22 * 60) {
               const nextDate = getNextDay(date);
               blocksToInsert.push({
                 date: nextDate,
                 type: 'manana',
-                reason: 'Descanso obligatorio post-evento nocturno #' + folio,
+                reason: 'Descanso biológico obligatorio post-evento nocturno #' + folio,
                 tid: 'all',
                 status: 'temporal_120m',
                 reserva_id: folio,

@@ -3321,33 +3321,33 @@ function calcAdminQuote(){
     }
     qState.eventExtraMin = extraCfg.min;
 
-    // Validación de horario de inicio y término para Modalidad 4: Jornada Exclusiva Única (08:00 a 21:30 hrs)
+    // Validación de horario de inicio y término para Modalidad 4: Jornada Exclusiva Única (1 servicio al día)
     const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
     const startMin = tm(timeVal);
     const helperEl = $('#lbl_aq_time_helper');
     let effEnd = startMin + qState.durationMin;
     if(effEnd < 720) effEnd += 1440;
 
-    if(startMin < 480 || startMin > 1290){
+    if(effEnd > 1710){
       if(helperEl){
         helperEl.style.display = 'block';
-        helperEl.innerHTML = `⚠️ <b>Horario fuera de rango:</b> Las reservas de eventos solo pueden iniciarse entre 08:00 y 21:30 hrs.`;
+        helperEl.innerHTML = `🛑 <b>Tope nocturno excedido (Semáforo ROJO):</b> Término/retorno proyectado a las <b>${fm(effEnd % 1440)} hrs</b> supera las 04:30 AM (límite máximo permitido).`;
         helperEl.style.color = '#dc2626';
       }
-    } else if(effEnd > 1710){
+    } else if(effEnd > 1680){
       if(helperEl){
         helperEl.style.display = 'block';
-        helperEl.innerHTML = `🛑 <b>Tope nocturno excedido:</b> Término/retorno proyectado a las <b>${fm(effEnd % 1440)} hrs</b> supera las 04:30 AM (límite máximo permitido).`;
-        helperEl.style.color = '#dc2626';
+        helperEl.innerHTML = `⚠️ <b>Margen límite extendido (Semáforo AMARILLO):</b> Término proyectado a las <b>${fm(effEnd % 1440)} hrs</b> (entre 04:01 y 04:30 AM). Atención con cierre al límite.`;
+        helperEl.style.color = '#d97706';
       }
     } else {
       if(helperEl){
         helperEl.style.display = 'block';
-        const isPast21 = (effEnd > 1260);
+        const isPast22 = (effEnd > 1320);
         helperEl.innerHTML = subtype === 'con_traslado'
-          ? `🚗 Recogida en domicilio: <b>${timeVal} hrs</b> → Retorno aprox: <b>${fm(effEnd % 1440)} hrs</b> (${fmtHoursClean(qState.durationMin)} totales)${isPast21 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-21:00 hrs: bloqueará Turno Mañana de D+1 por descanso obligatorio</span>' : ' · <span style="color:#059669;font-weight:700">Día D+1 habilitado para reservas normales</span>'}`
-          : `🩺 Llegada al recinto / Inicio: <b>${timeVal} hrs</b> → Término aprox: <b>${fm(effEnd % 1440)} hrs</b> (${fmtHoursClean(qState.durationMin)} en recinto)${isPast21 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-21:00 hrs: bloqueará Turno Mañana de D+1 por descanso obligatorio</span>' : ' · <span style="color:#059669;font-weight:700">Día D+1 habilitado para reservas normales</span>'}`;
-        helperEl.style.color = isPast21 ? '#b45309' : 'var(--pri)';
+          ? `🚗 Recogida en domicilio: <b>${timeVal} hrs</b> → Retorno aprox: <b>${fm(effEnd % 1440)} hrs</b> (${fmtHoursClean(qState.durationMin)} totales)${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-22:00 hrs: bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ' · <span style="color:#059669;font-weight:700">Finaliza a las 22:00 hrs o antes: Día D+1 completamente LIBRE</span>'}`
+          : `🩺 Llegada al recinto / Inicio: <b>${timeVal} hrs</b> → Término aprox: <b>${fm(effEnd % 1440)} hrs</b> (${fmtHoursClean(qState.durationMin)} en recinto)${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-22:00 hrs: bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ' · <span style="color:#059669;font-weight:700">Finaliza a las 22:00 hrs o antes: Día D+1 completamente LIBRE</span>'}`;
+        helperEl.style.color = isPast22 ? '#b45309' : 'var(--pri)';
       }
     }
 
@@ -3780,12 +3780,12 @@ Quedamos atentos para reservar su cupo exclusivo!`;
   if(qState.mode === '4'){
     let effEnd = startMin + durMin;
     if(effEnd < 720) effEnd += 1440;
-    const isPast21 = (effEnd > 1260);
+    const isPast22 = (effEnd > 1320);
 
     blockType = 'full';
     fullDayVal = true;
     crossShiftVal = false;
-    blocksNextMorningVal = isPast21;
+    blocksNextMorningVal = isPast22;
   } else if(qState.mode === '5'){
     blockType = 'full';
     fullDayVal = true;
@@ -3861,7 +3861,7 @@ Quedamos atentos para reservar su cupo exclusivo!`;
   if(qState.mode === '4'){
     let effEnd = startMin + durMin;
     if(effEnd < 720) effEnd += 1440;
-    const isPast21 = (effEnd > 1260);
+    const isPast22 = (effEnd > 1320);
 
     D.blocks.push({
       id: 'blk_' + cleanFolio,
@@ -3874,7 +3874,7 @@ Quedamos atentos para reservar su cupo exclusivo!`;
       expiresAt: newSvc.expiresAt
     });
 
-    if(isPast21){
+    if(isPast22){
       const nextDate = addDaysYMD(date, 1);
       D.blocks.push({
         id: 'blk_' + cleanFolio + '_m',
@@ -3882,7 +3882,7 @@ Quedamos atentos para reservar su cupo exclusivo!`;
         date: nextDate,
         type: 'manana',
         shift: 'manana',
-        reason: 'Descanso obligatorio post-evento nocturno #' + cleanFolio,
+        reason: 'Descanso biológico obligatorio post-evento nocturno #' + cleanFolio,
         status: 'temporal_60m',
         expiresAt: newSvc.expiresAt
       });
@@ -4071,12 +4071,8 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   const bookingData = { tid, date, time: bookingTime, start, dur, pat, age, dx, coord, ph, from, to, mob, ayudaTecnica, ayuda_tecnica: ayudaTecnica, req, alergias, medicamentos, compDesc, taxDoc, patologias };
 
-  // Validaciones estrictas de horario para Modalidad 4: Jornada Exclusiva Única (08:00 a 21:30 hrs)
+  // Validaciones de horario para Modalidad 4: Jornada Exclusiva Única (1 evento al día)
   if(qState.mode === '4'){
-    if(start < 480 || start > 1290){
-      if(typeof alert !== 'undefined') alert('⚠️ Las reservas de eventos solo pueden iniciarse entre 08:00 y 21:30 hrs.');
-      return { error: 'Start time out of range' };
-    }
     let effEnd = start + dur;
     if(effEnd < 720) effEnd += 1440;
     if(effEnd > 1710){
@@ -4096,10 +4092,10 @@ function saveAdminBooking(ev, forceConfirm = false){
         if(stLower.includes('cancel') || stLower.includes('expir') || stLower.includes('descart')) return false;
         return true;
       });
-      // Si el evento finaliza posterior a las 21:00 hrs, chequear descanso biológico en Turno Mañana de D+1
+      // Si el evento finaliza posterior a las 22:00 hrs, chequear descanso biológico en Turno Mañana de D+1
       let effEnd = start + dur;
       if(effEnd < 720) effEnd += 1440;
-      if(!conflictSvc && effEnd > 1260){
+      if(!conflictSvc && effEnd > 1320){
         const nextDate = addDaysYMD(date, 1);
         conflictSvc = D.svcs.find(s => {
           if(s.date !== nextDate) return false;
@@ -4198,11 +4194,11 @@ function saveAdminBooking(ev, forceConfirm = false){
   } else if(qState.mode === '4'){
     let effEnd = start + dur;
     if(effEnd < 720) effEnd += 1440;
-    const isPast21 = (effEnd > 1260);
+    const isPast22 = (effEnd > 1320);
 
     newSvc.fullDay = true;
     newSvc.block = 'full';
-    newSvc.blocksNextMorning = isPast21;
+    newSvc.blocksNextMorning = isPast22;
   }
 
   D.svcs.push(newSvc);
@@ -4211,7 +4207,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   if(qState.mode === '4'){
     let effEnd = start + dur;
     if(effEnd < 720) effEnd += 1440;
-    const isPast21 = (effEnd > 1260);
+    const isPast22 = (effEnd > 1320);
 
     D.blocks.push({
       id: 'blk_' + newId,
@@ -4223,7 +4219,7 @@ function saveAdminBooking(ev, forceConfirm = false){
       tid: tid
     });
 
-    if(isPast21){
+    if(isPast22){
       const nextDate = addDaysYMD(date, 1);
       D.blocks.push({
         id: 'blk_' + newId + '_m',
@@ -5622,7 +5618,7 @@ async function executeConfirmDeposit(id){
       const durVal = Number(s.dur || 240);
       let effEnd = startMinVal + durVal;
       if(effEnd < 720) effEnd += 1440;
-      const isPast21 = (effEnd > 1260);
+      const isPast22 = (effEnd > 1320);
 
       MsaBlocksService.saveBlock({
         date: s.date,
@@ -5632,7 +5628,7 @@ async function executeConfirmDeposit(id){
         reservaId: cleanFolio
       }).catch(err => console.warn('Error al persistir bloqueo permanente:', err));
 
-      if(isPast21){
+      if(isPast22){
         const nextDate = addDaysYMD(s.date, 1);
         MsaBlocksService.saveBlock({
           date: nextDate,
