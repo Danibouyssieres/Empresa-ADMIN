@@ -254,6 +254,68 @@ select:disabled,input:disabled{background:var(--mist);opacity:0.65;cursor:not-al
 :root[data-theme="dark"] .callout-box{background:rgba(143,224,192,.06);border-color:rgba(143,224,192,.2);border-left-color:var(--sage)}
 .summary-list{list-style:none;padding:0;margin:16px 0;display:grid;gap:8px}
 .summary-list li{display:flex;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);font-size:.95rem;flex-wrap:wrap;gap:6px}
+.pickup-schedule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;align-items:stretch}
+
+/* =========================================================================
+   REGLAS DE RESPONSIVIDAD Y ADAPTABILIDAD MÓVIL
+   ========================================================================= */
+@media(max-width:860px){
+  .wrap{padding:0 14px}
+  .card{padding:18px 16px;margin:16px 0}
+  .pickup-schedule-grid{grid-template-columns:1fr !important;gap:16px !important}
+  #map{height:280px}
+}
+
+@media(max-width:768px){
+  .wrap{padding:0 12px}
+  .card{padding:16px 12px;margin:14px 0;border-radius:12px}
+  .full-modality-bar{padding:14px 12px}
+  .full-modality-bar select{font-size:.95rem;padding:10px 12px}
+  .pickup-time-box{padding:12px 10px}
+  .grand-total-box{padding:16px 12px}
+  .rate-pill{padding:12px 32px 12px 12px}
+  .rate-pill strong{font-size:.9rem}
+  .rate-pill small{font-size:.76rem}
+  .rate-pill .rp-val{font-size:.9rem}
+  .cal-box{padding:12px 6px;border-radius:12px}
+  .cal-dow{gap:3px;font-size:.68rem;margin-bottom:4px}
+  .cal-grid{gap:3px}
+  .cal-day{min-height:50px;padding:4px 2px;border-radius:8px}
+  .cal-day .cd-num{font-size:.84rem}
+  .cal-day .cd-day-type{font-size:.5rem;padding:0 2px}
+  .cal-day .cd-tag{font-size:.56rem;padding:1px 3px}
+  .cal-legend{gap:6px;font-size:.72rem}
+  .timeline-grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr)) !important;gap:8px !important}
+  .timeline-card{padding:10px !important}
+  .block-btn{padding:10px 12px;border-radius:10px}
+  .block-btn-title{font-size:.92rem}
+  .grid{grid-template-columns:1fr;gap:12px}
+  .rqs{grid-template-columns:1fr;gap:8px}
+}
+
+@media(max-width:480px){
+  header .wrap{min-height:auto;padding:8px 12px;gap:8px}
+  .logo img{max-height:46px}
+  .logo span{font-size:.9rem}
+  nav{width:100%;justify-content:space-between;gap:6px}
+  nav .btn.sm{padding:6px 10px;font-size:.78rem;flex:1;text-align:center}
+  h1{font-size:1.4rem}
+  h2{font-size:1.18rem}
+  #map{height:240px}
+  .map-tools{gap:6px}
+  .map-btn{min-width:95px;padding:6px 8px;font-size:.78rem}
+  .cal-box{padding:8px 3px}
+  .cal-dow{gap:2px;font-size:.62rem}
+  .cal-grid{gap:2px}
+  .cal-day{min-height:46px;padding:3px 1px}
+  .cal-day .cd-num{font-size:.78rem}
+  .cal-day .cd-day-type{display:none}
+  .cal-day .cd-tag{font-size:.52rem;padding:1px 2px}
+  .abono-highlight{padding:14px}
+  .abono-highlight .ab-val{font-size:1.9rem}
+  .btn{padding:11px 18px;font-size:.92rem}
+}
+
 footer{background:#0A363F;color:#c9dcd8;font-size:.9rem;padding:28px 0;margin-top:40px;text-align:center}
 footer a{color:#fff}
 </style>
@@ -627,7 +689,7 @@ footer a{color:#fff}
            SECCIÓN 2: HORARIO DE RECOGIDA Y DURACIÓN EN DOS COLUMNAS PARALELAS
            ========================================================================= -->
       <div id="pickupScheduleSection" class="pickup-time-box" style="margin-top:22px">
-        <div id="pickupScheduleGrid" class="modality-reverse-cols" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:stretch">
+        <div id="pickupScheduleGrid" class="modality-reverse-cols pickup-schedule-grid">
           
           <!-- COLUMNA 1 (IZQUIERDA EN TRASLADOS / DERECHA EN CUIDADOS Y EVENTOS) -->
           <div id="colAsistentePickup" style="padding:18px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
