@@ -387,6 +387,10 @@ Al conmutar a *Factura*, el sistema activa y exige como obligatorios:
 3. **Giro Comercial**.
 4. **Dirección Tributaria / Comuna**.
 
+> [!NOTE]
+> **Traspaso a Cierre Operativo y PDF:**
+> Estos cuatro campos tributarios se traspasan íntegramente a la reserva interna y se presentan de forma destacada tanto en la tarjeta de bandeja como en el modal de liquidación en terreno y en la sección "Contratante / Receptor Factura" del comprobante PDF (`Comprobante_Atencion`), permitiendo su consulta inmediata al emitir la factura en el portal del SII.
+
 ---
 
 ## 10. Validaciones de Formulario y Despacho a WhatsApp
@@ -446,23 +450,23 @@ Diseñada con estética clínica y corporativa formal para reembolsos ante Isapr
    * R.U.T.: **78.521.776-4**.
    * Canales de contacto oficiales y Región Metropolitana.
    * Recuadro de identificación: N° de Folio (`#MSA-[id]`) y Fecha de emisión.
-2. **Identificación del Paciente y Servicio:**
-   * Nombre completo y RUT del paciente.
-   * Edad y diagnóstico / motivo de la atención.
-   * Modalidad contratada.
-   * Fecha y horario pactado (inicio a término proyectado).
-   * Dirección de origen y dirección de destino.
-   * Hora real de cierre del servicio y glosa de tiempo excedente en caso de retraso.
+2. **Identificación del Paciente, Contratante y TENS:**
+   * Nombre completo y RUT del paciente, edad y diagnóstico.
+   * **Sección Contratante / Receptor Tributario Dinámica:**
+     * *Si el servicio es Boleta Exenta:* Muestra Nombre del Contratante, RUT y Teléfono.
+     * *Si el servicio es Factura Electrónica Exenta:* Muestra Razón Social, RUT Empresa, Giro Comercial, Dirección Tributaria y teléfono de contacto, proveyendo al administrador los datos a la vista para emitir la factura en el portal del SII.
+   * Nombre y RUT de la profesional TENS a cargo.
+   * Modalidad contratada, trayecto y horarios (pactado vs real).
 3. **Tabla de Desglose Económico:**
    * Ítem de Kilometraje asistido (ida y vuelta con kilometraje exacto y subtotal).
    * Ítem de Tiempo de asistencia TENS y permanencia.
    * Ítem de Tarifa mínima comunal aplicada (si corresponde).
    * Ítem destacado de **Tiempo Adicional Excedente en Terreno** (si la hora real superó el horario pactado).
-   * Resumen numérico: **Subtotal del Servicio**, **Abono 50% previo** (pagado para reservar) y **Saldo Final pagado al cierre**.
-4. **Respaldo de Pago y Folio SII:**
+   * Resumen numérico: **Subtotal del Servicio**, **Abono 50% previo** (pagado para reservar), **Ajuste / Descuento Especial** (si aplica) y **Saldo Final pagado al cierre**.
+4. **Respaldo de Pago y Estado:**
    * Registro del medio de pago del saldo (Transferencia Electrónica, Efectivo, Tarjeta Terminal POS).
-   * Número de Boleta Electrónica SII emitida.
-   * Espacio delimitado para **Firma y Recepción Conforme** del paciente o familiar responsable.
+   * Indicador del tipo de documento emitido (*Boleta Electrónica Exenta* o *Factura Electrónica Exenta*).
+   * Estado: **PAGADO Y LIQUIDADO**.
 5. **Nota Legal Tributaria (D.L. 825):**
    * Glosa legal obligatoria: *"Servicios médicos, asistenciales y de enfermería exentos de IVA de conformidad con las disposiciones del D.L. 825 de 1974 (Ley sobre Impuesto a las Ventas y Servicios), Art. 8° y Art. 12° Letra E N° 1. Comprobante válido para reembolsos en Isapres, Seguros Complementarios y registros contables."*
 
@@ -471,9 +475,10 @@ Al presionar el botón *"Finalizar Atención (Emitir Boleta PDF)"*:
 1. Se despliega una ventana modal con los datos precargados del servicio.
 2. Solicita al personal confirmar o editar:
    * **Hora Real de Cierre del Servicio:** Se compara automáticamente contra la hora pactada de término (`start + dur`).
-   * **RUT del Paciente:** Para la emisión correcta de la boleta.
-   * **Medio de Pago del Saldo Final:** Efectivo, Transferencia o Tarjeta POS.
-   * **N° de Boleta Electrónica SII:** Folio emitido ante el Servicio de Impuestos Internos.
+   * **Documento Tributario (Conmutador Boleta / Factura):**
+     * Si es *Boleta*: Solicita el RUT del Paciente.
+     * Si es *Factura*: Despliega y precarga Razón Social, RUT Empresa, Giro Comercial y Dirección Tributaria, permitiendo ajustes rápidos en terreno.
+   * **Medio de Pago del Saldo Final:** Efectivo, Transferencia o Tarjeta POS (las boletas y facturas se emiten de forma diferida en el portal del SII).
 3. **Recálculo Dinámico de Tiempo Excedente:**
    * Si la hora de cierre es posterior a la hora pactada, se calculan los minutos de diferencia y se convierten en bloques de 30 minutos:
      $\text{Bloques Extra} = \left\lceil \frac{\text{Minutos Desfase}}{30} \right\rceil$

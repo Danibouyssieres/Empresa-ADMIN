@@ -210,7 +210,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     </div>
     <!-- COLUMNA DERECHA: RECUADRO VERDE ALINEADO ABAJO CERCA DE LA LÍNEA SEPARADORA -->
     <div style="border:1.5px solid #0f766e;border-radius:6px;padding:8px 14px;text-align:center;min-width:220px;background:#f8fafc;box-sizing:border-box;margin:0;align-self:flex-end">
-      <div style="font-size:8.5pt;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.02em;line-height:1.2;margin:0">COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN</div>
+      <div style="font-size:8.5pt;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:.02em;line-height:1.2;margin:0" id="pdfDocTipoHeader">COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN</div>
       <div style="font-size:12pt;font-weight:800;color:#0f766e;margin:3px 0" id="pdfFolio">FOLIO: #MSA-001</div>
       <div style="font-size:9pt;color:#475569;margin:0" id="pdfFechaEmision">Fecha Emisión: 07/11/2026</div>
     </div>
@@ -228,8 +228,8 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
         <div><b>RUT:</b> <span id="pdfPatRut">12.345.678-9</span></div>
         <div><b>Edad:</b> <span id="pdfPatEdad">82 años</span> &nbsp;|&nbsp; <b>Motivo/Dx:</b> <span id="pdfPatDx">Control cardiológico</span></div>
       </div>
-      <div>
-        <div style="color:#0f766e;font-size:8.5pt;text-transform:uppercase;font-weight:800;margin-bottom:2px">Contratante / Responsable</div>
+      <div id="pdfColContratante">
+        <div id="pdfCoordHeader" style="color:#0f766e;font-size:8.5pt;text-transform:uppercase;font-weight:800;margin-bottom:2px">Contratante / Responsable</div>
         <div><b>Nombre:</b> <span id="pdfCoordNombre">Andrea Medina</span></div>
         <div><b>RUT:</b> <span id="pdfCoordRut">15.987.654-3</span></div>
         <div><b>Teléfono:</b> <span id="pdfCoordTel">+56 9 7777 8888</span></div>
@@ -298,7 +298,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 
   <!-- LÍNEA COMPACTA DE ESTADO Y LIQUIDACIÓN -->
   <div style="margin-top:10px;padding:8px 12px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;font-size:11pt;text-align:center;box-sizing:border-box;width:100%">
-    <b>ESTADO:</b> <span style="color:#15803d;font-weight:800;letter-spacing:.02em">PAGADO Y LIQUIDADO</span>
+    <b>ESTADO:</b> <span style="color:#15803d;font-weight:800;letter-spacing:.02em">PAGADO Y LIQUIDADO</span> &nbsp;|&nbsp; <b>DOCUMENTO:</b> <span id="pdfDocTributarioBadge" style="font-weight:700;color:#0f766e">Boleta Electrónica Exenta</span>
   </div>
 </div>
 
@@ -409,7 +409,8 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
       <button type="button" onclick="cerrarModalFinalizarAtencionAdmin()" style="background:transparent;border:0;font-size:1.2rem;cursor:pointer;color:var(--mut)">✕</button>
     </div>
 
-    <div id="adm_co_service_summary" style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;line-height:1.45"></div>
+    <div id="adm_co_service_summary" style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:8px;line-height:1.45"></div>
+    <div id="adm_co_tax_info" style="margin-bottom:12px"></div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:10px;font-size:12.5px;margin-bottom:10px">
       <div>
@@ -464,10 +465,54 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
       <div id="adm_co_floor_note" style="display:none;font-size:11px;color:#0f766e;margin-top:4px;font-weight:600"></div>
     </div>
 
-    <!-- DATOS COMPLEMENTARIOS PARA LA BOLETA -->
-    <div style="margin-bottom:14px;font-size:13px">
-      <label for="adm_rutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Boleta) *</label>
-      <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)" maxlength="12" autocomplete="off" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)">
+    <!-- DATOS COMPLEMENTARIOS Y TRIBUTARIOS (BOLETA O FACTURA) -->
+    <div id="adm_co_tax_container" style="margin-bottom:14px;font-size:13px;border-top:1px dashed var(--bd);padding-top:10px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;flex-wrap:wrap">
+        <label style="font-weight:700;font-size:12px;color:var(--pri)">Documento Tributario:</label>
+        <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+          <input type="radio" name="adm_liq_tax_type" value="boleta" onchange="toggleModalLiqTaxDoc(this.value)">
+          Boleta Exenta
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+          <input type="radio" name="adm_liq_tax_type" value="factura" onchange="toggleModalLiqTaxDoc(this.value)">
+          <b>Factura Electrónica Exenta</b>
+        </label>
+      </div>
+
+      <!-- CAMPOS BOLETA: RUT DEL PACIENTE -->
+      <div id="adm_wrap_liq_boleta">
+        <label for="adm_rutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Boleta) *</label>
+        <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);box-sizing:border-box" maxlength="12" autocomplete="off" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)">
+      </div>
+
+      <!-- CAMPOS FACTURA: RAZÓN SOCIAL, RUT EMPRESA, GIRO Y DIRECCIÓN -->
+      <div id="adm_wrap_liq_factura" style="display:none;background:#f0fdf4;border:1.5px solid #10b981;border-radius:8px;padding:12px;box-sizing:border-box">
+        <div style="font-weight:800;color:#065f46;font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <span>🏛️</span> Antecedentes Receptor Factura Electrónica Exenta (SII):
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px">
+          <div>
+            <label for="adm_liq_tax_rs" style="font-weight:700;font-size:11.5px;display:block;margin-bottom:3px;color:#065f46">Razón Social / Empresa *</label>
+            <input type="text" id="adm_liq_tax_rs" placeholder="Ej: Fundación Vida Sana SpA" style="width:100%;padding:7px 9px;font-size:12px;border-radius:6px;border:1px solid #86efac;background:#fff;box-sizing:border-box">
+          </div>
+          <div>
+            <label for="adm_liq_tax_rut" style="font-weight:700;font-size:11.5px;display:block;margin-bottom:3px;color:#065f46">RUT Empresa *</label>
+            <input type="text" id="adm_liq_tax_rut" placeholder="Ej: 76.543.210-K" maxlength="12" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)" style="width:100%;padding:7px 9px;font-size:12px;border-radius:6px;border:1px solid #86efac;background:#fff;box-sizing:border-box">
+          </div>
+          <div>
+            <label for="adm_liq_tax_giro" style="font-weight:700;font-size:11.5px;display:block;margin-bottom:3px;color:#065f46">Giro Comercial *</label>
+            <input type="text" id="adm_liq_tax_giro" placeholder="Ej: Servicios Médicos / Hogar" style="width:100%;padding:7px 9px;font-size:12px;border-radius:6px;border:1px solid #86efac;background:#fff;box-sizing:border-box">
+          </div>
+          <div>
+            <label for="adm_liq_tax_dir" style="font-weight:700;font-size:11.5px;display:block;margin-bottom:3px;color:#065f46">Dirección Tributaria *</label>
+            <input type="text" id="adm_liq_tax_dir" placeholder="Ej: Av. Providencia 1234, Of 501" style="width:100%;padding:7px 9px;font-size:12px;border-radius:6px;border:1px solid #86efac;background:#fff;box-sizing:border-box">
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <label for="adm_rutPaciente_factura" style="font-weight:600;font-size:11.5px;display:block;margin-bottom:3px;color:#475569">RUT Paciente Atendido (opcional / ficha médica):</label>
+          <input type="text" id="adm_rutPaciente_factura" placeholder="Ej: 12.345.678-9" maxlength="12" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)" style="width:100%;padding:6px 9px;font-size:12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;box-sizing:border-box">
+        </div>
+      </div>
     </div>
 
     <div id="adm_co_payment_sent_alert" style="display:none;background:#ecfdf5;border:1.5px solid #10b981;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#065f46;margin-bottom:14px;line-height:1.45"></div>
@@ -1451,6 +1496,19 @@ async function syncCentralizedBlocksAdmin(){
               }
               return;
             }
+            let parsedTaxDoc = null;
+            if(r.taxDoc && typeof r.taxDoc === 'object'){
+              parsedTaxDoc = r.taxDoc;
+            } else if(r.tax_doc){
+              if(typeof r.tax_doc === 'object'){
+                parsedTaxDoc = r.tax_doc;
+              } else if(typeof r.tax_doc === 'string' && r.tax_doc.trim().startsWith('{')){
+                try { parsedTaxDoc = JSON.parse(r.tax_doc); } catch(e){}
+              } else if(r.tax_doc === 'factura'){
+                parsedTaxDoc = { type: 'factura', label: 'Factura Electrónica Exenta' };
+              }
+            }
+
             if(!exists){
               D.svcs.push({
                 id: canonicalFolio,
@@ -1482,9 +1540,11 @@ async function syncCentralizedBlocksAdmin(){
                 svcType: r.svc_type || r.modalidad || '1',
                 block: r.block || r.turno || 'manana',
                 createdAt: r.created_at || new Date().toISOString(),
-                expiresAt: r.expires_at || ''
+                expiresAt: r.expires_at || '',
+                taxDoc: parsedTaxDoc
               });
             } else {
+              if(!exists.taxDoc && parsedTaxDoc) exists.taxDoc = parsedTaxDoc;
               if((r.st || r.estado) && exists.st !== (r.st || r.estado)){
                 if((exists.st === 'Cancelado' || exists.st === 'expirada_cancelada') && (r.st === 'pendiente_abono' || r.st === 'Pre-reserva pendiente')){
                   // Preservar estado cancelado para evitar bucles de expiración
@@ -4693,6 +4753,48 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   };
 }
 
+function getServiceTaxDoc(s){
+  if(!s) return { type: 'boleta', label: 'Boleta Electrónica Exenta' };
+  let tax = s.taxDoc || s.tax_doc;
+  if(typeof tax === 'string'){
+    if(tax.trim().startsWith('{')){
+      try { tax = JSON.parse(tax); } catch(e){}
+    } else if(tax === 'factura'){
+      tax = { type: 'factura', label: 'Factura Electrónica Exenta' };
+    } else if(tax === 'boleta'){
+      tax = { type: 'boleta', label: 'Boleta Electrónica Exenta' };
+    }
+  }
+  if(!tax || typeof tax !== 'object'){
+    tax = { type: 'boleta', label: 'Boleta Electrónica Exenta' };
+  }
+  const isFactura = tax.type === 'factura' || tax.tipo === 'factura' || !!(tax.razonSocial || tax.rut || s.taxRS || s.taxRUT);
+  if(isFactura){
+    return {
+      type: 'factura',
+      label: 'Factura Electrónica Exenta',
+      razonSocial: tax.razonSocial || tax.razon_social || s.taxRS || s.razonSocial || '',
+      rut: tax.rut || tax.rut_empresa || s.taxRUT || s.rutEmpresa || '',
+      giro: tax.giro || tax.giro_comercial || s.taxGiro || s.giro || '',
+      direccion: tax.direccion || tax.direccion_tributaria || s.taxDir || s.direccionTributaria || ''
+    };
+  }
+  return {
+    type: 'boleta',
+    label: 'Boleta Electrónica Exenta'
+  };
+}
+window.getServiceTaxDoc = getServiceTaxDoc;
+
+function toggleModalLiqTaxDoc(val){
+  const isFactura = val === 'factura';
+  const wrapBoleta = $('#adm_wrap_liq_boleta');
+  const wrapFactura = $('#adm_wrap_liq_factura');
+  if(wrapBoleta) wrapBoleta.style.display = isFactura ? 'none' : 'block';
+  if(wrapFactura) wrapFactura.style.display = isFactura ? 'block' : 'none';
+}
+window.toggleModalLiqTaxDoc = toggleModalLiqTaxDoc;
+
 function renderFieldCheckoutSummary(s){
   const sumEl = $('#adm_co_service_summary');
   if(!sumEl) return;
@@ -4717,11 +4819,26 @@ function renderFieldCheckoutSummary(s){
 
   const taxEl = $('#adm_co_tax_info');
   if(taxEl){
-    const tax = s.taxDoc || { type: 'boleta', label: 'Boleta Electrónica Exenta' };
+    const tax = getServiceTaxDoc(s);
     if(tax.type === 'factura'){
-      taxEl.innerHTML = `📄 <b>Factura Electrónica Exenta</b> · ${e(tax.razonSocial || 'Empresa')} · RUT: ${e(tax.rut || 'No registra')} · Giro: ${e(tax.giro || 'Salud')}`;
+      taxEl.innerHTML = `
+        <div style="background:#ecfdf5;border:1.5px solid #10b981;border-radius:6px;padding:8px 10px;color:#065f46">
+          <div style="font-weight:800;display:flex;align-items:center;gap:6px">
+            <span>📄</span> FACTURA ELECTRÓNICA EXENTA (SII)
+          </div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.4">
+            • <b>Razón Social:</b> ${e(tax.razonSocial || 'Empresa')}<br>
+            • <b>RUT Empresa:</b> ${e(tax.rut || 'No registra')} &nbsp;|&nbsp; <b>Giro:</b> ${e(tax.giro || 'Salud')}<br>
+            • <b>Dirección Tributaria:</b> ${e(tax.direccion || 'No registra')}
+          </div>
+        </div>
+      `;
     } else {
-      taxEl.innerHTML = '📄 <b>Boleta Electrónica Exenta</b> (Consumidor final / Reembolsos de salud)';
+      taxEl.innerHTML = `
+        <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;color:#475569;font-size:11.5px">
+          📄 <b>Boleta Electrónica Exenta</b> (Consumidor final / Reembolsos de salud)
+        </div>
+      `;
     }
   }
 }
@@ -4820,10 +4937,18 @@ function solicitarPagoWhatsAppAdmin(){
     ? `\n• Descuento / Ajuste aplicado: -${$c(calc.descuentoManual)}`
     : '';
 
+  const tax = getServiceTaxDoc(s);
+  const isInvoice = (document.querySelector('input[name="adm_liq_tax_type"]:checked') && document.querySelector('input[name="adm_liq_tax_type"]:checked').value === 'factura') || (tax.type === 'factura');
+  const taxRsVal = ($('#adm_liq_tax_rs') && $('#adm_liq_tax_rs').value.trim()) || tax.razonSocial || '';
+  const taxRutVal = ($('#adm_liq_tax_rut') && $('#adm_liq_tax_rut').value.trim()) || tax.rut || '';
+  const taxDocTxt = isInvoice
+    ? `\n📄 *DOCUMENTO TRIBUTARIO: Factura Electrónica Exenta*\n• Razón Social: ${taxRsVal || 'Empresa'}\n• RUT Empresa: ${taxRutVal || 'No registra'}\n`
+    : `\n📄 *DOCUMENTO TRIBUTARIO: Boleta Electrónica Exenta*\n`;
+
   const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA.
 
 Hemos finalizado exitosamente el servicio de atención y traslado de ${patName} (Folio #${cleanFolio}).
-
+${taxDocTxt}
 💰 *DETALLE DE SALDO A LIQUIDAR:*
 • Subtotal Servicio: ${$c(calc.subtotalServicio)}${extraTxt}
 • Estacionamiento / Parking: ${$c(calc.parking)}
@@ -4889,7 +5014,26 @@ function abrirModalFinalizarAtencionAdmin(svcId, options){
   if($('#adm_descuento_ajuste')) $('#adm_descuento_ajuste').value = (options && options.descuento !== undefined) ? options.descuento : (s.descuentoManual || 0);
 
   if($('#adm_co_payment_sent_alert')) $('#adm_co_payment_sent_alert').style.display = 'none';
-  if($('#adm_rutPaciente')) $('#adm_rutPaciente').value = (options && options.rutPaciente) || s.patRut || '12.345.678-9';
+
+  const tax = getServiceTaxDoc(s);
+  const isFactura = tax.type === 'factura';
+
+  const radioBoleta = document.querySelector('input[name="adm_liq_tax_type"][value="boleta"]');
+  const radioFactura = document.querySelector('input[name="adm_liq_tax_type"][value="factura"]');
+  if(isFactura){
+    if(radioFactura) radioFactura.checked = true;
+  } else {
+    if(radioBoleta) radioBoleta.checked = true;
+  }
+  toggleModalLiqTaxDoc(isFactura ? 'factura' : 'boleta');
+
+  if($('#adm_liq_tax_rs')) $('#adm_liq_tax_rs').value = (options && options.razonSocial) || tax.razonSocial || s.coord || '';
+  if($('#adm_liq_tax_rut')) $('#adm_liq_tax_rut').value = (options && options.rutEmpresa) || tax.rut || s.coordRut || '';
+  if($('#adm_liq_tax_giro')) $('#adm_liq_tax_giro').value = (options && options.giro) || tax.giro || '';
+  if($('#adm_liq_tax_dir')) $('#adm_liq_tax_dir').value = (options && options.direccion) || tax.direccion || '';
+  if($('#adm_rutPaciente_factura')) $('#adm_rutPaciente_factura').value = (options && options.rutPaciente) || s.patRut || '';
+
+  if($('#adm_rutPaciente')) $('#adm_rutPaciente').value = (options && options.rutPaciente) || s.patRut || (isFactura ? '' : '12.345.678-9');
   if($('#adm_medioPago') && options && options.medioPago) $('#adm_medioPago').value = options.medioPago;
 
   renderFieldCheckoutSummary(s);
@@ -4947,9 +5091,40 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, customDescuento);
   currentCheckoutCalc = calc;
 
+  // Determinar documento tributario (Factura vs Boleta)
+  const taxRadio = document.querySelector('input[name="adm_liq_tax_type"]:checked');
+  const prevTax = getServiceTaxDoc(s);
+  const isFactura = (customOpts && customOpts.isFactura !== undefined)
+    ? customOpts.isFactura 
+    : (taxRadio ? (taxRadio.value === 'factura') : (prevTax.type === 'factura'));
+
+  let taxDocData = { type: 'boleta', label: 'Boleta Electrónica Exenta' };
+  if(isFactura){
+    const taxRS = (customOpts && customOpts.razonSocial) || ($('#adm_liq_tax_rs') && $('#adm_liq_tax_rs').value.trim()) || prevTax.razonSocial || s.coord || 'Empresa';
+    const taxRUT = (customOpts && customOpts.rutEmpresa) || ($('#adm_liq_tax_rut') && $('#adm_liq_tax_rut').value.trim()) || prevTax.rut || '';
+    const taxGiro = (customOpts && customOpts.giro) || ($('#adm_liq_tax_giro') && $('#adm_liq_tax_giro').value.trim()) || prevTax.giro || 'Servicios';
+    const taxDir = (customOpts && customOpts.direccion) || ($('#adm_liq_tax_dir') && $('#adm_liq_tax_dir').value.trim()) || prevTax.direccion || '';
+    taxDocData = {
+      type: 'factura',
+      label: 'Factura Electrónica Exenta',
+      razonSocial: taxRS,
+      rut: taxRUT,
+      giro: taxGiro,
+      direccion: taxDir
+    };
+    s.taxDoc = taxDocData;
+  } else {
+    s.taxDoc = taxDocData;
+  }
+
+  const rutPacienteFactura = $('#adm_rutPaciente_factura') ? $('#adm_rutPaciente_factura').value.trim() : '';
+  const finalPatRut = isFactura 
+    ? ((customOpts && customOpts.rutPaciente) || rutPacienteFactura || s.patRut || '12.345.678-9') 
+    : ((customOpts && customOpts.rutPaciente) || rutPaciente || s.patRut || '12.345.678-9');
+
   // Actualizar servicio con liquidación y estado completada
   s.st = 'completada';
-  s.patRut = rutPaciente;
+  s.patRut = finalPatRut;
   s.endedAt = s.endedAt || new Date().toISOString();
   s.completedAt = new Date().toISOString();
   s.endActualTime = horaCierre;
@@ -4985,17 +5160,47 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const abonoPrevio = calc.abono;
   const saldoFinal = calc.saldoFinal;
 
-  // Llenar datos de la boleta PDF
+  // Llenar datos de la boleta / factura PDF
   if($('#pdfFolio')) $('#pdfFolio').textContent = `FOLIO: #${cleanFolio}`;
   if($('#pdfFechaEmision')) $('#pdfFechaEmision').textContent = `Fecha Emisión: ${TODAY}`;
   if($('#pdfPatNombre')) $('#pdfPatNombre').textContent = patName;
-  if($('#pdfPatRut')) $('#pdfPatRut').textContent = rutPaciente;
+  if($('#pdfPatRut')) $('#pdfPatRut').textContent = finalPatRut;
   if($('#pdfPatEdad')) $('#pdfPatEdad').textContent = `${patAge} años`;
   if($('#pdfPatDx')) $('#pdfPatDx').textContent = patDx;
 
-  if($('#pdfCoordNombre')) $('#pdfCoordNombre').textContent = s.coord || patName;
-  if($('#pdfCoordRut')) $('#pdfCoordRut').textContent = s.coordRut || s.rut || 'No registra / Familiar';
-  if($('#pdfCoordTel')) $('#pdfCoordTel').textContent = s.ph || '+56 9 2999 0095';
+  const colContratante = $('#pdfColContratante');
+  if(colContratante){
+    if(isFactura){
+      colContratante.innerHTML = `
+        <div style="color:#0f766e;font-size:8.5pt;text-transform:uppercase;font-weight:800;margin-bottom:2px">Receptor Factura Electrónica</div>
+        <div style="font-size:9.5pt;line-height:1.35"><b>Razón Social:</b> <span>${e(taxDocData.razonSocial || s.coord || 'Empresa')}</span></div>
+        <div style="font-size:9.5pt;line-height:1.35"><b>RUT Empresa:</b> <span>${e(taxDocData.rut || 'No registra')}</span></div>
+        <div style="font-size:9.5pt;line-height:1.35"><b>Giro:</b> <span>${e(taxDocData.giro || 'Servicios')}</span></div>
+        <div style="font-size:9.5pt;line-height:1.35"><b>Dirección Trib.:</b> <span>${e(taxDocData.direccion || 'Santiago')}</span></div>
+        ${s.ph ? `<div style="font-size:9pt;color:#475569;margin-top:2px"><b>Contacto:</b> ${e(s.coord || '')} (${e(s.ph)})</div>` : ''}
+      `;
+    } else {
+      colContratante.innerHTML = `
+        <div style="color:#0f766e;font-size:8.5pt;text-transform:uppercase;font-weight:800;margin-bottom:2px">Contratante / Responsable</div>
+        <div><b>Nombre:</b> <span id="pdfCoordNombre">${e(s.coord || patName)}</span></div>
+        <div><b>RUT:</b> <span id="pdfCoordRut">${e(s.coordRut || s.rut || 'No registra / Familiar')}</span></div>
+        <div><b>Teléfono:</b> <span id="pdfCoordTel">${e(s.ph || '+56 9 2999 0095')}</span></div>
+      `;
+    }
+  } else {
+    if($('#pdfCoordNombre')) $('#pdfCoordNombre').textContent = isFactura ? (taxDocData.razonSocial || s.coord || patName) : (s.coord || patName);
+    if($('#pdfCoordRut')) $('#pdfCoordRut').textContent = isFactura ? (taxDocData.rut || 'No registra') : (s.coordRut || s.rut || 'No registra / Familiar');
+    if($('#pdfCoordTel')) $('#pdfCoordTel').textContent = s.ph || '+56 9 2999 0095';
+  }
+
+  if($('#pdfDocTipoHeader')){
+    $('#pdfDocTipoHeader').textContent = isFactura 
+      ? 'COMPROBANTE DE ATENCIÓN (FACTURA EXENTA)' 
+      : 'COMPROBANTE DE ATENCIÓN Y LIQUIDACIÓN';
+  }
+  if($('#pdfDocTributarioBadge')){
+    $('#pdfDocTributarioBadge').textContent = isFactura ? 'Factura Electrónica Exenta' : 'Boleta Electrónica Exenta';
+  }
 
   const tech = (D.techs && D.techs.find(t => t.id === s.tid)) || (D.techs && D.techs[0]) || { nom: 'Daniela González Bouyssieres', rut: '18.926.396-1', veh: 'Unidad 1 · Clase A2' };
   if($('#pdfTensNombre')) $('#pdfTensNombre').textContent = tech.nom;
@@ -5120,7 +5325,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       saldoPendiente: 0,
       completed_at: s.completedAt,
       parking: calc.parking,
-      obs: s.obs
+      obs: s.obs,
+      tax_doc: isFactura ? JSON.stringify(taxDocData) : 'boleta'
     }).catch(err => console.warn('Error al actualizar liquidación en BD:', err));
   }
 
@@ -5326,6 +5532,15 @@ function renderReservaCard(s){
         <div><b>Destino:</b> ${e(s.to || '—')}</div>
         <div><b>Movilidad:</b> ${e(s.mob || 'Autovalente')}</div>
         <div><b>Ayuda Técnica:</b> <span style="color:var(--pri);font-weight:600">${e(s.ayudaTecnica || s.ayuda_tecnica || 'Ninguna (autovalente / no requiere implementos)')}</span></div>
+        ${(() => {
+          const t = getServiceTaxDoc(s);
+          if (t.type === 'factura') {
+            return `<div style="grid-column:1/-1;background:#ecfdf5;border:1px solid #a7f3d0;padding:5px 9px;border-radius:5px;font-size:11.5px;color:#065f46">
+              📄 <b>Factura Electrónica Exenta:</b> ${e(t.razonSocial || 'Empresa')} · <b>RUT:</b> ${e(t.rut || '—')} · <b>Giro:</b> ${e(t.giro || '—')}
+            </div>`;
+          }
+          return '';
+        })()}
       </div>
 
       ${renderReservaEconBreakdown(s)}
