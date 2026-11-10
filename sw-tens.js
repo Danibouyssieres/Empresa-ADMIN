@@ -1,7 +1,7 @@
 // =========================================================================
-// SERVICE WORKER - APLICACIÓN MÓVIL TENS (OFFLINE-FIRST)
+// SERVICE WORKER - APLICACIÓN MÓVIL TENS (OFFLINE-FIRST + PUSH NOTIFICATIONS)
 // =========================================================================
-const CACHE_NAME = 'msa-tens-v1';
+const CACHE_NAME = 'msa-tens-v2';
 const ASSETS_TO_CACHE = [
   '/tens.html',
   '/manifest-tens.json',
@@ -48,7 +48,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // En segundo plano actualizamos el cache
         fetch(event.request).then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
@@ -57,6 +56,67 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
       return fetch(event.request);
+    })
+  );
+});
+
+// =========================================================================
+// EVENTO PUSH: RECEPCIÓN DE NOTIFICACIONES EN SEGUNDO PLANO
+// =========================================================================
+self.addEventListener('push', (event) => {
+  let data = {
+    title: '🚑 Alerta TENS Terreno',
+    body: 'Tienes una actualización de servicio o tarea pendiente.',
+    icon: '/apple-touch-icon.png',
+    badge: '/favicon-32x32.png',
+    tag: 'tens-alert',
+    url: '/tens.html'
+  };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      data = Object.assign(data, parsed);
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || '/apple-touch-icon.png',
+    badge: data.badge || '/favicon-32x32.png',
+    vibrate: [250, 100, 250, 100, 250],
+    tag: data.tag || 'tens-alert',
+    renotify: true,
+    requireInteraction: true,
+    data: {
+      url: data.url || '/tens.html'
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// =========================================================================
+// CLICK EN NOTIFICACIÓN: ABRIR O ENFOCAR LA APP
+// =========================================================================
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/tens.html';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes('tens.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     })
   );
 });

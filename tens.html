@@ -248,6 +248,25 @@ header{
     <button class="icon-btn" onclick="document.getElementById('installNotice').style.display='none'" style="font-size:.9rem">✕</button>
   </div>
 
+  <!-- BARRA DE NOTIFICACIONES PUSH -->
+  <div id="pushBar" class="control-bar" style="background:var(--card);border-left:4px solid var(--teal);margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:1.25rem">🔔</span>
+      <div>
+        <div style="font-size:.88rem;font-weight:800;color:var(--ink)" id="pushStatusText">Alertas Push en Vivo</div>
+        <div style="font-size:.76rem;color:var(--mute)" id="pushSubText">Avisos de salidas, cambios y recordatorios</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button id="btnEnablePush" class="btn-gps" onclick="enablePushNotifications()" style="background:var(--mist);color:var(--teal);border-color:var(--teal);padding:6px 12px;cursor:pointer">
+        Activar
+      </button>
+      <button id="btnTestPush" class="btn-gps" onclick="testPushNotification()" style="display:none;background:var(--wa);color:#fff;border-color:var(--wa);padding:6px 12px;cursor:pointer">
+        📲 Probar Alerta
+      </button>
+    </div>
+  </div>
+
   <!-- BARRA DE FECHA Y TRIPULACIÓN -->
   <div class="control-bar">
     <div class="date-selector">
@@ -688,8 +707,77 @@ async function saveVitals(e){
   }
 }
 
+// CONTROL DE NOTIFICACIONES PUSH
+async function checkPushPermission(){
+  if(!('Notification' in window) || !('serviceWorker' in navigator)) {
+    const pb = document.getElementById('pushBar');
+    if(pb) pb.style.display = 'none';
+    return;
+  }
+  
+  const statusTxt = document.getElementById('pushStatusText');
+  const subTxt = document.getElementById('pushSubText');
+  const btnEnable = document.getElementById('btnEnablePush');
+  const btnTest = document.getElementById('btnTestPush');
+
+  if(Notification.permission === 'granted'){
+    if(statusTxt) statusTxt.textContent = 'Alertas Push Activas ✓';
+    if(subTxt) subTxt.textContent = 'Este celular recibirá alertas de servicios';
+    if(btnEnable) btnEnable.style.display = 'none';
+    if(btnTest) btnTest.style.display = 'inline-flex';
+  } else if(Notification.permission === 'denied'){
+    if(statusTxt) statusTxt.textContent = 'Alertas bloqueadas en navegador';
+    if(subTxt) subTxt.textContent = 'Permite notificaciones en la configuración del sitio';
+    if(btnEnable) btnEnable.style.display = 'none';
+    if(btnTest) btnTest.style.display = 'none';
+  }
+}
+
+async function enablePushNotifications(){
+  if(!('Notification' in window)) return alert('Este navegador no soporta notificaciones push.');
+  
+  try {
+    const permission = await Notification.requestPermission();
+    if(permission === 'granted'){
+      await checkPushPermission();
+      testPushNotification('¡Alertas activadas exitosamente! Recibirás aquí los avisos de servicios y cambios.');
+    } else {
+      alert('Permiso de notificaciones no concedido.');
+    }
+  } catch(e) {
+    console.error('Error solicitando permisos push:', e);
+  }
+}
+
+async function testPushNotification(customMsg){
+  if(Notification.permission !== 'granted') return;
+  
+  const msg = customMsg || '🔔 Tienes un traslado próximo: Rosa Medina Soto (08:30 hrs). Faltan 30 min para la salida hacia Las Condes.';
+  
+  if('serviceWorker' in navigator){
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      reg.showNotification('🚑 Alerta TENS Terreno', {
+        body: msg,
+        icon: '/apple-touch-icon.png',
+        badge: '/favicon-32x32.png',
+        vibrate: [250, 100, 250, 100, 250],
+        tag: 'tens-test-' + Date.now(),
+        renotify: true,
+        data: { url: '/tens.html' }
+      });
+      return;
+    } catch(e){}
+  }
+  
+  try {
+    new Notification('🚑 Alerta TENS Terreno', { body: msg, icon: '/apple-touch-icon.png' });
+  } catch(e){}
+}
+
 // Cargar al iniciar
 loadItinerario('today');
+checkPushPermission();
 </script>
 
 </body>
