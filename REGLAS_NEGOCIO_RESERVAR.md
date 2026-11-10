@@ -78,13 +78,27 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
   * +1 hora 30 min extra: +\$22.500
   * +2 horas extras: +\$30.000 (Tope máximo)
 * **Regla Tarifaria Especial:** Precios planos cerrados que absorben horario hábil, tarde, festivos y nocturno sin recargos adicionales.
-* **Flexibilidad Operativa de Ventana y Límite Nocturno en Modalidad Con Traslado (D.2):**
-  * **Exención de Ventana Rígida:** Modalidad D.2 (en especial Pack Total de 6 horas en evento + traslados de ida y vuelta, con duración circuito de 7h 15m a 8h) está **exenta de la restricción de ventana rígida de un solo turno**.
-  * **Horarios de Inicio y Retorno Máximo:** El servicio puede agendarse iniciando en **Turno Tarde** o en **Turno Noche**, siempre que la hora calculada de regreso al domicilio no supere las **04:30 AM**.
-  * **Triple Inhabilitación Automática en Base de Datos:** Al reservarse el Pack Total (6 hrs) de eventos en Turno Tarde o Noche, el sistema inhabilita atómicamente:
-    1. El **Turno Tarde** de la fecha del evento [D].
-    2. El **Turno Noche** de la fecha del evento [D] (jornada vespertina/nocturna completa bloqueada).
-    3. El bloque del **Turno Mañana** del día siguiente [D + 1] por descanso biológico legal y obligatorio de la profesional TENS.
+* **Arquitectura de Jornada Exclusiva de Eventos (Cobertura Dedicada - D.1 y D.2):**
+  * **Eliminación de Selectores de Turno Rígido:** La Modalidad 4 opera bajo el modelo de Jornada Exclusiva Dedicada (homologada a la Modalidad 5 Interregional). Los tres selectores tradicionales (Mañana, Tarde, Noche) quedan inhabilitados/ocultos y se despliega un contenedor único: *"Jornada Exclusiva de Eventos (Cobertura Dedicada)"*.
+  * **Ventanas Horarias Habilitadas para Inicio:**
+    * **Bloque Diurno:** De 08:00 a 12:00 hrs.
+    * **Ventana de Almuerzo Protegida:** De 12:01 a 13:59 hrs NO disponible para inicio de atenciones (resguardo estricto de colación del personal).
+    * **Bloque Vespertino / Nocturno:** De 14:00 a 20:00 hrs.
+  * **Regla Maestra del Motor de Validación (Semáforo Operativo):**
+    * Se elimina cualquier control de corte contra el cierre de turnos nominales (12:00 o 20:00 hrs).
+    * Si la hora proyectada de término (en D.1) o retorno al domicilio (en D.2) es **menor o igual a las 04:30 AM** (1710 min), la solicitud se aprueba automáticamente (**Semáforo Verde**).
+    * Si la hora estimada de término supera las **04:30 AM**, el semáforo cambia a **Rojo**, inhabilitando el botón de reserva y derivando a coordinación manual por WhatsApp.
+  * **Matriz Atómica de Bloqueos en Base de Datos (Supabase / Almacén Local):**
+    * **A) Evento Diurno (Inicio entre 08:00 y 12:00 hrs):**
+      - Día del evento (D): Bloquear **DÍA COMPLETO** (`full`: Mañana, Tarde y Noche). La profesional no atiende más servicios ese día.
+      - Día siguiente (D+1): **LIBRE** (no se bloquea la mañana, permitiendo atender normalmente tras haber descansado la noche completa).
+    * **B) Evento Vespertino / Nocturno (Inicio entre 14:00 y 20:00 hrs):**
+      - Día del evento (D): Bloquear **Turno Tarde** (`tarde`) y **Turno Noche** (`noche`).
+      - Día siguiente (D+1): Bloquear obligatoriamente el **Turno Mañana** (`manana`: 06:00 a 14:00 hrs) por concepto legal de descanso biológico post-trasnoche.
+      - **Protección backend:** La API aborta con error HTTP 409 Conflict si el día D+1 ya cuenta con una reserva activa en la mañana.
+  * **Redacción y Mensajería según Sub-Modalidad:**
+    * **Modalidad 4.1 (En Recinto - Sin Traslado):** Emplea *"Llegada al recinto / Inicio: [hora] — Término aprox: [hora]"*, omitiendo kilometraje y alertas de estiba vehicular.
+    * **Modalidad 4.2 (Con Traslado Puerta a Puerta):** Mantiene *"Recogida en domicilio: [hora] — Retorno aprox: [hora]"*, incluyendo el cálculo de ruta de ida y vuelta.
 
 ### 2.5. Modalidad 5: Programas Interregionales
 * **Descripción:** Traslados clínicos de larga distancia desde o hacia regiones fuera de la Región Metropolitana (Valparaíso, O'Higgins, Maule, etc.) hacia centros de alta complejidad en Santiago.
@@ -213,7 +227,7 @@ El sistema cuenta con una función maestra de cálculo (`evaluarSemaforoTurno` y
 * **Turno Mañana:** 12:00 hrs.
 * **Turno Tarde:** 20:00 hrs.
 * **Turno Noche:** 04:00 hrs.
-* **Modalidad D.2 (Eventos Con Traslado en Tarde/Noche):** Límite nominal 04:00 hrs con tolerancia extendida hasta las **04:30 AM** (techo máximo improrrogable).
+* **Modalidad 4 (Eventos Sociales - Jornada Exclusiva D.1 y D.2):** Sin control de corte contra turnos nominales. Regla maestra de aprobación automática (**Semáforo Verde**) hasta las **04:30 AM** (1710 min). Si el término proyectado en D.1 o retorno en D.2 supera las 04:30 AM, el semáforo conmuta a **Rojo** y deshabilita la reserva.
 
 #### 2. Comportamiento según el Estado del Semáforo:
 * **A) ESTADO VERDE (Dentro del horario nominal):**

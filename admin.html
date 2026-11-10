@@ -3321,6 +3321,41 @@ function calcAdminQuote(){
     }
     qState.eventExtraMin = extraCfg.min;
 
+    // Validación de horario de inicio y término para Modalidad 4
+    const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
+    const startMin = tm(timeVal);
+    const helperEl = $('#lbl_aq_time_helper');
+    let effEnd = startMin + qState.durationMin;
+    if(effEnd < 720) effEnd += 1440;
+
+    if(startMin > 720 && startMin < 840){
+      if(helperEl){
+        helperEl.style.display = 'block';
+        helperEl.innerHTML = `⚠️ <b>Ventana de almuerzo protegida:</b> De 12:01 a 13:59 hrs no está disponible para inicio de atenciones.`;
+        helperEl.style.color = '#dc2626';
+      }
+    } else if(startMin < 480 || startMin > 1200){
+      if(helperEl){
+        helperEl.style.display = 'block';
+        helperEl.innerHTML = `⚠️ <b>Horario fuera de rango:</b> Solo permitido en Bloque Diurno (08:00 a 12:00) o Vespertino/Nocturno (14:00 a 20:00).`;
+        helperEl.style.color = '#dc2626';
+      }
+    } else if(effEnd > 1710){
+      if(helperEl){
+        helperEl.style.display = 'block';
+        helperEl.innerHTML = `🛑 <b>Tope nocturno excedido:</b> Término/retorno proyectado a las <b>${fm(effEnd % 1440)} hrs</b> supera las 04:30 AM (límite máximo).`;
+        helperEl.style.color = '#dc2626';
+      }
+    } else {
+      if(helperEl){
+        helperEl.style.display = 'block';
+        helperEl.innerHTML = subtype === 'con_traslado'
+          ? `🚗 Recogida en domicilio: <b>${timeVal} hrs</b> → Retorno aprox: <b>${fm(effEnd % 1440)} hrs</b> (${fmtHoursClean(qState.durationMin)} totales)`
+          : `🩺 Llegada al recinto / Inicio: <b>${timeVal} hrs</b> → Término aprox: <b>${fm(effEnd % 1440)} hrs</b> (${fmtHoursClean(qState.durationMin)} en recinto)`;
+        helperEl.style.color = 'var(--pri)';
+      }
+    }
+
     kmCost = 0;
     timeCost = baseFare + extraFare;
     totalFare = timeCost;
@@ -3742,7 +3777,27 @@ Quedamos atentos para reservar su cupo exclusivo!`;
   const tid = ($('#aq_tens') && $('#aq_tens').value) || (D.techs[0] && D.techs[0].id) || 't1';
   const ageVal = parseInt(($('#aq_age') && $('#aq_age').value) || 0, 10) || 75;
   const dxVal = ($('#aq_dx') && $('#aq_dx').value.trim()) || 'Cotización vía WhatsApp';
-  const blockType = (startMin < 720 ? 'manana' : startMin < 1200 ? 'tarde' : 'noche');
+  let blockType = (startMin < 720 ? 'manana' : startMin < 1200 ? 'tarde' : 'noche');
+  let fullDayVal = false;
+  let crossShiftVal = false;
+  let blocksNextMorningVal = false;
+
+  if(qState.mode === '4'){
+    const isDiurno = (startMin >= 480 && startMin <= 720);
+    if(isDiurno){
+      blockType = 'full';
+      fullDayVal = true;
+      blocksNextMorningVal = false;
+    } else {
+      blockType = 'tarde_noche';
+      fullDayVal = false;
+      crossShiftVal = true;
+      blocksNextMorningVal = true;
+    }
+  } else if(qState.mode === '5'){
+    blockType = 'full';
+    fullDayVal = true;
+  }
 
   const isInvoice = (typeof document !== 'undefined' && document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value === 'factura');
   const taxDocObj = isInvoice ? {
@@ -3797,6 +3852,9 @@ Quedamos atentos para reservar su cupo exclusivo!`;
     st: 'pendiente_abono',
     svcType: qState.mode,
     block: blockType,
+    fullDay: fullDayVal,
+    crossShift: crossShiftVal,
+    blocksNextMorning: blocksNextMorningVal,
     alergias: alergiasText,
     medicamentos: medsText,
     conciencia: 'Lúcido / Orientado',
@@ -3808,16 +3866,64 @@ Quedamos atentos para reservar su cupo exclusivo!`;
   D.svcs.push(newSvc);
 
   if(!Array.isArray(D.blocks)) D.blocks = [];
-  D.blocks.push({
-    id: 'blk_' + cleanFolio,
-    reservaId: cleanFolio,
-    date: date,
-    type: newSvc.block,
-    shift: newSvc.block,
-    reason: 'Horario reservado',
-    status: 'temporal_60m',
-    expiresAt: newSvc.expiresAt
-  });
+  if(qState.mode === '4'){
+    const isDiurno = (startMin >= 480 && startMin <= 720);
+    if(isDiurno){
+      D.blocks.push({
+        id: 'blk_' + cleanFolio,
+        reservaId: cleanFolio,
+        date: date,
+        type: 'full',
+        shift: 'full',
+        reason: 'Jornada Exclusiva Evento Diurno #' + cleanFolio,
+        status: 'temporal_60m',
+        expiresAt: newSvc.expiresAt
+      });
+    } else {
+      const nextDate = addDaysYMD(date, 1);
+      D.blocks.push({
+        id: 'blk_' + cleanFolio + '_t',
+        reservaId: cleanFolio,
+        date: date,
+        type: 'tarde',
+        shift: 'tarde',
+        reason: 'Jornada Exclusiva Evento (Tarde) #' + cleanFolio,
+        status: 'temporal_60m',
+        expiresAt: newSvc.expiresAt
+      });
+      D.blocks.push({
+        id: 'blk_' + cleanFolio + '_n',
+        reservaId: cleanFolio,
+        date: date,
+        type: 'noche',
+        shift: 'noche',
+        reason: 'Jornada Exclusiva Evento (Noche) #' + cleanFolio,
+        status: 'temporal_60m',
+        expiresAt: newSvc.expiresAt
+      });
+      D.blocks.push({
+        id: 'blk_' + cleanFolio + '_m',
+        reservaId: cleanFolio,
+        date: nextDate,
+        type: 'manana',
+        shift: 'manana',
+        reason: 'Descanso biológico obligatorio post-trasnoche #' + cleanFolio,
+        status: 'temporal_60m',
+        expiresAt: newSvc.expiresAt
+      });
+    }
+  } else {
+    D.blocks.push({
+      id: 'blk_' + cleanFolio,
+      reservaId: cleanFolio,
+      date: date,
+      type: newSvc.block,
+      shift: newSvc.block,
+      reason: 'Horario reservado',
+      status: 'temporal_60m',
+      expiresAt: newSvc.expiresAt
+    });
+  }
 
   if(window.MsaBlocksService){
     MsaBlocksService.saveBlock({
@@ -3990,33 +4096,76 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   const bookingData = { tid, date, time: bookingTime, start, dur, pat, age, dx, coord, ph, from, to, mob, ayudaTecnica, ayuda_tecnica: ayudaTecnica, req, alergias, medicamentos, compDesc, taxDoc, patologias };
 
+  // Validaciones estrictas de horario para Modalidad 4
+  if(qState.mode === '4'){
+    if(start > 720 && start < 840){
+      if(typeof alert !== 'undefined') alert('⚠️ La ventana de 12:01 a 13:59 hrs corresponde a colación y descanso protegido, no disponible para inicio de eventos.');
+      return { error: 'Protected lunch window' };
+    }
+    if(start < 480 || start > 1200){
+      if(typeof alert !== 'undefined') alert('⚠️ Los eventos solo pueden iniciarse en Bloque Diurno (08:00 a 12:00 hrs) o Bloque Vespertino/Nocturno (14:00 a 20:00 hrs).');
+      return { error: 'Start time out of range' };
+    }
+    let effEnd = start + dur;
+    if(effEnd < 720) effEnd += 1440;
+    if(effEnd > 1710){
+      if(typeof alert !== 'undefined') alert(`🛑 El término o retorno proyectado (${fm(effEnd % 1440)} hrs) excede el tope nocturno de las 04:30 AM (límite máximo permitido).`);
+      return { error: 'Exceeds 04:30 AM limit' };
+    }
+  }
+
   // Verificación de advertencia preventiva de buffer de 2 horas y descanso bidireccional
   if(!forceConfirm){
-    let conflictSvc = D.svcs.find(s => {
-      if(s.tid !== tid || s.date !== date || s.st === 'Cancelado') return false;
-      return (start < s.start + s.dur + 120) && (s.start < start + dur + 120);
-    });
-
-    // Validación bidireccional: si se intenta agendar Turno Noche en [D], chequear Turno Mañana en [D + 1]
-    const isNightBooking = (start >= 20 * 60 || start < 4 * 60 || qState.jornada === 'nocturno');
-    if(!conflictSvc && isNightBooking){
-      const nextDate = addDaysYMD(date, 1);
+    let conflictSvc = null;
+    if(qState.mode === '4'){
+      const isDiurno = (start >= 480 && start <= 720);
+      if(isDiurno){
+        conflictSvc = D.svcs.find(s => {
+          if(s.date !== date || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
+          return true;
+        });
+      } else {
+        conflictSvc = D.svcs.find(s => {
+          if(s.date !== date || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
+          const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+          return blk === 'tarde' || blk === 'noche' || blk === 'full' || s.start >= 720;
+        });
+        if(!conflictSvc){
+          const nextDate = addDaysYMD(date, 1);
+          conflictSvc = D.svcs.find(s => {
+            if(s.date !== nextDate || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
+            const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+            return blk === 'manana' || blk === 'full' || s.start < 720;
+          });
+        }
+      }
+    } else {
       conflictSvc = D.svcs.find(s => {
-        if(s.date !== nextDate || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
-        const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
-        return blk === 'manana' || blk === 'full' || s.start < 720;
+        if(s.tid !== tid || s.date !== date || s.st === 'Cancelado') return false;
+        return (start < s.start + s.dur + 120) && (s.start < start + dur + 120);
       });
-    }
 
-    // Validación inversa: si se intenta agendar Turno Mañana en [D], chequear Turno Noche en [D - 1]
-    const isMorningBooking = (start < 12 * 60 && start >= 6 * 60);
-    if(!conflictSvc && isMorningBooking){
-      const prevDate = addDaysYMD(date, -1);
-      conflictSvc = D.svcs.find(s => {
-        if(s.date !== prevDate || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
-        const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
-        return blk === 'noche' || s.start >= 20 * 60 || (s.start + (s.dur || 120)) > 22 * 60;
-      });
+      // Validación bidireccional: si se intenta agendar Turno Noche en [D], chequear Turno Mañana en [D + 1]
+      const isNightBooking = (start >= 20 * 60 || start < 4 * 60 || qState.jornada === 'nocturno');
+      if(!conflictSvc && isNightBooking){
+        const nextDate = addDaysYMD(date, 1);
+        conflictSvc = D.svcs.find(s => {
+          if(s.date !== nextDate || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
+          const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+          return blk === 'manana' || blk === 'full' || s.start < 720;
+        });
+      }
+
+      // Validación inversa: si se intenta agendar Turno Mañana en [D], chequear Turno Noche en [D - 1]
+      const isMorningBooking = (start < 12 * 60 && start >= 6 * 60);
+      if(!conflictSvc && isMorningBooking){
+        const prevDate = addDaysYMD(date, -1);
+        conflictSvc = D.svcs.find(s => {
+          if(s.date !== prevDate || s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada') return false;
+          const blk = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
+          return blk === 'noche' || s.start >= 20 * 60 || (s.start + (s.dur || 120)) > 22 * 60;
+        });
+      }
     }
 
     if(conflictSvc){
@@ -4076,9 +4225,76 @@ function saveAdminBooking(ev, forceConfirm = false){
     newSvc.blocksPrevNight = true;
     newSvc.fullDay = true;
     newSvc.block = 'full';
+  } else if(qState.mode === '4'){
+    const isDiurno = (start >= 480 && start <= 720);
+    if(isDiurno){
+      newSvc.fullDay = true;
+      newSvc.block = 'full';
+      newSvc.blocksNextMorning = false;
+    } else {
+      newSvc.fullDay = false;
+      newSvc.block = 'tarde_noche';
+      newSvc.blocksNextMorning = true;
+    }
   }
 
   D.svcs.push(newSvc);
+
+  if(!Array.isArray(D.blocks)) D.blocks = [];
+  if(qState.mode === '4'){
+    const isDiurno = (start >= 480 && start <= 720);
+    if(isDiurno){
+      D.blocks.push({
+        id: 'blk_' + newId,
+        reservaId: newId,
+        date: date,
+        type: 'full',
+        shift: 'full',
+        reason: `Jornada Exclusiva Evento Diurno #${newId} (${pat})`,
+        tid: tid
+      });
+    } else {
+      const nextDate = addDaysYMD(date, 1);
+      D.blocks.push({
+        id: 'blk_' + newId + '_t',
+        reservaId: newId,
+        date: date,
+        type: 'tarde',
+        shift: 'tarde',
+        reason: `Jornada Exclusiva Evento (Tarde) #${newId} (${pat})`,
+        tid: tid
+      });
+      D.blocks.push({
+        id: 'blk_' + newId + '_n',
+        reservaId: newId,
+        date: date,
+        type: 'noche',
+        shift: 'noche',
+        reason: `Jornada Exclusiva Evento (Noche) #${newId} (${pat})`,
+        tid: tid
+      });
+      D.blocks.push({
+        id: 'blk_' + newId + '_m',
+        reservaId: newId,
+        date: nextDate,
+        type: 'manana',
+        shift: 'manana',
+        reason: `Descanso biológico obligatorio post-trasnoche #${newId} (${pat})`,
+        tid: tid
+      });
+    }
+  } else {
+    D.blocks.push({
+      id: 'blk_' + newId,
+      reservaId: newId,
+      date: date,
+      type: newSvc.block || (start < 720 ? 'manana' : start < 1200 ? 'tarde' : 'noche'),
+      shift: newSvc.block || (start < 720 ? 'manana' : start < 1200 ? 'tarde' : 'noche'),
+      reason: `Reserva manual #${newId} (${pat})`,
+      tid: tid
+    });
+  }
+
   save();
   clearAdminQuoterDraft();
 
@@ -5449,13 +5665,50 @@ async function executeConfirmDeposit(id){
 
   // 1. Guardar bloqueo permanente y atómico en base de datos central
   if(window.MsaBlocksService){
-    MsaBlocksService.saveBlock({
-      date: s.date,
-      type: s.block || 'full',
-      reason: `Reserva confirmada #${cleanFolio} (${s.pat})`,
-      tid: s.tid || 'all',
-      reservaId: cleanFolio
-    }).catch(err => console.warn('Error al persistir bloqueo permanente:', err));
+    if(s.svcType === '4'){
+      const startMinVal = Number(s.start !== undefined ? s.start : (s.time ? tm(s.time) : 600));
+      const isDiurno = (startMinVal >= 480 && startMinVal <= 720);
+      if(isDiurno){
+        MsaBlocksService.saveBlock({
+          date: s.date,
+          type: 'full',
+          reason: `Reserva confirmada #${cleanFolio} (${s.pat})`,
+          tid: s.tid || 'all',
+          reservaId: cleanFolio
+        }).catch(err => console.warn('Error al persistir bloqueo permanente:', err));
+      } else {
+        const nextDate = addDaysYMD(s.date, 1);
+        MsaBlocksService.saveBlock({
+          date: s.date,
+          type: 'tarde',
+          reason: `Reserva confirmada #${cleanFolio} (${s.pat})`,
+          tid: s.tid || 'all',
+          reservaId: cleanFolio
+        }).catch(err => console.warn('Error al persistir bloqueo tarde:', err));
+        MsaBlocksService.saveBlock({
+          date: s.date,
+          type: 'noche',
+          reason: `Reserva confirmada #${cleanFolio} (${s.pat})`,
+          tid: s.tid || 'all',
+          reservaId: cleanFolio
+        }).catch(err => console.warn('Error al persistir bloqueo noche:', err));
+        MsaBlocksService.saveBlock({
+          date: nextDate,
+          type: 'manana',
+          reason: `Descanso biológico obligatorio post-trasnoche #${cleanFolio} (${s.pat})`,
+          tid: s.tid || 'all',
+          reservaId: cleanFolio
+        }).catch(err => console.warn('Error al persistir bloqueo descanso:', err));
+      }
+    } else {
+      MsaBlocksService.saveBlock({
+        date: s.date,
+        type: s.block || 'full',
+        reason: `Reserva confirmada #${cleanFolio} (${s.pat})`,
+        tid: s.tid || 'all',
+        reservaId: cleanFolio
+      }).catch(err => console.warn('Error al persistir bloqueo permanente:', err));
+    }
 
     // 2. Actualizar estado y pago en tabla reservas (sanitizado)
     MsaBlocksService.updateReservaStatus(cleanFolio, 'Confirmado', {
