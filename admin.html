@@ -285,7 +285,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
           <td style="padding:6px 12px;text-align:right;box-sizing:border-box;white-space:nowrap" id="pdfAbono">-$18.950</td>
         </tr>
         <tr id="pdfRowDescuento" style="background:#f8fafc;color:#dc2626;display:none">
-          <td colspan="2" style="padding:5px 10px;text-align:right;box-sizing:border-box">AJUSTE / DESCUENTO EN TERRENO:</td>
+          <td colspan="2" style="padding:5px 10px;text-align:right;box-sizing:border-box">Ajuste / Descuento Especial:</td>
           <td style="padding:5px 12px;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap" id="pdfDescuento">-$0</td>
         </tr>
         <tr style="background:#0f766e;color:#ffffff;font-size:10.5pt">
@@ -465,14 +465,9 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     </div>
 
     <!-- DATOS COMPLEMENTARIOS PARA LA BOLETA -->
-    <div style="margin-bottom:12px;font-size:13px">
+    <div style="margin-bottom:14px;font-size:13px">
       <label for="adm_rutPaciente" style="font-weight:700;display:block;margin-bottom:4px">RUT del Paciente (Boleta) *</label>
       <input type="text" id="adm_rutPaciente" placeholder="Ej: 12.345.678-9" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)" maxlength="12" autocomplete="off" oninput="handleAdminRutInput(this)" onblur="handleAdminRutBlur(this)">
-    </div>
-
-    <div style="margin-bottom:14px;font-size:13px">
-      <label for="adm_folioSII" style="font-weight:700;display:block;margin-bottom:4px">N° de Boleta Electrónica SII (Opcional)</label>
-      <input type="text" id="adm_folioSII" placeholder="Ej: B-1082 (Dejar en blanco si aún no la emites en e-Boleta)" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
     </div>
 
     <div id="adm_co_payment_sent_alert" style="display:none;background:#ecfdf5;border:1.5px solid #10b981;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#065f46;margin-bottom:14px;line-height:1.45"></div>
@@ -4639,7 +4634,13 @@ function solicitarPagoWhatsAppAdmin(){
   const s = findReserva(currentClosingSvcId) || (D.svcs || []).find(item => item && (item.id === currentClosingSvcId || item.id == currentClosingSvcId || String(item.id) === String(currentClosingSvcId)));
   if(!s){ alert('Servicio no encontrado'); return; }
 
-  const calc = currentCheckoutCalc || calculateFieldLiquidation(s, s.dur || 120, ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0);
+  const calc = currentCheckoutCalc || calculateFieldLiquidation(
+    s,
+    s.dur || 120,
+    ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0,
+    ($('#adm_abono_previo_input') && parseInt($('#adm_abono_previo_input').value, 10)) || undefined,
+    ($('#adm_descuento_ajuste') && parseInt($('#adm_descuento_ajuste').value, 10)) || 0
+  );
   const clientName = s.coord || s.pat || 'Estimado(a)';
   const patName = s.pat || 'el paciente';
   const cleanFolio = formatFolioMSA(s.folio, s.id);
@@ -4651,6 +4652,9 @@ function solicitarPagoWhatsAppAdmin(){
   const extraTxt = (calc.diffMin > 0 && calc.extraCost > 0)
     ? `\n• Tiempo adicional en terreno: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`
     : '';
+  const descTxt = (calc.descuentoManual > 0)
+    ? `\n• Descuento / Ajuste aplicado: -${$c(calc.descuentoManual)}`
+    : '';
 
   const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA.
 
@@ -4660,7 +4664,7 @@ Hemos finalizado exitosamente el servicio de atención y traslado de ${patName} 
 • Subtotal Servicio: ${$c(calc.subtotalServicio)}${extraTxt}
 • Estacionamiento / Parking: ${$c(calc.parking)}
 • Total Servicio Liquidado: ${$c(calc.totalServicio)}
-• Abono 50% previo registrado: -${$c(calc.abonoPrevio)}
+• Abono 50% previo registrado: -${$c(calc.abonoPrevio)}${descTxt}
 👉 *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
 
 🏦 *DATOS BANCARIOS PARA TRANSFERENCIA:*
@@ -4718,11 +4722,11 @@ function abrirModalFinalizarAtencionAdmin(svcId, options){
     ? options.abono 
     : (s.abono || (s.paid && s.paid < (s.fare || 40000) ? s.paid : Math.round((s.baseFare || s.fare || 40000) * 0.5)));
   if($('#adm_abono_previo_input')) $('#adm_abono_previo_input').value = initAbono;
+  if($('#adm_descuento_ajuste')) $('#adm_descuento_ajuste').value = (options && options.descuento !== undefined) ? options.descuento : (s.descuentoManual || 0);
 
   if($('#adm_co_payment_sent_alert')) $('#adm_co_payment_sent_alert').style.display = 'none';
   if($('#adm_rutPaciente')) $('#adm_rutPaciente').value = (options && options.rutPaciente) || s.patRut || '12.345.678-9';
   if($('#adm_medioPago') && options && options.medioPago) $('#adm_medioPago').value = options.medioPago;
-  if($('#adm_folioSII')) $('#adm_folioSII').value = (options && options.folioSII !== undefined) ? options.folioSII : (s.folioSII || '');
 
   renderFieldCheckoutSummary(s);
   onFieldCheckoutRecalc();
@@ -4748,6 +4752,9 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const medioPago = (customOpts && customOpts.medioPago) || ($('#adm_medioPago') && $('#adm_medioPago').value) || 'Transferencia Electrónica';
   const folioSII = (customOpts && customOpts.folioSII !== undefined) ? customOpts.folioSII : ($('#adm_folioSII') ? $('#adm_folioSII').value.trim() : '');
   const parkingAmount = (customOpts && customOpts.parking !== undefined) ? customOpts.parking : (($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0);
+  const customDescuento = (customOpts && customOpts.descuento !== undefined) 
+    ? customOpts.descuento 
+    : ($('#adm_descuento_ajuste') ? (parseInt($('#adm_descuento_ajuste').value, 10) || 0) : 0);
 
   const s = findReserva(currentClosingSvcId) || (D.svcs || []).find(item => item && (item.id === currentClosingSvcId || item.id == currentClosingSvcId || String(item.id) === String(currentClosingSvcId)));
   if(!s){ alert('Servicio no encontrado'); return; }
@@ -4773,7 +4780,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   }
 
   const customAbono = $('#adm_abono_previo_input') ? parseInt($('#adm_abono_previo_input').value, 10) : undefined;
-  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono);
+  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, customDescuento);
   currentCheckoutCalc = calc;
 
   // Actualizar servicio con liquidación y estado completada
@@ -4783,12 +4790,13 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   s.completedAt = new Date().toISOString();
   s.endActualTime = horaCierre;
   s.parkingExpense = calc.parking;
+  s.descuentoManual = calc.descuentoManual;
   s.folioSII = folioSII;
-  s.fare = calc.cobroTotal + calc.parking;
-  s.paid = calc.cobroTotal + calc.parking;
+  s.fare = Math.max(0, calc.cobroTotal + calc.parking - calc.descuentoManual);
+  s.paid = Math.max(0, calc.cobroTotal + calc.parking - calc.descuentoManual);
   s.saldoPendiente = 0;
   s.medioPago = medioPago;
-  s.obs = (s.obs ? s.obs + ' · ' : '') + `Servicio liquidado y pagado en terreno. Saldo: ${$c(calc.saldoFinal)}${calc.parking ? ` (Estacionamiento: ${$c(calc.parking)})` : ''}.`;
+  s.obs = (s.obs ? s.obs + ' · ' : '') + `Servicio liquidado y pagado en terreno. Saldo: ${$c(calc.saldoFinal)}${calc.parking ? ` (Estacionamiento: ${$c(calc.parking)})` : ''}${calc.descuentoManual ? ` (Descuento: -${$c(calc.descuentoManual)})` : ''}.`;
   s.liquidation = {
     subtotalReal: calc.subtotalReal,
     cobroTotal: calc.cobroTotal,
@@ -4798,6 +4806,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     elapsedMin: calc.elapsedMin,
     parking: calc.parking,
     abono: calc.abono,
+    descuentoManual: calc.descuentoManual,
     saldoFinal: calc.saldoFinal,
     medioPago,
     folioSII,
