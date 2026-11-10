@@ -516,6 +516,19 @@ export default async function handler(req) {
       edgeReservasStore = edgeReservasStore.filter(r => r.folio !== folio);
       edgeReservasStore.push(finalRecord);
 
+      // Notificar Push a Tripulación TENS en segundo plano (no bloqueante)
+      try {
+        const pushUrl = new URL('/api/tens/push-trigger', req.url).toString();
+        fetch(pushUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: '🚨 ¡Nueva Reserva Agendada!',
+            body: `Folio ${folio}: ${patName} (${timeVal} hrs - Turno ${turno}). Toca para ver la ruta.`
+          })
+        }).catch(() => {});
+      } catch(e) {}
+
       // Retornar SIEMPRE 200 OK con el ID/Folio para gatillar inmediatamente la apertura de WhatsApp
       return new Response(
         JSON.stringify({

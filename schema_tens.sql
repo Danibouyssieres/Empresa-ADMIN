@@ -93,3 +93,13 @@ INSERT INTO public.reservas (
     'Carlos Valenzuela Jr.', '987112233', 'Av. Providencia 2150, Depto 804, Providencia', 'Instituto Oncológico FALP, Rancagua 878, Providencia', 6.8, '3 horas', 'pendiente'
 )
 ON CONFLICT (folio) DO NOTHING;
+
+-- 7. Tabla para Registro de Dispositivos Móviles (Web Push Notifications)
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+    id BIGSERIAL PRIMARY KEY,
+    endpoint TEXT UNIQUE NOT NULL,
+    p256dh TEXT,
+    auth TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+

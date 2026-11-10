@@ -78,6 +78,121 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
+  // API ROUTE: Recepción pública de Reservas desde reservar.html (Con Push automático a TENS)
+  if (pathname === '/api/reservas') {
+    if (req.method === 'GET') {
+      try {
+        const fecha = urlObj.searchParams.get('fecha');
+        let sbQuery = `${SUPABASE_DEV_URL}/rest/v1/reservas?select=*`;
+        if (fecha) sbQuery += `&fecha=eq.${fecha}`;
+        const sbRes = await fetch(sbQuery, {
+          headers: {
+            apikey: SUPABASE_DEV_KEY,
+            Authorization: `Bearer ${SUPABASE_DEV_KEY}`
+          }
+        });
+        const rows = await sbRes.json();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ ok: true, data: rows, total: rows.length }));
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body || '{}');
+          const folioNum = Math.floor(100 + Math.random() * 900);
+          const folio = `MSA-2611-${folioNum}`;
+
+          const modMap = {
+            '1': '1. Servicio Integral (Asistencia + Traslado)',
+            '2': '2. Traslado Clínico Simple',
+            '3': '3. Cuidado Clínico a Domicilio',
+            '4': '4. Cobertura Sanitaria de Eventos',
+            '5': '5. Traslado Interregional'
+          };
+
+          const nuevaReserva = {
+            folio,
+            fecha: data.fecha || data.date || new Date().toISOString().slice(0, 10),
+            hora_recogida: data.hora_recogida || data.time || data.start || '10:00',
+            turno: data.turno || data.block || 'mañana',
+            modalidad: String(data.modalidad || data.svcType || '1'),
+            modalidad_nombre: modMap[String(data.modalidad || data.svcType)] || 'Servicio Integral',
+            paciente_nombre: data.paciente || data.pat || 'Paciente General',
+            paciente_edad: parseInt(data.age, 10) || null,
+            paciente_telefono: data.patPhone || data.contacto || data.ph || '',
+            paciente_motivo: data.dx || data.motivo || 'Atención en terreno',
+            paciente_movilidad: data.mob || data.ayuda_tecnica || 'Autovalente',
+            paciente_alergias: data.alergias || 'Sin alergias conocidas',
+            coordinador_nombre: data.coord || data.paciente || '',
+            coordinador_telefono: data.ph || data.contacto || '',
+            ruta_origen: data.origen || data.from || 'Santiago',
+            ruta_destino: data.destino || data.to || 'Centro de Salud',
+            km_estimado: parseFloat(data.km) || 0,
+            tiempo_espera: data.tiempo_espera || (data.dur ? `${data.dur} hrs` : null),
+            estado_terreno: 'pendiente',
+            estado_pago: 'pendiente_abono'
+          };
+
+          // 1. Guardar en Supabase Dev
+          if (SUPABASE_DEV_URL && SUPABASE_DEV_KEY) {
+            try {
+              const ins = await fetch(`${SUPABASE_DEV_URL}/rest/v1/reservas`, {
+                method: 'POST',
+                headers: {
+                  apikey: SUPABASE_DEV_KEY,
+                  Authorization: `Bearer ${SUPABASE_DEV_KEY}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=representation'
+                },
+                body: JSON.stringify(nuevaReserva)
+              });
+              const insRes = await ins.json().catch(() => null);
+              console.log('[SUPABASE DEV] Reserva insertada con éxito:', insRes);
+            } catch(e) {
+              console.error('[SUPABASE DEV] Error guardando reserva:', e);
+            }
+          }
+
+          // 2. Disparar Web Push a TODOS los celulares suscritos
+          const pushPayload = {
+            title: '🚨 ¡Nueva Reserva Agendada!',
+            body: `Folio ${folio}: ${nuevaReserva.paciente_nombre} (${nuevaReserva.hora_recogida} hrs - Turno ${nuevaReserva.turno}). Toca para ver la ruta.`,
+            icon: '/apple-touch-icon.png',
+            badge: '/favicon-32x32.png',
+            url: '/tens.html'
+          };
+          const pushResults = await dispatchPushToAll(pushPayload);
+          console.log(`[PUSH DISPATCHER] Alerta enviada tras nueva reserva. Resultados:`, pushResults);
+
+          // 3. Responder con formato esperado por reservar.html
+          res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
+          return res.end(JSON.stringify({
+            ok: true,
+            folio,
+            id: folio,
+            data: {
+              folio,
+              id: folio,
+              ...nuevaReserva
+            }
+          }));
+        } catch(err) {
+          console.error('[DEV SERVER] Error procesando POST /api/reservas:', err);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, error: err.message }));
+        }
+      });
+      return;
+    }
+  }
+
   // API ROUTE: Obtener clave pública VAPID
   if (pathname === '/api/tens/vapid-key') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
