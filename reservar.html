@@ -6874,9 +6874,11 @@ async function submitBooking(ev){
           : `• Jornada: ${getJornadaLabel(currentJornada, mode)}\n`)) +
     `• Fecha: ${formatHumanDate(date)} (${date})\n` +
     `• Turno / Bloque: ${blockHuman}\n` +
-    (mode === '4' && selectedEventSubMode === 'sin_traslado'
-      ? `• Horario de Atención: Llegada al evento / Inicio atención: ${timeStr} hrs → Término atención: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`
-      : `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
+    (mode === '3'
+      ? `• Horario de Atención: Llegada al domicilio / Inicio: ${timeStr} hrs → Término aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`
+      : (mode === '4' && selectedEventSubMode === 'sin_traslado')
+        ? `• Horario de Atención: Llegada al recinto / Inicio: ${timeStr} hrs → Término aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`
+        : `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
     (isMiddayCase ? `• ⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.\n` : '') +
     `• Dirección: ${from}${depto ? ` (${depto})` : ''}\n` +
     (showDest ? `• Destino / Recinto: ${to}\n` : '') +
@@ -6938,13 +6940,15 @@ async function submitBooking(ev){
         ${mode === '5' ? `<li><span>🗺️ <b>Región del Programa:</b></span> <span><b>${e(selectedInterRegion)}</b></span></li>` : ''}
         <li><span>📅 <b>Fecha Reservada:</b></span> <span><b>${e(formatHumanDate(date))}</b></span></li>
         <li><span>🌅 <b>Bloque de Agenda:</b></span> <span><b>${e(blockHuman)}</b></span></li>
-        ${(mode === '4' && selectedEventSubMode === 'sin_traslado')
-          ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al evento / Inicio atención: <b>${e(timeStr)} hrs</b> → Término atención: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
-          : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
+        ${mode === '3'
+          ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al domicilio / Inicio: <b>${e(timeStr)} hrs</b> → Término aprox: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
+          : (mode === '4' && selectedEventSubMode === 'sin_traslado')
+            ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al recinto / Inicio: <b>${e(timeStr)} hrs</b> → Término aprox: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
+            : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
         ${isMiddayCase ? `<li style="background:#FEF2F2;border:1px solid #EF4444;color:#B91C1C"><span>⚠️ <b>Observación de Horario:</b></span> <b>⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.</b></li>` : ''}
         ${isPackTotalEvent ? `<li><span>🌙 <b>Jornada y Descanso Operativo:</b></span> <span>Bloquea automáticamente la jornada vespertina/nocturna de la fecha y el Turno Mañana del día siguiente por descanso obligatorio.</span></li>` : (endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : '')}
         ${mode === '5' ? `<li><span>🛡️ <b>Seguridad Vial y Descanso:</b></span> <span>Bloquea jornada completa de la fecha y el Turno Noche de la víspera (noche anterior)</span></li>` : ''}
-        <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : 'Dirección de Recogida / Inicio (A):'}</b></span> <span>${e(from)}${depto ? ` · <b>${e(depto)}</b>` : ''}</span></li>
+        <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : (mode === '3' ? 'Dirección del Domicilio:' : 'Dirección de Recogida / Inicio (A):')}</b></span> <span>${e(from)}${depto ? ` · <b>${e(depto)}</b>` : ''}</span></li>
         ${showDest ? `<li><span>🏁 <b>Dirección de Destino / Recinto (B):</b></span> <span>${e(to)}</span></li>` : ''}
         ${showMap && (mode === '1' || mode === '2') ? `
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>

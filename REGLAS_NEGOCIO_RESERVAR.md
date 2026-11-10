@@ -57,6 +57,8 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
   * **Tope Máximo:** 6 horas continuas en todas las zonas. Si se seleccionan 6 horas, los minutos quedan bloqueados en `0`.
 * **Tarifa 6 Horas en Horario Nocturno/Festivo:** Se liquida a la tarifa horaria completa de \$18.000/hr, alcanzando **\$108.000** (6 hrs x \$18.000), con un 50% de abono equivalente a **\$54.000**.
 * **Disponibilidad:** Habilitado para Turno Mañana, Turno Tarde y Turno Noche.
+* **Nomenclatura y Redacción de Horarios:** Al carecer de traslado vehicular, los comprobantes, resúmenes web y mensajes de WhatsApp emplean estrictamente:
+  `Llegada al domicilio / Inicio: [hora] — Término aprox: [hora]` (sustituyendo los términos de "Recogida" y "Retorno").
 
 ### 2.4. Modalidad 4: Acompañamiento en Eventos Sociales
 * **Descripción:** Asistencia TENS especializada en matrimonios, graduaciones, bautizos, velorios o eventos familiares.
@@ -64,9 +66,11 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
   1. **Sin Traslado (Asistencia en Recinto):** La TENS llega por sus propios medios al lugar del evento.
      * **Plan Base (4 horas continuas):** \$65.000 (tarifa plana cerrada para toda la RM).
      * **Plan Total (6 horas continuas):** \$95.000 (tarifa plana cerrada para toda la RM).
+     * **Nomenclatura de Horario:** Emplea `Llegada al recinto / Inicio: [hora] — Término aprox: [hora]`.
   2. **Con Traslado (Pack Integral Puerta a Puerta):** Incluye búsqueda en domicilio, acompañamiento en viaje de ida, permanencia durante el evento y retorno al hogar.
      * **Pack Base (4 horas de permanencia + traslados):** \$95.000 (tarifa plana cerrada para toda la RM).
      * **Pack Total (6 horas de permanencia + traslados):** \$125.000 (tarifa plana cerrada para toda la RM).
+     * **Nomenclatura de Horario:** Mantiene `Recogida: [hora] — Retorno/término aprox: [hora]`.
 * **Tiempo Adicional en Recinto (Opcional):**
   * Sin tiempo adicional (\$0) [Por defecto]
   * +30 minutos extra: +\$7.500
@@ -318,6 +322,11 @@ $$\text{Costo Kilometraje} = \text{Distancia Total (Km)} \times \$1.000$$
      * Si la reserva ingresa entre las 21:00 y las 23:59 hrs, expira a las 10:00 hrs del día siguiente. Si ingresa entre las 00:00 y las 07:59 hrs, expira a las 10:00 hrs de esa misma mañana.
 3. **Anulación de Expiración:**
    * Al confirmar la recepción del abono del 50% en el panel administrativo, el temporizador de expiración de 120 minutos se anula, el bloqueo en la agenda pasa a ser permanente y atómico, y el saldo pendiente queda listo para liquidar en terreno.
+4. **Protección y Blindaje de Bloqueos por Reservas Activas:**
+   * En el panel administrativo (`admin.html`), la pestaña *"Gestión de Disponibilidad y Bloqueos"* **deshabilita el botón de 'Desbloquear'** para cualquier bloqueo asociado a una reserva activa o confirmada (identificado por `reservaId` o correlativo `MSA-xxx`).
+   * Estos registros despliegan la etiqueta informativa `🔒 Bloqueo por reserva activa (gestionar desde Bandeja)`.
+   * El botón `🔓 Desbloquear` queda reservado exclusivamente para bloqueos manuales creados por el administrador (trámites, mantención mecánica, día libre, etc.).
+   * Para liberar un cupo originado por una reserva, el servicio debe cancelarse o gestionarse directamente desde la pestaña *"Bandeja de Entrada"*, garantizando la coherencia atómica del calendario y previniendo sobreventas.
 
 ---
 

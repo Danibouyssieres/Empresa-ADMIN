@@ -1350,9 +1350,46 @@ async function saveManualBlock(ev, forceEmergency = false){
   return { success: true, block: newBlock };
 }
 
+function isBlockFromActiveReservation(b){
+  if(!b) return false;
+  // 1. Si tiene identificador explícito de reserva
+  const resId = b.reservaId || b.reserva_id;
+  if(resId){
+    const cleanFolio = typeof formatFolioMSA === 'function' ? formatFolioMSA(resId) : String(resId);
+    if(Array.isArray(D.svcs)){
+      const linked = D.svcs.find(s => (typeof formatFolioMSA === 'function' && formatFolioMSA(s.folio, s.id) === cleanFolio) || s.id == resId || (s.remoteId && s.remoteId == resId));
+      if(linked && typeof isReservaActiva === 'function'){
+        return isReservaActiva(linked);
+      }
+    }
+    return true;
+  }
+  // 2. Verificar por descripción / motivo (reason)
+  const r = String(b.reason || '').toLowerCase().trim();
+  if(/reserva\s*(confirmada|pendiente|activa|#|msa)/i.test(r) || /#?msa-\d+/i.test(r) || /horario reservado/i.test(r) || /pre-reserva/i.test(r)){
+    const m = r.match(/msa-\d+/i);
+    if(m && Array.isArray(D.svcs)){
+      const cleanFolio = m[0].toUpperCase();
+      const linked = D.svcs.find(s => (typeof formatFolioMSA === 'function' && formatFolioMSA(s.folio, s.id) === cleanFolio) || (s.folio && s.folio.toUpperCase() === cleanFolio) || String(s.id).toUpperCase() === cleanFolio);
+      if(linked && typeof isReservaActiva === 'function'){
+        return isReservaActiva(linked);
+      }
+    }
+    return true;
+  }
+  return false;
+}
+window.isBlockFromActiveReservation = isBlockFromActiveReservation;
+
 function removeManualBlock(blockId){
   if(!Array.isArray(D.blocks)) return;
   const target = D.blocks.find(b => b.id === blockId || b.id == blockId || (b.date + '_' + b.type) === blockId);
+  if(target && isBlockFromActiveReservation(target)){
+    if(typeof alert !== 'undefined'){
+      alert('⚠️ Este bloqueo corresponde a una reserva activa y no puede eliminarse manualmente desde aquí.\n\nPara liberar este horario, gestione o cancele la reserva correspondiente desde la pestaña "Bandeja de Entrada".');
+    }
+    return;
+  }
   D.blocks = D.blocks.filter(b => b.id !== blockId && b.id != blockId && (b.date + '_' + b.type) !== blockId);
   save();
   render();
@@ -1366,13 +1403,25 @@ function removeManualBlock(blockId){
 
 function removeAllBlocksForDate(dateStr){
   if(!Array.isArray(D.blocks)) return;
-  D.blocks = D.blocks.filter(b => b.date !== dateStr);
+  const activeResBlocks = D.blocks.filter(b => b.date === dateStr && isBlockFromActiveReservation(b));
+  const blocksToRemove = D.blocks.filter(b => b.date === dateStr && !isBlockFromActiveReservation(b));
+
+  if(blocksToRemove.length === 0){
+    if(activeResBlocks.length > 0 && typeof alert !== 'undefined'){
+      alert('⚠️ Los bloqueos registrados en esta fecha corresponden a reservas activas y no pueden eliminarse aquí.\n\nPara liberar cupos, gestione o cancele las reservas desde la pestaña "Bandeja de Entrada".');
+    }
+    return;
+  }
+
+  D.blocks = D.blocks.filter(b => b.date !== dateStr || isBlockFromActiveReservation(b));
   save();
   render();
 
   if(window.MsaBlocksService){
-    MsaBlocksService.removeBlock(dateStr).catch(err => {
-      console.warn('Error al eliminar bloqueos centralizados de la fecha:', err);
+    blocksToRemove.forEach(b => {
+      MsaBlocksService.removeBlock(b.id || b.date, b.type).catch(err => {
+        console.warn('Error al eliminar bloqueos centralizados de la fecha:', err);
+      });
     });
   }
 }
@@ -1644,11 +1693,13 @@ function blocksView(){
           <div class="card" style="margin:0">
             <div class="row" style="justify-content:space-between;margin-bottom:8px">
               <h2 style="margin:0">Bloqueos activos en ${U.date}</h2>
-              ${selDateBlocks.length > 1 ? `<button type="button" class="unlock-btn" onclick="removeAllBlocksForDate('${U.date}')">🔓 Desbloquear todo el día</button>` : ''}
+              ${selDateBlocks.filter(b => !isBlockFromActiveReservation(b)).length > 0 ? `<button type="button" class="unlock-btn" onclick="removeAllBlocksForDate('${U.date}')">🔓 Desbloquear todo el día</button>` : ''}
             </div>
             ${selDateBlocks.length === 0 ? `
-              <div style="font-size:13px;color:var(--mut)">✅ Esta fecha no registra bloqueos manuales activos.</div>
-            ` : selDateBlocks.map(b => `
+              <div style="font-size:13px;color:var(--mut)">✅ Esta fecha no registra bloqueos activos.</div>
+            ` : selDateBlocks.map(b => {
+              const isResBlock = isBlockFromActiveReservation(b);
+              return `
               <div class="row" style="justify-content:space-between;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;background:var(--bg)">
                 <div>
                   <strong style="color:${b.type==='full'?'#EF4444':'#F59E0B'}">
@@ -1656,9 +1707,16 @@ function blocksView(){
                   </strong>
                   <div style="font-size:12px;color:var(--mut)">Motivo: <b>${e(b.reason || 'Sin motivo')}</b></div>
                 </div>
-                <button type="button" class="unlock-btn" onclick="removeManualBlock('${b.id || (b.date + '_' + b.type)}')">🔓 Desbloquear</button>
+                ${isResBlock ? `
+                  <span style="font-size:11px;font-weight:700;color:#0f766e;background:rgba(15,118,110,0.1);padding:5px 9px;border-radius:6px;border:1px solid rgba(15,118,110,0.25);display:inline-flex;align-items:center;gap:4px" title="Este bloqueo está asociado a una reserva activa. Para liberar este cupo, gestione o cancele la reserva desde la Bandeja.">
+                    🔒 Bloqueo por reserva activa (gestionar desde Bandeja)
+                  </span>
+                ` : `
+                  <button type="button" class="unlock-btn" onclick="removeManualBlock('${b.id || (b.date + '_' + b.type)}')">🔓 Desbloquear</button>
+                `}
               </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         </div>
       </div>
@@ -1666,7 +1724,7 @@ function blocksView(){
 
     <div class="card" style="overflow-x:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-        <h2 style="margin:0">📋 Listado general de bloqueos manuales activos (${(blocksListFilter === 'selected' ? selDateBlocks : allSortedBlocks).length})</h2>
+        <h2 style="margin:0">📋 Listado general de bloqueos activos (${(blocksListFilter === 'selected' ? selDateBlocks : allSortedBlocks).length})</h2>
         <div style="display:flex;gap:6px">
           <button type="button" class="${blocksListFilter==='all'?'on':''}" onclick="setBlocksListFilter('all')" style="padding:5px 12px;font-size:12px">
             📋 Ver todos los bloqueos (${allSortedBlocks.length})
@@ -1677,19 +1735,30 @@ function blocksView(){
         </div>
       </div>
       ${(blocksListFilter === 'selected' ? selDateBlocks : allSortedBlocks).length === 0 ? `
-        <div class="msg">No hay bloqueos manuales para el criterio de visualización seleccionado.</div>
+        <div class="msg">No hay bloqueos para el criterio de visualización seleccionado.</div>
       ` : `
         <table>
           <tr><th>Fecha</th><th>Tipo de bloqueo</th><th>Motivo interno</th><th>Impacto Público</th><th>Acción</th></tr>
-          ${(blocksListFilter === 'selected' ? selDateBlocks : allSortedBlocks).map(b => `
+          ${(blocksListFilter === 'selected' ? selDateBlocks : allSortedBlocks).map(b => {
+            const isResBlock = isBlockFromActiveReservation(b);
+            return `
             <tr onclick="pickAdminCalDate('${b.date}')" style="cursor:pointer;${b.date === U.date ? 'background:rgba(15,118,110,0.08);font-weight:600' : ''}" title="Clic para enfocar esta fecha en el calendario interactivo">
               <td><b>${e(b.date)}</b> ${b.date === U.date ? '<span style="font-size:10px;color:var(--pri);font-weight:700">◀ Seleccionada</span>' : ''}</td>
               <td><span class="badge" style="background:${b.type==='full'?'#EF4444':'#F59E0B'}">${b.type==='manana'?'☀️ Mañana':b.type==='tarde'?'⛅ Tarde':b.type==='noche'?'🌙 Noche':'🔴 Día completo'}</span></td>
               <td>${e(b.reason || '—')}</td>
-              <td style="font-size:12px;color:var(--mut)">Inhabilita agenda pública</td>
-              <td><button type="button" class="unlock-btn" onclick="event.stopPropagation(); removeManualBlock('${b.id || (b.date + '_' + b.type)}')">🔓 Desbloquear</button></td>
+              <td style="font-size:12px;color:var(--mut)">${isResBlock ? '🔒 Cupo comprometido por reserva' : 'Inhabilita agenda pública'}</td>
+              <td>
+                ${isResBlock ? `
+                  <span style="font-size:11px;font-weight:700;color:#0f766e;background:rgba(15,118,110,0.1);padding:4px 8px;border-radius:6px;border:1px solid rgba(15,118,110,0.25);white-space:nowrap;display:inline-block" title="Gestionar desde la pestaña Bandeja de Entrada">
+                    🔒 Bloqueo por reserva activa (gestionar desde Bandeja)
+                  </span>
+                ` : `
+                  <button type="button" class="unlock-btn" onclick="event.stopPropagation(); removeManualBlock('${b.id || (b.date + '_' + b.type)}')">🔓 Desbloquear</button>
+                `}
+              </td>
             </tr>
-          `).join('')}
+            `;
+          }).join('')}
         </table>
       `}
     </div>
@@ -3560,10 +3629,14 @@ function sendAdminQuoteWhatsApp(){
   }
 
   let cronogramaDesglosado = '';
-  if(qState.mode === '3' || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado')){
-    cronogramaDesglosado = `• 🩺 *Inicio de atención:* ${salidaDomicilio} hrs\n` +
+  if(qState.mode === '3'){
+    cronogramaDesglosado = `• 🩺 *Llegada al domicilio / Inicio:* ${salidaDomicilio} hrs\n` +
       `• 🩺 *Tiempo de atención:* ${tiempoAtencionLabel}\n` +
-      `• 🏠 *Término estimado:* ${retornoEstimado} hrs\n`;
+      `• 🏠 *Término aprox:* ${retornoEstimado} hrs\n`;
+  } else if(qState.mode === '4' && qState.eventSubtype === 'sin_traslado'){
+    cronogramaDesglosado = `• 🩺 *Llegada al recinto / Inicio:* ${salidaDomicilio} hrs\n` +
+      `• 🩺 *Tiempo de atención:* ${tiempoAtencionLabel}\n` +
+      `• 🏠 *Término aprox:* ${retornoEstimado} hrs\n`;
   } else if(qState.mode === '4' && qState.eventSubtype === 'con_traslado'){
     cronogramaDesglosado = `• 🚗 *Recogida en domicilio:* ${salidaDomicilio} hrs\n` +
       `• 🏥 *Llegada a recinto:* ${llegadaDestino} hrs\n` +
@@ -3575,10 +3648,10 @@ function sendAdminQuoteWhatsApp(){
       `• 🩺 *Permanencia clínica / espera:* ${tiempoAtencionLabel}\n` +
       `• 🏠 *Retorno estimado al domicilio:* ${retornoEstimado} hrs\n`;
   } else {
-    cronogramaDesglosado = `• 🚗 *Salida de domicilio:* ${salidaDomicilio} hrs\n` +
+    cronogramaDesglosado = `• 🚗 *Recogida en domicilio:* ${salidaDomicilio} hrs\n` +
       `• 🏥 *Llegada a destino:* ${llegadaDestino} hrs\n` +
       `• 🩺 *Tiempo de atención:* ${tiempoAtencionLabel}\n` +
-      `• 🏠 *Retorno estimado:* ${retornoEstimado} hrs\n`;
+      `• 🏠 *Retorno/término aprox:* ${retornoEstimado} hrs\n`;
   }
 
   let breakdown = '';
@@ -5361,6 +5434,7 @@ async function executeConfirmDeposit(id){
     if(b){
       b.status = 'definitivo';
       b.locked = true;
+      b.reservaId = cleanFolio;
     }
   }
 
@@ -5370,7 +5444,8 @@ async function executeConfirmDeposit(id){
       date: s.date,
       type: s.block || 'full',
       reason: `Reserva confirmada #${cleanFolio} (${s.pat})`,
-      tid: s.tid || 'all'
+      tid: s.tid || 'all',
+      reservaId: cleanFolio
     }).catch(err => console.warn('Error al persistir bloqueo permanente:', err));
 
     // 2. Actualizar estado y pago en tabla reservas (sanitizado)
