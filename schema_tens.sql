@@ -1,6 +1,6 @@
 -- =========================================================================
--- ESQUEMA DE BASE DE DATOS: APLICACIÓN MÓVIL TENS
--- Para ejecutar en el proyecto Supabase de Desarrollo (independiente de producción)
+-- ESQUEMA DE BASE DE DATOS: APLICACIÓN MÓVIL TENS (DESARROLLO)
+-- Proyecto: empresa-tens-dev
 -- =========================================================================
 
 -- 1. Tabla de Usuarios TENS / Tripulación
@@ -14,19 +14,45 @@ CREATE TABLE IF NOT EXISTS public.usuarios_tens (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Tabla de Eventos y Bitácora de Ruta en Terreno
+-- 2. Tabla de Reservas de Desarrollo (Servicios de prueba)
+CREATE TABLE IF NOT EXISTS public.reservas (
+    id BIGSERIAL PRIMARY KEY,
+    folio VARCHAR(50) UNIQUE NOT NULL,
+    fecha DATE NOT NULL,
+    hora_recogida VARCHAR(10) NOT NULL,
+    turno VARCHAR(20) NOT NULL,
+    modalidad VARCHAR(10) NOT NULL,
+    modalidad_nombre VARCHAR(150),
+    paciente_nombre VARCHAR(150) NOT NULL,
+    paciente_edad INTEGER,
+    paciente_telefono VARCHAR(30),
+    paciente_motivo TEXT,
+    paciente_movilidad VARCHAR(100),
+    paciente_alergias TEXT,
+    coordinador_nombre VARCHAR(150),
+    coordinador_telefono VARCHAR(30),
+    ruta_origen TEXT NOT NULL,
+    ruta_destino TEXT NOT NULL,
+    km_estimado NUMERIC(6, 2) DEFAULT 0,
+    tiempo_espera VARCHAR(50),
+    estado_terreno VARCHAR(50) DEFAULT 'pendiente', -- 'en_camino', 'en_domicilio', 'en_traslado', 'en_espera', 'en_retorno', 'finalizado'
+    estado_pago VARCHAR(50) DEFAULT 'confirmada',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. Tabla de Eventos y Bitácora de Ruta en Terreno
 CREATE TABLE IF NOT EXISTS public.eventos_terreno (
     id BIGSERIAL PRIMARY KEY,
     servicio_id VARCHAR(50) NOT NULL,
     tens_id UUID REFERENCES public.usuarios_tens(id) ON DELETE SET NULL,
-    estado VARCHAR(50) NOT NULL, -- 'en_camino', 'en_domicilio', 'en_traslado', 'en_espera', 'finalizado'
+    estado VARCHAR(50) NOT NULL,
     latitud NUMERIC(10, 7),
     longitud NUMERIC(10, 7),
     notas TEXT,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. Tabla de Ficha Clínica y Signos Vitales
+-- 4. Tabla de Ficha Clínica y Signos Vitales
 CREATE TABLE IF NOT EXISTS public.signos_vitales_tens (
     id BIGSERIAL PRIMARY KEY,
     servicio_id VARCHAR(50) NOT NULL,
@@ -45,12 +71,25 @@ CREATE TABLE IF NOT EXISTS public.signos_vitales_tens (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Habilitar RLS (Row Level Security)
-ALTER TABLE public.usuarios_tens ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.eventos_terreno ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.signos_vitales_tens ENABLE ROW LEVEL SECURITY;
+-- 5. Insertar TENS de prueba
+INSERT INTO public.usuarios_tens (nombre, rut, telefono, pin)
+VALUES ('Daniela (TENS Terreno)', '18.123.456-7', '912345678', '1234')
+ON CONFLICT (rut) DO NOTHING;
 
--- Políticas permisivas para desarrollo
-CREATE POLICY "Permitir lectura y escritura en dev eventos" ON public.eventos_terreno FOR ALL USING (true);
-CREATE POLICY "Permitir lectura y escritura en dev signos" ON public.signos_vitales_tens FOR ALL USING (true);
-CREATE POLICY "Permitir lectura y escritura en dev tens" ON public.usuarios_tens FOR ALL USING (true);
+-- 6. Insertar Servicios de Prueba para Hoy y Mañana
+INSERT INTO public.reservas (
+    folio, fecha, hora_recogida, turno, modalidad, modalidad_nombre,
+    paciente_nombre, paciente_edad, paciente_telefono, paciente_motivo, paciente_movilidad, paciente_alergias,
+    coordinador_nombre, coordinador_telefono, ruta_origen, ruta_destino, km_estimado, tiempo_espera, estado_terreno
+) VALUES 
+(
+    'MSA-2611-001', CURRENT_DATE, '08:30', 'mañana', '1', '1. Servicio Integral (Asistencia + Traslado)',
+    'Rosa María Medina Soto', 78, '987654321', 'Control Traumatología y Retiro de Puntos', 'Silla de Ruedas del móvil', 'Penicilina, Látex',
+    'Andrea Medina (Hija)', '912345678', 'Av. Las Condes 12345, Las Condes', 'Clínica Las Condes, Edificio Central, Estoril 450', 12.4, '2 horas', 'pendiente'
+),
+(
+    'MSA-2611-002', CURRENT_DATE, '15:00', 'tarde', '2', '2. Traslado Exclusivo con Espera',
+    'Carlos Alberto Valenzuela', 82, '998877665', 'Sesión de Quimioterapia Ambulatoria', 'Camina con dificultad / Andador del servicio', 'Sin alergias conocidas',
+    'Carlos Valenzuela Jr.', '987112233', 'Av. Providencia 2150, Depto 804, Providencia', 'Instituto Oncológico FALP, Rancagua 878, Providencia', 6.8, '3 horas', 'pendiente'
+)
+ON CONFLICT (folio) DO NOTHING;
