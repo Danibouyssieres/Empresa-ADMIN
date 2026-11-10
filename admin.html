@@ -4324,17 +4324,34 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   // Regla de tiempo extra estricta (Cero cortesía: si supera por 1 minuto o más, gatilla bloque de 30 min)
   const extraBlocks = diffMin >= 1 ? Math.ceil(diffMin / 30) : 0;
 
-  // Tarifas por bloque de 30 min:
-  // Interregional: $15.000 / Nocturno o Festivo: $9.000 / Fin de semana: $7.500 / Hábil: $6.000
+  // Tarifas por bloque de 30 min dinámicas según Modalidad y Jornada:
+  // * Modalidad 1 (Integral): $6.000 (Hábil) | $7.500 (Sáb/Dom) | $9.000 (Fest/Noc)
+  // * Modalidad 2 (Traslado Exclusivo c/ Espera): $4.000 (Hábil) | $5.000 (Sáb/Dom) | $6.000 (Fest/Noc)
+  // * Modalidad 3 (Cuidados a Domicilio): $6.000 (Hábil) | $7.500 (Sáb/Dom) | $9.000 (Fest/Noc)
+  // * Modalidad 4 (Eventos Sociales): $7.500 fijo por bloque de 30 min
+  // * Modalidad 5 (Interregional): $15.000 fijo por bloque de 30 min
   let extraBlockRate = 6000;
-  if(mode === '5'){
-    extraBlockRate = 15000;
-  } else if(jornada === 'nocturno'){
-    extraBlockRate = 9000;
-  } else if(jornada === 'finde' || jornada === 'tarde'){
+  if(mode === '2'){
+    if(jornada === 'nocturno'){
+      extraBlockRate = 6000;
+    } else if(jornada === 'finde' || jornada === 'tarde'){
+      extraBlockRate = 5000;
+    } else {
+      extraBlockRate = 4000;
+    }
+  } else if(mode === '4'){
     extraBlockRate = 7500;
+  } else if(mode === '5'){
+    extraBlockRate = 15000;
   } else {
-    extraBlockRate = 6000;
+    // Modalidad 1 y Modalidad 3 (y fallback general)
+    if(jornada === 'nocturno'){
+      extraBlockRate = 9000;
+    } else if(jornada === 'finde' || jornada === 'tarde'){
+      extraBlockRate = 7500;
+    } else {
+      extraBlockRate = 6000;
+    }
   }
 
   const extraCost = extraBlocks * extraBlockRate;
@@ -4525,7 +4542,7 @@ function onFieldCheckoutRecalc(){
   if(extraNote){
     if(calc.diffMin > 0){
       extraNote.style.display = 'block';
-      extraNote.textContent = `⏱️ Retraso en terreno: +${calc.diffMin} min (${calc.extraBlocks * 30} min facturados = +${$c(calc.extraCost)})`;
+      extraNote.textContent = `⏱️ Retraso en terreno: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`;
     } else {
       extraNote.style.display = 'none';
     }
@@ -4558,13 +4575,16 @@ function solicitarPagoWhatsAppAdmin(){
   const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
 
   const parkingTxt = calc.parking > 0 ? ` (incluye ${$c(calc.parking)} de estacionamiento en recinto clínico)` : '';
+  const extraTxt = (calc.diffMin > 0 && calc.extraCost > 0)
+    ? `\n• Tiempo adicional en terreno: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`
+    : '';
 
   const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA.
 
 Hemos finalizado exitosamente el servicio de atención y traslado de ${patName} (Folio #${cleanFolio}).
 
 💰 *DETALLE DE SALDO A LIQUIDAR:*
-• Subtotal Servicio: ${$c(calc.subtotalServicio)}
+• Subtotal Servicio: ${$c(calc.subtotalServicio)}${extraTxt}
 • Estacionamiento / Parking: ${$c(calc.parking)}
 • Total Servicio Liquidado: ${$c(calc.totalServicio)}
 • Abono 50% previo registrado: -${$c(calc.abonoPrevio)}
@@ -4763,7 +4783,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
       </tr>
       <tr>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Asistencia Clínica TENS (Tiempo Base)</td>
+        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Destino' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : (mode === '4' ? 'Permanencia TENS en Evento' : (mode === '5' ? 'Viáticos y Cobertura en Ruta' : 'Asistencia Clínica TENS (Tiempo Base)')))}</td>
         <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1)} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
         <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
       </tr>
@@ -4772,7 +4792,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
           <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq × 30 min) × ${$c(calc.extraBlockRate)}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq × 30 min) × ${$c(calc.extraBlockRate)} (${jornadaTexto})</td>
           <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">${$c(extraCost)}</td>
         </tr>
       `;
