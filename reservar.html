@@ -6889,7 +6889,11 @@ async function submitBooking(ev){
     `• Medicamentos habituales: ${medsText}\n` +
     `• Estado de Conciencia: ${conciencia}\n` +
     `• Condición de Movilidad: ${mob}\n` +
-    (ayudaTecnica ? `• Ayuda técnica requerida: ${ayudaTecnica}\n` : '') +
+    (ayudaTecnica
+      ? (ayudaTecnica.toLowerCase().includes('silla de ruedas')
+          ? `👉 ♿ EQUIPAMIENTO A BORDO: REQUIERE SILLA DE RUEDAS DE LA EMPRESA\n`
+          : (!ayudaTecnica.startsWith('Ninguna') ? `• Ayuda técnica requerida: ${ayudaTecnica}\n` : ''))
+      : '') +
     `• Patologías crónicas / Base: ${pathologiesText}\n` +
     `• ¿Viaja solo o acompañado?: ${compVal}\n` +
     (obs ? `• Observaciones e Indicaciones: ${obs}\n` : '') +
@@ -6960,7 +6964,11 @@ async function submitBooking(ev){
         <li><span>💊 <b>Medicamentos Habituales:</b></span> <span>${e(medsText)}</span></li>
         <li><span>🧠 <b>Estado de Conciencia:</b></span> <span>${e(conciencia)}</span></li>
         <li><span>♿ <b>Condición de Movilidad:</b></span> <span>${e(mob)}</span></li>
-        ${ayudaTecnica ? `<li><span>🦯 <b>Ayuda Técnica Requerida:</b></span> <span>${e(ayudaTecnica)}</span></li>` : ''}
+        ${ayudaTecnica ? (
+          ayudaTecnica.toLowerCase().includes('silla de ruedas')
+            ? `<li style="background:rgba(15,118,110,0.12);padding:8px 10px;border-radius:6px;border:1.5px solid var(--teal);font-weight:700"><span style="color:var(--teal)">👉 ♿ <b>EQUIPAMIENTO A BORDO:</b></span> <span style="color:var(--ink)">REQUIERE SILLA DE RUEDAS DE LA EMPRESA</span></li>`
+            : (!ayudaTecnica.startsWith('Ninguna') ? `<li><span>🦯 <b>Ayuda Técnica Requerida:</b></span> <span>${e(ayudaTecnica)}</span></li>` : '')
+        ) : ''}
         <li><span>🩺 <b>Patologías Crónicas / Base:</b></span> <span>${e(pathologiesText)}</span></li>
         <li><span>👥 <b>¿Viaja solo o acompañado?:</b></span> <span>${e(compVal)}</span></li>
         ${obs ? `<li><span>📝 <b>Observaciones / Indicaciones:</b></span> <span>${e(obs)}</span></li>` : ''}

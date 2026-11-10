@@ -386,7 +386,8 @@ Una vez superadas las validaciones:
    * Fecha, jornada y turno agendado.
    * Direcciones exactas de origen y destino con indicaciones de Depto/Villa si aplica.
    * Kilometraje total y desglose de tiempos (ida, espera, retorno).
-   * Datos clínicos (edad, diagnóstico, movilidad, alergias, patologías).
+   * Datos clínicos: edad, diagnóstico, conciencia, condición de movilidad y patologías.
+   * **Alerta Logística Destacada de Equipamiento:** Si el usuario selecciona la Silla de Ruedas del servicio, la línea se formatea con énfasis y emoji de alta visibilidad: `👉 ♿ EQUIPAMIENTO A BORDO: REQUIERE SILLA DE RUEDAS DE LA EMPRESA`. Si requiere otra ayuda técnica (andador, bastón), se desglosa como `• Ayuda técnica requerida: [implemento]`. Si es autovalente / ninguna, se omite.
    * Ficha de facturación (Boleta o Factura con sus datos).
    * **Liquidación final:** Tarifa total calculada, Abono del 50% requerido para agendar y Saldo pendiente a pagar en terreno.
 3. Se redirige al cliente a la aplicación de WhatsApp para el cierre formal del servicio con la central de operaciones.

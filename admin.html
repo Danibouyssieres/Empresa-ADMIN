@@ -3650,7 +3650,11 @@ ${trayectoLine}
 ${cronogramaDesglosado}
 🏥 *FICHA CLÍNICA:*
 • *Condición de movilidad:* ${mob}
-${ayudaTecnica ? `• *Ayuda técnica requerida:* ${ayudaTecnica}\n` : ''}• *Alergias conocidas:* ${alergiasText}
+${ayudaTecnica ? (
+  ayudaTecnica.toLowerCase().includes('silla de ruedas')
+    ? `👉 ♿ *EQUIPAMIENTO A BORDO: REQUIERE SILLA DE RUEDAS DE LA EMPRESA*\n`
+    : (!ayudaTecnica.startsWith('Ninguna') ? `• *Ayuda técnica requerida:* ${ayudaTecnica}\n` : '')
+) : ''}• *Alergias conocidas:* ${alergiasText}
 • *Medicamentos habituales:* ${medsText}
 
 💰 *DESGLOSE ECONÓMICO:*
