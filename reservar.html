@@ -4337,6 +4337,23 @@ function doesServiceEndAfter22(s){
   return (startMin + durMin) > (22 * 60);
 }
 
+function isReservaActiva(s){
+  if(!s) return false;
+  const rawSt = String(s.st || s.estado || s.status || '').toLowerCase().trim();
+  if(
+    rawSt === 'cancelado' || rawSt === 'cancelada' ||
+    rawSt === 'expirada' || rawSt === 'expirado' ||
+    rawSt === 'expirada_cancelada' ||
+    rawSt === 'descartada' || rawSt === 'descartado' ||
+    rawSt === 'anulado' || rawSt === 'anulada' ||
+    rawSt.includes('cancelad') || rawSt.includes('expirad') || rawSt.includes('descartad') || rawSt.includes('anulad')
+  ){
+    return false;
+  }
+  return true;
+}
+window.isReservaActiva = isReservaActiva;
+
 // Evaluar el estado detallado de capacidad y bloqueos para una fecha YYYY-MM-DD
 function evaluateDateCapacity(dateStr){
   const { minMs, todayStr, maxDateStr } = getBookingWindowBounds();
@@ -4356,9 +4373,9 @@ function evaluateDateCapacity(dateStr){
   const prevDateStr = addDaysYMD(dateStr, -1);
   const nextDateStr = addDaysYMD(dateStr, 1);
 
-  const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && s.st !== 'Cancelado');
-  const prevDaySvcs = (D.svcs || []).filter(s => s.date === prevDateStr && s.st !== 'Cancelado');
-  const nextDaySvcs = (D.svcs || []).filter(s => s.date === nextDateStr && s.st !== 'Cancelado');
+  const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && isReservaActiva(s));
+  const prevDaySvcs = (D.svcs || []).filter(s => s.date === prevDateStr && isReservaActiva(s));
+  const nextDaySvcs = (D.svcs || []).filter(s => s.date === nextDateStr && isReservaActiva(s));
   // Fusionar bloques de memoria con msa_blocks dedicados
   let mergedActiveBlocks = Array.isArray(D.blocks) ? [...D.blocks] : [];
   try {
@@ -4896,7 +4913,15 @@ function renderCalendar(){
         });
       }
     } catch(e){}
-    const dateManualBlocks = calBlocks.filter(b => b.date === dateStr);
+    const dateManualBlocks = calBlocks.filter(b => {
+      if(b.date !== dateStr) return false;
+      if(b.expiresAt && new Date(b.expiresAt).getTime() <= Date.now()) return false;
+      if(b.reservaId){
+        const linkedRes = (D.svcs || []).find(s => String(s.folio || s.id) === String(b.reservaId));
+        if(linkedRes && !isReservaActiva(linkedRes)) return false;
+      }
+      return true;
+    });
     const isFullDayManualBlocked = dateManualBlocks.some(b => b.type === 'full') ||
       (dateManualBlocks.some(b => b.type === 'manana') && dateManualBlocks.some(b => b.type === 'tarde') && dateManualBlocks.some(b => b.type === 'noche'));
 

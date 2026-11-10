@@ -760,10 +760,41 @@ function formatFolioMSA(folio, id){
 }
 window.formatFolioMSA = formatFolioMSA;
 
-function isSvcCancelled(st){
-  if(!st) return false;
-  const s = String(st).toLowerCase().trim();
-  return s.includes('cancelad') || s === 'expirada_cancelada';
+function isReservaActiva(s){
+  if(!s) return false;
+  const rawSt = String(s.st || s.estado || s.status || '').toLowerCase().trim();
+  if(
+    rawSt === 'cancelado' || rawSt === 'cancelada' ||
+    rawSt === 'expirada' || rawSt === 'expirado' ||
+    rawSt === 'expirada_cancelada' ||
+    rawSt === 'descartada' || rawSt === 'descartado' ||
+    rawSt === 'anulado' || rawSt === 'anulada' ||
+    rawSt.includes('cancelad') || rawSt.includes('expirad') || rawSt.includes('descartad') || rawSt.includes('anulad')
+  ){
+    return false;
+  }
+  if(rawSt === 'pre-reserva pendiente' || rawSt === 'pendiente_abono' || rawSt === 'pendiente'){
+    try {
+      if(typeof getReservationRemainingSeconds === 'function'){
+        const rem = getReservationRemainingSeconds(s);
+        if(rem !== null && rem <= 0){
+          s.st = 'Cancelado';
+          return false;
+        }
+      }
+    } catch(e){}
+  }
+  return true;
+}
+window.isReservaActiva = isReservaActiva;
+
+function isSvcCancelled(stOrSvc){
+  if(!stOrSvc) return false;
+  if(typeof stOrSvc === 'object'){
+    return !isReservaActiva(stOrSvc);
+  }
+  const s = String(stOrSvc).toLowerCase().trim();
+  return s.includes('cancelad') || s.includes('expirad') || s.includes('descartad') || s.includes('anulad');
 }
 window.isSvcCancelled = isSvcCancelled;
 
@@ -811,8 +842,15 @@ window.findReserva = findReserva;
 
 function getNormalizedReservaCategory(s){
   if (!s) return 'cancelled';
-  const rawSt = String(s.st || s.estado || '').toLowerCase().trim();
-  if (rawSt === 'cancelado' || rawSt === 'cancelada' || rawSt === 'expirada_cancelada' || rawSt === 'anulado' || rawSt === 'anulada') {
+  const rawSt = String(s.st || s.estado || s.status || '').toLowerCase().trim();
+  if (
+    rawSt === 'cancelado' || rawSt === 'cancelada' ||
+    rawSt === 'expirada' || rawSt === 'expirado' ||
+    rawSt === 'expirada_cancelada' ||
+    rawSt === 'descartada' || rawSt === 'descartado' ||
+    rawSt === 'anulado' || rawSt === 'anulada' ||
+    rawSt.includes('cancelad') || rawSt.includes('expirad') || rawSt.includes('descartad') || rawSt.includes('anulad')
+  ) {
     return 'cancelled';
   }
   if (rawSt === 'pre-reserva pendiente' || rawSt === 'pendiente_abono' || rawSt === 'pendiente') {
@@ -994,7 +1032,7 @@ const tn=id=>(D.techs.find(t=>t.id==id)||{}).nom||'—';
 
 /* REGLA DE BUFFER: nuevo.inicio < previo.fin + 180 (y simétrica: previo.inicio < nuevo.fin + 180) */
 function avail(tid,date,start,dur,ign){
-  return !D.svcs.some(s=>s.tid==tid&&s.date==date&&s.st!='Cancelado'&&s.st!='Cancelada'&&s.st!='expirada_cancelada'&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF);
+  return !D.svcs.some(s=>s.tid==tid&&s.date==date&&isReservaActiva(s)&&s.id!=ign&&start<s.start+s.dur+BUF&&s.start<start+dur+BUF);
 }
 
 function safeBackgroundRender(){
@@ -1139,8 +1177,7 @@ async function checkDateReservasConflict(dateStr, type) {
   // Filtrar servicios activos de la fecha (confirmada, pendiente_abono, en terreno, etc.)
   const activeDateSvcs = allSvcs.filter(s => {
     if (s.date !== dateStr) return false;
-    const isCancelled = s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada';
-    return !isCancelled;
+    return isReservaActiva(s);
   });
 
   // Si el bloqueo solicitado es día completo cerrado ('full'), todas las reservas activas generan conflicto
@@ -1170,8 +1207,7 @@ async function checkDateReservasConflict(dateStr, type) {
     const nextDate = addDaysYMD(dateStr, 1);
     const nextDayMorningSvcs = allSvcs.filter(s => {
       if (s.date !== nextDate) return false;
-      const isCancelled = s.st === 'Cancelado' || s.st === 'Cancelada' || s.st === 'expirada_cancelada';
-      if (isCancelled) return false;
+      if (!isReservaActiva(s)) return false;
       const sBlock = s.block || (s.start < 720 ? 'manana' : s.start < 1200 ? 'tarde' : 'noche');
       return sBlock === 'manana' || sBlock === 'full' || (s.start < 720 && (s.start + (s.dur || 120)) > 360);
     });
@@ -1356,13 +1392,21 @@ async function syncCentralizedBlocksAdmin(){
           remoteReservas.forEach(r => {
             const canonicalFolio = formatFolioMSA(r.folio, r.id);
             if(Array.isArray(D.discardedFolios) && D.discardedFolios.includes(canonicalFolio)){
+              D.svcs = D.svcs.filter(s => formatFolioMSA(s.folio, s.id) !== canonicalFolio && s.id !== canonicalFolio);
               return;
             }
             const rSt = String(r.st || r.estado || '').toLowerCase().trim();
-            if(rSt === 'cancelada' || rSt === 'cancelado' || rSt === 'descartada' || rSt === 'descartado' || rSt === 'expirada_cancelada'){
+            const exists = D.svcs.find(s => (s.folio && formatFolioMSA(s.folio, s.id) === canonicalFolio) || (r.id && s.remoteId === r.id));
+
+            if(rSt === 'cancelada' || rSt === 'cancelado' || rSt === 'descartada' || rSt === 'descartado' || rSt === 'expirada_cancelada' || rSt === 'expirada' || rSt === 'expirado' || rSt.includes('cancelad') || rSt.includes('expirad') || rSt.includes('descartad')){
+              if(exists){
+                exists.st = 'Cancelado';
+                if(Array.isArray(D.blocks)){
+                  D.blocks = D.blocks.filter(b => b.reservaId !== canonicalFolio && b.reservaId !== exists.id);
+                }
+              }
               return;
             }
-            const exists = D.svcs.find(s => (s.folio && formatFolioMSA(s.folio, s.id) === canonicalFolio) || (r.id && s.remoteId === r.id));
             if(!exists){
               D.svcs.push({
                 id: canonicalFolio,
@@ -1458,8 +1502,16 @@ function blocksView(){
   for(let d = 1; d <= daysInMonth; d++){
     const dateStr = `${y}-${pad(m+1)}-${pad(d)}`;
     const isSel = dateStr === U.date;
-    const dayBlocks = D.blocks.filter(b => b.date === dateStr);
-    const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && s.st !== 'Cancelado');
+    const dayBlocks = (D.blocks || []).filter(b => {
+      if(b.date !== dateStr) return false;
+      if(b.expiresAt && new Date(b.expiresAt).getTime() <= Date.now()) return false;
+      if(b.reservaId){
+        const linkedRes = (D.svcs || []).find(s => formatFolioMSA(s.folio, s.id) === formatFolioMSA(b.reservaId));
+        if(linkedRes && !isReservaActiva(linkedRes)) return false;
+      }
+      return true;
+    });
+    const daySvcs = (D.svcs || []).filter(s => s.date === dateStr && isReservaActiva(s));
 
     const hasFull = dayBlocks.some(b => b.type === 'full') || (dayBlocks.some(b => b.type === 'manana') && dayBlocks.some(b => b.type === 'tarde') && dayBlocks.some(b => b.type === 'noche'));
     const hasManana = !hasFull && dayBlocks.some(b => b.type === 'manana');
@@ -1501,7 +1553,15 @@ function blocksView(){
     `;
   }
 
-  const selDateBlocks = D.blocks.filter(b => b.date === U.date);
+  const selDateBlocks = (D.blocks || []).filter(b => {
+    if(b.date !== U.date) return false;
+    if(b.expiresAt && new Date(b.expiresAt).getTime() <= Date.now()) return false;
+    if(b.reservaId){
+      const linkedRes = (D.svcs || []).find(s => formatFolioMSA(s.folio, s.id) === formatFolioMSA(b.reservaId));
+      if(linkedRes && !isReservaActiva(linkedRes)) return false;
+    }
+    return true;
+  });
   const allSortedBlocks = [...D.blocks].sort((a,b) => a.date.localeCompare(b.date));
 
   return `
@@ -5056,8 +5116,19 @@ function renderReservaCard(s){
           <span style="font-size:12px;color:#64748b;font-weight:700">⚪ Atención finalizada en terreno · Saldo 100% liquidado (${$c(s.paid)})</span>
         </div>
       ` : isCancelled ? `
-        <div class="reservation-actions">
+        <div class="reservation-actions" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <span style="font-size:12px;color:#ef4444;font-weight:700">🔴 Reserva cancelada / expirada por falta de abono (Cupo liberado)</span>
+          <button 
+            type="button" 
+            class="btn-purge-reserva" 
+            onclick="purgeReservaDefinitiva('${svcKey}')"
+            style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s"
+            onmouseover="this.style.background='#fee2e2'" 
+            onmouseout="this.style.background='#fef2f2'"
+            title="Eliminar definitivamente este registro del sistema y de la base de datos"
+          >
+            🗑️ Eliminar del registro
+          </button>
         </div>
       ` : ''}
     </div>
@@ -5437,6 +5508,43 @@ async function autoExpireReservation(id, triggerRender = true){
   }
 }
 window.autoExpireReservation = autoExpireReservation;
+
+async function purgeReservaDefinitiva(idOrFolio){
+  const cleanFolio = formatFolioMSA(idOrFolio);
+  const s = findReserva(idOrFolio);
+  const patName = (s && s.pat) ? s.pat : cleanFolio;
+
+  if(!confirm(`¿Desea eliminar definitivamente el registro #${cleanFolio} (${patName}) del sistema?\n\nEsta acción purgará la reserva de la base de datos de forma permanente.`)){
+    return;
+  }
+
+  // 1. Agregar a lista de descartados para que syncCentralizedBlocksAdmin nunca lo vuelva a importar
+  if(!Array.isArray(D.discardedFolios)) D.discardedFolios = [];
+  if(!D.discardedFolios.includes(cleanFolio)) D.discardedFolios.push(cleanFolio);
+
+  // 2. Remover de D.svcs
+  D.svcs = (D.svcs || []).filter(x => x && x.id !== idOrFolio && formatFolioMSA(x.folio, x.id) !== cleanFolio);
+
+  // 3. Remover de D.blocks si hubiera algún bloqueo remanente
+  if(D.blocks && Array.isArray(D.blocks)){
+    D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == idOrFolio || (s && x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
+  }
+
+  save();
+  render();
+
+  // 4. Sincronizar eliminación en Supabase / Backend
+  if(window.MsaBlocksService && typeof window.MsaBlocksService.deleteReserva === 'function'){
+    try {
+      await window.MsaBlocksService.deleteReserva(cleanFolio, s ? s.date : null, s ? (s.block || 'full') : null);
+    } catch(err) {
+      console.warn('Error purgando reserva en backend:', err);
+    }
+  }
+
+  alert(`🗑️ Registro #${cleanFolio} purgado exitosamente del sistema.`);
+}
+window.purgeReservaDefinitiva = purgeReservaDefinitiva;
 
 function initReservationCountdownTimer(){
   if(typeof window === 'undefined' || typeof setInterval === 'undefined') return;

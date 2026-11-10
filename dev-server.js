@@ -191,6 +191,58 @@ const server = http.createServer(async (req, res) => {
       });
       return;
     }
+
+    if (req.method === 'DELETE') {
+      const folio = urlObj.searchParams.get('folio');
+      const id = urlObj.searchParams.get('id');
+      console.log(`[DEV SERVER] Purgando reserva: ${folio || id}`);
+      if (SUPABASE_DEV_URL && SUPABASE_DEV_KEY && (folio || id)) {
+        try {
+          const param = folio ? `folio=eq.${encodeURIComponent(folio)}` : `id=eq.${encodeURIComponent(id)}`;
+          await fetch(`${SUPABASE_DEV_URL}/rest/v1/reservas?${param}`, {
+            method: 'DELETE',
+            headers: {
+              apikey: SUPABASE_DEV_KEY,
+              Authorization: `Bearer ${SUPABASE_DEV_KEY}`
+            }
+          });
+        } catch(e) {
+          console.error('[DEV SERVER] Error eliminando en Supabase:', e);
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      return res.end(JSON.stringify({ ok: true, deleted: folio || id }));
+    }
+
+    if (req.method === 'PATCH') {
+      const folio = urlObj.searchParams.get('folio');
+      const id = urlObj.searchParams.get('id');
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const patchData = JSON.parse(body || '{}');
+          if (SUPABASE_DEV_URL && SUPABASE_DEV_KEY && (folio || id)) {
+            const param = folio ? `folio=eq.${encodeURIComponent(folio)}` : `id=eq.${encodeURIComponent(id)}`;
+            await fetch(`${SUPABASE_DEV_URL}/rest/v1/reservas?${param}`, {
+              method: 'PATCH',
+              headers: {
+                apikey: SUPABASE_DEV_KEY,
+                Authorization: `Bearer ${SUPABASE_DEV_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(patchData)
+            });
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          return res.end(JSON.stringify({ ok: true, patched: folio || id, data: patchData }));
+        } catch(e) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+      });
+      return;
+    }
   }
 
   // API ROUTE: Obtener clave pública VAPID
