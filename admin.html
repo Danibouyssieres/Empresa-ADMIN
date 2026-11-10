@@ -3822,7 +3822,17 @@ ${breakdown}• *TOTAL COTIZADO:* ${$c(qState.totalFare)}
 
 📄 *DOCUMENTO TRIBUTARIO:* ${(typeof document !== 'undefined' && document.querySelector('input[name="aq_tax_doc"]:checked') && document.querySelector('input[name="aq_tax_doc"]:checked').value === 'factura') ? ('Factura Electrónica Exenta (' + (($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || 'Empresa') + ' - RUT ' + (($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '') + ')') : 'Boleta Electrónica Exenta'}
 
+🏦 *DATOS BANCARIOS PARA TRANSFERENCIA DEL ABONO (50%):*
+• Banco: Scotiabank
+• Tipo de Cuenta: Cuenta Corriente
+• N° de Cuenta: 994989122
+• R.U.T.: 78.521.776-4
+• Titular: Movilidad y Salud Asistida SpA
+• Correo de comprobantes: contacto@movilidadysaludasistida.cl
+
 🏥 *INCLUYE:* Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, vehículo climatizado y habilitado para ayudas técnicas.
+
+*(Su cupo queda pre-reservado por 2 horas continuas a la espera del comprobante de transferencia bancaria).*
 
 Quedamos atentos para reservar su cupo exclusivo!`;
 
@@ -3858,11 +3868,16 @@ Quedamos atentos para reservar su cupo exclusivo!`;
     razonSocial: ($('#aq_tax_rs') && $('#aq_tax_rs').value.trim()) || 'Empresa',
     rut: ($('#aq_tax_rut') && $('#aq_tax_rut').value.trim()) || '',
     giro: ($('#aq_tax_giro') && $('#aq_tax_giro').value.trim()) || '',
+    direccion: ($('#aq_tax_dir') && $('#aq_tax_dir').value.trim()) || '',
     dir: ($('#aq_tax_dir') && $('#aq_tax_dir').value.trim()) || ''
   } : {
     type: 'boleta',
     label: 'Boleta Electrónica Exenta'
   };
+
+  const expInfo = (typeof computeReservationExpiration === 'function')
+    ? computeReservationExpiration(new Date())
+    : { expiresAt: new Date(Date.now() + 120 * 60 * 1000).toISOString(), expiresMs: Date.now() + 120 * 60 * 1000 };
 
   const newSvc = {
     id: cleanFolio,
@@ -3875,7 +3890,8 @@ Quedamos atentos para reservar su cupo exclusivo!`;
     pat: pat,
     age: ageVal,
     dx: dxVal,
-    coord: coord,
+    coord: isInvoice ? (taxDocObj.razonSocial || coord) : coord,
+    coordRut: isInvoice ? taxDocObj.rut : '',
     ph: phoneDigits ? ('+569' + phoneDigits) : '+56929990095',
     from: from,
     to: to,
@@ -3886,6 +3902,10 @@ Quedamos atentos para reservar su cupo exclusivo!`;
     comp: false,
     compDesc: '',
     taxDoc: taxDocObj,
+    taxRS: taxDocObj.razonSocial || '',
+    taxRUT: taxDocObj.rut || '',
+    taxGiro: taxDocObj.giro || '',
+    taxDir: taxDocObj.direccion || '',
     patologias: [dxVal],
     fare: qState.totalFare,
     baseFare: qState.totalFare,
@@ -3912,7 +3932,7 @@ Quedamos atentos para reservar su cupo exclusivo!`;
     conciencia: 'Lúcido / Orientado',
     obs: `Cotización enviada vía WhatsApp (Folio #${cleanFolio}) · Pendiente recepción de abono 50%`,
     createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+    expiresAt: expInfo.expiresAt
   };
 
   D.svcs.push(newSvc);
@@ -3930,7 +3950,7 @@ Quedamos atentos para reservar su cupo exclusivo!`;
       type: 'full',
       shift: 'full',
       reason: 'Jornada Exclusiva Eventos (1 evento al día) #' + cleanFolio,
-      status: 'temporal_60m',
+      status: 'temporal_120m',
       expiresAt: newSvc.expiresAt
     });
 
@@ -3943,7 +3963,7 @@ Quedamos atentos para reservar su cupo exclusivo!`;
         type: 'manana',
         shift: 'manana',
         reason: 'Descanso biológico obligatorio post-evento nocturno #' + cleanFolio,
-        status: 'temporal_60m',
+        status: 'temporal_120m',
         expiresAt: newSvc.expiresAt
       });
     }
@@ -3955,7 +3975,7 @@ Quedamos atentos para reservar su cupo exclusivo!`;
       type: newSvc.block,
       shift: newSvc.block,
       reason: 'Horario reservado',
-      status: 'temporal_60m',
+      status: 'temporal_120m',
       expiresAt: newSvc.expiresAt
     });
   }
@@ -4005,17 +4025,35 @@ Quedamos atentos para reservar su cupo exclusivo!`;
   clearAdminQuoterDraft();
   resetAdminQuoterForm();
 
-  if(typeof window !== 'undefined' && window.open){
-    window.open(url, '_blank');
-  }
-
-  if(typeof alert !== 'undefined'){
-    alert(`✅ ¡Cotización registrada exitosamente como Pre-Reserva Folio #${cleanFolio}!\n\n• Ha quedado registrada en la pestaña "Pendientes" de la Bandeja de Entrada.\n• El formulario ha quedado limpio y listo para la siguiente cotización.`);
+  // Apertura inmediata y confiable de WhatsApp sin interferencia de alertas modales
+  try {
+    const waLink = document.createElement('a');
+    waLink.href = url;
+    waLink.target = '_blank';
+    waLink.rel = 'noopener noreferrer';
+    document.body.appendChild(waLink);
+    waLink.click();
+    setTimeout(() => { waLink.remove(); }, 300);
+  } catch(eOpen) {
+    if(typeof window !== 'undefined' && window.open){
+      window.open(url, '_blank');
+    }
   }
 
   U.tab = 'inbox';
   inboxStatusFilter = 'pending';
   render();
+
+  // Alerta no bloqueante en la bandeja de entrada
+  const alertEl = document.createElement('div');
+  alertEl.id = 'inboxAlertBanner';
+  alertEl.style.cssText = 'background:#ecfdf5;border:1.5px solid #10b981;border-radius:8px;padding:12px 16px;color:#065f46;font-weight:700;margin:12px 0;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,0.06)';
+  alertEl.innerHTML = `<span>💬 Cotización Folio #${cleanFolio} abierta en WhatsApp y guardada en "Pendientes" con retención de cupo por 2 horas (120 min).</span><button type="button" onclick="this.parentElement.remove()" style="background:transparent;border:0;font-size:16px;cursor:pointer;color:#065f46">✕</button>`;
+  const mainContent = document.querySelector('#main-content') || document.body;
+  if(mainContent && mainContent.firstChild){
+    mainContent.insertBefore(alertEl, mainContent.firstChild);
+    setTimeout(() => { if(alertEl && alertEl.parentElement) alertEl.remove(); }, 7000);
+  }
 }
 window.sendAdminQuoteWhatsApp = sendAdminQuoteWhatsApp;
 let pendingAdminBooking = null;
@@ -4212,7 +4250,8 @@ function saveAdminBooking(ev, forceConfirm = false){
     pat,
     age,
     dx,
-    coord,
+    coord: isFactura ? (taxRS || coord) : coord,
+    coordRut: isFactura ? taxRUT : '',
     ph,
     from,
     to,
@@ -4223,6 +4262,10 @@ function saveAdminBooking(ev, forceConfirm = false){
     comp: !isSolo,
     compDesc,
     taxDoc,
+    taxRS: isFactura ? taxRS : '',
+    taxRUT: isFactura ? taxRUT : '',
+    taxGiro: isFactura ? taxGiro : '',
+    taxDir: isFactura ? taxDir : '',
     patologias,
     fare: qState.totalFare,
     baseFare: qState.totalFare,
@@ -4600,7 +4643,8 @@ let currentClosingSvcId = null;
 let currentCheckoutCalc = null;
 
 function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, descuentoManual){
-  const mode = s.svcType || '1';
+  const modeRaw = s.svcType || s.svc_type || s.modalidad || s.mode || s.serviceType || '1';
+  const mode = String(modeRaw).replace(/^([1-5]).*$/, '$1');
   const dateVal = s.date || TODAY;
   const startMin = s.start || 540;
   const jornada = getAdminJornada(dateVal, fm(startMin));
@@ -4626,7 +4670,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   if(mode === '2'){
     if(jornada === 'nocturno'){
       extraBlockRate = 6000;
-    } else if(jornada === 'finde' || jornada === 'tarde'){
+    } else if(jornada === 'finde'){
       extraBlockRate = 5000;
     } else {
       extraBlockRate = 4000;
@@ -4639,7 +4683,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     // Modalidad 1 y Modalidad 3 (y fallback general)
     if(jornada === 'nocturno'){
       extraBlockRate = 9000;
-    } else if(jornada === 'finde' || jornada === 'tarde'){
+    } else if(jornada === 'finde'){
       extraBlockRate = 7500;
     } else {
       extraBlockRate = 6000;
@@ -4717,7 +4761,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   }
 
   // 5. Descuento / Ajuste Manual en terreno
-  const descManual = Math.max(0, parseInt(descuentoManual || 0, 10) || 0);
+  const descManual = Math.max(0, parseInt(String(descuentoManual || 0).replace(/\D/g, ''), 10) || 0);
 
   // 6. Saldo a Liquidar = (Total Servicio - Abono Previo 50%) - Descuento Manual
   const saldoFinal = Math.max(0, (totalServicio - abonoPrevio) - descManual);
@@ -4850,8 +4894,8 @@ function onFieldCheckoutRecalc(){
   const hInicio = ($('#adm_horaInicioReal') && $('#adm_horaInicioReal').value) || s.startActualTime || fm(s.start || 540);
   const hCierre = ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || s.endActualTime || '12:00';
   const parkingInput = ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0;
-  const parkingAmount = Math.max(0, parseInt(parkingInput, 10) || 0);
-  const customAbonoInput = $('#adm_abono_previo_input') ? parseInt($('#adm_abono_previo_input').value, 10) : undefined;
+  const parkingAmount = Math.max(0, parseInt(String(parkingInput).replace(/\D/g, ''), 10) || 0);
+  const customAbonoInput = $('#adm_abono_previo_input') ? parseInt(String($('#adm_abono_previo_input').value).replace(/\D/g, ''), 10) : undefined;
 
   const startMin = s.start || 540;
   const durMin = s.dur || 120;
@@ -4865,7 +4909,7 @@ function onFieldCheckoutRecalc(){
     elapsedMin = (cierreMin + 1440) - startMin;
   }
 
-  const descInput = $('#adm_descuento_ajuste') ? parseInt($('#adm_descuento_ajuste').value, 10) : 0;
+  const descInput = $('#adm_descuento_ajuste') ? (parseInt(String($('#adm_descuento_ajuste').value).replace(/\D/g, ''), 10) || 0) : 0;
   const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbonoInput, descInput);
   currentCheckoutCalc = calc;
 
@@ -4915,13 +4959,28 @@ function solicitarPagoWhatsAppAdmin(){
   const s = findReserva(currentClosingSvcId) || (D.svcs || []).find(item => item && (item.id === currentClosingSvcId || item.id == currentClosingSvcId || String(item.id) === String(currentClosingSvcId)));
   if(!s){ alert('Servicio no encontrado'); return; }
 
-  const calc = currentCheckoutCalc || calculateFieldLiquidation(
-    s,
-    s.dur || 120,
-    ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0,
-    ($('#adm_abono_previo_input') && parseInt($('#adm_abono_previo_input').value, 10)) || undefined,
-    ($('#adm_descuento_ajuste') && parseInt($('#adm_descuento_ajuste').value, 10)) || 0
-  );
+  const rawParking = ($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0;
+  const parkingAmount = parseInt(String(rawParking).replace(/\D/g, ''), 10) || 0;
+  const rawAbono = $('#adm_abono_previo_input') ? $('#adm_abono_previo_input').value : undefined;
+  const customAbono = rawAbono !== undefined ? (parseInt(String(rawAbono).replace(/\D/g, ''), 10) || 0) : undefined;
+  const rawDesc = ($('#adm_descuento_ajuste') && $('#adm_descuento_ajuste').value) || 0;
+  const descVal = parseInt(String(rawDesc).replace(/\D/g, ''), 10) || 0;
+
+  const hInicio = ($('#adm_horaInicioReal') && $('#adm_horaInicioReal').value) || s.startActualTime || fm(s.start || 540);
+  const hCierre = ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || s.endActualTime || '12:00';
+  const startMin = s.start || 540;
+  const durMin = s.dur || 120;
+  const cierreMin = tm(hCierre);
+  let elapsedMin = durMin;
+  if(cierreMin > startMin){
+    elapsedMin = cierreMin - startMin;
+  } else if(cierreMin < startMin && cierreMin < 6 * 60 && startMin > 18 * 60){
+    elapsedMin = (cierreMin + 1440) - startMin;
+  }
+
+  const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, descVal);
+  currentCheckoutCalc = calc;
+
   const clientName = s.coord || s.pat || 'Estimado(a)';
   const patName = s.pat || 'el paciente';
   const cleanFolio = formatFolioMSA(s.folio, s.id);
@@ -5059,10 +5118,12 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const rutPaciente = (customOpts && customOpts.rutPaciente) || ($('#adm_rutPaciente') && $('#adm_rutPaciente').value.trim()) || '12.345.678-9';
   const medioPago = (customOpts && customOpts.medioPago) || ($('#adm_medioPago') && $('#adm_medioPago').value) || 'Transferencia Electrónica';
   const folioSII = (customOpts && customOpts.folioSII !== undefined) ? customOpts.folioSII : ($('#adm_folioSII') ? $('#adm_folioSII').value.trim() : '');
-  const parkingAmount = (customOpts && customOpts.parking !== undefined) ? customOpts.parking : (($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0);
-  const customDescuento = (customOpts && customOpts.descuento !== undefined) 
+  const rawParking = (customOpts && customOpts.parking !== undefined) ? customOpts.parking : (($('#adm_parking_expense') && $('#adm_parking_expense').value) || 0);
+  const parkingAmount = parseInt(String(rawParking).replace(/\D/g, ''), 10) || 0;
+  const rawDescuento = (customOpts && customOpts.descuento !== undefined) 
     ? customOpts.descuento 
-    : ($('#adm_descuento_ajuste') ? (parseInt($('#adm_descuento_ajuste').value, 10) || 0) : 0);
+    : ($('#adm_descuento_ajuste') ? $('#adm_descuento_ajuste').value : 0);
+  const customDescuento = parseInt(String(rawDescuento).replace(/\D/g, ''), 10) || 0;
 
   const s = findReserva(currentClosingSvcId) || (D.svcs || []).find(item => item && (item.id === currentClosingSvcId || item.id == currentClosingSvcId || String(item.id) === String(currentClosingSvcId)));
   if(!s){ alert('Servicio no encontrado'); return; }
@@ -5072,7 +5133,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const patName = s.pat || 'Paciente';
   const patAge = s.age || '75';
   const patDx = s.dx || 'Atención médica';
-  const mode = s.svcType || '1';
+  const modeRaw = s.svcType || s.svc_type || s.modalidad || s.mode || s.serviceType || '1';
+  const mode = String(modeRaw).replace(/^([1-5]).*$/, '$1');
 
   const startMin = s.start || 540;
   const durMin = s.dur || 120;
@@ -5087,7 +5149,10 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     elapsedMin = (cierreMin + 1440) - startMin;
   }
 
-  const customAbono = $('#adm_abono_previo_input') ? parseInt($('#adm_abono_previo_input').value, 10) : undefined;
+  const rawAbono = (customOpts && customOpts.abono !== undefined)
+    ? customOpts.abono
+    : ($('#adm_abono_previo_input') ? $('#adm_abono_previo_input').value : undefined);
+  const customAbono = rawAbono !== undefined ? (parseInt(String(rawAbono).replace(/\D/g, ''), 10) || 0) : undefined;
   const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, customDescuento);
   currentCheckoutCalc = calc;
 
@@ -5234,7 +5299,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
       </tr>
       <tr>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Destino' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : (mode === '4' ? 'Permanencia TENS en Evento' : (mode === '5' ? 'Viáticos y Cobertura en Ruta' : 'Asistencia Clínica TENS (Tiempo Base)')))}</td>
+        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Recinto (Tiempo Base)' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : (mode === '4' ? 'Permanencia TENS en Evento' : (mode === '5' ? 'Viáticos y Cobertura en Ruta' : 'Asistencia Clínica TENS (Tiempo Base)')))}</td>
         <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1)} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
         <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
       </tr>
