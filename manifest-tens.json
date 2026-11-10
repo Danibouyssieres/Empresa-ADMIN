@@ -1,0 +1,22 @@
+{
+  "name": "Móvil TENS - Movilidad y Salud Asistida",
+  "short_name": "TENS Móvil",
+  "description": "Aplicación de terreno para profesionales TENS y tripulación clínica.",
+  "start_url": "/tens.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0E4A55",
+  "theme_color": "#0E4A55",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

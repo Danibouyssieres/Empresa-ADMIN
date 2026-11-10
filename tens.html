@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>TENS Móvil | Movilidad y Salud Asistida</title>
+<meta name="description" content="Aplicación de terreno para profesionales TENS y tripulación clínica.">
+
+<!-- PWA Manifest & Icons -->
+<link rel="manifest" href="/manifest-tens.json">
+<meta name="theme-color" content="#0E4A55">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TENS Móvil">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+<script>
+// Detección y aplicación inmediata de tema claro/oscuro
+try {
+  var t = localStorage.getItem('msa-tens-theme') || (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', t);
+} catch(e){}
+</script>
+
+<style>
+:root{
+  --teal:#0E4A55;--teal2:#0A363F;--sage:#5FA891;--mist:#E6F1EE;
+  --bg:#F3F6F6;--card:#FFFFFF;--ink:#14262B;--mute:#526970;--line:#CFE0DB;
+  --wa:#168F4A;--warn:#FEF2F2;--warnb:#DC2626;--amber:#D97706;--amber-bg:#FFFBEB;
+  --r:16px;--touch-min:48px;
+}
+:root[data-theme="dark"]{
+  --teal:#2dd4bf;--teal2:#0d4c55;--sage:#34d399;--mist:#13232c;
+  --bg:#0c1218;--card:#161f28;--ink:#e6edf3;--mute:#8b9baa;--line:#263442;
+  --wa:#22c55e;--warn:#3b1315;--warnb:#ef4444;--amber:#f59e0b;--amber-bg:#2d2110;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;max-width:100%;overflow-x:hidden;position:relative}
+body{
+  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,sans-serif;
+  color:var(--ink);
+  background:var(--bg);
+  padding-bottom:env(safe-area-inset-bottom, 20px);
+}
+
+/* APP HEADER */
+header{
+  position:sticky;top:0;z-index:900;
+  background:var(--card);
+  border-bottom:1px solid var(--line);
+  padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 10px rgba(0,0,0,.04);
+}
+.header-brand{display:flex;align-items:center;gap:8px}
+.header-brand h1{font-size:1.15rem;font-weight:800;color:var(--teal);letter-spacing:-.02em}
+.header-brand span{font-size:.78rem;background:var(--mist);color:var(--teal);padding:2px 8px;border-radius:999px;font-weight:700}
+
+.header-tools{display:flex;align-items:center;gap:8px}
+.conn-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:.75rem;font-weight:700;
+  padding:4px 9px;border-radius:999px;
+  background:rgba(22,143,74,.12);color:var(--wa);
+  border:1px solid rgba(22,143,74,.25);
+}
+.conn-pill.offline{
+  background:var(--amber-bg);color:var(--amber);
+  border-color:rgba(217,119,6,.3);
+}
+.icon-btn{
+  background:var(--bg);border:1px solid var(--line);
+  color:var(--ink);width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.05rem;cursor:pointer;
+}
+
+/* MAIN CONTAINER */
+.app-container{max-width:600px;margin:0 auto;padding:12px}
+
+/* DATE & PROFILE BAR */
+.control-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:8px 12px;margin-bottom:12px;
+}
+.date-selector{display:flex;align-items:center;gap:8px}
+.date-selector select{
+  font-weight:700;font-size:.92rem;color:var(--teal);
+  background:var(--bg);border:1px solid var(--line);
+  border-radius:8px;padding:6px 10px;
+}
+.profile-pill{font-size:.82rem;font-weight:700;color:var(--mute)}
+
+/* CARD DEL SERVICIO */
+.svc-card{
+  background:var(--card);border:1.5px solid var(--line);
+  border-radius:var(--r);padding:16px;margin-bottom:14px;
+  box-shadow:0 3px 12px rgba(0,0,0,.03);
+}
+.svc-card.active{border-color:var(--teal);box-shadow:0 4px 18px rgba(14,74,85,.12)}
+
+.svc-top{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:8px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line);
+}
+.svc-time{font-size:1.15rem;font-weight:800;color:var(--teal)}
+.svc-folio{font-size:.78rem;font-family:monospace;background:var(--bg);padding:3px 6px;border-radius:6px;border:1px solid var(--line)}
+.svc-shift{font-size:.76rem;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.shift-manana{background:rgba(217,119,6,.12);color:var(--amber)}
+.shift-tarde{background:rgba(14,74,85,.12);color:var(--teal)}
+.shift-noche{background:rgba(99,102,241,.12);color:#6366f1}
+
+/* PACIENTE */
+.patient-box{margin-bottom:12px}
+.patient-name{font-size:1.12rem;font-weight:800;color:var(--ink);margin-bottom:3px}
+.patient-meta{font-size:.84rem;color:var(--mute);margin-bottom:6px}
+.badge-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.p-badge{
+  font-size:.78rem;font-weight:700;padding:3px 8px;border-radius:6px;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.badge-warn{background:var(--warn);color:var(--warnb);border:1px solid rgba(220,38,38,.2)}
+.badge-info{background:var(--mist);color:var(--teal);border:1px solid rgba(14,74,85,.2)}
+
+/* CONTACTOS DE 1 TOQUE */
+.contact-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin:10px 0 14px;
+}
+.btn-contact{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  text-decoration:none;font-size:.86rem;font-weight:700;
+  padding:10px;border-radius:10px;min-height:var(--touch-min);
+  box-sizing:border-box;
+}
+.btn-call{background:var(--bg);color:var(--teal);border:1.5px solid var(--line)}
+.btn-wa{background:var(--wa);color:#fff;border:1.5px solid var(--wa)}
+
+/* RUTA Y NAVEGACIÓN GPS */
+.route-box{background:var(--bg);border-radius:12px;padding:12px;margin-bottom:14px;border:1px solid var(--line)}
+.route-point{margin-bottom:10px}
+.route-point:last-child{margin-bottom:0}
+.rp-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.rp-tag{font-size:.76rem;font-weight:800;text-transform:uppercase;color:var(--mute);display:flex;align-items:center;gap:4px}
+.rp-addr{font-size:.9rem;font-weight:700;color:var(--ink);line-height:1.35;margin-bottom:6px}
+.gps-buttons{display:flex;gap:6px}
+.btn-gps{
+  flex:1;padding:7px 10px;border-radius:8px;font-size:.8rem;font-weight:700;
+  text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink);
+}
+.btn-gps.waze{color:#0079b8;border-color:rgba(0,121,184,.3)}
+.btn-gps.maps{color:#1a73e8;border-color:rgba(26,115,232,.3)}
+
+/* PASO ACTUAL / STEPPER */
+.status-stepper{
+  background:rgba(14,74,85,.05);border:1.5px dashed var(--sage);
+  border-radius:12px;padding:12px;margin-bottom:14px;
+}
+.curr-status{font-size:.85rem;font-weight:700;color:var(--teal);display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.curr-status-text{font-size:1rem;font-weight:800;color:var(--ink)}
+
+/* BOTÓN DE ACCIÓN PRINCIPAL (PULGAR) */
+.btn-action-main{
+  width:100%;min-height:52px;background:var(--teal);color:#fff;
+  border:none;border-radius:12px;font-size:1.02rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;box-shadow:0 4px 14px rgba(14,74,85,.25);
+  transition:transform .1s,background .15s;
+}
+.btn-action-main:active{transform:scale(.98);background:var(--teal2)}
+.btn-action-main.done{background:#64748b;cursor:default;box-shadow:none}
+
+/* MODAL DE SIGNOS VITALES Y FICHA */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.65);
+  display:none;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(3px);
+}
+.modal-overlay.open{display:flex}
+.modal-sheet{
+  width:100%;max-width:550px;background:var(--card);
+  border-radius:20px 20px 0 0;padding:20px 16px 24px;
+  max-height:90vh;overflow-y:auto;box-sizing:border-box;
+  box-shadow:0 -6px 24px rgba(0,0,0,.2);
+  animation:slideUp .2s ease-out;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.modal-hdr h2{font-size:1.2rem;color:var(--teal)}
+.close-modal{background:none;border:none;font-size:1.5rem;color:var(--mute);cursor:pointer;padding:4px}
+
+.vitals-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.vital-field label{font-size:.8rem;font-weight:700;color:var(--mute);display:block;margin-bottom:4px}
+.vital-field input, .vital-field select, .vital-field textarea{
+  width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);
+  background:var(--bg);color:var(--ink);font-size:1.05rem;font-weight:700;
+}
+.vital-field input:focus, .vital-field textarea:focus{outline:none;border-color:var(--teal)}
+
+.eva-scale{display:flex;justify-content:space-between;gap:4px;margin-top:6px}
+.eva-btn{
+  flex:1;height:38px;border-radius:6px;border:1px solid var(--line);
+  background:var(--bg);font-weight:800;font-size:.85rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.eva-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+/* PWA INSTALL BANNER */
+.install-card{
+  background:linear-gradient(135deg,var(--mist),var(--card));
+  border:1.5px solid var(--sage);border-radius:12px;padding:12px 14px;
+  margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.install-card p{font-size:.84rem;color:var(--ink);line-height:1.35}
+.install-card p b{color:var(--teal)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <span style="font-size:1.3rem">🚑</span>
+    <div>
+      <h1>TENS Terreno</h1>
+      <span id="appVehicleTag">Móvil Daniela</span>
+    </div>
+  </div>
+  <div class="header-tools">
+    <div id="connPill" class="conn-pill">
+      <span id="connDot">●</span> <span id="connLabel">En línea</span>
+    </div>
+    <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema">🌓</button>
+  </div>
+</header>
+
+<main class="app-container">
+
+  <!-- BANNER DE INSTALACIÓN EN CELULAR (PWA) -->
+  <div id="installNotice" class="install-card">
+    <div>
+      <p>📲 <b>Instalar en Pantalla de Inicio:</b></p>
+      <p style="font-size:.78rem;color:var(--mute)">En iPhone toca <b>Compartir ⎋ → Agregar a inicio</b>. En Android toca <b>Instalar app</b>.</p>
+    </div>
+    <button class="icon-btn" onclick="document.getElementById('installNotice').style.display='none'" style="font-size:.9rem">✕</button>
+  </div>
+
+  <!-- BARRA DE FECHA Y TRIPULACIÓN -->
+  <div class="control-bar">
+    <div class="date-selector">
+      <span>📅</span>
+      <select id="selDate" onchange="loadItinerario(this.value)">
+        <option value="today" selected>Hoy (Lunes 10 Nov)</option>
+        <option value="tomorrow">Mañana (Martes 11 Nov)</option>
+      </select>
+    </div>
+    <div class="profile-pill">
+      TENS: <b>Daniela</b>
+    </div>
+  </div>
+
+  <!-- LISTA DE SERVICIOS DEL DÍA -->
+  <div id="serviceList">
+    <!-- Se llena dinámicamente con JavaScript -->
+  </div>
+
+</main>
+
+<!-- MODAL DE SIGNOS VITALES Y FICHA CLÍNICA -->
+<div id="vitalsModal" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-hdr">
+      <div>
+        <h2 id="vitalsModalTitle">Signos Vitales de Ingreso</h2>
+        <small id="vitalsModalSubtitle" style="color:var(--mute);font-weight:700">Abordaje y Control Inicial TENS</small>
+      </div>
+      <button class="close-modal" onclick="closeVitalsModal()">✕</button>
+    </div>
+
+    <form id="vitalsForm" onsubmit="saveVitals(event)">
+      <input type="hidden" id="vitalsSvcId">
+      <input type="hidden" id="vitalsMomento" value="ingreso">
+
+      <div class="vitals-grid">
+        <div class="vital-field">
+          <label>Presión Arterial (mmHg) *</label>
+          <div style="display:flex;gap:4px;align-items:center">
+            <input type="number" id="v_pa_sis" placeholder="120" required min="50" max="260">
+            <span>/</span>
+            <input type="number" id="v_pa_dia" placeholder="80" required min="30" max="160">
+          </div>
+        </div>
+        <div class="vital-field">
+          <label>Frec. Cardíaca (LPM) *</label>
+          <input type="number" id="v_fc" placeholder="75" required min="30" max="220">
+        </div>
+        <div class="vital-field">
+          <label>Sat. Oxígeno (%) *</label>
+          <input type="number" id="v_sat" placeholder="98" required min="60" max="100">
+        </div>
+        <div class="vital-field">
+          <label>HGT Glicemia (mg/dL)</label>
+          <input type="number" id="v_hgt" placeholder="105" min="20" max="600">
+        </div>
+      </div>
+
+      <div class="vital-field" style="margin-bottom:12px">
+        <label>Escala de Dolor EVA (0 a 10): <b id="evaScore" style="color:var(--teal)">0 - Sin dolor</b></label>
+        <div class="eva-scale" id="evaScaleBar">
+          <!-- 0 a 10 botones generados por JS -->
+        </div>
+        <input type="hidden" id="v_eva" value="0">
+      </div>
+
+      <div class="vital-field" style="margin-bottom:12px">
+        <label>Estado de Conciencia *</label>
+        <select id="v_conciencia">
+          <option value="Lúcido / Orientado" selected>Lúcido / Orientado</option>
+          <option value="Somnoliento">Somnoliento</option>
+          <option value="Desorientado">Desorientado</option>
+          <option value="Inconsciente">Inconsciente</option>
+        </select>
+      </div>
+
+      <div class="vital-field" style="margin-bottom:14px">
+        <label>Observaciones Clínicas del TENS</label>
+        <textarea id="v_obs" rows="2" placeholder="Ej: Paciente abordado en sillón de reposo, colaborador, vías aéreas permeables..."></textarea>
+      </div>
+
+      <!-- CAMPOS ADICIONALES PARA CIERRE / EGRESO -->
+      <div id="egresoFields" style="display:none;padding-top:10px;border-top:1px dashed var(--line);margin-bottom:14px">
+        <div class="vital-field" style="margin-bottom:10px">
+          <label>Nombre de quien recibe al paciente en domicilio *</label>
+          <input type="text" id="v_recibe_nom" placeholder="Ej: Andrea Medina (Hija)">
+        </div>
+        <div class="vital-field">
+          <label>RUT de quien recibe *</label>
+          <input type="text" id="v_recibe_rut" placeholder="Ej: 15.421.980-3">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-action-main">
+        <span>💾</span> <span id="vitalsSubmitBtnText">Registrar y Continuar Traslado</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script src="/js/tens-db.js"></script>
+<script>
+// =========================================================================
+// REGISTRO DEL SERVICE WORKER (OFFLINE PWA)
+// =========================================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw-tens.js')
+      .then(reg => console.log('[PWA] Service Worker activo:', reg.scope))
+      .catch(err => console.warn('[PWA] Error SW:', err));
+  });
+}
+
+// CONTROL DE CONEXIÓN ONLINE/OFFLINE
+function updateOnlineStatus(){
+  const pill = document.getElementById('connPill');
+  const lbl = document.getElementById('connLabel');
+  if(navigator.onLine){
+    pill.className = 'conn-pill';
+    lbl.textContent = 'En línea';
+    // Sincronizar cola de eventos guardados offline
+    if(window.TensDB){
+      window.TensDB.syncQueueWithApi().then(res => {
+        if(res && res.synced > 0){
+          lbl.textContent = `Sincronizados (${res.synced})`;
+          setTimeout(() => { lbl.textContent = 'En línea'; }, 3000);
+        }
+      });
+    }
+  } else {
+    pill.className = 'conn-pill offline';
+    lbl.textContent = 'Modo Offline';
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+// TEMA CLARO / OSCURO
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('msa-tens-theme', next); } catch(e){}
+}
+
+// ESTADOS DEL SERVICIO EN TERRENO
+const ESTADOS = {
+  'pendiente': { lbl: 'Por iniciar salida', next: 'en_camino', btn: '▶ Iniciar Salida a Domicilio' },
+  'en_camino': { lbl: 'En camino al domicilio', next: 'en_domicilio', btn: '📍 Llegada a Domicilio (Check-in)' },
+  'en_domicilio': { lbl: 'En domicilio / Abordaje', next: 'en_traslado', btn: '🚗 Iniciar Traslado a Centro Médico' },
+  'en_traslado': { lbl: 'En traslado a destino', next: 'en_espera', btn: '🏥 Llegada a Centro Médico' },
+  'en_espera': { lbl: 'En espera / Atención médica', next: 'en_retorno', btn: '🔄 Iniciar Retorno a Domicilio' },
+  'en_retorno': { lbl: 'En retorno a domicilio', next: 'finalizado', btn: '🏁 Llegada y Finalizar Atención' },
+  'finalizado': { lbl: 'Servicio Finalizado y Entregado', next: null, btn: '✓ Servicio Concluido' }
+};
+
+let currentServices = [];
+
+// CARGAR ITINERARIO
+async function loadItinerario(dateVal){
+  const container = document.getElementById('serviceList');
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--mute)">Cargando hoja de ruta...</div>';
+
+  try {
+    const res = await fetch(`/api/tens/itinerario?fecha=${dateVal}`);
+    const data = await res.json();
+    currentServices = data.servicios || [];
+
+    // Guardar en IndexedDB local para disponibilidad sin internet
+    if(window.TensDB) window.TensDB.saveServicios(currentServices);
+
+    renderServices(currentServices);
+  } catch(e) {
+    // Si falla la red, cargar desde IndexedDB local
+    if(window.TensDB){
+      currentServices = await window.TensDB.getServiciosLocal();
+      if(currentServices.length > 0){
+        renderServices(currentServices);
+        return;
+      }
+    }
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--warnb)">Sin conexión y sin datos locales guardados.</div>';
+  }
+}
+
+// RENDERIZAR TARJETAS
+function renderServices(list){
+  const container = document.getElementById('serviceList');
+  if(!list || list.length === 0){
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--mute);background:var(--card);border-radius:12px;border:1px solid var(--line)">No hay servicios asignados para esta fecha.</div>';
+    return;
+  }
+
+  container.innerHTML = list.map((s, idx) => {
+    const stKey = s.estado_terreno || 'pendiente';
+    const stConfig = ESTADOS[stKey] || ESTADOS['pendiente'];
+    const isDone = stKey === 'finalizado';
+
+    return `
+      <div class="svc-card ${!isDone ? 'active' : ''}" id="card_${s.id}">
+        
+        <div class="svc-top">
+          <div>
+            <div class="svc-time">⏰ ${s.hora_recogida} hrs</div>
+            <div style="font-size:.82rem;color:var(--mute)">${s.modalidad_nombre}</div>
+          </div>
+          <div style="text-align:right">
+            <span class="svc-shift shift-${s.turno}">${s.turno}</span>
+            <div class="svc-folio" style="margin-top:4px">${s.folio}</div>
+          </div>
+        </div>
+
+        <!-- PACIENTE Y ALERTAS CLÍNICAS -->
+        <div class="patient-box">
+          <div class="patient-name">👤 ${s.paciente.nombre} (${s.paciente.edad} años)</div>
+          <div class="patient-meta">Motivo: <b>${s.paciente.motivo}</b></div>
+          <div class="badge-group">
+            <span class="p-badge badge-warn">🚨 ${s.paciente.alergias}</span>
+            <span class="p-badge badge-info">🦽 ${s.paciente.movilidad}</span>
+          </div>
+        </div>
+
+        <!-- CONTACTO RÁPIDO -->
+        <div class="contact-row">
+          <a href="tel:+56${s.coordinador.telefono}" class="btn-contact btn-call">
+            📞 Llamar Coord.
+          </a>
+          <a href="https://wa.me/56${s.coordinador.telefono}" target="_blank" rel="noopener" class="btn-contact btn-wa">
+            💬 WhatsApp
+          </a>
+        </div>
+
+        <!-- RUTAS Y NAVEGACIÓN GPS -->
+        <div class="route-box">
+          <div class="route-point">
+            <div class="rp-hdr">
+              <span class="rp-tag"><span>🟢</span> Origen A (Salida / Domicilio)</span>
+            </div>
+            <div class="rp-addr">${s.ruta.origen}</div>
+            <div class="gps-buttons">
+              <a href="https://waze.com/ul?q=${encodeURIComponent(s.ruta.origen)}" target="_blank" rel="noopener" class="btn-gps waze">
+                🧭 Waze
+              </a>
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.ruta.origen)}" target="_blank" rel="noopener" class="btn-gps maps">
+                🗺️ Maps
+              </a>
+            </div>
+          </div>
+
+          <div class="route-point" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
+            <div class="rp-hdr">
+              <span class="rp-tag"><span>🔴</span> Destino B (Centro Médico / Evento)</span>
+            </div>
+            <div class="rp-addr">${s.ruta.destino}</div>
+            <div class="gps-buttons">
+              <a href="https://waze.com/ul?q=${encodeURIComponent(s.ruta.destino)}" target="_blank" rel="noopener" class="btn-gps waze">
+                🧭 Waze
+              </a>
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.ruta.destino)}" target="_blank" rel="noopener" class="btn-gps maps">
+                🗺️ Maps
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESTADO ACTUAL Y BOTÓN PRINCIPAL -->
+        <div class="status-stepper">
+          <div class="curr-status">
+            <span>🚩</span> <span>Estado de la misión:</span>
+          </div>
+          <div class="curr-status-text" id="statusLbl_${s.id}">${stConfig.lbl}</div>
+        </div>
+
+        ${!isDone ? `
+          <button class="btn-action-main" id="btnAction_${s.id}" onclick="handleNextStep('${s.id}')">
+            <span>${stConfig.btn}</span>
+          </button>
+        ` : `
+          <button class="btn-action-main done" disabled>
+            <span>✓ Servicio Concluido</span>
+          </button>
+        `}
+
+      </div>
+    `;
+  }).join('');
+}
+
+// CONTROL DE PASOS DE ATENCIÓN
+function handleNextStep(svcId){
+  const svc = currentServices.find(s => s.id === svcId);
+  if(!svc) return;
+
+  const currentSt = svc.estado_terreno || 'pendiente';
+  const config = ESTADOS[currentSt];
+  const nextSt = config ? config.next : null;
+  if(!nextSt) return;
+
+  // Si pasa a 'en_domicilio', abrimos la ficha de signos vitales de INGRESO
+  if(nextSt === 'en_domicilio'){
+    openVitalsModal(svcId, 'ingreso');
+    return;
+  }
+
+  // Si pasa a 'finalizado', abrimos la ficha de signos vitales de EGRESO y recepción
+  if(nextSt === 'finalizado'){
+    openVitalsModal(svcId, 'egreso');
+    return;
+  }
+
+  // Otros cambios de estado directos
+  applyStateChange(svcId, nextSt);
+}
+
+// APLICAR Y PERSISTIR CAMBIO DE ESTADO
+async function applyStateChange(svcId, nextSt){
+  const svc = currentServices.find(s => s.id === svcId);
+  if(!svc) return;
+
+  svc.estado_terreno = nextSt;
+  const newConfig = ESTADOS[nextSt];
+
+  // Actualizar UI
+  const lbl = document.getElementById(`statusLbl_${svcId}`);
+  const btn = document.getElementById(`btnAction_${svcId}`);
+  if(lbl) lbl.textContent = newConfig.lbl;
+  if(btn){
+    if(nextSt === 'finalizado'){
+      btn.className = 'btn-action-main done';
+      btn.disabled = true;
+      btn.textContent = '✓ Servicio Concluido';
+    } else {
+      btn.textContent = newConfig.btn;
+    }
+  }
+
+  // Guardar en cola local (IndexedDB)
+  const evData = { servicio_id: svcId, nuevo_estado: nextSt, timestamp: new Date().toISOString() };
+  if(window.TensDB){
+    await window.TensDB.queueEvento(evData);
+    await window.TensDB.saveServicios(currentServices);
+    window.TensDB.syncQueueWithApi();
+  }
+}
+
+// ESCALA EVA (0 A 10)
+function initEvaScale(){
+  const bar = document.getElementById('evaScaleBar');
+  bar.innerHTML = '';
+  for(let i=0; i<=10; i++){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `eva-btn ${i===0?'active':''}`;
+    b.textContent = i;
+    b.onclick = () => selectEva(i);
+    bar.appendChild(b);
+  }
+}
+function selectEva(val){
+  document.getElementById('v_eva').value = val;
+  const lbl = document.getElementById('evaScore');
+  let desc = 'Sin dolor';
+  if(val >= 1 && val <= 3) desc = 'Leve';
+  else if(val >= 4 && val <= 6) desc = 'Moderado';
+  else if(val >= 7 && val <= 9) desc = 'Severo';
+  else if(val === 10) desc = 'Máximo insoportable';
+  lbl.textContent = `${val} - ${desc}`;
+
+  const btns = document.querySelectorAll('.eva-btn');
+  btns.forEach((b, idx) => {
+    b.classList.toggle('active', idx === val);
+  });
+}
+initEvaScale();
+
+// MODAL DE SIGNOS VITALES
+function openVitalsModal(svcId, momento){
+  document.getElementById('vitalsSvcId').value = svcId;
+  document.getElementById('vitalsMomento').value = momento;
+  
+  const isEgreso = momento === 'egreso';
+  document.getElementById('vitalsModalTitle').textContent = isEgreso ? 'Ficha de Egreso y Cierre' : 'Signos Vitales de Ingreso';
+  document.getElementById('vitalsModalSubtitle').textContent = isEgreso ? 'Control final y entrega del paciente' : 'Abordaje inicial en domicilio';
+  document.getElementById('egresoFields').style.display = isEgreso ? 'block' : 'none';
+  document.getElementById('vitalsSubmitBtnText').textContent = isEgreso ? 'Finalizar y Entregar Paciente' : 'Registrar y Continuar Traslado';
+  
+  // Limpiar campos
+  document.getElementById('v_pa_sis').value = '';
+  document.getElementById('v_pa_dia').value = '';
+  document.getElementById('v_fc').value = '';
+  document.getElementById('v_sat').value = '';
+  document.getElementById('v_hgt').value = '';
+  document.getElementById('v_obs').value = '';
+  selectEva(0);
+
+  document.getElementById('vitalsModal').classList.add('open');
+}
+
+function closeVitalsModal(){
+  document.getElementById('vitalsModal').classList.remove('open');
+}
+
+// GUARDAR SIGNOS VITALES (OFFLINE-READY)
+async function saveVitals(e){
+  e.preventDefault();
+  const svcId = document.getElementById('vitalsSvcId').value;
+  const momento = document.getElementById('vitalsMomento').value;
+
+  const vitalsData = {
+    servicio_id: svcId,
+    momento: momento,
+    pa_sistolica: parseInt(document.getElementById('v_pa_sis').value, 10),
+    pa_diastolica: parseInt(document.getElementById('v_pa_dia').value, 10),
+    fc: parseInt(document.getElementById('v_fc').value, 10),
+    sato2: parseInt(document.getElementById('v_sat').value, 10),
+    hgt: parseInt(document.getElementById('v_hgt').value, 10) || null,
+    eva_dolor: parseInt(document.getElementById('v_eva').value, 10),
+    estado_conciencia: document.getElementById('v_conciencia').value,
+    observaciones: document.getElementById('v_obs').value.trim(),
+    recibe_nombre: document.getElementById('v_recibe_nom').value.trim() || null,
+    recibe_rut: document.getElementById('v_recibe_rut').value.trim() || null
+  };
+
+  // Guardar en base de datos local del teléfono
+  if(window.TensDB){
+    await window.TensDB.saveSignosVitales(vitalsData);
+  }
+
+  closeVitalsModal();
+
+  // Avanzar estado según el momento
+  if(momento === 'ingreso'){
+    applyStateChange(svcId, 'en_domicilio');
+  } else if(momento === 'egreso'){
+    applyStateChange(svcId, 'finalizado');
+  }
+}
+
+// Cargar al iniciar
+loadItinerario('today');
+</script>
+
+</body>
+</html>
