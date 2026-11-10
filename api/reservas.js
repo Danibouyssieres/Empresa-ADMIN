@@ -201,33 +201,19 @@ export default async function handler(req) {
       const startMinVal = Number(body.start || body.start_min || 600);
 
       if (mode === '4') {
-        // 1. Ventana de almuerzo protegida: 12:01 a 13:59 hrs NO disponible para inicio
-        if (startMinVal > 720 && startMinVal < 840) {
+        // 1. Horarios válidos de inicio: libre selección entre 08:00 y 21:30 hrs
+        if (startMinVal < 480 || startMinVal > 1290) {
           return new Response(
             JSON.stringify({
               ok: false,
-              error: 'Horario no disponible: la ventana de 12:01 a 13:59 hrs corresponde a colación y descanso protegido.',
-              code: 'PROTECTED_LUNCH_WINDOW'
-            }),
-            { status: 400, headers: corsHeaders }
-          );
-        }
-
-        // 2. Horarios válidos de inicio: Diurno (08:00 a 12:00) o Vespertino/Nocturno (14:00 a 20:00)
-        const isDiurno = (startMinVal >= 480 && startMinVal <= 720);
-        const isVesper = (startMinVal >= 840 && startMinVal <= 1200);
-        if (!isDiurno && !isVesper) {
-          return new Response(
-            JSON.stringify({
-              ok: false,
-              error: 'Horario fuera de rango: los servicios de eventos solo pueden iniciarse entre 08:00-12:00 hrs (diurno) o 14:00-20:00 hrs (vespertino/nocturno).',
+              error: 'Horario fuera de rango: los servicios de eventos pueden iniciarse entre 08:00 y 21:30 hrs.',
               code: 'EVENT_START_OUT_OF_RANGE'
             }),
             { status: 400, headers: corsHeaders }
           );
         }
 
-        // 3. Regla Maestra: Hora proyectada de término <= 04:30 AM (1710 min)
+        // 2. Regla Maestra: Hora proyectada de término <= 04:30 AM (1710 min)
         let totalSpan = reqDurVal || 240;
         let effEndEvent = startMinVal + totalSpan;
         if (effEndEvent < 12 * 60) effEndEvent += 24 * 60;
@@ -243,48 +229,27 @@ export default async function handler(req) {
           );
         }
 
-        // 4. Validar conflicto en agenda:
-        if (isDiurno) {
-          // Día D completo debe estar libre
-          const memConflictDiurno = edgeReservasStore.some(r => {
-            const rDate = String(r.date || r.fecha || '');
-            if (rDate !== date) return false;
-            const rSt = String(r.st || r.estado || '').toLowerCase();
-            return !rSt.includes('cancel') && !rSt.includes('expir') && !rSt.includes('descart');
-          });
-          if (memConflictDiurno) {
-            return new Response(
-              JSON.stringify({
-                ok: false,
-                error: 'Conflicto de jornada exclusiva: el evento diurno requiere día completo y ya existe una atención en esta fecha.',
-                code: 'CONFLICT_EVENT_DIURNO_DAY'
-              }),
-              { status: 409, headers: corsHeaders }
-            );
-          }
-        } else if (isVesper) {
-          // Día D no debe tener reservas en tarde o noche
-          const memConflictEvening = edgeReservasStore.some(r => {
-            const rDate = String(r.date || r.fecha || '');
-            if (rDate !== date) return false;
-            const rSt = String(r.st || r.estado || '').toLowerCase();
-            if (rSt.includes('cancel') || rSt.includes('expir') || rSt.includes('descart')) return false;
-            const rTurno = String(r.block || r.turno || '').toLowerCase();
-            const rStart = Number(r.start_min || r.start || 600);
-            return rTurno === 'tarde' || rTurno === 'noche' || rTurno === 'full' || rStart >= 720;
-          });
-          if (memConflictEvening) {
-            return new Response(
-              JSON.stringify({
-                ok: false,
-                error: 'Conflicto de jornada: ya existe una atención agendada en turno tarde o noche en esta fecha.',
-                code: 'CONFLICT_EVENT_VESPER_DAY'
-              }),
-              { status: 409, headers: corsHeaders }
-            );
-          }
+        // 3. Validar conflicto en agenda:
+        // Jornada Exclusiva Única (1 evento por día): Día D debe estar completamente libre
+        const memConflictDay = edgeReservasStore.some(r => {
+          const rDate = String(r.date || r.fecha || '');
+          if (rDate !== date) return false;
+          const rSt = String(r.st || r.estado || '').toLowerCase();
+          return !rSt.includes('cancel') && !rSt.includes('expir') && !rSt.includes('descart');
+        });
+        if (memConflictDay) {
+          return new Response(
+            JSON.stringify({
+              ok: false,
+              error: 'Conflicto de jornada exclusiva: los eventos requieren jornada única (1 evento por día) y ya existe una atención en esta fecha.',
+              code: 'CONFLICT_EVENT_DAY_OCCUPIED'
+            }),
+            { status: 409, headers: corsHeaders }
+          );
+        }
 
-          // Día D+1 no debe tener reservas en la mañana (descanso biológico obligatorio post-trasnoche)
+        // 4. Si la atención finaliza posterior a las 21:00 hrs, el día D+1 requiere Turno Mañana libre (descanso obligatorio)
+        if (effEndEvent > 21 * 60) {
           const nextDate = getNextDay(date);
           const memConflictNextMorning = edgeReservasStore.some(r => {
             const rDate = String(r.date || r.fecha || '');
@@ -299,7 +264,7 @@ export default async function handler(req) {
             return new Response(
               JSON.stringify({
                 ok: false,
-                error: 'Conflicto de descanso operativo con turno siguiente: existe una atención en Turno Mañana el día siguiente.',
+                error: 'Conflicto de descanso operativo con turno siguiente: el evento finaliza después de las 21:00 hrs y existe una atención agendada en Turno Mañana el día siguiente.',
                 code: 'CONFLICT_NEXT_MORNING_REST',
                 conflictingDate: nextDate
               }),
@@ -545,48 +510,30 @@ export default async function handler(req) {
           // 2. Inserción atómica en tabla bloqueos asociada al folio
           let blocksToInsert = [];
           if (mode === '4') {
-            const isDiurno = (startMinVal >= 480 && startMinVal <= 720);
-            if (isDiurno) {
-              // A) EVENTO DIURNO: Bloquear DÍA COMPLETO en fecha D. D+1 libre.
-              blocksToInsert.push({
-                date: date,
-                type: 'full',
-                reason: 'Jornada Exclusiva Evento Diurno #' + folio,
-                tid: 'all',
-                status: 'temporal_120m',
-                reserva_id: folio,
-                expires_at: expiresAt,
-                created_at: new Date().toISOString(),
-              });
-            } else {
-              // B) EVENTO VESPERTINO / NOCTURNO:
-              // Día D: Bloquear Turno Tarde y Turno Noche.
-              // Día D+1: Bloquear Turno Mañana por descanso biológico.
+            // MODALIDAD 4: JORNADA EXCLUSIVA ÚNICA (1 EVENTO POR DÍA)
+            // A) Día D: Bloqueo de DÍA COMPLETO (consume ambos cupos diarios)
+            blocksToInsert.push({
+              date: date,
+              type: 'full',
+              reason: 'Jornada Exclusiva Eventos (1 evento al día) #' + folio,
+              tid: 'all',
+              status: 'temporal_120m',
+              reserva_id: folio,
+              expires_at: expiresAt,
+              created_at: new Date().toISOString(),
+            });
+
+            // B) Si la hora calculada de término/retorno es posterior a las 21:00 hrs:
+            // Insertar bloqueo de Turno Mañana en D+1 por descanso obligatorio
+            let totalSpan = reqDurVal || 240;
+            let effEndEvent = startMinVal + totalSpan;
+            if (effEndEvent < 12 * 60) effEndEvent += 24 * 60;
+            if (effEndEvent > 21 * 60) {
               const nextDate = getNextDay(date);
-              blocksToInsert.push({
-                date: date,
-                type: 'tarde',
-                reason: 'Jornada Exclusiva Eventos (Turno Tarde) #' + folio,
-                tid: 'all',
-                status: 'temporal_120m',
-                reserva_id: folio,
-                expires_at: expiresAt,
-                created_at: new Date().toISOString(),
-              });
-              blocksToInsert.push({
-                date: date,
-                type: 'noche',
-                reason: 'Jornada Exclusiva Eventos (Turno Noche) #' + folio,
-                tid: 'all',
-                status: 'temporal_120m',
-                reserva_id: folio,
-                expires_at: expiresAt,
-                created_at: new Date().toISOString(),
-              });
               blocksToInsert.push({
                 date: nextDate,
                 type: 'manana',
-                reason: 'Descanso biológico obligatorio post-trasnoche #' + folio,
+                reason: 'Descanso obligatorio post-evento nocturno #' + folio,
                 tid: 'all',
                 status: 'temporal_120m',
                 reserva_id: folio,
