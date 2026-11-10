@@ -250,7 +250,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:6px 14px;font-size:10pt;line-height:1.4">
       <div>
         <div><b>Origen:</b> <span id="pdfDirOrigen">Av. Pajaritos 1450, Maipú</span></div>
-        <div><b>Destino:</b> <span id="pdfDirDestino">Clínica Santa María, Providencia</span></div>
+        <div id="pdfRowDestino"><b>Destino:</b> <span id="pdfDirDestino">Clínica Santa María, Providencia</span></div>
         <div><b>Modalidad:</b> <span id="pdfSvcModalidad">1. Servicio Integral (Asistencia + Traslado)</span></div>
       </div>
       <div>
@@ -1509,6 +1509,15 @@ async function syncCentralizedBlocksAdmin(){
               }
             }
 
+            if(parsedTaxDoc && typeof parsedTaxDoc === 'object'){
+              parsedTaxDoc.razonSocial = parsedTaxDoc.razonSocial || parsedTaxDoc.rs || parsedTaxDoc.razon_social || '';
+              parsedTaxDoc.rut = parsedTaxDoc.rut || parsedTaxDoc.rut_empresa || '';
+              parsedTaxDoc.giro = parsedTaxDoc.giro || parsedTaxDoc.giro_comercial || '';
+              parsedTaxDoc.direccion = parsedTaxDoc.direccion || parsedTaxDoc.dir || parsedTaxDoc.direccion_tributaria || '';
+            }
+
+            const isRemoteSinTraslado = (r.svc_type === '3' || r.modalidad === '3' || String(r.svc_type || '').includes('3') || (r.svc_type === '4' && (r.subtipo === 'sin_traslado' || r.eventSubtype === 'sin_traslado')));
+
             if(!exists){
               D.svcs.push({
                 id: canonicalFolio,
@@ -1523,13 +1532,14 @@ async function syncCentralizedBlocksAdmin(){
                 patPhone: r.pat_phone,
                 age: r.pat_age || 0,
                 dx: r.dx || 'Atención solicitada web',
-                coord: r.coord_name || r.contacto || (r.pat_name || r.paciente),
+                coord: (parsedTaxDoc && parsedTaxDoc.type === 'factura' && parsedTaxDoc.razonSocial) ? parsedTaxDoc.razonSocial : (r.coord_name || r.contacto || (r.pat_name || r.paciente)),
+                coordRut: (parsedTaxDoc && parsedTaxDoc.type === 'factura') ? parsedTaxDoc.rut : '',
                 ph: r.coord_phone || r.contacto,
                 from: r.from_addr || r.origen,
-                to: r.to_addr || r.destino,
+                to: isRemoteSinTraslado ? 'No aplica (Atención en domicilio)' : (r.to_addr || r.destino || 'Centro Médico'),
                 depto: r.depto || '',
                 mob: r.mob || 'Autovalente',
-                ayudaTecnica: r.ayuda_tecnica || r.ayudaTecnica || (r.obs && r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/) ? r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/)[1] : '') || '',
+                ayudaTecnica: isRemoteSinTraslado ? 'No aplica (Atención a domicilio)' : (r.ayuda_tecnica || r.ayudaTecnica || (r.obs && r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/) ? r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/)[1] : '') || ''),
                 req: [],
                 comp: r.comp_desc ? r.comp_desc.includes('acompañante') : false,
                 compDesc: r.comp_desc || '',
@@ -1541,10 +1551,23 @@ async function syncCentralizedBlocksAdmin(){
                 block: r.block || r.turno || 'manana',
                 createdAt: r.created_at || new Date().toISOString(),
                 expiresAt: r.expires_at || '',
-                taxDoc: parsedTaxDoc
+                taxDoc: parsedTaxDoc,
+                taxRS: parsedTaxDoc ? parsedTaxDoc.razonSocial : '',
+                taxRUT: parsedTaxDoc ? parsedTaxDoc.rut : '',
+                taxGiro: parsedTaxDoc ? parsedTaxDoc.giro : '',
+                taxDir: parsedTaxDoc ? parsedTaxDoc.direccion : ''
               });
             } else {
               if(!exists.taxDoc && parsedTaxDoc) exists.taxDoc = parsedTaxDoc;
+              if(parsedTaxDoc && parsedTaxDoc.type === 'factura'){
+                if(!exists.taxRS && parsedTaxDoc.razonSocial) exists.taxRS = parsedTaxDoc.razonSocial;
+                if(!exists.taxRUT && parsedTaxDoc.rut) exists.taxRUT = parsedTaxDoc.rut;
+                if(!exists.taxGiro && parsedTaxDoc.giro) exists.taxGiro = parsedTaxDoc.giro;
+                if(!exists.taxDir && parsedTaxDoc.direccion) exists.taxDir = parsedTaxDoc.direccion;
+              }
+              if(isRemoteSinTraslado && exists.to && !exists.to.includes('No aplica')){
+                exists.to = 'No aplica (Atención en domicilio)';
+              }
               if((r.st || r.estado) && exists.st !== (r.st || r.estado)){
                 if((exists.st === 'Cancelado' || exists.st === 'expirada_cancelada') && (r.st === 'pendiente_abono' || r.st === 'Pre-reserva pendiente')){
                   // Preservar estado cancelado para evitar bucles de expiración
@@ -2789,6 +2812,8 @@ function onAdminModeChange(){
     if(rowInter) rowInter.style.display = 'none';
     if(colDest) colDest.style.display = 'none';
     if(colKm) colKm.style.display = 'none';
+    if($('#aq_to')) $('#aq_to').value = 'No aplica (Atención en domicilio)';
+    qState.to = 'No aplica (Atención en domicilio)';
     updateStayHoursSelector(mode, ringId);
     if(badge){
       badge.style.display = 'block';
@@ -2885,6 +2910,8 @@ function onAdminEventSubtypeChange(){
     if(lblTime) lblTime.textContent = 'Hora de Llegada / Inicio de Atención *';
     if(colDest) colDest.style.display = 'none';
     if(colKm) colKm.style.display = 'none';
+    if($('#aq_to')) $('#aq_to').value = 'No aplica (Atención en domicilio)';
+    qState.to = 'No aplica (Atención en domicilio)';
   } else {
     if(colDest) colDest.style.display = 'block';
     if(quickDestWrap) quickDestWrap.style.display = 'none';
@@ -3648,7 +3675,8 @@ function sendAdminQuoteWhatsApp(){
   const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || pat;
   const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
-  const to = ($('#aq_to') && $('#aq_to').value.trim()) || from;
+  const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
+  const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : (($('#aq_to') && $('#aq_to').value.trim()) || from);
   const durMin = qState.durationMin || 120;
   const startMin = (qState.mode === '5' && qState.pickupMin !== undefined) ? qState.pickupMin : tm(time);
 
@@ -3797,6 +3825,10 @@ function sendAdminQuoteWhatsApp(){
   const medsDetail = ($('#aq_meds_detail') && $('#aq_meds_detail').value.trim()) || '';
   const medsText = hasMeds ? (medsDetail || 'Sí (Revisar recetas en terreno)') : 'No toma medicamentos habituales';
 
+  const incluyeText = isSinTraslado
+    ? 'Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, insumos de valoración clínica y acompañamiento continuo a domicilio.'
+    : 'Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, vehículo climatizado y habilitado para ayudas técnicas.';
+
   const msg = `Hola ${coord}! Le escribimos de Movilidad y Salud Asistida SpA. Le compartimos el detalle oficial de su cotización requerida (Folio #${cleanFolio}):
 
 📋 *DETALLE DEL SERVICIO SOLICITADO (FOLIO #${cleanFolio}):*
@@ -3830,7 +3862,7 @@ ${breakdown}• *TOTAL COTIZADO:* ${$c(qState.totalFare)}
 • Titular: Movilidad y Salud Asistida SpA
 • Correo de comprobantes: contacto@movilidadysaludasistida.cl
 
-🏥 *INCLUYE:* Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, vehículo climatizado y habilitado para ayudas técnicas.
+🏥 *INCLUYE:* ${incluyeText}
 
 *(Su cupo queda pre-reservado por 2 horas continuas a la espera del comprobante de transferencia bancaria).*
 
@@ -4141,7 +4173,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   const ph = phDigits.length === 8 ? ('+56 9 ' + phDigits) : '+56 9 92999009';
   const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Domicilio Origen';
   const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
-  const to = isSinTraslado ? from : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
+  const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
   const ayudaTecnica = (qState.mode !== '3' && $('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
   const req = [];
@@ -4812,15 +4844,21 @@ function getServiceTaxDoc(s){
   if(!tax || typeof tax !== 'object'){
     tax = { type: 'boleta', label: 'Boleta Electrónica Exenta' };
   }
-  const isFactura = tax.type === 'factura' || tax.tipo === 'factura' || !!(tax.razonSocial || tax.rut || s.taxRS || s.taxRUT);
+  const isFactura = tax.type === 'factura' || tax.tipo === 'factura' || !!(tax.razonSocial || tax.rs || tax.razon_social || tax.rut || tax.rut_empresa || s.taxRS || s.taxRUT || s.rutEmpresa);
   if(isFactura){
+    const rsVal = tax.razonSocial || tax.rs || tax.razon_social || s.taxRS || s.razonSocial || s.coord || '';
+    const rutVal = tax.rut || tax.rut_empresa || s.taxRUT || s.rutEmpresa || s.coordRut || '';
+    const giroVal = tax.giro || tax.giro_comercial || s.taxGiro || s.giro || 'Servicios Médicos';
+    const dirVal = tax.direccion || tax.dir || tax.direccion_tributaria || s.taxDir || s.direccionTributaria || 'Santiago';
     return {
       type: 'factura',
       label: 'Factura Electrónica Exenta',
-      razonSocial: tax.razonSocial || tax.razon_social || s.taxRS || s.razonSocial || '',
-      rut: tax.rut || tax.rut_empresa || s.taxRUT || s.rutEmpresa || '',
-      giro: tax.giro || tax.giro_comercial || s.taxGiro || s.giro || '',
-      direccion: tax.direccion || tax.direccion_tributaria || s.taxDir || s.direccionTributaria || ''
+      razonSocial: rsVal,
+      rs: rsVal,
+      rut: rutVal,
+      giro: giroVal,
+      direccion: dirVal,
+      dir: dirVal
     };
   }
   return {
@@ -4857,7 +4895,7 @@ function renderFieldCheckoutSummary(s){
   sumEl.innerHTML = `
     <div style="font-weight:700;color:var(--pri);font-size:.92rem">${e(s.pat)} (${s.age} años) · ${modeNames[s.svcType || '1']}</div>
     <div style="color:var(--mut)"><b>Origen:</b> ${e(s.from)} (${ringName})</div>
-    ${s.to && s.to !== s.from ? `<div style="color:var(--mut)"><b>Destino:</b> ${e(s.to)}</div>` : ''}
+    ${s.to && s.to !== s.from && !String(s.to).toLowerCase().includes('no aplica') && s.svcType !== '3' && !(s.svcType === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado')) ? `<div style="color:var(--mut)"><b>Destino:</b> ${e(s.to)}</div>` : ''}
     <div><b>Diagnóstico / Motivo:</b> ${e(s.dx)}</div>
   `;
 
@@ -4963,7 +5001,7 @@ function solicitarPagoWhatsAppAdmin(){
   const parkingAmount = parseInt(String(rawParking).replace(/\D/g, ''), 10) || 0;
   const rawAbono = $('#adm_abono_previo_input') ? $('#adm_abono_previo_input').value : undefined;
   const customAbono = rawAbono !== undefined ? (parseInt(String(rawAbono).replace(/\D/g, ''), 10) || 0) : undefined;
-  const rawDesc = ($('#adm_descuento_ajuste') && $('#adm_descuento_ajuste').value) || 0;
+  const rawDesc = ($('#adm_descuento_ajuste') && $('#adm_descuento_ajuste').value) ? $('#adm_descuento_ajuste').value : (s.descuentoManual || 0);
   const descVal = parseInt(String(rawDesc).replace(/\D/g, ''), 10) || 0;
 
   const hInicio = ($('#adm_horaInicioReal') && $('#adm_horaInicioReal').value) || s.startActualTime || fm(s.start || 540);
@@ -4992,13 +5030,13 @@ function solicitarPagoWhatsAppAdmin(){
   const extraTxt = (calc.diffMin > 0 && calc.extraCost > 0)
     ? `\n• Tiempo adicional en terreno: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`
     : '';
-  const descTxt = (calc.descuentoManual > 0)
-    ? `\n• Descuento / Ajuste aplicado: -${$c(calc.descuentoManual)}`
-    : '';
+
+  const isSinTraslado = (calc.mode === '3') || (calc.mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado')) || String(s.to || '').toLowerCase().includes('no aplica');
+  const svcVerbText = isSinTraslado ? 'atención y cuidados clínicos a domicilio' : 'atención y traslado';
 
   const tax = getServiceTaxDoc(s);
   const isInvoice = (document.querySelector('input[name="adm_liq_tax_type"]:checked') && document.querySelector('input[name="adm_liq_tax_type"]:checked').value === 'factura') || (tax.type === 'factura');
-  const taxRsVal = ($('#adm_liq_tax_rs') && $('#adm_liq_tax_rs').value.trim()) || tax.razonSocial || '';
+  const taxRsVal = ($('#adm_liq_tax_rs') && $('#adm_liq_tax_rs').value.trim()) || tax.razonSocial || tax.rs || '';
   const taxRutVal = ($('#adm_liq_tax_rut') && $('#adm_liq_tax_rut').value.trim()) || tax.rut || '';
   const taxDocTxt = isInvoice
     ? `\n📄 *DOCUMENTO TRIBUTARIO: Factura Electrónica Exenta*\n• Razón Social: ${taxRsVal || 'Empresa'}\n• RUT Empresa: ${taxRutVal || 'No registra'}\n`
@@ -5006,13 +5044,13 @@ function solicitarPagoWhatsAppAdmin(){
 
   const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA.
 
-Hemos finalizado exitosamente el servicio de atención y traslado de ${patName} (Folio #${cleanFolio}).
+Hemos finalizado exitosamente el servicio de ${svcVerbText} de ${patName} (Folio #${cleanFolio}).
 ${taxDocTxt}
 💰 *DETALLE DE SALDO A LIQUIDAR:*
 • Subtotal Servicio: ${$c(calc.subtotalServicio)}${extraTxt}
-• Estacionamiento / Parking: ${$c(calc.parking)}
-• Total Servicio Liquidado: ${$c(calc.totalServicio)}
-• Abono 50% previo registrado: -${$c(calc.abonoPrevio)}${descTxt}
+${calc.parking > 0 ? `• Estacionamiento / Parking: ${$c(calc.parking)}\n` : ''}• Total Servicio Liquidado: ${$c(calc.totalServicio)}
+• Abono 50% previo registrado: -${$c(calc.abonoPrevio)}
+${calc.descuentoManual > 0 ? `• Descuento / Ajuste aplicado: -${$c(calc.descuentoManual)}\n` : ''}👉 *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
 👉 *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
 
 🏦 *DATOS BANCARIOS PARA TRANSFERENCIA:*
@@ -5122,8 +5160,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const parkingAmount = parseInt(String(rawParking).replace(/\D/g, ''), 10) || 0;
   const rawDescuento = (customOpts && customOpts.descuento !== undefined) 
     ? customOpts.descuento 
-    : ($('#adm_descuento_ajuste') ? $('#adm_descuento_ajuste').value : 0);
-  const customDescuento = parseInt(String(rawDescuento).replace(/\D/g, ''), 10) || 0;
+    : (($('#adm_descuento_ajuste') && $('#adm_descuento_ajuste').value) ? $('#adm_descuento_ajuste').value : (s.descuentoManual || 0));
+  const customDescuento = Math.max(0, parseInt(String(rawDescuento).replace(/\D/g, ''), 10) || 0);
 
   const s = findReserva(currentClosingSvcId) || (D.svcs || []).find(item => item && (item.id === currentClosingSvcId || item.id == currentClosingSvcId || String(item.id) === String(currentClosingSvcId)));
   if(!s){ alert('Servicio no encontrado'); return; }
@@ -5238,10 +5276,10 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     if(isFactura){
       colContratante.innerHTML = `
         <div style="color:#0f766e;font-size:8.5pt;text-transform:uppercase;font-weight:800;margin-bottom:2px">Receptor Factura Electrónica</div>
-        <div style="font-size:9.5pt;line-height:1.35"><b>Razón Social:</b> <span>${e(taxDocData.razonSocial || s.coord || 'Empresa')}</span></div>
-        <div style="font-size:9.5pt;line-height:1.35"><b>RUT Empresa:</b> <span>${e(taxDocData.rut || 'No registra')}</span></div>
-        <div style="font-size:9.5pt;line-height:1.35"><b>Giro:</b> <span>${e(taxDocData.giro || 'Servicios')}</span></div>
-        <div style="font-size:9.5pt;line-height:1.35"><b>Dirección Trib.:</b> <span>${e(taxDocData.direccion || 'Santiago')}</span></div>
+        <div style="font-size:9.5pt;line-height:1.35"><b>Razón Social:</b> <span>${e(taxDocData.razonSocial || taxDocData.rs || s.taxRS || s.coord || 'Empresa')}</span></div>
+        <div style="font-size:9.5pt;line-height:1.35"><b>RUT Empresa:</b> <span>${e(taxDocData.rut || s.taxRUT || s.coordRut || 'No registra')}</span></div>
+        <div style="font-size:9.5pt;line-height:1.35"><b>Giro:</b> <span>${e(taxDocData.giro || s.taxGiro || 'Servicios Médicos')}</span></div>
+        <div style="font-size:9.5pt;line-height:1.35"><b>Dirección Trib.:</b> <span>${e(taxDocData.direccion || taxDocData.dir || s.taxDir || 'Santiago')}</span></div>
         ${s.ph ? `<div style="font-size:9pt;color:#475569;margin-top:2px"><b>Contacto:</b> ${e(s.coord || '')} (${e(s.ph)})</div>` : ''}
       `;
     } else {
@@ -5253,8 +5291,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       `;
     }
   } else {
-    if($('#pdfCoordNombre')) $('#pdfCoordNombre').textContent = isFactura ? (taxDocData.razonSocial || s.coord || patName) : (s.coord || patName);
-    if($('#pdfCoordRut')) $('#pdfCoordRut').textContent = isFactura ? (taxDocData.rut || 'No registra') : (s.coordRut || s.rut || 'No registra / Familiar');
+    if($('#pdfCoordNombre')) $('#pdfCoordNombre').textContent = isFactura ? (taxDocData.razonSocial || taxDocData.rs || s.taxRS || s.coord || patName) : (s.coord || patName);
+    if($('#pdfCoordRut')) $('#pdfCoordRut').textContent = isFactura ? (taxDocData.rut || s.taxRUT || s.coordRut || 'No registra') : (s.coordRut || s.rut || 'No registra / Familiar');
     if($('#pdfCoordTel')) $('#pdfCoordTel').textContent = s.ph || '+56 9 2999 0095';
   }
 
@@ -5277,9 +5315,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const cleanOrigen = (s.from || '').replace(/\s*\([^)]*anillo[^)]*\)/gi, '').trim();
   if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = cleanOrigen;
   if($('#pdfAnilloComunal')) $('#pdfAnilloComunal').textContent = calc.ringName || 'Anillo 1';
-  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = s.to || s.from;
+  
+  const isSinTraslado = (mode === '3') || (mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado')) || String(s.to || '').toLowerCase().includes('no aplica');
+  const rowDestino = $('#pdfRowDestino');
+  if(rowDestino){
+    rowDestino.style.display = isSinTraslado ? 'none' : 'block';
+  }
+  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = isSinTraslado ? 'No aplica (Atención en domicilio)' : (s.to || s.from);
   if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = `Modalidad ${mode}`;
-  if($('#pdfAyudaTecnica')) $('#pdfAyudaTecnica').textContent = s.ayudaTecnica || s.ayuda_tecnica || 'Ninguna (autovalente / no requiere implementos)';
+  if($('#pdfAyudaTecnica')) $('#pdfAyudaTecnica').textContent = isSinTraslado ? 'No aplica (Atención a domicilio)' : (s.ayudaTecnica || s.ayuda_tecnica || 'Ninguna (autovalente / no requiere implementos)');
   if($('#pdfFechaServicio')) $('#pdfFechaServicio').textContent = s.date;
   if($('#pdfHorarioPactado')) $('#pdfHorarioPactado').textContent = `${fm(startMin)} a ${endPactadoStr} hrs`;
   if($('#pdfHoraCierreReal')) $('#pdfHoraCierreReal').textContent = `${horaCierre} hrs`;
@@ -5292,12 +5336,17 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     else if(calc.jornada === 'finde') jornadaTexto = 'Fin de Semana';
     else if(calc.jornada === 'tarde') jornadaTexto = 'Turno Tarde';
 
-    let itemsHtml = `
-      <tr>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (Kilometraje)</td>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.kmTot.toFixed(1)} km ida/vuelta × $1.000/km${calc.floorApplied ? ` (Piso Mínimo Comunal ${calc.ringName}: ${$c(calc.ringFloor)})` : ''}</td>
-        <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
-      </tr>
+    let itemsHtml = '';
+    if(!isSinTraslado && (calc.kmCost > 0 || mode === '1' || mode === '2' || mode === '5')){
+      itemsHtml += `
+        <tr>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (Kilometraje)</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.kmTot.toFixed(1)} km ida/vuelta × $1.000/km${calc.floorApplied ? ` (Piso Mínimo Comunal ${calc.ringName}: ${$c(calc.ringFloor)})` : ''}</td>
+          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
+        </tr>
+      `;
+    }
+    itemsHtml += `
       <tr>
         <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Recinto (Tiempo Base)' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : (mode === '4' ? 'Permanencia TENS en Evento' : (mode === '5' ? 'Viáticos y Cobertura en Ruta' : 'Asistencia Clínica TENS (Tiempo Base)')))}</td>
         <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1)} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
