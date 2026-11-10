@@ -1,7 +1,7 @@
 // =========================================================================
 // SERVICE WORKER - APLICACIÓN MÓVIL TENS (OFFLINE-FIRST + PUSH NOTIFICATIONS)
 // =========================================================================
-const CACHE_NAME = 'msa-tens-v2';
+const CACHE_NAME = 'msa-tens-v3';
 const ASSETS_TO_CACHE = [
   '/tens.html',
   '/manifest-tens.json',
@@ -11,10 +11,11 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
@@ -31,7 +32,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Solicitudes a la API: Network first, con fallback si está offline
+  // 1. Solicitudes a la API: Network first, con fallback si está offline
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -44,7 +45,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Recursos estáticos: Cache first, con actualización de red
+  // 2. Navegación / HTML: NETWORK FIRST (siempre descarga los últimos cambios si hay conexión, fallback a cache offline)
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 3. Recursos estáticos (iconos, imágenes): Cache first con actualización
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
