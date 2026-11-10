@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const webpush = require('web-push');
 
 const PORT = 3000;
 const BASE_DIR = __dirname;
@@ -16,6 +17,53 @@ try {
 const SUPABASE_DEV_URL = process.env.SUPABASE_DEV_URL || devConfig.SUPABASE_DEV_URL || '';
 const SUPABASE_DEV_KEY = process.env.SUPABASE_DEV_KEY || devConfig.SUPABASE_DEV_KEY || '';
 
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || devConfig.VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || devConfig.VAPID_PRIVATE_KEY || '';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || devConfig.VAPID_SUBJECT || 'mailto:contacto@movilidadysaludasistida.cl';
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  console.log('[WEBPUSH] Credenciales VAPID activas');
+}
+
+// Almacén de suscripciones en memoria / archivo local con respaldo
+const SUBS_FILE = path.join(__dirname, 'push-subs.json');
+function getLocalSubs() {
+  try {
+    if (fs.existsSync(SUBS_FILE)) {
+      return JSON.parse(fs.readFileSync(SUBS_FILE, 'utf-8')) || [];
+    }
+  } catch(e){}
+  return [];
+}
+
+function saveLocalSub(sub) {
+  const subs = getLocalSubs();
+  const exists = subs.find(s => s.endpoint === sub.endpoint);
+  if (!exists) {
+    subs.push(sub);
+    try { fs.writeFileSync(SUBS_FILE, JSON.stringify(subs, null, 2)); } catch(e){}
+  }
+}
+
+async function dispatchPushToAll(payload) {
+  const subs = getLocalSubs();
+  console.log(`[PUSH DISPATCHER] Enviando notificación a ${subs.length} dispositivo(s)...`);
+  
+  const results = [];
+  for (const s of subs) {
+    try {
+      await webpush.sendNotification(s, JSON.stringify(payload));
+      results.push({ endpoint: s.endpoint, ok: true });
+      console.log('[PUSH DISPATCHER] Notificación entregada con éxito a:', s.endpoint.slice(0, 45) + '...');
+    } catch(err) {
+      console.warn('[PUSH DISPATCHER] Error enviando a endpoint:', err.message);
+      results.push({ endpoint: s.endpoint, ok: false, error: err.message });
+    }
+  }
+  return results;
+}
+
 const server = http.createServer(async (req, res) => {
   const urlObj = new URL(req.url, `http://${req.headers.host}`);
   const pathname = urlObj.pathname;
@@ -30,11 +78,142 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
+  // API ROUTE: Obtener clave pública VAPID
+  if (pathname === '/api/tens/vapid-key') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true, publicKey: VAPID_PUBLIC_KEY }));
+  }
+
+  // API ROUTE: Suscribir dispositivo a Notificaciones Push
+  if (pathname === '/api/tens/push-subscribe') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const sub = JSON.parse(body || '{}');
+        if (sub && sub.endpoint) {
+          saveLocalSub(sub);
+
+          // Si la tabla push_subscriptions existe en Supabase, guardar también allí
+          if (SUPABASE_DEV_URL && SUPABASE_DEV_KEY) {
+            try {
+              await fetch(`${SUPABASE_DEV_URL}/rest/v1/push_subscriptions`, {
+                method: 'POST',
+                headers: {
+                  apikey: SUPABASE_DEV_KEY,
+                  Authorization: `Bearer ${SUPABASE_DEV_KEY}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'resolution=merge-duplicates'
+                },
+                body: JSON.stringify({
+                  endpoint: sub.endpoint,
+                  p256dh: sub.keys ? sub.keys.p256dh : '',
+                  auth: sub.keys ? sub.keys.auth : ''
+                })
+              });
+            } catch(e){}
+          }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, message: 'Dispositivo registrado para recibir alertas Push' }));
+      } catch(err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API ROUTE: Disparar alerta de prueba remota Push al celular
+  if (pathname === '/api/tens/push-trigger') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const payload = {
+          title: data.title || '🚨 ¡Nueva Reserva Asignada!',
+          body: data.body || 'Nuevo servicio agendado por cliente en la web. Toca para ver la ficha.',
+          icon: '/apple-touch-icon.png',
+          badge: '/favicon-32x32.png',
+          url: '/tens.html'
+        };
+        const results = await dispatchPushToAll(payload);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, dispatched: results.length, results }));
+      } catch(err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API ROUTE: Simular creación de nueva reserva en Supabase y emitir Push automático
+  if (pathname === '/api/tens/nueva-reserva-test') {
+    try {
+      const folioNum = Math.floor(100 + Math.random() * 900);
+      const nuevaReserva = {
+        folio: `MSA-2611-${folioNum}`,
+        fecha: new Date().toISOString().slice(0, 10),
+        hora_recogida: '11:30',
+        turno: 'mañana',
+        modalidad: '1',
+        modalidad_nombre: '1. Servicio Integral (Asistencia + Traslado)',
+        paciente_nombre: 'Juan Carlos Pérez Miranda',
+        paciente_edad: 74,
+        paciente_telefono: '977665544',
+        paciente_motivo: 'Evaluación Cardiológica de Urgencia',
+        paciente_movilidad: 'Autovalente con apoyo de bastón',
+        paciente_alergias: 'Alergia a AINEs (Ibuprofeno)',
+        coordinador_nombre: 'Claudia Pérez (Hija)',
+        coordinador_telefono: '912344321',
+        ruta_origen: 'Av. Cristóbal Colón 4560, Las Condes',
+        ruta_destino: 'Hospital Clínico FACH, Las Condes',
+        km_estimado: 5.2,
+        tiempo_espera: '2 horas',
+        estado_terreno: 'pendiente'
+      };
+
+      // 1. Guardar en Supabase
+      if (SUPABASE_DEV_URL && SUPABASE_DEV_KEY) {
+        await fetch(`${SUPABASE_DEV_URL}/rest/v1/reservas`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_DEV_KEY,
+            Authorization: `Bearer ${SUPABASE_DEV_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(nuevaReserva)
+        });
+      }
+
+      // 2. Disparar Notificación Push a los celulares
+      const pushPayload = {
+        title: '🚨 ¡Nueva Reserva Asignada!',
+        body: `Folio ${nuevaReserva.folio}: ${nuevaReserva.paciente_nombre} (11:30 hrs). Toca para ver la ruta.`,
+        icon: '/apple-touch-icon.png',
+        badge: '/favicon-32x32.png',
+        url: '/tens.html'
+      };
+      await dispatchPushToAll(pushPayload);
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      return res.end(JSON.stringify({
+        ok: true,
+        mensaje: 'Reserva creada en Supabase y notificación Push enviada',
+        reserva: nuevaReserva
+      }));
+    } catch(err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: false, error: err.message }));
+    }
+  }
+
   // API ROUTE: Itinerario conectado a Supabase Dev
   if (pathname === '/api/tens/itinerario') {
     const fecha = urlObj.searchParams.get('fecha') || new Date().toISOString().slice(0, 10);
     try {
-      // Consultar la tabla reservas en Supabase
       const sbRes = await fetch(`${SUPABASE_DEV_URL}/rest/v1/reservas?order=hora_recogida.asc`, {
         headers: {
           apikey: SUPABASE_DEV_KEY,
@@ -92,7 +271,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // API ROUTE: Eventos de terreno (Persiste en Supabase en tiempo real)
+  // API ROUTE: Eventos de terreno (Persiste en Supabase)
   if (pathname === '/api/tens/eventos') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -103,7 +282,6 @@ const server = http.createServer(async (req, res) => {
 
         console.log(`[SUPABASE DEV LIVE] Evento: ${servicio_id} -> ${nuevo_estado}`);
 
-        // 1. Guardar en eventos_terreno
         await fetch(`${SUPABASE_DEV_URL}/rest/v1/eventos_terreno`, {
           method: 'POST',
           headers: {
@@ -121,7 +299,6 @@ const server = http.createServer(async (req, res) => {
           })
         });
 
-        // 2. Actualizar estado en reservas
         await fetch(`${SUPABASE_DEV_URL}/rest/v1/reservas?folio=eq.${encodeURIComponent(servicio_id)}`, {
           method: 'PATCH',
           headers: {
@@ -221,7 +398,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[SUPABASE CONECTADO] Servidor TENS activo en:`);
+  console.log(`[SUPABASE + PUSH SERVER ACTIVO]`);
   console.log(`- Local:   http://localhost:${PORT}/tens.html`);
   console.log(`- Celular: http://192.168.100.49:${PORT}/tens.html`);
 });

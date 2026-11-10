@@ -3,3 +3,5 @@ Thumbs.db
 .vercel
 .env*
 dev-config.json
+node_modules/
+package-lock.json

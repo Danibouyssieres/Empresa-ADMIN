@@ -250,20 +250,23 @@ header{
   </div>
 
   <!-- BARRA DE NOTIFICACIONES PUSH -->
-  <div id="pushBar" class="control-bar" style="background:var(--card);border-left:4px solid var(--teal);margin-bottom:12px">
+  <div id="pushBar" class="control-bar" style="background:var(--card);border-left:4px solid var(--teal);margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div style="display:flex;align-items:center;gap:10px">
       <span style="font-size:1.25rem">🔔</span>
       <div>
         <div style="font-size:.88rem;font-weight:800;color:var(--ink)" id="pushStatusText">Alertas Push en Vivo</div>
-        <div style="font-size:.76rem;color:var(--mute)" id="pushSubText">Avisos de salidas, cambios y recordatorios</div>
+        <div style="font-size:.76rem;color:var(--mute)" id="pushSubText">Avisos automáticos de nuevas reservas en celular</div>
       </div>
     </div>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button id="btnEnablePush" class="btn-gps" onclick="enablePushNotifications()" style="background:var(--mist);color:var(--teal);border-color:var(--teal);padding:6px 12px;cursor:pointer">
         Activar
       </button>
       <button id="btnTestPush" class="btn-gps" onclick="testPushNotification()" style="display:none;background:var(--wa);color:#fff;border-color:var(--wa);padding:6px 12px;cursor:pointer">
-        📲 Probar Alerta
+        📲 Probar
+      </button>
+      <button id="btnSimularReserva" class="btn-gps" onclick="simularNuevaReserva()" style="display:none;background:var(--teal);color:#fff;border-color:var(--teal);padding:6px 12px;cursor:pointer">
+        ⚡ Simular Nueva Reserva Web
       </button>
     </div>
   </div>
@@ -709,6 +712,44 @@ async function saveVitals(e){
 }
 
 // CONTROL DE NOTIFICACIONES PUSH
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function registerDevicePushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const vRes = await fetch('/api/tens/vapid-key');
+    const vData = await vRes.json();
+    if (!vData.publicKey) return;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vData.publicKey)
+      });
+    }
+
+    await fetch('/api/tens/push-subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub)
+    });
+    console.log('[PUSH] Celular suscrito con éxito para recibir alertas automáticas');
+  } catch (err) {
+    console.warn('[PUSH] Suscripción remota no completada (usando local fallback):', err.message);
+  }
+}
+
 async function checkPushPermission(){
   if(!('Notification' in window) || !('serviceWorker' in navigator)) {
     const pb = document.getElementById('pushBar');
@@ -720,17 +761,21 @@ async function checkPushPermission(){
   const subTxt = document.getElementById('pushSubText');
   const btnEnable = document.getElementById('btnEnablePush');
   const btnTest = document.getElementById('btnTestPush');
+  const btnSim = document.getElementById('btnSimularReserva');
 
   if(Notification.permission === 'granted'){
     if(statusTxt) statusTxt.textContent = 'Alertas Push Activas ✓';
-    if(subTxt) subTxt.textContent = 'Este celular recibirá alertas de servicios';
+    if(subTxt) subTxt.textContent = 'Recibirás notificación inmediata de nuevas reservas';
     if(btnEnable) btnEnable.style.display = 'none';
     if(btnTest) btnTest.style.display = 'inline-flex';
+    if(btnSim) btnSim.style.display = 'inline-flex';
+    registerDevicePushSubscription();
   } else if(Notification.permission === 'denied'){
     if(statusTxt) statusTxt.textContent = 'Alertas bloqueadas en navegador';
     if(subTxt) subTxt.textContent = 'Permite notificaciones en la configuración del sitio';
     if(btnEnable) btnEnable.style.display = 'none';
     if(btnTest) btnTest.style.display = 'none';
+    if(btnSim) btnSim.style.display = 'none';
   }
 }
 
@@ -740,8 +785,9 @@ async function enablePushNotifications(){
   try {
     const permission = await Notification.requestPermission();
     if(permission === 'granted'){
+      await registerDevicePushSubscription();
       await checkPushPermission();
-      testPushNotification('¡Alertas activadas exitosamente! Recibirás aquí los avisos de servicios y cambios.');
+      testPushNotification('¡Alertas activadas exitosamente! Recibirás aquí los avisos de nuevas reservas en vivo.');
     } else {
       alert('Permiso de notificaciones no concedido.');
     }
@@ -774,6 +820,24 @@ async function testPushNotification(customMsg){
   try {
     new Notification('🚑 Alerta TENS Terreno', { body: msg, icon: '/apple-touch-icon.png' });
   } catch(e){}
+}
+
+async function simularNuevaReserva(){
+  const btn = document.getElementById('btnSimularReserva');
+  if(btn) { btn.disabled = true; btn.textContent = 'Guardando en Supabase...'; }
+  try {
+    const res = await fetch('/api/tens/nueva-reserva-test');
+    const data = await res.json();
+    if(data.ok) {
+      setTimeout(() => {
+        loadItinerario('today');
+      }, 1000);
+    }
+  } catch(e){
+    console.error('Error simulando reserva:', e);
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = '⚡ Simular Nueva Reserva Web'; }
+  }
 }
 
 // Cargar al iniciar

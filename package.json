@@ -1,0 +1,24 @@
+{
+  "name": "empresa",
+  "version": "1.0.0",
+  "description": "Sistema integral web para la empresa de traslados clínicos y asistencia TENS.",
+  "main": "dev-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Danibouyssieres/Empresa-ADMIN.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Danibouyssieres/Empresa-ADMIN/issues"
+  },
+  "homepage": "https://github.com/Danibouyssieres/Empresa-ADMIN#readme",
+  "dependencies": {
+    "web-push": "^4.0.0"
+  }
+}
