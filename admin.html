@@ -318,10 +318,6 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
       <button type="button" onclick="closeConfirmModal()" style="background:transparent;border:0;font-size:1.2rem;cursor:pointer;color:var(--mut)">✕</button>
     </div>
     <div id="modalConfirmDepositDetails" style="font-size:.9rem;line-height:1.5;margin-bottom:16px"></div>
-    <div style="margin-bottom:14px">
-      <label for="confirmDepositVoucher" style="font-weight:700;font-size:12px;display:block;margin-bottom:5px">N° Comprobante / Transf. Bancaria (opcional):</label>
-      <input type="text" id="confirmDepositVoucher" name="conf_deposit_comprobante" placeholder="Ej: Scotiabank #994821 / Transf. 12345" style="width:100%;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);box-sizing:border-box">
-    </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button type="button" onclick="closeConfirmModal()" style="padding:8px 16px;border-radius:8px">Cancelar</button>
       <button type="button" id="btn_submit_confirm_deposit" onclick="executeConfirmDeposit()" class="p" style="padding:8px 18px;background:#10b981;border-color:#10b981;font-weight:700;border-radius:8px">✔ Confirmar y Activar Bloqueo Permanente</button>
@@ -5052,7 +5048,6 @@ ${taxDocTxt}
 ${calc.parking > 0 ? `• Estacionamiento / Parking: ${$c(calc.parking)}\n` : ''}• Total Servicio Liquidado: ${$c(calc.totalServicio)}
 • Abono 50% previo registrado: -${$c(calc.abonoPrevio)}
 ${calc.descuentoManual > 0 ? `• Descuento / Ajuste aplicado: -${$c(calc.descuentoManual)}\n` : ''}👉 *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
-👉 *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
 
 🏦 *DATOS BANCARIOS PARA TRANSFERENCIA:*
 • Banco: Scotiabank
