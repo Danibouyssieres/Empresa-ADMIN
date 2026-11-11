@@ -3412,29 +3412,29 @@ function calcAdminQuote(){
     const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
     const startMin = tm(timeVal);
     const helperEl = $('#lbl_aq_time_helper');
-    let effEnd = startMin + qState.durationMin;
-    if(effEnd < 720) effEnd += 1440;
+    const normEndMin = (startMin + qState.durationMin) % 1440;
+    const horaTerminoCalculada = fm(normEndMin);
+    const isPast22 = (horaTerminoCalculada > '22:00' || horaTerminoCalculada <= '06:00');
 
-    if(effEnd > 1710){
+    if (horaTerminoCalculada <= '04:00' || (horaTerminoCalculada > '06:00' && horaTerminoCalculada <= '23:59')) {
       if(helperEl){
         helperEl.style.display = 'block';
-        helperEl.innerHTML = `🛑 <b>Tope nocturno excedido (Semáforo ROJO):</b> Término/retorno proyectado a las <b>${fm(effEnd % 1440)} hrs</b> supera las 04:30 AM (límite máximo permitido).`;
-        helperEl.style.color = '#dc2626';
+        helperEl.innerHTML = subtype === 'con_traslado'
+          ? `🚗 Recogida en domicilio: <b>${timeVal} hrs</b> → Retorno aprox: <b>${horaTerminoCalculada} hrs</b> (${fmtHoursClean(qState.durationMin)} totales)${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-22:00 hrs: bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ' · <span style="color:#059669;font-weight:700">Finaliza a las 22:00 hrs o antes: Día D+1 completamente LIBRE</span>'}`
+          : `🩺 Llegada al recinto / Inicio: <b>${timeVal} hrs</b> → Término aprox: <b>${horaTerminoCalculada} hrs</b> (${fmtHoursClean(qState.durationMin)} en recinto)${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-22:00 hrs: bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ' · <span style="color:#059669;font-weight:700">Finaliza a las 22:00 hrs o antes: Día D+1 completamente LIBRE</span>'}`;
+        helperEl.style.color = isPast22 ? '#b45309' : 'var(--pri)';
       }
-    } else if(effEnd > 1680){
+    } else if (horaTerminoCalculada > '04:00' && horaTerminoCalculada <= '04:30') {
       if(helperEl){
         helperEl.style.display = 'block';
-        helperEl.innerHTML = `⚠️ <b>Margen límite extendido (Semáforo AMARILLO):</b> Término proyectado a las <b>${fm(effEnd % 1440)} hrs</b> (entre 04:01 y 04:30 AM). Atención con cierre al límite.`;
+        helperEl.innerHTML = `⚠️ <b>Margen límite extendido (Semáforo AMARILLO):</b> Término proyectado a las <b>${horaTerminoCalculada} hrs</b> (entre 04:01 y 04:30 AM). Atención con cierre al límite.${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ''}`;
         helperEl.style.color = '#d97706';
       }
     } else {
       if(helperEl){
         helperEl.style.display = 'block';
-        const isPast22 = (effEnd > 1320);
-        helperEl.innerHTML = subtype === 'con_traslado'
-          ? `🚗 Recogida en domicilio: <b>${timeVal} hrs</b> → Retorno aprox: <b>${fm(effEnd % 1440)} hrs</b> (${fmtHoursClean(qState.durationMin)} totales)${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-22:00 hrs: bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ' · <span style="color:#059669;font-weight:700">Finaliza a las 22:00 hrs o antes: Día D+1 completamente LIBRE</span>'}`
-          : `🩺 Llegada al recinto / Inicio: <b>${timeVal} hrs</b> → Término aprox: <b>${fm(effEnd % 1440)} hrs</b> (${fmtHoursClean(qState.durationMin)} en recinto)${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-22:00 hrs: bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ' · <span style="color:#059669;font-weight:700">Finaliza a las 22:00 hrs o antes: Día D+1 completamente LIBRE</span>'}`;
-        helperEl.style.color = isPast22 ? '#b45309' : 'var(--pri)';
+        helperEl.innerHTML = `🛑 <b>Tope nocturno excedido (Semáforo ROJO):</b> Término/retorno proyectado a las <b>${horaTerminoCalculada} hrs</b> supera las 04:30 AM (límite máximo permitido).`;
+        helperEl.style.color = '#dc2626';
       }
     }
 
@@ -3880,9 +3880,9 @@ Quedamos atentos para reservar su cupo exclusivo!`;
   let blocksNextMorningVal = false;
 
   if(qState.mode === '4'){
-    let effEnd = startMin + durMin;
-    if(effEnd < 720) effEnd += 1440;
-    const isPast22 = (effEnd > 1320);
+    const normEnd = (startMin + durMin) % 1440;
+    const horaTermino = fm(normEnd);
+    const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
 
     blockType = 'full';
     fullDayVal = true;
@@ -3971,9 +3971,9 @@ Quedamos atentos para reservar su cupo exclusivo!`;
 
   if(!Array.isArray(D.blocks)) D.blocks = [];
   if(qState.mode === '4'){
-    let effEnd = startMin + durMin;
-    if(effEnd < 720) effEnd += 1440;
-    const isPast22 = (effEnd > 1320);
+    const normEnd = (startMin + durMin) % 1440;
+    const horaTermino = fm(normEnd);
+    const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
 
     D.blocks.push({
       id: 'blk_' + cleanFolio,
@@ -4203,10 +4203,10 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   // Validaciones de horario para Modalidad 4: Jornada Exclusiva Única (1 evento al día)
   if(qState.mode === '4'){
-    let effEnd = start + dur;
-    if(effEnd < 720) effEnd += 1440;
-    if(effEnd > 1710){
-      if(typeof alert !== 'undefined') alert(`🛑 El término o retorno proyectado (${fm(effEnd % 1440)} hrs) excede el tope nocturno de las 04:30 AM (límite máximo permitido).`);
+    const normEndMin = (start + dur) % 1440;
+    const horaTerminoCalculada = fm(normEndMin);
+    if(horaTerminoCalculada > '04:30' && horaTerminoCalculada <= '06:00'){
+      if(typeof alert !== 'undefined') alert(`🛑 El término o retorno proyectado (${horaTerminoCalculada} hrs) excede el tope nocturno de las 04:30 AM (límite máximo permitido).`);
       return { error: 'Exceeds 04:30 AM limit' };
     }
   }
@@ -4223,9 +4223,10 @@ function saveAdminBooking(ev, forceConfirm = false){
         return true;
       });
       // Si el evento finaliza posterior a las 22:00 hrs, chequear descanso biológico en Turno Mañana de D+1
-      let effEnd = start + dur;
-      if(effEnd < 720) effEnd += 1440;
-      if(!conflictSvc && effEnd > 1320){
+      const normEndMin = (start + dur) % 1440;
+      const horaTerminoCalculada = fm(normEndMin);
+      const isPast22 = (horaTerminoCalculada > '22:00' || horaTerminoCalculada <= '06:00');
+      if(!conflictSvc && isPast22){
         const nextDate = addDaysYMD(date, 1);
         conflictSvc = D.svcs.find(s => {
           if(s.date !== nextDate) return false;
@@ -4327,9 +4328,9 @@ function saveAdminBooking(ev, forceConfirm = false){
     newSvc.fullDay = true;
     newSvc.block = 'full';
   } else if(qState.mode === '4'){
-    let effEnd = start + dur;
-    if(effEnd < 720) effEnd += 1440;
-    const isPast22 = (effEnd > 1320);
+    const normEnd = (start + dur) % 1440;
+    const horaTermino = fm(normEnd);
+    const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
 
     newSvc.fullDay = true;
     newSvc.block = 'full';
@@ -4340,9 +4341,9 @@ function saveAdminBooking(ev, forceConfirm = false){
 
   if(!Array.isArray(D.blocks)) D.blocks = [];
   if(qState.mode === '4'){
-    let effEnd = start + dur;
-    if(effEnd < 720) effEnd += 1440;
-    const isPast22 = (effEnd > 1320);
+    const normEnd = (start + dur) % 1440;
+    const horaTermino = fm(normEnd);
+    const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
 
     D.blocks.push({
       id: 'blk_' + newId,
@@ -5945,9 +5946,9 @@ async function executeConfirmDeposit(id){
     if(s.svcType === '4'){
       const startMinVal = Number(s.start !== undefined ? s.start : (s.time ? tm(s.time) : 600));
       const durVal = Number(s.dur || 240);
-      let effEnd = startMinVal + durVal;
-      if(effEnd < 720) effEnd += 1440;
-      const isPast22 = (effEnd > 1320);
+      const normEnd = (startMinVal + durVal) % 1440;
+      const horaTermino = fm(normEnd);
+      const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
 
       MsaBlocksService.saveBlock({
         date: s.date,

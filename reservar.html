@@ -4118,9 +4118,8 @@ const BLOCK_HOURS = {
 
 function getShiftEndTime(blockId){
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  const isEventConTraslado = (mode === '4' && typeof selectedEventSubMode !== 'undefined' && selectedEventSubMode === 'con_traslado');
-  if(isEventConTraslado && (blockId === 'tarde' || blockId === 'noche')){
-    return 28 * 60 + 30; // 04:30 AM (1710 min)
+  if(mode === '4'){
+    return 28 * 60 + 30; // 04:30 AM (1710 min) para TODO Modalidad 4 en cualquier turno
   }
   if(blockId === 'manana') return 12 * 60; // 12:00 hrs (720 min)
   if(blockId === 'tarde')  return 20 * 60; // 20:00 hrs (1200 min)
@@ -4214,8 +4213,8 @@ function isSlotAtLeast24hAhead(dateStr, timeStr, isNochePostMidnight = false){
 
 function getBlockHoursList(blockId){
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  const isEventConTraslado = (mode === '4' && typeof selectedEventSubMode !== 'undefined' && selectedEventSubMode === 'con_traslado');
-  if(isEventConTraslado){
+  if(mode === '4'){
+    if(blockId === 'manana') return BLOCK_HOURS.manana;
     if(blockId === 'tarde'){
       return [
         '14:00', '14:15', '14:30', '14:45',
@@ -5459,7 +5458,7 @@ function updateSlots(keepCurrentTime = true){
         if(estWindow) estWindow.textContent = '';
         if(nightNotice) nightNotice.style.display = 'none';
         stBox.className = 'status-box err';
-        if(dur >= 360 && (selectedBlock === 'manana' || !isInter)){
+        if(mode !== '4' && dur >= 360 && (selectedBlock === 'manana' || !isInter)){
           stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
           if(submitAlert){
             submitAlert.style.display = 'block';
@@ -5526,7 +5525,11 @@ function updateSlots(keepCurrentTime = true){
         if(stBox) stBox.style.display = 'none';
         if(submitAlert){
           submitAlert.style.display = 'block';
-          submitAlert.innerHTML = `<span>⚠️ <b>Horario fuera de rango operativo estándar:</b> La atención finaliza a las <b>${fm(endServiceMin % 1440)} hrs</b>, fuera del límite del turno. Por favor coordine por WhatsApp o ajuste el horario.</span>`;
+          if(mode === '4'){
+            submitAlert.innerHTML = `<span>🛑 <b>Tope horario nocturno excedido:</b> El término/retorno de este evento finaliza a las <b>${fm(endServiceMin % 1440)} hrs</b>, superando las 04:30 AM (límite máximo permitido). Por favor seleccione un horario de inicio más temprano o coordine por WhatsApp.</span>`;
+          } else {
+            submitAlert.innerHTML = `<span>⚠️ <b>Horario fuera de rango operativo estándar:</b> La atención finaliza a las <b>${fm(endServiceMin % 1440)} hrs</b>, fuera del límite del turno. Por favor coordine por WhatsApp o ajuste el horario.</span>`;
+          }
         }
         return;
       } else if(semaforo.state === 'yellow'){
@@ -5624,7 +5627,7 @@ function updateSlots(keepCurrentTime = true){
     if(nightNotice) nightNotice.style.display = 'none';
     if(stBox) stBox.className = 'status-box err';
     const errReason = !ev.inRange ? ev.outReason : activeBlockObj.reason;
-    if(dur >= 360 && (selectedBlock === 'manana' || !activeBlockObj.available)){
+    if(mode !== '4' && dur >= 360 && (selectedBlock === 'manana' || !activeBlockObj.available)){
       stBox.innerHTML = `<span>⚠️ <b>Conflicto de Horario:</b> La duración de este plan (6 horas) excede el turno seleccionado en el calendario. Por favor seleccione un turno compatible en el Paso 1 (Turno Tarde o Noche) o modifique su plan a 4 horas.</span>`;
     } else {
       stBox.innerHTML = `<span>⚠️ <b>No disponible en la selección actual:</b> ${e(errReason)}. Por favor elija otro bloque o seleccione una fecha disponible en el calendario.</span>`;
@@ -5649,26 +5652,25 @@ let currentSuggestedBlock = 'manana';
 function evaluarSemaforoTurno(endServiceMin, targetBlock){
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
 
+  // 1. VALIDACIÓN PARA MODALIDAD 4 (EVENTOS SOCIALES)
   if(mode === '4'){
-    // REGLA DEFINITIVA MODALIDAD 4 (EVENTOS SOCIALES CON Y SIN TRASLADO):
-    // El turno seleccionado solo sirve para filtrar horas de inicio en el desplegable.
-    // La única condición de validación para aprobar o rechazar la reserva es la hora estimada de término/retorno:
-    // a) Término <= 04:00 AM (1680 min) -> Semáforo VERDE (Aprobado).
-    // b) Término entre 04:01 AM y 04:30 AM (1710 min) -> Semáforo AMARILLO (Alerta preventiva, permite reservar).
-    // c) Término posterior a 04:30 AM -> Semáforo ROJO (Bloqueo por seguridad y descanso; deriva a WhatsApp).
-    let effEnd = endServiceMin;
-    if(effEnd < 12 * 60) effEnd += 24 * 60;
-    const limitNominal = 28 * 60; // 04:00 AM (1680 min)
-    const limitTolerance = 28 * 60 + 30; // 04:30 AM (1710 min)
+    // Se anula cualquier chequeo contra fin de turno (12:00, 20:00, etc.)
+    // La ÚNICA variable de corte es la hora de término proyectada:
+    const normMin = endServiceMin % 1440;
+    const horaTerminoCalculada = fm(normMin);
+    const limitNominal = 28 * 60; // 04:00 AM
+    const limitTolerance = 28 * 60 + 30; // 04:30 AM
 
-    if(effEnd <= limitNominal){
-      return { state: 'green', effEnd, limitNominal, limitTolerance };
-    } else if(effEnd <= limitTolerance){
-      return { state: 'yellow', effEnd, limitNominal, limitTolerance };
+    if (horaTerminoCalculada <= '04:00' || (horaTerminoCalculada > '06:00' && horaTerminoCalculada <= '23:59')) {
+      return { state: 'green', effEnd: normMin, limitNominal, limitTolerance };
+    } else if (horaTerminoCalculada > '04:00' && horaTerminoCalculada <= '04:30') {
+      return { state: 'yellow', effEnd: normMin, limitNominal, limitTolerance };
     } else {
-      return { state: 'red', effEnd, limitNominal, limitTolerance };
+      return { state: 'red', effEnd: normMin, limitNominal, limitTolerance };
     }
   }
+
+  // 2. VALIDACIONES ESTÁNDAR POR TURNO (Solo para Modalidades 1, 2 y 3)
 
   let limitNominal = 12 * 60; // Turno Mañana: 12:00 hrs (720 min)
   let limitTolerance = 12 * 60 + 30; // Margen tolerancia: 12:30 hrs (750 min)
@@ -5941,8 +5943,8 @@ function renderSemaforoCard(semaforo){
     ? 'La atención finaliza a las'
     : 'El retorno estimado finaliza a las';
   if(semaforo.state === 'yellow'){
-    const isEventCon = (mode === '4' && selectedEventSubMode === 'con_traslado');
-    const yellowBody = isEventCon
+    const isEvent = (mode === '4');
+    const yellowBody = isEvent
       ? `${termLabel} <b>${timeFormatted} hrs</b>, dentro del margen extendido de eventos nocturnos (límite máximo permitido: 04:30 AM). Puede continuar con su reserva con normalidad; considere que durante el servicio no será posible solicitar extensiones de tiempo en el lugar para resguardar el descanso obligatorio del personal.`
       : `${termLabel} <b>${timeFormatted} hrs</b>, en el margen límite de nuestro turno. Puede continuar con su reserva con normalidad; sin embargo, considere que durante el servicio no será posible solicitar extensiones de tiempo en el lugar, con el propósito de resguardar los tiempos de traslado y la puntualidad de la atención siguiente.`;
     return `
@@ -5956,9 +5958,10 @@ function renderSemaforoCard(semaforo){
       </div>
     `;
   } else if(semaforo.state === 'red'){
-    const isEventCon = (mode === '4' && selectedEventSubMode === 'con_traslado');
-    const redBody = isEventCon
-      ? `Con la duración de este plan y los traslados de ida y vuelta, el retorno al domicilio finaliza a las <b>${timeFormatted} hrs</b>, superando el tope máximo nocturno permitido (04:30 AM). Para evaluar factibilidad o coordinar un itinerario personalizado, contáctenos por WhatsApp.`
+    const redBody = (mode === '4')
+      ? (selectedEventSubMode === 'con_traslado'
+          ? `Con la duración de este plan y los traslados de ida y vuelta, el retorno al domicilio finaliza a las <b>${timeFormatted} hrs</b>, superando el tope máximo nocturno permitido (04:30 AM). Para evaluar factibilidad o coordinar un itinerario personalizado, contáctenos por WhatsApp.`
+          : `Con la duración de este plan, la atención en el recinto finaliza a las <b>${timeFormatted} hrs</b>, superando el tope máximo nocturno permitido (04:30 AM). Para evaluar factibilidad o coordinar un itinerario personalizado, contáctenos por WhatsApp.`)
       : `Con la duración seleccionada, el servicio completo excede el horario del turno seleccionado por más de 30 min (retorno proyectado: <b>${timeFormatted} hrs</b>). Para evaluar factibilidad técnica personalizada, contáctenos directamente por WhatsApp.`;
     const waMsg = getSemaforoRedWaText(semaforo);
     const waUrl = `https://wa.me/56929990095?text=${encodeURIComponent(waMsg)}`;
@@ -6524,9 +6527,10 @@ async function submitBooking(ev){
           submitAlert.innerHTML = `<span>⚠️ <b>Hora requerida en Paso 2:</b> Por favor seleccione la hora de inicio de la atención en el domicilio antes de continuar.</span>`;
         }
       } else if(exceedsShift){
-        if(mode === '4' && selectedEventSubMode === 'con_traslado'){
+        if(mode === '4'){
           const calcEnd = window.currentSemaforo ? window.currentSemaforo.effEnd : endMin;
-          submitAlert.innerHTML = `<span>⚠️ <b>Tope horario nocturno excedido:</b> El retorno estimado de este servicio finaliza después de las 04:30 AM (retorno aprox: <b>${fm(calcEnd % 1440)} hrs</b>). Por favor seleccione un horario de inicio más temprano o contáctenos por WhatsApp.</span>`;
+          const msgEnd = (selectedEventSubMode === 'con_traslado') ? 'El retorno estimado de este servicio' : 'La atención en el recinto';
+          submitAlert.innerHTML = `<span>⚠️ <b>Tope horario nocturno excedido:</b> ${msgEnd} finaliza después de las 04:30 AM (finaliza aprox: <b>${fm(calcEnd % 1440)} hrs</b>). Por favor seleccione un horario de inicio más temprano o contáctenos por WhatsApp.</span>`;
         } else {
           const shiftName = selectedBlock === 'manana' ? 'Turno Mañana (cierre 12:00 hrs)' : (selectedBlock === 'tarde' ? 'Turno Tarde (cierre 20:00 hrs)' : 'Turno Noche (cierre 04:00 hrs)');
           submitAlert.innerHTML = `<span>⚠️ <b>Tope horario de turno excedido:</b> El servicio finaliza a las <b>${fm(endMin % 1440)} hrs</b>, superando la hora de cierre del ${shiftName}. Por favor seleccione una hora de recogida más temprana o reduzca la duración.</span>`;
@@ -6696,9 +6700,9 @@ async function submitBooking(ev){
   const fmtTotalKm = showMap ? (lastTotalKm.toFixed(1).replace('.', ',') + ' km') : 'No aplica';
   const ringLabel = detectedRing ? `${detectedRing.name} (Mín. ${$c(detectedRing.minFare)})` : 'Verificado en dirección';
   const saldo50 = lastFinalTotal - lastAbono50;
-  let effEndVal = start + dur;
-  if(effEndVal < 720) effEndVal += 1440;
-  const isEvtPast22 = (mode === '4' && effEndVal > 1320);
+  const normEndVal = (start + dur) % 1440;
+  const endFormatted = fm(normEndVal);
+  const isEvtPast22 = (mode === '4' && (endFormatted > '22:00' || endFormatted <= '06:00'));
   const blockHuman = isInter
     ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
     : (mode === '4'
