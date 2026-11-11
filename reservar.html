@@ -2734,7 +2734,7 @@ function onEventStart1Change(){
     selectedBlock = (mins >= 22 * 60 || mins < 6 * 60) ? 'noche' : (mins <= 13 * 60 ? 'manana' : 'tarde');
     const bTime = $('#b_time');
     if(bTime){
-      updateSlots(false);
+      updateSlots(true);
       if([...bTime.options].some(o => o.value === val && !o.disabled)){
         bTime.value = val;
       }
@@ -4285,7 +4285,7 @@ async function syncCentralizedBlocks(targetDate){
         window.MsaBlocksService.mergeBlocksIntoD(remoteBlocks, D);
         save();
         renderCalendar();
-        updateSlots(false);
+        updateSlots(true);
       }
     } catch(e){
       console.warn('Error al sincronizar bloqueos en tiempo real:', e);
@@ -4730,7 +4730,7 @@ function selectCalendarDate(dateStr){
       if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
         window.MsaBlocksService.mergeBlocksIntoD(remoteBlocks, D);
         save();
-        updateSlots(false);
+        updateSlots(true);
       }
     }).catch(e => console.warn('Sync blocks on date select error:', e));
   }
@@ -4825,12 +4825,10 @@ function selectShiftBlock(blockId){
     if(hRecEl) hRecEl.value = defaultTime;
     window._msaFormState = window._msaFormState || {};
     window._msaFormState.time = defaultTime;
+    updateSlots(true);
   } else {
-    // Limpiar la hora previamente seleccionada en #b_time para evitar inconsistencias
-    if(timeSelect) timeSelect.value = '';
+    updateSlots(true);
   }
-
-  updateSlots(mode === '4');
   actualizarTarifaSegunAgenda();
 }
 
@@ -5439,7 +5437,7 @@ function updateSlots(keepCurrentTime = true){
       let prevTimeExceededShift = false;
       const isTransfer = (mode === '1' || mode === '2');
       if(keepCurrentTime && prevTime){
-        if(validChoices.includes(prevTime) || isTransfer || mode === '3' || mode === '4' || mode === '5' || window.isMiddaySpecial){
+        if(validChoices.includes(prevTime) || isTransfer || mode === '3' || mode === '5' || window.isMiddaySpecial){
           const hasOpt = timeSelect.options ? [...timeSelect.options].some(o => o.value === prevTime) : false;
           if(!hasOpt){
             timeSelect.innerHTML += `<option value="${prevTime}">${prevTime} hrs</option>`;
@@ -5449,11 +5447,19 @@ function updateSlots(keepCurrentTime = true){
           window.hora_recogida = prevTime;
           window._msaFormState = window._msaFormState || {};
           window._msaFormState.time = prevTime;
+        } else if(isEvent && validChoices.length > 0){
+          const defaultSlot = (selectedBlock === 'manana' ? '08:00' : (selectedBlock === 'tarde' ? '14:00' : '22:00'));
+          const chosenSlot = validChoices.includes(defaultSlot) ? defaultSlot : validChoices[0];
+          timeSelect.value = chosenSlot;
+          if(hRecHiddenEl) hRecHiddenEl.value = chosenSlot;
+          window.hora_recogida = chosenSlot;
+          window._msaFormState = window._msaFormState || {};
+          window._msaFormState.time = chosenSlot;
         } else {
           timeSelect.value = '';
           if(mode !== '4') prevTimeExceededShift = true;
         }
-      } else if(isEvent && !prevTime && validChoices.length > 0){
+      } else if(isEvent && validChoices.length > 0){
         const defaultSlot = (selectedBlock === 'manana' ? '08:00' : (selectedBlock === 'tarde' ? '14:00' : '22:00'));
         const chosenSlot = validChoices.includes(defaultSlot) ? defaultSlot : validChoices[0];
         timeSelect.value = chosenSlot;
@@ -5755,7 +5761,21 @@ function updateSectionsVisibility(state){
     semaOk = (semaState !== 'red');
   }
 
-  const shouldShow = Boolean(calcComplete && semaOk);
+  // Regla de retención de estado: una vez que el semáforo pasa a VERDE o AMARILLO con cálculo completo,
+  // se desbloquean permanentemente las Secciones 3 y 4 para no borrar lo completado por el cliente.
+  if(calcComplete && semaOk){
+    window._msaSectionsUnlocked = true;
+  }
+
+  let shouldShow = false;
+  if(semaState === 'red'){
+    shouldShow = false;
+    window._msaSectionsUnlocked = false;
+  } else if(window._msaSectionsUnlocked){
+    shouldShow = true;
+  } else {
+    shouldShow = Boolean(calcComplete && semaOk);
+  }
 
   [sec3, sec4].forEach(el => {
     if(!el) return;
@@ -6893,6 +6913,12 @@ async function submitBooking(ev){
       return;
     }
 
+  const bookingKm = (typeof lastTotalKm === 'number' && !isNaN(lastTotalKm)) ? Number(lastTotalKm.toFixed(1)) : 0;
+  const bookingKmCost = (typeof lastKmCost === 'number' && !isNaN(lastKmCost)) ? lastKmCost : 0;
+  const bookingTimeCost = (typeof lastTimeCost !== 'undefined' && lastTimeCost > 0)
+    ? lastTimeCost
+    : (mode === '4' ? lastFinalTotal : Math.max(0, lastFinalTotal - bookingKmCost));
+
   const newSvc = {
     id: realFolio,
     folio: realFolio,
@@ -6931,13 +6957,13 @@ async function submitBooking(ev){
     baseFare: lastFinalTotal,
     abono: abonoVal,
     paid: 0,
-    km: Number(lastTotalKm.toFixed(1)),
-    kmTotal: Number(lastTotalKm.toFixed(1)),
-    km_total: Number(lastTotalKm.toFixed(1)),
-    kmCost: lastKmCost,
-    km_cost: lastKmCost,
-    timeCost: timeCost,
-    time_cost: timeCost,
+    km: bookingKm,
+    kmTotal: bookingKm,
+    km_total: bookingKm,
+    kmCost: bookingKmCost,
+    km_cost: bookingKmCost,
+    timeCost: bookingTimeCost,
+    time_cost: bookingTimeCost,
     stayMin: (mode === '2' || mode === '1') ? (+$('#selStayDestino') ? +$('#selStayDestino').value : 60) : undefined,
     stayHours: (mode === '2' || mode === '1') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : undefined,
     horas_base: (mode === '2') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : (dur / 60),
