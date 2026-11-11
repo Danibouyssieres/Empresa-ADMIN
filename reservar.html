@@ -6716,6 +6716,7 @@ async function submitBooking(ev){
   const normEndVal = (start + dur) % 1440;
   const endFormatted = fm(normEndVal);
   const isEvtPast22 = (mode === '4' && (endFormatted > '22:00' || endFormatted <= '06:00'));
+  const isPackTotalEvent = (mode === '4' && isEvtPast22);
   const blockHuman = isInter
     ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
     : (mode === '4'
