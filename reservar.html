@@ -1774,7 +1774,7 @@ function applyModalityVisibility(){
   if(wheelNote) wheelNote.style.display = isSinTraslado ? 'none' : 'block';
   if(compVeh) compVeh.style.display = (mode === '3') ? 'none' : 'block';
   if(compHome) compHome.style.display = (mode === '3') ? 'block' : 'none';
-  if(rowAyuda) rowAyuda.style.display = (mode === '3') ? 'none' : 'block';
+  if(rowAyuda) rowAyuda.style.display = 'block';
 
   const lblComp = $('#lbl_b_comp') || document.querySelector('label[for="b_comp"]');
   if(lblComp){
@@ -6648,7 +6648,7 @@ async function submitBooking(ev){
         ? `${svcName} · ${dxInput}`
         : `${svcName} · ${dxInput}`);
   const mob = $('#b_mob').value;
-  const ayudaTecnica = (mode !== '3' && $('#b_ayuda_tecnica')) ? $('#b_ayuda_tecnica').value : '';
+  const ayudaTecnica = ($('#b_ayuda_tecnica')) ? $('#b_ayuda_tecnica').value : '';
   const from = $('#b_from').value.trim();
   const depto = ($('#b_depto') && $('#b_depto').value.trim()) || '';
   const to = showDest ? $('#b_to').value.trim() : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');

@@ -1535,7 +1535,7 @@ async function syncCentralizedBlocksAdmin(){
                 to: isRemoteSinTraslado ? 'No aplica (Atención en domicilio)' : (r.to_addr || r.destino || 'Centro Médico'),
                 depto: r.depto || '',
                 mob: r.mob || 'Autovalente',
-                ayudaTecnica: isRemoteSinTraslado ? 'No aplica (Atención a domicilio)' : (r.ayuda_tecnica || r.ayudaTecnica || (r.obs && r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/) ? r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/)[1] : '') || ''),
+                ayudaTecnica: (r.ayuda_tecnica || r.ayudaTecnica || (r.obs && r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/) ? r.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/)[1] : '') || 'Ninguna (autovalente / no requiere implementos)'),
                 req: [],
                 comp: r.comp_desc ? r.comp_desc.includes('acompañante') : false,
                 compDesc: r.comp_desc || '',
@@ -1563,6 +1563,10 @@ async function syncCentralizedBlocksAdmin(){
               }
               if(isRemoteSinTraslado && exists.to && !exists.to.includes('No aplica')){
                 exists.to = 'No aplica (Atención en domicilio)';
+              }
+              if(isRemoteSinTraslado && (!exists.ayudaTecnica || exists.ayudaTecnica.includes('No aplica')) && (r.ayuda_tecnica || r.ayudaTecnica)){
+                exists.ayudaTecnica = r.ayuda_tecnica || r.ayudaTecnica;
+                exists.ayuda_tecnica = exists.ayudaTecnica;
               }
               if((r.st || r.estado) && exists.st !== (r.st || r.estado)){
                 if((exists.st === 'Cancelado' || exists.st === 'expirada_cancelada') && (r.st === 'pendiente_abono' || r.st === 'Pre-reserva pendiente')){
@@ -2776,7 +2780,7 @@ function onAdminModeChange(){
   const rowAyuda = $('#row_aq_ayuda_tecnica');
   if(compVeh) compVeh.style.display = (mode === '3') ? 'none' : 'block';
   if(compHome) compHome.style.display = (mode === '3') ? 'block' : 'none';
-  if(rowAyuda) rowAyuda.style.display = (mode === '3') ? 'none' : 'block';
+  if(rowAyuda) rowAyuda.style.display = 'block';
   const lblCompInit = $('#lbl_aq_comp') || document.querySelector('label[for="aq_comp"]');
   if(lblCompInit && mode !== '4') lblCompInit.textContent = '¿El paciente viaja solo o acompañado? *';
   const lblTimeInit = $('#lbl_aq_time') || document.querySelector('label[for="aq_time"] b');
@@ -3667,7 +3671,7 @@ function sendAdminQuoteWhatsApp(){
   };
 
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
-  const ayudaTecnica = (qState.mode !== '3' && $('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
+  const ayudaTecnica = ($('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
   const coord = ($('#aq_coord') && $('#aq_coord').value.trim()) || pat;
   const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
@@ -4173,7 +4177,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
   const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
-  const ayudaTecnica = (qState.mode !== '3' && $('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
+  const ayudaTecnica = ($('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
   const req = [];
 
   const selectedPats = typeof document !== 'undefined' && document.querySelectorAll
@@ -5365,7 +5369,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   }
   if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = isSinTraslado ? 'No aplica (Atención en domicilio)' : (s.to || s.from);
   if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = `Modalidad ${mode}`;
-  if($('#pdfAyudaTecnica')) $('#pdfAyudaTecnica').textContent = isSinTraslado ? 'No aplica (Atención a domicilio)' : (s.ayudaTecnica || s.ayuda_tecnica || 'Ninguna (autovalente / no requiere implementos)');
+  let finalAyudaTecnica = s.ayudaTecnica || s.ayuda_tecnica || '';
+  if(!finalAyudaTecnica || finalAyudaTecnica.includes('No aplica')){
+    if(s.obs && s.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/)){
+      finalAyudaTecnica = s.obs.match(/\[Ayuda Técnica:\s*([^\]]+)\]/)[1];
+    } else {
+      finalAyudaTecnica = 'Ninguna (autovalente / no requiere implementos)';
+    }
+  }
+  if($('#pdfAyudaTecnica')) $('#pdfAyudaTecnica').textContent = finalAyudaTecnica;
   if($('#pdfFechaServicio')) $('#pdfFechaServicio').textContent = s.date;
   if($('#pdfHorarioPactado')) $('#pdfHorarioPactado').textContent = `${fm(startMin)} a ${endPactadoStr} hrs`;
   if($('#pdfHoraCierreReal')) $('#pdfHoraCierreReal').textContent = `${horaCierre} hrs`;
