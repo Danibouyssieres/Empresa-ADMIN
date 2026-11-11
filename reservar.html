@@ -1881,7 +1881,7 @@ function applyModalityVisibility(){
   } else {
     $('#durationBox12').style.display = 'none';
     $('#durationBox34').style.display = 'grid';
-    const showTimeline = (mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado'));
+    const showTimeline = (mode === '5' || mode === '4');
     if($('#serviceTimelineBox')) $('#serviceTimelineBox').style.display = showTimeline ? 'block' : 'none';
     if(mode === '3'){
       $('#eventStartCol').style.display = 'none';
@@ -1908,9 +1908,7 @@ function applyModalityVisibility(){
       if($('#lblHours34')) $('#lblHours34').textContent = 'Plan de Asistencia y Cobertura *';
       $('#durationBox34').style.gridTemplateColumns = '1fr';
       const isCon = selectedEventSubMode === 'con_traslado';
-      if(isCon){
-        updateServiceTimeline();
-      }
+      updateServiceTimeline();
       if(timeBadge){
         timeBadge.textContent = 'Tarifa Plana · Cobertura continua (4 o 6 hrs)';
         timeBadge.style.background = 'rgba(22,143,74,.12)';
@@ -2831,8 +2829,9 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
   if(!box) return;
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
   const isEventConTraslado = (mode === '4' && selectedEventSubMode === 'con_traslado');
+  const isEvent = (mode === '4');
   const isInterregional = (mode === '5');
-  if(mode !== '1' && mode !== '2' && !isEventConTraslado && !isInterregional){
+  if(mode !== '1' && mode !== '2' && !isEvent && !isInterregional){
     box.style.display = 'none';
     return;
   }
@@ -2921,19 +2920,19 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     const eventStayMin = h * 60 + extraM;
     const terminoEventoMin = startMin + eventStayMin;
 
-    if($('#tlBadge')) $('#tlBadge').textContent = 'Solo Atención Continua en Recinto (Sin Traslado)';
-    if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Llegada al evento / Inicio atención:';
+    if($('#tlBadge')) $('#tlBadge').textContent = 'Asistencia en Recinto (Sin Traslado)';
+    if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora de llegada al recinto:';
     if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
-    if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Permanencia en el recinto:';
-    if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fmtHoursClean(eventStayMin)} efectivas`;
-    if($('#tlTiempoDestinoLabel')) $('#tlTiempoDestinoLabel').textContent = 'Término de la atención:';
+    if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Tiempo de permanencia contratado:';
+    if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fmtHoursClean(eventStayMin)} (${h}h base${extraM > 0 ? ` + ${extraM}m extra` : ''})`;
+    if($('#tlTiempoDestinoLabel')) $('#tlTiempoDestinoLabel').textContent = 'Hora estimada de término del servicio:';
     if($('#tlTiempoDestino')) $('#tlTiempoDestino').textContent = `${fm(terminoEventoMin % 1440)} hrs`;
     if($('#tlHoraRetornoLabel')) $('#tlHoraRetornoLabel').textContent = 'Formato contratado:';
     if($('#tlHoraRetorno')) $('#tlHoraRetorno').textContent = 'Tarifa Plana Cerrada RM';
     if($('#tlHorasEfectivasLabel')) $('#tlHorasEfectivasLabel').textContent = 'Total tiempo de atención:';
     if($('#tlHorasEfectivas')) $('#tlHorasEfectivas').textContent = `${fmtHoursClean(eventStayMin)} (${eventStayMin} min)`;
 
-    const formulaDesc = `Atención continua y exclusiva en el recinto del evento por <b>${fmtHoursClean(eventStayMin)} (${eventStayMin} min)</b> efectivas (Inicio: ${curTime} hrs → Término: ${fm(terminoEventoMin % 1440)} hrs). El paciente cuenta con acompañamiento y soporte clínico TENS ininterrumpido en el salón.`;
+    const formulaDesc = `Atención continua y exclusiva en el recinto del evento por <b>${fmtHoursClean(eventStayMin)} (${eventStayMin} min)</b> efectivas (Llegada al recinto: ${curTime} hrs → Término: ${fm(terminoEventoMin % 1440)} hrs). El paciente cuenta con acompañamiento y soporte clínico TENS ininterrumpido en el salón.`;
     if($('#tlDesgloseDetalle')) $('#tlDesgloseDetalle').innerHTML = formulaDesc;
     return;
   }
@@ -3130,7 +3129,6 @@ function recalcAll(){
         planName = 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)';
         basePkgCost = 95000;
       }
-      updateServiceTimeline();
     } else {
       if(h === 6){
         planName = 'Plan Total (6 hrs continuas en recinto)';
@@ -3139,9 +3137,8 @@ function recalcAll(){
         planName = 'Plan Base (4 hrs continuas en recinto)';
         basePkgCost = 65000;
       }
-      const tlBox = $('#serviceTimelineBox');
-      if(tlBox) tlBox.style.display = 'none';
     }
+    updateServiceTimeline();
     timeCost = basePkgCost + extraCost;
 
     let extraPart = '';
@@ -4819,11 +4816,21 @@ function selectShiftBlock(blockId){
     populateAppTimeOptions(mode);
   }
 
-  // Limpiar la hora previamente seleccionada en #b_time para evitar inconsistencias
   const timeSelect = $('#b_time');
-  if(timeSelect) timeSelect.value = '';
+  if(mode === '4'){
+    const defaultTime = blockId === 'manana' ? '08:00' : (blockId === 'tarde' ? '14:00' : '22:00');
+    if(timeSelect) timeSelect.value = defaultTime;
+    window.hora_recogida = defaultTime;
+    const hRecEl = document.getElementById('hora_recogida');
+    if(hRecEl) hRecEl.value = defaultTime;
+    window._msaFormState = window._msaFormState || {};
+    window._msaFormState.time = defaultTime;
+  } else {
+    // Limpiar la hora previamente seleccionada en #b_time para evitar inconsistencias
+    if(timeSelect) timeSelect.value = '';
+  }
 
-  updateSlots(false);
+  updateSlots(mode === '4');
   actualizarTarifaSegunAgenda();
 }
 
@@ -5444,19 +5451,21 @@ function updateSlots(keepCurrentTime = true){
           window._msaFormState.time = prevTime;
         } else {
           timeSelect.value = '';
-          prevTimeExceededShift = true;
+          if(mode !== '4') prevTimeExceededShift = true;
         }
       } else if(isEvent && !prevTime && validChoices.length > 0){
-        timeSelect.value = validChoices[0];
-        if(hRecHiddenEl) hRecHiddenEl.value = validChoices[0];
-        window.hora_recogida = validChoices[0];
+        const defaultSlot = (selectedBlock === 'manana' ? '08:00' : (selectedBlock === 'tarde' ? '14:00' : '22:00'));
+        const chosenSlot = validChoices.includes(defaultSlot) ? defaultSlot : validChoices[0];
+        timeSelect.value = chosenSlot;
+        if(hRecHiddenEl) hRecHiddenEl.value = chosenSlot;
+        window.hora_recogida = chosenSlot;
         window._msaFormState = window._msaFormState || {};
-        window._msaFormState.time = validChoices[0];
+        window._msaFormState.time = chosenSlot;
       } else if(!keepCurrentTime){
         timeSelect.value = '';
       }
 
-      if(prevTimeExceededShift){
+      if(prevTimeExceededShift && mode !== '4'){
         if(estWindow) estWindow.textContent = '';
         if(nightNotice) nightNotice.style.display = 'none';
         stBox.className = 'status-box err';
@@ -5663,9 +5672,9 @@ function evaluarSemaforoTurno(endServiceMin, targetBlock){
     const limitNominal = 28 * 60; // 04:00 AM
     const limitTolerance = 28 * 60 + 30; // 04:30 AM
 
-    if (horaTerminoCalculada <= '04:00' || (horaTerminoCalculada > '06:00' && horaTerminoCalculada <= '23:59')) {
+    if (normMin <= 240 || normMin >= 720) {
       return { state: 'green', effEnd: normMin, limitNominal, limitTolerance };
-    } else if (horaTerminoCalculada > '04:00' && horaTerminoCalculada <= '04:30') {
+    } else if (normMin > 240 && normMin <= 270) {
       return { state: 'yellow', effEnd: normMin, limitNominal, limitTolerance };
     } else {
       return { state: 'red', effEnd: normMin, limitNominal, limitTolerance };
@@ -5987,6 +5996,9 @@ window.renderSemaforoCard = renderSemaforoCard;
 
 function calcSuggestedPickup(source){
   try {
+    const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
+    if(mode === '3' || mode === '4') return;
+
     const callout = $('#suggestedPickupCallout');
     const msg = $('#suggestedPickupMsg');
     const subBtn = $('#submitBtn');
@@ -6505,7 +6517,7 @@ async function submitBooking(ev){
       const effRetornoMin = (typeof lastRouteVueltaMin === 'number' && lastRouteVueltaMin > 0) ? lastRouteVueltaMin : effIdaMin;
       targetEnd = start + 10 + effIdaMin + dur + effRetornoMin;
     }
-    const sema = window.currentSemaforo || evaluarSemaforoTurno(targetEnd, selectedBlock);
+    const sema = (mode === '4') ? evaluarSemaforoTurno(targetEnd, selectedBlock) : (window.currentSemaforo || evaluarSemaforoTurno(targetEnd, selectedBlock));
     exceedsShift = (sema && sema.state === 'red');
   } else if(!isInter && selectedBlock && endMin > shiftEnd && !isMiddayCase){
     exceedsShift = true;

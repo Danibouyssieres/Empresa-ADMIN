@@ -3416,7 +3416,7 @@ function calcAdminQuote(){
     const horaTerminoCalculada = fm(normEndMin);
     const isPast22 = (horaTerminoCalculada > '22:00' || horaTerminoCalculada <= '06:00');
 
-    if (horaTerminoCalculada <= '04:00' || (horaTerminoCalculada > '06:00' && horaTerminoCalculada <= '23:59')) {
+    if (normEndMin <= 240 || normEndMin >= 720) {
       if(helperEl){
         helperEl.style.display = 'block';
         helperEl.innerHTML = subtype === 'con_traslado'
@@ -3424,7 +3424,7 @@ function calcAdminQuote(){
           : `🩺 Llegada al recinto / Inicio: <b>${timeVal} hrs</b> → Término aprox: <b>${horaTerminoCalculada} hrs</b> (${fmtHoursClean(qState.durationMin)} en recinto)${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Finaliza post-22:00 hrs: bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ' · <span style="color:#059669;font-weight:700">Finaliza a las 22:00 hrs o antes: Día D+1 completamente LIBRE</span>'}`;
         helperEl.style.color = isPast22 ? '#b45309' : 'var(--pri)';
       }
-    } else if (horaTerminoCalculada > '04:00' && horaTerminoCalculada <= '04:30') {
+    } else if (normEndMin > 240 && normEndMin <= 270) {
       if(helperEl){
         helperEl.style.display = 'block';
         helperEl.innerHTML = `⚠️ <b>Margen límite extendido (Semáforo AMARILLO):</b> Término proyectado a las <b>${horaTerminoCalculada} hrs</b> (entre 04:01 y 04:30 AM). Atención con cierre al límite.${isPast22 ? ' · <span style="color:#d97706;font-weight:700">Bloqueará Turno Mañana de D+1 por descanso biológico</span>' : ''}`;
@@ -4205,7 +4205,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   if(qState.mode === '4'){
     const normEndMin = (start + dur) % 1440;
     const horaTerminoCalculada = fm(normEndMin);
-    if(horaTerminoCalculada > '04:30' && horaTerminoCalculada <= '06:00'){
+    if(normEndMin > 270 && normEndMin < 720){
       if(typeof alert !== 'undefined') alert(`🛑 El término o retorno proyectado (${horaTerminoCalculada} hrs) excede el tope nocturno de las 04:30 AM (límite máximo permitido).`);
       return { error: 'Exceeds 04:30 AM limit' };
     }
