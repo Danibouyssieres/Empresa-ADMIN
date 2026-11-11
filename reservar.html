@@ -1663,8 +1663,7 @@ function onServiceTypeChange(){
     selectedBlock = 'manana';
     selectInterRegion(selectedInterRegion);
   } else if(mode === '4'){
-    // Al seleccionar Eventos Sociales, fijar jornada exclusiva de eventos
-    selectedBlock = 'evento';
+    if(!selectedBlock || selectedBlock === 'evento') selectedBlock = 'manana';
   } else if((mode === '1' || mode === '2') && selectedBlock === 'noche'){
     // Restablecimiento automático de selección al cambiar a Modalidad 1 o 2
     selectedBlock = null;
@@ -4214,7 +4213,15 @@ function isSlotAtLeast24hAhead(dateStr, timeStr, isNochePostMidnight = false){
 function getBlockHoursList(blockId){
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
   if(mode === '4'){
-    if(blockId === 'manana') return BLOCK_HOURS.manana;
+    if(blockId === 'manana'){
+      return [
+        '08:00', '08:15', '08:30', '08:45',
+        '09:00', '09:15', '09:30', '09:45',
+        '10:00', '10:15', '10:30', '10:45',
+        '11:00', '11:15', '11:30', '11:45',
+        '12:00'
+      ];
+    }
     if(blockId === 'tarde'){
       return [
         '14:00', '14:15', '14:30', '14:45',
@@ -4223,14 +4230,11 @@ function getBlockHoursList(blockId){
         '17:00', '17:15', '17:30', '17:45',
         '18:00', '18:15', '18:30', '18:45',
         '19:00', '19:15', '19:30', '19:45',
-        '20:00', '20:15', '20:30', '20:45',
-        '21:00', '21:15'
+        '20:00'
       ];
     }
     if(blockId === 'noche'){
       return [
-        '20:00', '20:15', '20:30', '20:45',
-        '21:00', '21:15', '21:30', '21:45',
         '22:00', '22:15', '22:30', '22:45',
         '23:00', '23:15', '23:30', '23:45',
         '00:00', '00:15', '00:30', '00:45',
@@ -4763,11 +4767,9 @@ function selectCalendarDate(dateStr){
   const mode = $('#b_svc_type').value;
   if(mode === '5'){
     selectedBlock = 'manana';
-  } else if(mode === '4'){
-    selectedBlock = 'evento';
   } else {
     // Por defecto, al seleccionar cualquier fecha, activar siempre el primer turno habilitado (Turno Mañana)
-    const allowsNight = (mode === '3');
+    const allowsNight = (mode === '3' || mode === '4');
     if(ev.manana && ev.manana.available){
       selectedBlock = 'manana';
     } else if(ev.tarde && ev.tarde.available){
@@ -4780,7 +4782,7 @@ function selectCalendarDate(dateStr){
   }
   updateSlots(true);
   actualizarTarifaSegunAgenda();
-  if(lastRouteIdaMin > 0){
+  if(lastRouteIdaMin > 0 && (mode === '1' || mode === '2' || mode === '5')){
     calcSuggestedPickup();
   }
 }
