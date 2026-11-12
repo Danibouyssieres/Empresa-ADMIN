@@ -1610,6 +1610,8 @@ async function syncCentralizedBlocksAdmin(){
               if((r.st || r.estado) && exists.st !== (r.st || r.estado)){
                 if((exists.st === 'Cancelado' || exists.st === 'expirada_cancelada') && (r.st === 'pendiente_abono' || r.st === 'Pre-reserva pendiente')){
                   // Preservar estado cancelado para evitar bucles de expiración
+                } else if(String(exists.st).toLowerCase().includes('confirm') && (r.st === 'pendiente_abono' || r.st === 'Pre-reserva pendiente')) {
+                  // Preservar Confirmado si la reserva ya fue confirmada administrativamente
                 } else {
                   exists.st = (r.st || r.estado);
                 }
@@ -2470,7 +2472,7 @@ function form(){
 
       <!-- BOTONES DE ACCIÓN ADMINISTRATIVA -->
       <div class="row" style="justify-content:space-between;align-items:center;margin-top:18px;border-top:1px solid var(--bd);padding-top:14px">
-        <button type="button" class="btn" onclick="resetAdminQuoterForm()" style="background:var(--bg);color:var(--mut);border:1px solid var(--bd);font-size:12.5px" title="Limpiar formulario y borrador">
+        <button type="button" class="btn" onclick="resetAdminQuoterForm(true)" style="background:var(--bg);color:var(--mut);border:1px solid var(--bd);font-size:12.5px" title="Limpiar formulario y borrador">
           🧹 Limpiar Formulario
         </button>
         <div style="display:flex;gap:12px;align-items:center">
@@ -2697,7 +2699,7 @@ function clearAdminQuoterDraft(){
 }
 window.clearAdminQuoterDraft = clearAdminQuoterDraft;
 
-function resetAdminQuoterForm(){
+function resetAdminQuoterForm(isManual = false){
   clearAdminQuoterDraft();
   if($('#form_admin_quoter')) $('#form_admin_quoter').reset();
   if($('#aq_mode')) $('#aq_mode').value = '1';
@@ -2748,7 +2750,7 @@ function resetAdminQuoterForm(){
   onAdminAddressInput('from');
   calcAdminQuote();
 
-  if(typeof alert !== 'undefined') alert('🧹 Formulario del Cotizador Maestro restablecido con valores iniciales limpios.');
+  if(isManual && typeof alert !== 'undefined') alert('🧹 Formulario del Cotizador Maestro restablecido con valores iniciales limpios.');
 }
 window.resetAdminQuoterForm = resetAdminQuoterForm;
 
@@ -4139,7 +4141,7 @@ Quedamos atentos para reservar su cupo exclusivo!`;
 window.sendAdminQuoteWhatsApp = sendAdminQuoteWhatsApp;
 let pendingAdminBooking = null;
 
-function saveAdminBooking(ev, forceConfirm = false){
+async function saveAdminBooking(ev, forceConfirm = false){
   if(ev && ev.preventDefault) ev.preventDefault();
   calcAdminQuote();
 
@@ -4338,25 +4340,40 @@ function saveAdminBooking(ev, forceConfirm = false){
     id: cleanFolio,
     folio: cleanFolio,
     tid,
+    tens_id: tid,
+    tensAsignado: tn(tid),
     date,
     time: bookingTime,
     start,
     dur,
     pat,
+    pat_name: pat,
+    patPhone: ph,
+    pat_phone: ph,
     age,
+    pat_age: age,
     dx,
     coord: isFactura ? (taxRS || coord) : coord,
+    coord_name: isFactura ? (taxRS || coord) : coord,
     coordRut: isFactura ? taxRUT : '',
+    coord_rut: isFactura ? taxRUT : '',
     ph,
+    contacto: ph,
+    coordPhone: ph,
+    coord_phone: ph,
     from,
+    from_addr: from,
     to,
+    to_addr: to,
     mob,
     ayudaTecnica,
     ayuda_tecnica: ayudaTecnica,
     req,
     comp: !isSolo,
     compDesc,
+    comp_desc: compDesc,
     taxDoc,
+    tax_doc: taxDoc,
     taxRS: isFactura ? taxRS : '',
     taxRUT: isFactura ? taxRUT : '',
     taxGiro: isFactura ? taxGiro : '',
@@ -4364,8 +4381,10 @@ function saveAdminBooking(ev, forceConfirm = false){
     patologias,
     fare: qState.totalFare,
     baseFare: qState.totalFare,
+    total: qState.totalFare,
     paid: qState.abono50,
     abono: qState.abono50,
+    abono_requerido: qState.abono50,
     kmTotal: qState.kmTotal,
     km_total: qState.kmTotal,
     kmCost: qState.kmCost,
@@ -4452,78 +4471,156 @@ function saveAdminBooking(ev, forceConfirm = false){
     });
   }
 
-  // Persistir en backend central (Supabase / Edge API)
-  if(window.MsaBlocksService){
-    if(qState.mode === '4'){
-      MsaBlocksService.saveBlock({
-        date: date,
-        type: 'full',
-        reason: `Jornada Exclusiva Eventos (1 evento al día) #${cleanFolio} (${pat})`,
-        tid: tid
-      }).catch(err => console.warn('Error al persistir bloqueo centralizado:', err));
+  // 1. Guardar localmente primero en D y localStorage para disponibilidad inmediata
+  save();
 
-      const normEnd = (start + dur) % 1440;
-      const horaTermino = fm(normEnd);
-      const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
-      if(isPast22){
-        const nextDate = addDaysYMD(date, 1);
-        MsaBlocksService.saveBlock({
-          date: nextDate,
-          type: 'manana',
-          reason: `Descanso obligatorio post-evento nocturno #${cleanFolio} (${pat})`,
-          tid: tid
-        }).catch(err => console.warn('Error al persistir bloqueo descanso:', err));
-      }
-    } else {
-      MsaBlocksService.saveBlock({
+  // 2. Persistir en backend central (Supabase directo y/o Edge API)
+  const bs = (typeof window !== 'undefined' && window.MsaBlocksService) ? window.MsaBlocksService : null;
+  const sb = (bs && typeof bs.getSupabaseClient === 'function') ? bs.getSupabaseClient() : null;
+
+  if (sb) {
+    try {
+      const sbRow = {
+        folio: cleanFolio,
         date: date,
-        type: newSvc.block,
-        reason: `Reserva confirmada #${cleanFolio} (${pat})`,
-        tid: tid
-      }).catch(err => console.warn('Error al persistir bloqueo centralizado:', err));
+        time: bookingTime,
+        start_min: start,
+        dur_min: dur,
+        svc_type: qState.mode,
+        block: newSvc.block,
+        pat_name: pat,
+        pat_phone: ph,
+        pat_age: age,
+        coord_name: isFactura ? (taxRS || coord) : coord,
+        coord_phone: ph,
+        coord_type: isFactura ? 'empresa' : 'familiar',
+        from_addr: from,
+        to_addr: to,
+        dx: dx,
+        mob: mob,
+        ayuda_tecnica: ayudaTecnica,
+        conciencia: 'Lúcido / Orientado',
+        alergias: alergias,
+        medicamentos: medicamentos,
+        patologias: JSON.stringify(patologias),
+        comp_desc: compDesc,
+        fare: qState.totalFare,
+        abono: qState.abono50,
+        paid: qState.abono50,
+        st: 'Confirmado',
+        tens_id: tid,
+        tax_doc: JSON.stringify(taxDoc),
+        obs: newSvc.obs,
+        created_at: newSvc.createdAt
+      };
+      await sb.from('reservas').upsert([sbRow], { onConflict: 'folio' });
+    } catch(errSb) {
+      console.warn('[Admin] Error upsert Supabase directo:', errSb);
     }
   }
 
-  // Persistir en /api/reservas
-  fetch('/api/reservas', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      folio: cleanFolio,
-      date: date,
-      time: bookingTime,
-      start: start,
-      dur: dur,
-      mode: qState.mode,
-      turno: newSvc.block,
-      pat: pat,
-      patPhone: ph,
-      age: age,
-      coord: coord,
-      coordPhone: ph,
-      from: from,
-      to: to,
-      dx: dx,
-      mob: mob,
-      ayudaTecnica: ayudaTecnica,
-      alergias: alergias,
-      medicamentos: medicamentos,
-      fare: qState.totalFare,
-      abono: qState.abono50,
-      paid: qState.abono50,
-      st: 'Confirmado',
-      taxDoc: taxDoc,
-      obs: newSvc.obs
-    })
-  }).catch(err => console.warn('Error al persistir reserva en /api/reservas:', err));
+  // 3. Persistir en /api/reservas para replicar en Edge Store y disparar triggers
+  try {
+    const authHeaders = (bs && typeof bs.getAdminAuthHeaders === 'function') ? bs.getAdminAuthHeaders() : {};
+    const conf = (bs && typeof bs.getConfig === 'function') ? bs.getConfig() : { url: '', key: '' };
+    const apiHeaders = Object.assign({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }, authHeaders);
+    if(conf.url) apiHeaders['x-supabase-url'] = conf.url;
+    if(conf.key) apiHeaders['x-supabase-key'] = conf.key;
+
+    await fetch('/api/reservas', {
+      method: 'POST',
+      headers: apiHeaders,
+      body: JSON.stringify({
+        folio: cleanFolio,
+        date: date,
+        time: bookingTime,
+        start: start,
+        dur: dur,
+        mode: qState.mode,
+        turno: newSvc.block,
+        pat: pat,
+        paciente: pat,
+        patPhone: ph,
+        contacto: ph,
+        ph: ph,
+        coordPhone: ph,
+        coord_phone: ph,
+        age: age,
+        coord: isFactura ? (taxRS || coord) : coord,
+        coordRut: isFactura ? taxRUT : '',
+        from: from,
+        origen: from,
+        to: to,
+        destino: to,
+        dx: dx,
+        mob: mob,
+        ayudaTecnica: ayudaTecnica,
+        alergias: alergias,
+        medicamentos: medicamentos,
+        fare: qState.totalFare,
+        total: qState.totalFare,
+        abono: qState.abono50,
+        abono_requerido: qState.abono50,
+        paid: qState.abono50,
+        st: 'Confirmado',
+        tens_id: tid,
+        tensAsignado: tn(tid),
+        taxDoc: taxDoc,
+        tax_doc: taxDoc,
+        obs: newSvc.obs
+      })
+    });
+  } catch(errApi) {
+    console.warn('[Admin] Error en fetch /api/reservas:', errApi);
+  }
+
+  // 4. Persistir bloqueo centralizado en agenda
+  if(bs){
+    try {
+      if(qState.mode === '4'){
+        await bs.saveBlock({
+          date: date,
+          type: 'full',
+          reason: `Jornada Exclusiva Eventos (1 evento al día) #${cleanFolio} (${pat})`,
+          tid: tid
+        });
+
+        const normEnd = (start + dur) % 1440;
+        const horaTermino = fm(normEnd);
+        const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
+        if(isPast22){
+          const nextDate = addDaysYMD(date, 1);
+          await bs.saveBlock({
+            date: nextDate,
+            type: 'manana',
+            reason: `Descanso obligatorio post-evento nocturno #${cleanFolio} (${pat})`,
+            tid: tid
+          });
+        }
+      } else {
+        await bs.saveBlock({
+          date: date,
+          type: newSvc.block,
+          reason: `Reserva confirmada #${cleanFolio} (${pat})`,
+          tid: tid
+        });
+      }
+    } catch(errBlk) {
+      console.warn('[Admin] Error persistiendo bloqueo centralizado:', errBlk);
+    }
+  }
 
   save();
   clearAdminQuoterDraft();
-  resetAdminQuoterForm();
+  resetAdminQuoterForm(false);
 
   cerrarModalWarningBufferAdmin();
-  if(typeof alert !== 'undefined') alert(`✅ ¡Reserva Folio #${cleanFolio} creada y guardada exitosamente en la agenda y base de datos!`);
+  if(typeof alert !== 'undefined') alert(`✅ ¡Reserva Folio #${cleanFolio} (${pat}) registrada y guardada exitosamente en la base de datos!`);
   U.date = date;
+  U.tens = tid;
   U.tab = 'inbox';
   inboxStatusFilter = 'all';
   render();
@@ -4559,10 +4656,10 @@ function cerrarModalWarningBufferAdmin(){
 }
 window.cerrarModalWarningBufferAdmin = cerrarModalWarningBufferAdmin;
 
-function confirmarGuardarConConflictoAdmin(){
+async function confirmarGuardarConConflictoAdmin(){
   if(!pendingAdminBooking) return;
   const b = pendingAdminBooking;
-  return saveAdminBooking(null, true);
+  return await saveAdminBooking(null, true);
 }
 window.confirmarGuardarConConflictoAdmin = confirmarGuardarConConflictoAdmin;
 

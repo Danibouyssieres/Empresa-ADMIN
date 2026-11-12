@@ -179,7 +179,7 @@ export default async function handler(req) {
       }
 
       const patName = String(body.paciente || body.pat || body.pat_name || '').trim();
-      const coordPhone = String(body.contacto || body.ph || body.coord_phone || '').trim();
+      const coordPhone = String(body.contacto || body.ph || body.coord_phone || body.coordPhone || body.patPhone || body.pat_phone || '').trim();
       const fromAddr = String(body.origen || body.from || body.from_addr || body.direccion_domicilio || body.recinto_direccion || '').trim();
       const toAddr = String(body.destino || body.to || body.to_addr || body.recinto_direccion || body.destino_interregional || '').trim();
       const mode = String(body.modalidad || body.svcType || body.svc_type || '1').trim();
@@ -414,6 +414,8 @@ export default async function handler(req) {
 
       const timeVal = String(body.time || horaRecogida || horaInicioAtencion || salidaMat || body.hora || '10:00').trim();
       const durVal = Number(body.dur || body.dur_min || 120);
+      const targetStatus = String(body.st || body.estado || 'pendiente_abono').trim();
+      const tensId = String(body.tens_id || body.tid || 't1').trim();
 
       const newReserva = {
         folio: folio,
@@ -442,10 +444,11 @@ export default async function handler(req) {
         comp_desc: String(body.compDesc || body.comp_desc || '').trim(),
         fare: fare,
         abono: abono,
-        paid: Number(body.paid || 0),
+        paid: Number(body.paid || (targetStatus.toLowerCase().includes('confirm') ? abono : 0)),
+        tens_id: tensId,
         tax_doc: typeof body.taxDoc === 'object' ? JSON.stringify(body.taxDoc) : String(body.tax_doc || ''),
         obs: combinedObs,
-        st: 'pendiente_abono',
+        st: targetStatus,
         created_at: new Date().toISOString()
       };
 
@@ -472,10 +475,10 @@ export default async function handler(req) {
           if (!sbRes.ok) {
             const fallbackReserva = {
               ...newReserva,
-              st: 'Pre-reserva pendiente',
+              st: targetStatus.toLowerCase().includes('confirm') ? targetStatus : 'Pre-reserva pendiente',
               obs: (newReserva.obs ? newReserva.obs + ' · ' : '') + 
                    (newReserva.ayuda_tecnica ? `[Ayuda Técnica: ${newReserva.ayuda_tecnica}] · ` : '') +
-                   `[Estado: pendiente_abono | Expira: ${expiresAt}]`
+                   `[Estado: ${targetStatus} | Expira: ${expiresAt}]`
             };
             // Si la columna ayuda_tecnica no existe en tabla Supabase, se remueve para evitar error 400
             delete fallbackReserva.ayuda_tecnica;
@@ -500,6 +503,7 @@ export default async function handler(req) {
           }
 
           // 2. Inserción atómica en tabla bloqueos asociada al folio
+          const blockStatus = targetStatus.toLowerCase().includes('confirm') ? 'confirmada' : 'temporal_120m';
           let blocksToInsert = [];
           if (mode === '4') {
             // MODALIDAD 4: JORNADA EXCLUSIVA ÚNICA (1 EVENTO POR DÍA)
@@ -508,8 +512,8 @@ export default async function handler(req) {
               date: date,
               type: 'full',
               reason: 'Jornada Exclusiva Eventos (1 evento al día) #' + folio,
-              tid: 'all',
-              status: 'temporal_120m',
+              tid: tensId || 'all',
+              status: blockStatus,
               reserva_id: folio,
               expires_at: expiresAt,
               created_at: new Date().toISOString(),
@@ -526,8 +530,8 @@ export default async function handler(req) {
                 date: nextDate,
                 type: 'manana',
                 reason: 'Descanso biológico obligatorio post-evento nocturno #' + folio,
-                tid: 'all',
-                status: 'temporal_120m',
+                tid: tensId || 'all',
+                status: blockStatus,
                 reserva_id: folio,
                 expires_at: expiresAt,
                 created_at: new Date().toISOString(),
@@ -537,9 +541,9 @@ export default async function handler(req) {
             blocksToInsert.push({
               date: date,
               type: turno,
-              reason: 'Horario reservado',
-              tid: 'all',
-              status: 'temporal_120m',
+              reason: 'Horario reservado #' + folio,
+              tid: tensId || 'all',
+              status: blockStatus,
               reserva_id: folio,
               expires_at: expiresAt,
               created_at: new Date().toISOString(),
@@ -586,7 +590,7 @@ export default async function handler(req) {
       const finalRecord = {
         ...(savedRecord || newReserva),
         folio: folio,
-        st: 'pendiente_abono',
+        st: targetStatus,
         expires_at: expiresAt
       };
       edgeReservasStore = edgeReservasStore.filter(r => r.folio !== folio);
