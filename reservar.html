@@ -6518,6 +6518,7 @@ async function submitBooking(ev){
     const showMap = isMapEnabledForCurrentState();
     const showDest = (mode === '1' || mode === '2' || mode === '5' || isConEvento);
     const isInter = mode === '5';
+    let isPackTotalEvent = false;
 
     // Definición temprana y segura de direcciones
     const from = sanitizePlaceLabel(($('#b_from') && $('#b_from').value.trim()) || '');
@@ -6818,7 +6819,7 @@ async function submitBooking(ev){
   const normEndVal = (start + dur) % 1440;
   const endFormatted = fm(normEndVal);
   const isEvtPast22 = (mode === '4' && (endFormatted > '22:00' || endFormatted <= '06:00'));
-  const isPackTotalEvent = (mode === '4' && isEvtPast22);
+  isPackTotalEvent = (mode === '4' && isEvtPast22);
   const blockHuman = isInter
     ? 'Jornada Completa Interregional (Bloquea Mañana y Tarde)'
     : (mode === '4'

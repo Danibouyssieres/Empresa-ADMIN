@@ -540,6 +540,15 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 const PX=44,S0=0,S1=1440,BUF=120,K='msa-v1',TM_K='msa-theme',SESS_K='msa-session';
 const PRICE_PER_KM = 1000;
 const pad=n=>String(n).padStart(2,'0'),fm=m=>{const norm=((Math.round(m)%1440)+1440)%1440;return pad(Math.floor(norm/60))+':'+pad(norm%60)},tm=t=>{if(!t)return 0;const[a,b]=t.split(':');return +a*60+ +b};
+function fmtHoursClean(mins){
+  const mVal = Number(mins || 0);
+  const h = Math.floor(mVal / 60);
+  const m = mVal % 60;
+  if(h > 0 && m > 0) return `${h} h ${m} min`;
+  if(h > 0) return `${h} h`;
+  return `${m} min`;
+}
+window.fmtHoursClean = fmtHoursClean;
 const toYMD=dt=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
 const addDaysYMD=(str,days)=>{const[y,m,d]=str.split('-').map(Number);const dt=new Date(y,m-1,d);dt.setDate(dt.getDate()+days);return toYMD(dt)};
 const TODAY=toYMD(new Date());
@@ -2191,14 +2200,14 @@ function form(){
         </div>
         <div>
           <label for="aq_event_pack"><b>Paquete Base de Cobertura *</b></label>
-          <select id="aq_event_pack" onchange="calcAdminQuote()">
+          <select id="aq_event_pack" onchange="calcAdminQuote();saveAdminQuoterDraft()">
             <option value="base" selected>Plan Base (4 horas continuas)</option>
             <option value="total">Plan Total (6 horas continuas)</option>
           </select>
         </div>
         <div>
           <label for="aq_event_extra"><b>Tiempo Adicional *</b></label>
-          <select id="aq_event_extra" onchange="calcAdminQuote()">
+          <select id="aq_event_extra" onchange="calcAdminQuote();saveAdminQuoterDraft()">
             <option value="0" selected>Sin tiempo adicional ($0)</option>
             <option value="30">+30 minutos extra (+$7.500)</option>
             <option value="60">+1 hora extra (+$15.000)</option>
@@ -2211,7 +2220,7 @@ function form(){
       <!-- SECCIÓN DINÁMICA: OPCIONES MODALIDAD 5 (PROGRAMAS INTERREGIONALES) -->
       <div class="g" style="margin-bottom:14px;display:none;background:rgba(14,116,144,0.06);border:1px solid rgba(14,116,144,0.25);border-radius:10px;padding:12px" id="row_inter_options">
         <div style="grid-column:1/-1;margin-bottom:10px">
-          <label style="font-size:12px;font-weight:700;color:var(--pri);margin-bottom:6px;display:block">Región de Origen *</label>
+          <label style="font-size:12px;font-weight:700;color:var(--pri);margin-bottom:6px;display:block">Región del Programa Interregional *</label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <button type="button" id="admin_reg_valpo" class="btn-sub" onclick="selectAdminInterRegion('Región de Valparaíso')" style="padding:10px 14px;border:2px solid var(--pri);background:rgba(14,116,144,0.12);color:var(--pri);font-weight:800;border-radius:8px;cursor:pointer;text-align:center">
               ✓ Región de Valparaíso
@@ -2978,17 +2987,21 @@ function onAdminAddressInput(type){
   const text = (type === 'from' ? ($('#aq_from') && $('#aq_from').value) : ($('#aq_to') && $('#aq_to').value)) || '';
 
   if(type === 'from'){
-    const det = detectRingFromText(text, adminPtFrom ? adminPtFrom.lat : null, adminPtFrom ? adminPtFrom.lon : null);
-    if(det){
-      qState.ring = det.ring;
-      qState.comuna = det.comuna;
-      updateAdminRingBadge();
+    try {
+      const det = detectRingFromText(text, adminPtFrom ? adminPtFrom.lat : null, adminPtFrom ? adminPtFrom.lon : null);
+      if(det){
+        qState.ring = det.ring;
+        qState.comuna = det.comuna;
+        updateAdminRingBadge();
+      }
+      const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+      if(mode === '3'){
+        updateStayHoursSelector('3', qState.ring.id);
+      }
+      calcAdminQuote();
+    } catch(errCalc){
+      console.warn('Error calculando cotización al tipear origen:', errCalc);
     }
-    const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
-    if(mode === '3'){
-      updateStayHoursSelector('3', qState.ring.id);
-    }
-    calcAdminQuote();
   }
 
   if(typeof setTimeout === 'function'){
@@ -4308,9 +4321,22 @@ function saveAdminBooking(ev, forceConfirm = false){
     }
   }
 
-  const newId = D.nid++;
+  // Calcular correlativo único oficial de Folio
+  let maxNum = 0;
+  (D.svcs || []).forEach(item => {
+    const m = String(item.folio || item.id || '').match(/(\d+)/);
+    if(m){
+      const n = parseInt(m[1], 10);
+      if(!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  });
+  const nextNum = Math.max(maxNum + 1, (D.nid || 1));
+  const cleanFolio = 'MSA-' + String(nextNum).padStart(3, '0');
+  D.nid = nextNum + 1;
+
   const newSvc = {
-    id: newId,
+    id: cleanFolio,
+    folio: cleanFolio,
     tid,
     date,
     time: bookingTime,
@@ -4377,6 +4403,8 @@ function saveAdminBooking(ev, forceConfirm = false){
     newSvc.fullDay = true;
     newSvc.block = 'full';
     newSvc.blocksNextMorning = isPast22;
+  } else {
+    newSvc.block = (start < 720 ? 'manana' : start < 1200 ? 'tarde' : 'noche');
   }
 
   D.svcs.push(newSvc);
@@ -4388,47 +4416,116 @@ function saveAdminBooking(ev, forceConfirm = false){
     const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
 
     D.blocks.push({
-      id: 'blk_' + newId,
-      reservaId: newId,
+      id: 'blk_' + cleanFolio,
+      reservaId: cleanFolio,
       date: date,
       type: 'full',
       shift: 'full',
-      reason: `Jornada Exclusiva Eventos (1 evento al día) #${newId} (${pat})`,
-      tid: tid
+      reason: `Jornada Exclusiva Eventos (1 evento al día) #${cleanFolio} (${pat})`,
+      tid: tid,
+      status: 'confirmada'
     });
 
     if(isPast22){
       const nextDate = addDaysYMD(date, 1);
       D.blocks.push({
-        id: 'blk_' + newId + '_m',
-        reservaId: newId,
+        id: 'blk_' + cleanFolio + '_m',
+        reservaId: cleanFolio,
         date: nextDate,
         type: 'manana',
         shift: 'manana',
-        reason: `Descanso obligatorio post-evento nocturno #${newId} (${pat})`,
-        tid: tid
+        reason: `Descanso obligatorio post-evento nocturno #${cleanFolio} (${pat})`,
+        tid: tid,
+        status: 'confirmada'
       });
     }
   } else {
     D.blocks.push({
-      id: 'blk_' + newId,
-      reservaId: newId,
+      id: 'blk_' + cleanFolio,
+      reservaId: cleanFolio,
       date: date,
-      type: newSvc.block || (start < 720 ? 'manana' : start < 1200 ? 'tarde' : 'noche'),
-      shift: newSvc.block || (start < 720 ? 'manana' : start < 1200 ? 'tarde' : 'noche'),
-      reason: `Reserva manual #${newId} (${pat})`,
-      tid: tid
+      type: newSvc.block,
+      shift: newSvc.block,
+      reason: `Reserva manual #${cleanFolio} (${pat})`,
+      tid: tid,
+      status: 'confirmada'
     });
   }
 
+  // Persistir en backend central (Supabase / Edge API)
+  if(window.MsaBlocksService){
+    if(qState.mode === '4'){
+      MsaBlocksService.saveBlock({
+        date: date,
+        type: 'full',
+        reason: `Jornada Exclusiva Eventos (1 evento al día) #${cleanFolio} (${pat})`,
+        tid: tid
+      }).catch(err => console.warn('Error al persistir bloqueo centralizado:', err));
+
+      const normEnd = (start + dur) % 1440;
+      const horaTermino = fm(normEnd);
+      const isPast22 = (horaTermino > '22:00' || horaTermino <= '06:00');
+      if(isPast22){
+        const nextDate = addDaysYMD(date, 1);
+        MsaBlocksService.saveBlock({
+          date: nextDate,
+          type: 'manana',
+          reason: `Descanso obligatorio post-evento nocturno #${cleanFolio} (${pat})`,
+          tid: tid
+        }).catch(err => console.warn('Error al persistir bloqueo descanso:', err));
+      }
+    } else {
+      MsaBlocksService.saveBlock({
+        date: date,
+        type: newSvc.block,
+        reason: `Reserva confirmada #${cleanFolio} (${pat})`,
+        tid: tid
+      }).catch(err => console.warn('Error al persistir bloqueo centralizado:', err));
+    }
+  }
+
+  // Persistir en /api/reservas
+  fetch('/api/reservas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      folio: cleanFolio,
+      date: date,
+      time: bookingTime,
+      start: start,
+      dur: dur,
+      mode: qState.mode,
+      turno: newSvc.block,
+      pat: pat,
+      patPhone: ph,
+      age: age,
+      coord: coord,
+      coordPhone: ph,
+      from: from,
+      to: to,
+      dx: dx,
+      mob: mob,
+      ayudaTecnica: ayudaTecnica,
+      alergias: alergias,
+      medicamentos: medicamentos,
+      fare: qState.totalFare,
+      abono: qState.abono50,
+      paid: qState.abono50,
+      st: 'Confirmado',
+      taxDoc: taxDoc,
+      obs: newSvc.obs
+    })
+  }).catch(err => console.warn('Error al persistir reserva en /api/reservas:', err));
+
   save();
   clearAdminQuoterDraft();
+  resetAdminQuoterForm();
 
   cerrarModalWarningBufferAdmin();
-  if(typeof alert !== 'undefined') alert(`✅ ¡Reserva Folio #MSA-${newId} creada y guardada exitosamente en la agenda!`);
+  if(typeof alert !== 'undefined') alert(`✅ ¡Reserva Folio #${cleanFolio} creada y guardada exitosamente en la agenda y base de datos!`);
   U.date = date;
-  U.tab = 'cal';
-  U.sel = newId;
+  U.tab = 'inbox';
+  inboxStatusFilter = 'all';
   render();
   return { success: true, service: newSvc };
 }
