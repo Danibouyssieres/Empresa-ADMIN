@@ -202,13 +202,14 @@ export default async function handler(req) {
 
       if (mode === '4') {
         // 1. Regla Maestra Semáforo:
-        // a) Término <= 04:00 AM (1680 min) -> Semáforo VERDE (aprobada)
-        // b) Término entre 04:01 y 04:30 AM (1710 min) -> Semáforo AMARILLO (alerta preventiva, permite reservar)
-        // c) Término posterior a 04:30 AM -> Semáforo ROJO (bloqueo por seguridad y descanso; deriva a WhatsApp)
+        // a) Término <= 04:00 AM -> Semáforo VERDE (aprobada)
+        // b) Término entre 04:01 y 04:30 AM -> Semáforo AMARILLO (alerta preventiva, permite reservar)
+        // c) Término posterior a 04:30 AM y antes de las 08:00 AM -> Semáforo ROJO (bloqueo por seguridad y descanso; deriva a WhatsApp)
         let totalSpan = reqDurVal || 240;
         let effEndEvent = startMinVal + totalSpan;
-        if (effEndEvent < 12 * 60) effEndEvent += 24 * 60;
-        if (effEndEvent > (28 * 60 + 30)) {
+        const normEnd = effEndEvent % 1440;
+        const isOvernightOrDawn = (startMinVal >= 12 * 60 && effEndEvent >= 1440) || (startMinVal < 4 * 60);
+        if (isOvernightOrDawn && normEnd > 270 && normEnd < 480) {
           return new Response(
             JSON.stringify({
               ok: false,

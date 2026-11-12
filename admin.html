@@ -3416,7 +3416,7 @@ function calcAdminQuote(){
     const horaTerminoCalculada = fm(normEndMin);
     const isPast22 = (horaTerminoCalculada > '22:00' || horaTerminoCalculada <= '06:00');
 
-    if (normEndMin <= 240 || normEndMin >= 720) {
+    if (normEndMin <= 240 || normEndMin >= 480) {
       if(helperEl){
         helperEl.style.display = 'block';
         helperEl.innerHTML = subtype === 'con_traslado'
@@ -4211,7 +4211,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   if(qState.mode === '4'){
     const normEndMin = (start + dur) % 1440;
     const horaTerminoCalculada = fm(normEndMin);
-    if(normEndMin > 270 && normEndMin < 720){
+    if(normEndMin > 270 && normEndMin < 480){
       if(typeof alert !== 'undefined') alert(`🛑 El término o retorno proyectado (${horaTerminoCalculada} hrs) excede el tope nocturno de las 04:30 AM (límite máximo permitido).`);
       return { error: 'Exceeds 04:30 AM limit' };
     }

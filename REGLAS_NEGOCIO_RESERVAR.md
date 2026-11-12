@@ -132,6 +132,7 @@ Para evitar que clientes seleccionen direcciones homónimas en otras regiones de
 ### 3.3. Validación Semántica Regional
 Al seleccionar una dirección en el autocompletado:
 * Si la dirección resuelta se encuentra fuera de la Región Metropolitana y la modalidad activa es local (1 a 4), el sistema bloquea el cálculo y emite una alerta indicando que debe utilizar la **Modalidad 5 (Interregional)**.
+* **Modalidad 5 (Interregional - Bidireccionalidad Operativa):** Permite ingresar direcciones de la Región Metropolitana, Región de Valparaíso o Región de O'Higgins indistintamente en el Punto A (Recogida) y en el Punto B (Destino), validando que al menos uno de los dos puntos pertenezca a la región exterior del programa seleccionado (Valparaíso u O'Higgins). Si ambos puntos corresponden a la Región Metropolitana, el sistema deriva a las modalidades locales (1 o 2).
 
 ---
 

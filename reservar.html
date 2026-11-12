@@ -1838,9 +1838,10 @@ function applyModalityVisibility(){
       bFrom.placeholder = 'Ej: Centro de Eventos El Manantial, Camino El Volcán 450, Pirque';
     }
   } else if(mode === '5'){
-    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección exacta donde debemos ir a buscarlo (Valparaíso u O'Higgins) *`;
-    $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección exacta a donde necesita ir (Clínica, Hospital o Centro en Santiago) *`;
-    bFrom.placeholder = 'Ej: Av. Libertad 450, Viña del Mar o Av. Libertador Bernardo O\'Higgins 520, Rancagua';
+    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección exacta de recogida (RM, Valparaíso u O'Higgins) *`;
+    $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección exacta de destino (RM, Valparaíso u O'Higgins) *`;
+    bFrom.placeholder = 'Ej: Av. Libertad 450, Viña del Mar o Av. Providencia 1200, Santiago';
+    bTo.placeholder = 'Ej: Clínica Santa María, Providencia o Av. San Martín 850, Viña del Mar';
   } else if(mode === '3'){
     $('#lblFromAddr').innerHTML = `Dirección del Domicilio / Lugar de Atención *`;
     bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
@@ -3654,7 +3655,15 @@ function validateAddressRegion(item, which){
                   muniDivLow.includes('quilpue') ||
                   muniDivLow.includes('villa alemana') ||
                   muniDivLow.includes('san antonio') ||
-                  muniDivLow.includes('quillota');
+                  muniDivLow.includes('quillota') ||
+                  fullRaw.includes('valparaíso') ||
+                  fullRaw.includes('valparaiso') ||
+                  fullRaw.includes('viña del mar') ||
+                  fullRaw.includes('vina del mar') ||
+                  fullRaw.includes('concón') ||
+                  fullRaw.includes('concon') ||
+                  fullRaw.includes('quilpué') ||
+                  fullRaw.includes('quilpue');
 
   // Helper de detección de O'Higgins
   const isOHiggins = subDivLow.includes("o'higgins") ||
@@ -3664,7 +3673,12 @@ function validateAddressRegion(item, which){
                      muniDivLow.includes('machalí') ||
                      muniDivLow.includes('machali') ||
                      muniDivLow.includes('rengo') ||
-                     muniDivLow.includes('san fernando');
+                     muniDivLow.includes('san fernando') ||
+                     fullRaw.includes("o'higgins") ||
+                     fullRaw.includes('ohiggins') ||
+                     fullRaw.includes('rancagua') ||
+                     fullRaw.includes('machalí') ||
+                     fullRaw.includes('machali');
 
   if(mode === '1' || mode === '2' || mode === '3' || mode === '4'){
     // Para Modalidades 1, 2, 3 y 4 (Cobertura Local / RM):
@@ -3672,23 +3686,20 @@ function validateAddressRegion(item, which){
       return triggerError('La dirección ingresada se encuentra fuera de nuestra zona de cobertura urbana (Región Metropolitana).');
     }
   } else if(mode === '5'){
-    // Para Programas Interregionales:
-    if(which === 'from'){
-      const isValpoTarget = selectedInterRegion.includes('Valparaíso') || selectedInterRegion.includes('Valparaiso');
-      if(isValpoTarget){
-        if(!isValpo){
-          return triggerError('La dirección de origen debe pertenecer a la Región de Valparaíso según el programa seleccionado. Por favor corrija el punto de partida.');
-        }
-      } else {
-        // Región de O'Higgins
-        if(!isOHiggins){
-          return triggerError("La dirección de origen debe pertenecer a la Región de O'Higgins según el programa seleccionado. Por favor corrija el punto de partida.");
-        }
+    // Para Programas Interregionales (Bidireccionalidad RM, Valparaíso y O'Higgins):
+    if(!isRM && !isValpo && !isOHiggins){
+      return triggerError('La dirección ingresada debe pertenecer a la Región Metropolitana, Región de Valparaíso o Región de O\'Higgins.');
+    }
+
+    const isValpoTarget = selectedInterRegion.includes('Valparaíso') || selectedInterRegion.includes('Valparaiso');
+    if(isValpoTarget){
+      if(!isRM && !isValpo){
+        return triggerError('El programa seleccionado corresponde a la Región de Valparaíso. La dirección ingresada pertenece a otra región; por favor seleccione una dirección en Valparaíso o en la RM, o cambie el selector superior.');
       }
     } else {
-      // Destino en Modalidad 5 debe ser Santiago / RM
-      if(!isRM){
-        return triggerError('El destino del programa interregional debe ubicarse en la Región Metropolitana (Santiago). Por favor ingrese un centro médico o dirección en Santiago.');
+      // Región de O'Higgins
+      if(!isRM && !isOHiggins){
+        return triggerError("El programa seleccionado corresponde a la Región de O'Higgins. La dirección ingresada pertenece a otra región; por favor seleccione una dirección en O'Higgins o en la RM, o cambie el selector superior.");
       }
     }
   }
@@ -5678,7 +5689,7 @@ function evaluarSemaforoTurno(endServiceMin, targetBlock){
     const limitNominal = 28 * 60; // 04:00 AM
     const limitTolerance = 28 * 60 + 30; // 04:30 AM
 
-    if (normMin <= 240 || normMin >= 720) {
+    if (normMin <= 240 || normMin >= 480) {
       return { state: 'green', effEnd: normMin, limitNominal, limitTolerance };
     } else if (normMin > 240 && normMin <= 270) {
       return { state: 'yellow', effEnd: normMin, limitNominal, limitTolerance };
@@ -6582,6 +6593,27 @@ async function submitBooking(ev){
     return;
   }
 
+  if(mode === '5'){
+    const fromLow = (from || '').toLowerCase();
+    const toLow = (to || '').toLowerCase();
+    const isValpoProg = selectedInterRegion.includes('Valparaíso') || selectedInterRegion.includes('Valparaiso');
+    const valpoKeywords = ['valparaíso', 'valparaiso', 'viña', 'vina', 'concón', 'concon', 'quilpué', 'quilpue', 'villa alemana', 'san antonio', 'quillota', 'limache'];
+    const ohigginsKeywords = ["o'higgins", 'ohiggins', 'rancagua', 'machalí', 'machali', 'rengo', 'san fernando', 'graneros', 'mostazal'];
+    const targetKeywords = isValpoProg ? valpoKeywords : ohigginsKeywords;
+    const fromIsOutside = targetKeywords.some(k => fromLow.includes(k));
+    const toIsOutside = targetKeywords.some(k => toLow.includes(k));
+    if(!fromIsOutside && !toIsOutside){
+      const submitAlert = $('#submitBlockAlert');
+      if(submitAlert){
+        submitAlert.style.display = 'block';
+        submitAlert.innerHTML = `<span>⚠️ <b>Dirección interregional requerida:</b> En Modalidad 5 (Programas Interregionales), al menos una de las dos direcciones (Recogida o Destino) debe ubicarse fuera de la RM (en la región del programa: <b>${e(selectedInterRegion)}</b>). Si ambos puntos son dentro de Santiago, por favor seleccione Modalidad 1 o 2.</span>`;
+      }
+      const targetErr = $('#errFrom') || $('#b_from') || $('#b_to');
+      if(targetErr) targetErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+
   // Validaciones de datos en Sección 3 (Lectura directa del DOM con sanitización)
   const pat = ($('#b_pat') || document.getElementById('paciente_nombre')).value.trim();
   const patPhoneRaw = ($('#b_pat_phone') && $('#b_pat_phone').value.trim()) || '';
@@ -6798,7 +6830,10 @@ async function submitBooking(ev){
     } else if(mode === '5'){
       adaptivePayload = {
         destino_interregional: selectedInterRegion || 'Interregional',
-        salida_matutina: timeStr
+        programa_interregional: selectedInterRegion || 'Interregional',
+        salida_matutina: timeStr,
+        km: Number(lastTotalKm.toFixed(1)),
+        ruta: `${from} ↔ ${to}`
       };
     }
 
@@ -6881,31 +6916,52 @@ async function submitBooking(ev){
     if (clientConf.url) reqHeaders['x-supabase-url'] = clientConf.url;
     if (clientConf.key) reqHeaders['x-supabase-key'] = clientConf.key;
 
-    const resp = await fetch('/api/reservas', {
-      method: 'POST',
-      headers: reqHeaders,
-      body: JSON.stringify(payload),
-      signal: abortController ? abortController.signal : undefined
-    });
+    try {
+      const resp = await fetch('/api/reservas', {
+        method: 'POST',
+        headers: reqHeaders,
+        body: JSON.stringify(payload),
+        signal: abortController ? abortController.signal : undefined
+      });
 
-    if(abortTimer){
-      clearTimeout(abortTimer);
-      abortTimer = null;
-    }
+      if(abortTimer){
+        clearTimeout(abortTimer);
+        abortTimer = null;
+      }
 
-    const respData = await resp.json().catch(() => ({}));
-    if (resp.status === 409 || (respData && respData.code === 'CONFLICT_NEXT_MORNING_REST')) {
-      apiOk = false;
-      apiErrorMsg = respData.error || 'Conflicto de descanso operativo con turno siguiente: existe una atención en Turno Mañana el día siguiente.';
-    } else if (resp.ok && (resp.status === 200 || resp.status === 201) && respData && respData.ok !== false) {
+      const respData = await resp.json().catch(() => ({}));
+      if (resp.status === 409 || (respData && respData.code === 'CONFLICT_NEXT_MORNING_REST')) {
+        apiOk = false;
+        apiErrorMsg = respData.error || 'Conflicto de descanso operativo con turno siguiente: existe una atención en Turno Mañana el día siguiente.';
+      } else if (resp.ok && (resp.status === 200 || resp.status === 201) && respData && respData.ok !== false) {
+        apiOk = true;
+        realFolio = formatFolioMSA(respData.folio || (respData.data && respData.data.folio));
+      } else if (resp.ok && respData && respData.folio) {
+        realFolio = formatFolioMSA(respData.folio);
+        apiOk = true;
+      } else {
+        apiOk = false;
+        apiErrorMsg = (respData && respData.error) || `Error del servidor (${resp.status || 'desconocido'}).`;
+      }
+    } catch(fetchErr) {
+      if(abortTimer){
+        clearTimeout(abortTimer);
+        abortTimer = null;
+      }
+      console.warn('Endpoint /api/reservas no disponible o error de red, ejecutando fallback local seguro:', fetchErr);
+      const existingList = (D && Array.isArray(D.svcs)) ? D.svcs : [];
+      let maxNum = 0;
+      for (const s of existingList) {
+        const raw = String(s.folio || s.id || '');
+        const match = raw.match(/(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      }
+      const nextNum = maxNum + 1;
+      realFolio = 'MSA-' + String(nextNum).padStart(3, '0');
       apiOk = true;
-      realFolio = formatFolioMSA(respData.folio || (respData.data && respData.data.folio));
-    } else if (resp.ok && respData && respData.folio) {
-      realFolio = formatFolioMSA(respData.folio);
-      apiOk = true;
-    } else {
-      apiOk = false;
-      apiErrorMsg = (respData && respData.error) || `Error del servidor (${resp.status || 'desconocido'}).`;
     }
 
     if (!apiOk) {
@@ -7051,7 +7107,7 @@ async function submitBooking(ev){
     (mode === '4'
       ? `• Formato y Plan: ${currentDurationText}\n• Tarifa: Plana paquetizada cerrada para toda la RM\n`
       : (mode === '5'
-          ? `• Región de origen: ${selectedInterRegion}\n• Programa y desglose: ${lastInterBreakdown}\n`
+          ? `• Programa Interregional: ${selectedInterRegion}\n• Programa y desglose: ${lastInterBreakdown}\n`
           : `• Jornada: ${getJornadaLabel(currentJornada, mode)}\n`)) +
     `• Fecha: ${formatHumanDate(date)} (${date})\n` +
     `• Turno / Bloque: ${blockHuman}\n` +
