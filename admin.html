@@ -3954,6 +3954,10 @@ Quedamos atentos para reservar su cupo exclusivo!`;
     durHours: (qState.mode === '2' && qState.stayMin) ? (qState.stayMin / 60) : (durMin / 60),
     stayMin: qState.stayMin,
     stayHours: qState.stayMin ? (qState.stayMin / 60) : undefined,
+    eventSubtype: qState.eventSubtype,
+    subtipo: qState.eventSubtype,
+    eventPack: qState.eventPack,
+    eventExtraMin: qState.eventExtraMin,
     paid: 0,
     st: 'pendiente_abono',
     svcType: qState.mode,
@@ -4318,6 +4322,10 @@ function saveAdminBooking(ev, forceConfirm = false){
     durHours: (qState.mode === '2' && qState.stayMin) ? (qState.stayMin / 60) : (dur / 60),
     stayMin: qState.stayMin,
     stayHours: qState.stayMin ? (qState.stayMin / 60) : undefined,
+    eventSubtype: qState.eventSubtype,
+    subtipo: qState.eventSubtype,
+    eventPack: qState.eventPack,
+    eventExtraMin: qState.eventExtraMin,
     st: 'Confirmado',
     svcType: qState.mode,
     alergias,
@@ -4733,26 +4741,34 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   const baseContractFare = Number(s.baseFare || s.fareOrig || s.fare || 40000);
 
   // 2. Desglose exacto entre Kilometraje y Tiempo Base cotizados:
-  let kmTot = Number(s.kmTotal ?? s.km_total ?? s.km ?? s.totalKm ?? 0);
-  if (!kmTot && (mode === '1' || mode === '2' || mode === '5' || mode === '4')) {
-    const textToSearch = `${s.obs || ''} ${s.ruta || ''} ${s.dx || ''} ${s.from || ''} ${s.to || ''}`;
-    const mKm = textToSearch.match(/(\d+(?:[.,]\d+)?)\s*km/i);
-    if (mKm) {
-      kmTot = parseFloat(mKm[1].replace(',', '.'));
-    }
-  }
-
-  let kmCost = Number(s.kmCost ?? s.km_cost ?? 0);
-  if (!kmCost && kmTot > 0 && (mode === '1' || mode === '2' || mode === '5' || mode === '4')) {
-    kmCost = Math.round(kmTot * PRICE_PER_KM);
-  }
-
-  let tiempoBaseCost = Number(s.timeCost ?? s.time_cost ?? 0);
+  let kmTot = 0;
+  let kmCost = 0;
+  let tiempoBaseCost = 0;
   let horasBase = 0;
 
-  if (mode === '2') {
+  if (mode === '4') {
+    // MODALIDAD 4 (Eventos Sociales): NUNCA cobra kilometraje (tarifas planas cerradas)
+    kmTot = 0;
+    kmCost = 0;
+    tiempoBaseCost = baseContractFare;
+    horasBase = Number(s.horas_base || s.durHours || (pactadaMin / 60));
+  } else if (mode === '2') {
     // MODALIDAD 2 (Traslado Exclusivo con Espera):
     // La fila 2 corresponde EXCLUSIVAMENTE al tiempo de espera pactado en recinto (no al circuito vehicular)
+    kmTot = Number(s.kmTotal ?? s.km_total ?? s.km ?? s.totalKm ?? 0);
+    if (!kmTot) {
+      const textToSearch = `${s.obs || ''} ${s.ruta || ''} ${s.dx || ''} ${s.from || ''} ${s.to || ''}`;
+      const mKm = textToSearch.match(/(\d+(?:[.,]\d+)?)\s*km/i);
+      if (mKm) {
+        kmTot = parseFloat(mKm[1].replace(',', '.'));
+      }
+    }
+    kmCost = Number(s.kmCost ?? s.km_cost ?? 0);
+    if (!kmCost && kmTot > 0) {
+      kmCost = Math.round(kmTot * PRICE_PER_KM);
+    }
+    tiempoBaseCost = Number(s.timeCost ?? s.time_cost ?? 0);
+
     if (s.stayHours !== undefined && s.stayHours !== null && Number(s.stayHours) > 0) {
       horasBase = Number(s.stayHours);
     } else if (s.stayMin !== undefined && s.stayMin !== null && Number(s.stayMin) > 0) {
@@ -4784,8 +4800,22 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       kmCost = Math.round(kmTot * PRICE_PER_KM);
     }
   } else {
-    // Modalidades 1, 3, 4, 5:
+    // Modalidades 1, 3, 5:
+    kmTot = Number(s.kmTotal ?? s.km_total ?? s.km ?? s.totalKm ?? 0);
+    if (!kmTot && (mode === '1' || mode === '5')) {
+      const textToSearch = `${s.obs || ''} ${s.ruta || ''} ${s.dx || ''} ${s.from || ''} ${s.to || ''}`;
+      const mKm = textToSearch.match(/(\d+(?:[.,]\d+)?)\s*km/i);
+      if (mKm) {
+        kmTot = parseFloat(mKm[1].replace(',', '.'));
+      }
+    }
+    kmCost = Number(s.kmCost ?? s.km_cost ?? 0);
+    if (!kmCost && kmTot > 0 && (mode === '1' || mode === '5')) {
+      kmCost = Math.round(kmTot * PRICE_PER_KM);
+    }
+    tiempoBaseCost = Number(s.timeCost ?? s.time_cost ?? 0);
     horasBase = Number(s.horas_base || s.durHours || (pactadaMin / 60));
+
     if (kmTot > 0) {
       if (!kmCost) kmCost = Math.round(kmTot * PRICE_PER_KM);
       if (!tiempoBaseCost) tiempoBaseCost = Math.max(0, baseContractFare - kmCost);
@@ -4847,6 +4877,8 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
 
   return {
     mode,
+    baseContractFare,
+    baseFare: baseContractFare,
     jornada,
     hourlyRate,
     extraBlockRate,
@@ -5073,13 +5105,20 @@ function solicitarPagoWhatsAppAdmin(){
   const digits = phRaw.replace(/\D/g, '');
   const cleanPhone = digits.startsWith('56') ? digits : ('56' + (digits || '929990095'));
 
-  const parkingTxt = calc.parking > 0 ? ` (incluye ${$c(calc.parking)} de estacionamiento en recinto clínico)` : '';
+  const parkingTxt = calc.parking > 0
+    ? (calc.mode === '4' ? ` (incluye ${$c(calc.parking)} de estacionamiento en recinto / evento)` : ` (incluye ${$c(calc.parking)} de estacionamiento en recinto clínico)`)
+    : '';
   const extraTxt = (calc.diffMin > 0 && calc.extraCost > 0)
     ? `\n• Tiempo adicional en terreno: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`
     : '';
 
-  const isSinTraslado = (calc.mode === '3') || (calc.mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado')) || String(s.to || '').toLowerCase().includes('no aplica');
-  const svcVerbText = isSinTraslado ? 'atención y cuidados clínicos a domicilio' : 'atención y traslado';
+  const isSinTraslado = (calc.mode === '3') || (calc.mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado' || String(s.obs || '').includes('Sin Traslado') || !s.to || s.to === s.from || String(s.to).toLowerCase().includes('no aplica') || String(s.to).toLowerCase().includes('sin traslado') || String(s.to).toLowerCase().includes('recinto'))) || String(s.to || '').toLowerCase().includes('no aplica');
+  let svcVerbText = 'atención y traslado';
+  if(calc.mode === '4'){
+    svcVerbText = isSinTraslado ? 'atención y acompañamiento en evento' : 'atención y acompañamiento en evento con traslado';
+  } else if(calc.mode === '3'){
+    svcVerbText = 'atención y cuidados clínicos a domicilio';
+  }
 
   const tax = getServiceTaxDoc(s);
   const isInvoice = (document.querySelector('input[name="adm_liq_tax_type"]:checked') && document.querySelector('input[name="adm_liq_tax_type"]:checked').value === 'factura') || (tax.type === 'factura');
@@ -5362,12 +5401,12 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = cleanOrigen;
   if($('#pdfAnilloComunal')) $('#pdfAnilloComunal').textContent = calc.ringName || 'Anillo 1';
   
-  const isSinTraslado = (mode === '3') || (mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado')) || String(s.to || '').toLowerCase().includes('no aplica');
+  const isSinTraslado = (mode === '3') || (mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado' || String(s.obs || '').includes('Sin Traslado') || !s.to || s.to === s.from || String(s.to).toLowerCase().includes('no aplica') || String(s.to).toLowerCase().includes('sin traslado') || String(s.to).toLowerCase().includes('recinto'))) || String(s.to || '').toLowerCase().includes('no aplica');
   const rowDestino = $('#pdfRowDestino');
   if(rowDestino){
     rowDestino.style.display = isSinTraslado ? 'none' : 'block';
   }
-  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = isSinTraslado ? 'No aplica (Atención en domicilio)' : (s.to || s.from);
+  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = isSinTraslado ? (mode === '4' ? 'No aplica (Atención directa en recinto)' : 'No aplica (Atención en domicilio)') : (s.to || s.from);
   if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = `Modalidad ${mode}`;
   let finalAyudaTecnica = s.ayudaTecnica || s.ayuda_tecnica || '';
   if(!finalAyudaTecnica || finalAyudaTecnica.includes('No aplica')){
@@ -5391,22 +5430,81 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     else if(calc.jornada === 'tarde') jornadaTexto = 'Turno Tarde';
 
     let itemsHtml = '';
-    if(!isSinTraslado && (calc.kmCost > 0 || mode === '1' || mode === '2' || mode === '5')){
+
+    if(mode === '4'){
+      // MODALIDAD 4 (Acompañamiento en Eventos Sociales - Tarifas Planas Cerradas):
+      // NUNCA imprime cobro por kilómetro. Imprime el paquete base y el tiempo adicional en recinto contratado.
+      const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || String(s.obs || '').includes('Con Traslado') || (s.to && !String(s.to).toLowerCase().includes('no aplica') && !String(s.to).toLowerCase().includes('sin traslado') && !String(s.to).toLowerCase().includes('recinto') && s.to !== s.from));
+
+      let basePlanTitle = '';
+      let basePlanDetail = '';
+      let basePlanFare = 0;
+      let extraContractFare = 0;
+      const baseFareTotal = Number(calc.baseContractFare || calc.subtotalReal || s.baseFare || s.fare || 0);
+
+      if(isConTraslado){
+        basePlanTitle = 'Pack Integral Puerta a Puerta (Asistencia + Traslados Ida/Vuelta RM)';
+        if(baseFareTotal >= 125000){
+          basePlanFare = 125000;
+          basePlanDetail = 'Pack Total: 6 hrs continuas en recinto + traslados ida/vuelta RM';
+          extraContractFare = baseFareTotal - 125000;
+        } else {
+          basePlanFare = 95000;
+          basePlanDetail = 'Pack Base: 4 hrs continuas en recinto + traslados ida/vuelta RM';
+          extraContractFare = baseFareTotal - 95000;
+        }
+      } else {
+        basePlanTitle = 'Plan Asistencia en Recinto (Tarifa Plana)';
+        if(baseFareTotal >= 95000){
+          basePlanFare = 95000;
+          basePlanDetail = 'Plan Total: 6 hrs continuas de permanencia en recinto';
+          extraContractFare = baseFareTotal - 95000;
+        } else {
+          basePlanFare = 65000;
+          basePlanDetail = 'Plan Base: 4 hrs continuas de permanencia en recinto';
+          extraContractFare = baseFareTotal - 65000;
+        }
+      }
+
       itemsHtml += `
         <tr>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (Kilometraje)</td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.kmTot.toFixed(1).replace('.', ',')} km ida/vuelta × $1.000/km${calc.floorApplied ? ` (Piso Mínimo Comunal ${calc.ringName}: ${$c(calc.ringFloor)})` : ''}</td>
-          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>${basePlanTitle}</b></td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${basePlanDetail}</td>
+          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(basePlanFare)}</td>
+        </tr>
+      `;
+
+      if(extraContractFare > 0){
+        const extraHours = extraContractFare / 15000;
+        const extraDetail = `+${extraHours.toFixed(1).replace('.', ',')} hrs extras en recinto (${Math.round(extraContractFare / 7500)} bloques × $7.500)`;
+        itemsHtml += `
+          <tr>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Tiempo Adicional en Recinto</td>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${extraDetail}</td>
+            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(extraContractFare)}</td>
+          </tr>
+        `;
+      }
+    } else {
+      // MODALIDADES 1, 2, 3, 5:
+      if(!isSinTraslado && (calc.kmCost > 0 || mode === '1' || mode === '2' || mode === '5')){
+        itemsHtml += `
+          <tr>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (Kilometraje)</td>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.kmTot.toFixed(1).replace('.', ',')} km ida/vuelta × $1.000/km${calc.floorApplied ? ` (Piso Mínimo Comunal ${calc.ringName}: ${$c(calc.ringFloor)})` : ''}</td>
+            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
+          </tr>
+        `;
+      }
+      itemsHtml += `
+        <tr>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Recinto (Tiempo Base)' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : (mode === '5' ? 'Viáticos y Cobertura en Ruta' : 'Asistencia Clínica TENS (Tiempo Base)'))}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1).replace('.', ',')} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
+          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
         </tr>
       `;
     }
-    itemsHtml += `
-      <tr>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Recinto (Tiempo Base)' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : (mode === '4' ? 'Permanencia TENS en Evento' : (mode === '5' ? 'Viáticos y Cobertura en Ruta' : 'Asistencia Clínica TENS (Tiempo Base)')))}</td>
-        <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1).replace('.', ',')} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
-        <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
-      </tr>
-    `;
+
     if(diffMin > 0 && calc.extraCost > 0){
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
@@ -5417,10 +5515,12 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       `;
     }
     if(calc.parking > 0){
+      const parkLabel = mode === '4' ? 'Gasto Estacionamiento Recinto / Evento' : 'Gasto Estacionamiento Recinto Clínico';
+      const parkDetail = mode === '4' ? 'Recinto / Evento (según ticket en terreno)' : 'Recinto / Parking (según ticket en terreno)';
       itemsHtml += `
         <tr style="background:#f8fafc;color:#0f766e">
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Gasto Estacionamiento Recinto Clínico</b></td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">Recinto / Parking (según ticket en terreno)</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>${parkLabel}</b></td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">${parkDetail}</td>
           <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">+${$c(calc.parking)}</td>
         </tr>
       `;

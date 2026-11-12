@@ -6968,6 +6968,8 @@ async function submitBooking(ev){
     stayHours: (mode === '2' || mode === '1') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : undefined,
     horas_base: (mode === '2') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : (dur / 60),
     durHours: (mode === '2') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : (dur / 60),
+    eventSubtype: (mode === '4') ? (selectedEventSubMode || 'sin_traslado') : undefined,
+    subtipo: (mode === '4') ? (selectedEventSubMode || 'sin_traslado') : undefined,
     st: 'pendiente_abono',
     createdAt: new Date().toISOString(),
     expiresAt: (function(){
