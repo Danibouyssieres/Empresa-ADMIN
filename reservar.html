@@ -6468,55 +6468,69 @@ if (typeof window !== 'undefined') {
 
 async function submitBooking(ev){
   ev.preventDefault();
-  D = load() || D;
 
-  // Validación DOM exhaustiva con feedback visual y scroll al primer error
-  const formCheck = validarFormulario();
-  if(!formCheck.ok) return;
+  const submitBtn = $('#submitBtn');
+  if(submitBtn && submitBtn.disabled) return;
 
-  const termsChk = $('#b_terms');
+  let submissionSucceeded = false;
+  let abortController = null;
+  let abortTimer = null;
 
-  const mode = $('#b_svc_type').value;
-  const isConEvento = (mode === '4' && selectedEventSubMode === 'con_traslado');
-  const svcName = mode === '4'
-    ? `4. Acompañamiento en Eventos Sociales (${isConEvento ? 'Pack Integral Puerta a Puerta (Con Traslados)' : 'Pack Asistencia en Recinto (Sin Traslado)'})`
-    : SVC_NAMES[mode];
-  const showMap = isMapEnabledForCurrentState();
-  const showDest = (mode === '1' || mode === '2' || mode === '5' || isConEvento);
-  const isInter = mode === '5';
+  try {
+    D = load() || D;
 
-  // Asegurar que la dirección (y la ruta si aplica) esté geocodificada
-  if(!ptFrom && $('#b_from').value.trim()){
-    await searchAddr('from', true);
-  }
-  if(showMap && !ptTo && $('#b_to').value.trim()){
-    await searchAddr('to', true);
-  }
-  if(!$('#b_from').value.trim()){
-    const submitAlert = $('#submitBlockAlert');
-    if(submitAlert){
-      submitAlert.style.display = 'block';
-      submitAlert.innerHTML = `<span>⚠️ <b>Dirección de recogida requerida:</b> Por favor ingrese su dirección de inicio en el Paso 2 antes de confirmar.</span>`;
+    // Validación DOM exhaustiva con feedback visual y scroll al primer error
+    const formCheck = validarFormulario();
+    if(!formCheck.ok) return;
+
+    const termsChk = $('#b_terms');
+
+    const mode = $('#b_svc_type').value;
+    const isConEvento = (mode === '4' && selectedEventSubMode === 'con_traslado');
+    const svcName = mode === '4'
+      ? `4. Acompañamiento en Eventos Sociales (${isConEvento ? 'Pack Integral Puerta a Puerta (Con Traslados)' : 'Pack Asistencia en Recinto (Sin Traslado)'})`
+      : SVC_NAMES[mode];
+    const showMap = isMapEnabledForCurrentState();
+    const showDest = (mode === '1' || mode === '2' || mode === '5' || isConEvento);
+    const isInter = mode === '5';
+
+    // Definición temprana y segura de direcciones
+    const from = ($('#b_from') && $('#b_from').value.trim()) || '';
+    const to = showDest ? (($('#b_to') && $('#b_to').value.trim()) || '') : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
+    const depto = ($('#b_depto') && $('#b_depto').value.trim()) || '';
+
+    // Asegurar que la dirección (y la ruta si aplica) esté geocodificada
+    if(!ptFrom && from){
+      await searchAddr('from', true);
     }
-    $('#b_from').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('#b_from').focus();
-    return;
-  }
-  if(showMap && (!ptFrom || !ptTo)){
-    const submitAlert = $('#submitBlockAlert');
-    if(submitAlert){
-      submitAlert.style.display = 'block';
-      submitAlert.innerHTML = `<span>⚠️ <b>Direcciones requeridas:</b> Por favor ingrese y verifique las direcciones de Inicio (A) y Destino (B) en el mapa superior para continuar.</span>`;
+    if(showMap && !ptTo && to){
+      await searchAddr('to', true);
     }
-    const targetInp = (!ptFrom ? $('#b_from') : $('#b_to')) || $('#routeLayoutBox');
-    if(targetInp){
-      targetInp.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      targetInp.focus();
+    if(!from){
+      const submitAlert = $('#submitBlockAlert');
+      if(submitAlert){
+        submitAlert.style.display = 'block';
+        submitAlert.innerHTML = `<span>⚠️ <b>Dirección de recogida requerida:</b> Por favor ingrese su dirección de inicio en el Paso 2 antes de confirmar.</span>`;
+      }
+      $('#b_from').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      $('#b_from').focus();
+      return;
     }
-    return;
-  }
+    if(showMap && (!ptFrom || !ptTo)){
+      const submitAlert = $('#submitBlockAlert');
+      if(submitAlert){
+        submitAlert.style.display = 'block';
+        submitAlert.innerHTML = `<span>⚠️ <b>Direcciones requeridas:</b> Por favor ingrese y verifique las direcciones de Inicio (A) y Destino (B) en el mapa superior para continuar.</span>`;
+      }
+      const targetInp = (!ptFrom ? $('#b_from') : $('#b_to')) || $('#routeLayoutBox');
+      if(targetInp){
+        targetInp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetInp.focus();
+      }
+      return;
+    }
 
-  recalcAll();
+    recalcAll();
 
   const date = $('#b_date').value;
   const hRecSub = document.getElementById('hora_recogida');
@@ -6597,12 +6611,26 @@ async function submitBooking(ev){
     const fromLow = (from || '').toLowerCase();
     const toLow = (to || '').toLowerCase();
     const isValpoProg = selectedInterRegion.includes('Valparaíso') || selectedInterRegion.includes('Valparaiso');
-    const valpoKeywords = ['valparaíso', 'valparaiso', 'viña', 'vina', 'concón', 'concon', 'quilpué', 'quilpue', 'villa alemana', 'san antonio', 'quillota', 'limache'];
-    const ohigginsKeywords = ["o'higgins", 'ohiggins', 'rancagua', 'machalí', 'machali', 'rengo', 'san fernando', 'graneros', 'mostazal'];
+    const valpoKeywords = [
+      'valparaíso', 'valparaiso', 'viña', 'vina', 'concón', 'concon',
+      'quilpué', 'quilpue', 'villa alemana', 'san antonio', 'quillota',
+      'limache', 'olmué', 'olmue', 'quintero', 'puchuncaví', 'puchuncavi',
+      'algarrobo', 'el quisco', 'el tabo', 'cartagena', 'la calera', 'la ligua',
+      'los andes', 'san felipe', 'v región', 'v region', 'region v'
+    ];
+    const ohigginsKeywords = [
+      "o'higgins", 'ohiggins', 'rancagua', 'machalí', 'machali', 'rengo',
+      'san fernando', 'graneros', 'mostazal', 'chimbarongo', 'requínoa', 'requinoa',
+      'doñihue', 'donihue', 'coltauco', 'las cabras', 'pichilemu', 'san vicente',
+      'vi región', 'vi region', 'region vi', 'libertador'
+    ];
     const targetKeywords = isValpoProg ? valpoKeywords : ohigginsKeywords;
     const fromIsOutside = targetKeywords.some(k => fromLow.includes(k));
     const toIsOutside = targetKeywords.some(k => toLow.includes(k));
-    if(!fromIsOutside && !toIsOutside){
+    const kmIsInter = (typeof lastTotalKm === 'number' && lastTotalKm >= 70);
+    const coordIsInter = (ptFrom && (ptFrom.lon < -71.15 || ptFrom.lat < -34.0)) || (ptTo && (ptTo.lon < -71.15 || ptTo.lat < -34.0));
+
+    if(!fromIsOutside && !toIsOutside && !kmIsInter && !coordIsInter){
       const submitAlert = $('#submitBlockAlert');
       if(submitAlert){
         submitAlert.style.display = 'block';
@@ -6701,9 +6729,6 @@ async function submitBooking(ev){
         : `${svcName} · ${dxInput}`);
   const mob = $('#b_mob').value;
   const ayudaTecnica = ($('#b_ayuda_tecnica')) ? $('#b_ayuda_tecnica').value : '';
-  const from = $('#b_from').value.trim();
-  const depto = ($('#b_depto') && $('#b_depto').value.trim()) || '';
-  const to = showDest ? $('#b_to').value.trim() : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
   let compVal = '';
   let comp = false;
   if(mode === '3'){
@@ -6775,24 +6800,18 @@ async function submitBooking(ev){
         ? `Jornada Exclusiva de Eventos (${selectedBlock === 'manana' ? 'Turno Mañana' : (selectedBlock === 'tarde' ? 'Turno Tarde' : 'Turno Noche')} - 1 servicio al día)`
         : (selectedBlock === 'manana' ? 'Turno Mañana (06:00 a 12:00 hrs)' : (selectedBlock === 'noche' ? 'Turno Noche (22:00 a 04:00 hrs)' : 'Turno Tarde (14:00 a 20:00 hrs)')));
 
-  const submitBtn = $('#submitBtn');
   if(submitBtn){
     submitBtn.disabled = true;
     submitBtn.innerHTML = '⏳ Conectando con servidor y asegurando cupo...';
   }
 
-  let submissionSucceeded = false;
-  let abortController = null;
-  let abortTimer = null;
-
-  try {
-    // Timeout de seguridad de 10 segundos
-    if(typeof AbortController !== 'undefined'){
-      abortController = new AbortController();
-      abortTimer = setTimeout(() => {
-        try { abortController.abort(); } catch(e){}
-      }, 10000);
-    }
+  // Timeout de seguridad de 10 segundos
+  if(typeof AbortController !== 'undefined'){
+    abortController = new AbortController();
+    abortTimer = setTimeout(() => {
+      try { abortController.abort(); } catch(e){}
+    }, 10000);
+  }
 
     const abonoVal = lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50;
     const destinoVal = showDest ? to : (mode === '4' ? 'Atención en recinto del evento (Sin traslado)' : 'Atención en domicilio');
