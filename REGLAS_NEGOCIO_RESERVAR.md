@@ -103,6 +103,10 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
   2. **Programa Crónico / Oncológico (hasta 6 horas de permanencia en Santiago):** \$300.000 tarifa base.
 * **Horas Extras de Permanencia:** Aplica exclusivamente sobre el Programa Estándar de 4h (\$25.000 por hora adicional / \$15.000 por fracción de 30 minutos, con tope máx. de 2 horas extras). El Programa Crónico / Oncológico (6h) opera con cobertura cerrada improrrogable por normativas de seguridad vial y descanso interurbano.
 * **Incluye:** Peajes de ida y vuelta, combustible, kilometraje total, viáticos de conducción y monitoreo de signos vitales en carretera.
+* **Comprobante PDF y Liquidación (Tarifa Plana Cerrada):** En el Comprobante de Atención y Liquidación (PDF), la Modalidad 5 opera con tarifa paquetizada cerrada, imprimiendo:
+  1. *Fila 1:* "Programa Interregional (Tarifa Plana Ida/Vuelta)" con el nombre del programa regional (ej. Programa Estándar - Región de Valparaíso: \$250.000). NUNCA desglosa kilometraje ni división ficticia por hora base.
+  2. *Fila 2:* "Tiempo Adicional Excedente en Terreno" (si aplica por tiempo extra en cotización o demora en terreno) a razón de \$15.000 por bloque de 30 min etiquetado explícitamente como `(Tarifa Extra Interregional)`.
+* **Cronograma y Duración Guardada:** El sistema registra y persiste en la base de datos la duración completa del circuito interregional (traslado ida + permanencia clínica + traslado de retorno), proyectando la hora real de retorno al hogar tanto en WhatsApp como en el Calendario Diario y Bandeja de Entrada.
 
 ---
 

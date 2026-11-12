@@ -912,6 +912,23 @@ function getNormalizedReservaCategory(s){
 }
 window.getNormalizedReservaCategory = getNormalizedReservaCategory;
 
+// Sanitizador de direcciones y recintos para evitar duplicaciones tipo "(Lugar) (Lugar)"
+function sanitizePlaceLabel(addr, poiName){
+  let str = String(addr || '').trim();
+  if(!str) return poiName ? String(poiName).trim() : '';
+  str = str.replace(/(\([^)]+\))\s*\1+/gi, (m, g1) => g1).trim();
+  if(!poiName) return str;
+  const cleanPoi = String(poiName).replace(/[()]/g, '').trim();
+  if(!cleanPoi) return str;
+  const normStr = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const normPoi = cleanPoi.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if(normStr.includes(normPoi)){
+    return str.replace(/(\([^)]+\))\s*\1+/gi, (m, g1) => g1).trim();
+  }
+  return `${str} (${cleanPoi})`;
+}
+window.sanitizePlaceLabel = sanitizePlaceLabel;
+
 function deduplicateAndNormalizeSvcs(svcs){
   if(!Array.isArray(svcs)) return [];
   const seenFolios = new Map();
@@ -940,6 +957,19 @@ function deduplicateAndNormalizeSvcs(svcs){
       s.id = clean;
     }
     seenFolios.set('id_' + s.id, true);
+
+    // 3. Normalizar duración total y horario de retorno en Modalidad 5 si sólo se guardó la permanencia (<= 360 min)
+    if(s.svcType === '5' && s.dur && s.dur <= 360){
+      const mRet = String(s.obs || '').match(/Retorno:\s*(\d{1,2}:\d{2})/i) || String(s.dx || '').match(/Retorno:\s*(\d{1,2}:\d{2})/i);
+      if(mRet){
+        const endM = tm(mRet[1]);
+        const startM = Number(s.start || 0);
+        const fullDur = endM > startM ? (endM - startM) : (endM + 1440 - startM);
+        if(fullDur > 360) s.dur = fullDur;
+      } else {
+        s.dur = s.dur + 190; // Fallback: 90m ida + 10m abordaje + 90m retorno
+      }
+    }
   });
   return svcs;
 }
@@ -3124,7 +3154,7 @@ async function computeAdminRoute(){
 function onQuickDestSelect(idx){
   if(idx === '' || !MEDICAL_PLACES[idx]) return;
   const p = MEDICAL_PLACES[idx];
-  $('#aq_to').value = p.name + ' (' + p.addr + ')';
+  $('#aq_to').value = sanitizePlaceLabel(p.addr, p.name);
   adminPtTo = { lat: p.lat, lon: p.lon, label: $('#aq_to').value };
   if(adminPtFrom){
     computeAdminRoute();
@@ -3676,7 +3706,7 @@ function sendAdminQuoteWhatsApp(){
   const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
   const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
-  const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : (($('#aq_to') && $('#aq_to').value.trim()) || from);
+  const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : sanitizePlaceLabel(($('#aq_to') && $('#aq_to').value.trim()) || from);
   const durMin = qState.durationMin || 120;
   const startMin = (qState.mode === '5' && qState.pickupMin !== undefined) ? qState.pickupMin : tm(time);
 
@@ -4179,7 +4209,7 @@ function saveAdminBooking(ev, forceConfirm = false){
   const ph = phDigits.length === 8 ? ('+56 9 ' + phDigits) : '+56 9 92999009';
   const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Domicilio Origen';
   const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
-  const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : (($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
+  const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : sanitizePlaceLabel(($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
   const ayudaTecnica = ($('#aq_ayuda_tecnica')) ? $('#aq_ayuda_tecnica').value : '';
   const req = [];
@@ -4752,6 +4782,12 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     kmCost = 0;
     tiempoBaseCost = baseContractFare;
     horasBase = Number(s.horas_base || s.durHours || (pactadaMin / 60));
+  } else if (mode === '5') {
+    // MODALIDAD 5 (Programas Interregionales): NUNCA cobra kilometraje (tarifas planas cerradas)
+    kmTot = 0;
+    kmCost = 0;
+    tiempoBaseCost = baseContractFare;
+    horasBase = Number(s.horas_base || s.durHours || (pactadaMin / 60));
   } else if (mode === '2') {
     // MODALIDAD 2 (Traslado Exclusivo con Espera):
     // La fila 2 corresponde EXCLUSIVAMENTE al tiempo de espera pactado en recinto (no al circuito vehicular)
@@ -4800,9 +4836,9 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       kmCost = Math.round(kmTot * PRICE_PER_KM);
     }
   } else {
-    // Modalidades 1, 3, 5:
+    // Modalidades 1, 3:
     kmTot = Number(s.kmTotal ?? s.km_total ?? s.km ?? s.totalKm ?? 0);
-    if (!kmTot && (mode === '1' || mode === '5')) {
+    if (!kmTot && mode === '1') {
       const textToSearch = `${s.obs || ''} ${s.ruta || ''} ${s.dx || ''} ${s.from || ''} ${s.to || ''}`;
       const mKm = textToSearch.match(/(\d+(?:[.,]\d+)?)\s*km/i);
       if (mKm) {
@@ -4810,7 +4846,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       }
     }
     kmCost = Number(s.kmCost ?? s.km_cost ?? 0);
-    if (!kmCost && kmTot > 0 && (mode === '1' || mode === '5')) {
+    if (!kmCost && kmTot > 0 && mode === '1') {
       kmCost = Math.round(kmTot * PRICE_PER_KM);
     }
     tiempoBaseCost = Number(s.timeCost ?? s.time_cost ?? 0);
@@ -5118,6 +5154,8 @@ function solicitarPagoWhatsAppAdmin(){
     svcVerbText = isSinTraslado ? 'atención y acompañamiento en evento' : 'atención y acompañamiento en evento con traslado';
   } else if(calc.mode === '3'){
     svcVerbText = 'atención y cuidados clínicos a domicilio';
+  } else if(calc.mode === '5'){
+    svcVerbText = 'programa y traslado clínico interregional';
   }
 
   const tax = getServiceTaxDoc(s);
@@ -5406,7 +5444,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if(rowDestino){
     rowDestino.style.display = isSinTraslado ? 'none' : 'block';
   }
-  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = isSinTraslado ? (mode === '4' ? 'No aplica (Atención directa en recinto)' : 'No aplica (Atención en domicilio)') : (s.to || s.from);
+  if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = isSinTraslado ? (mode === '4' ? 'No aplica (Atención directa en recinto)' : 'No aplica (Atención en domicilio)') : sanitizePlaceLabel(s.to || s.from);
   if($('#pdfSvcModalidad')) $('#pdfSvcModalidad').textContent = `Modalidad ${mode}`;
   let finalAyudaTecnica = s.ayudaTecnica || s.ayuda_tecnica || '';
   if(!finalAyudaTecnica || finalAyudaTecnica.includes('No aplica')){
@@ -5485,9 +5523,47 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
           </tr>
         `;
       }
+    } else if(mode === '5'){
+      // MODALIDAD 5 (Programas Interregionales - Tarifa Plana Cerrada Ida/Vuelta):
+      // NUNCA imprime fila de cobro por kilómetro ni división por hora base.
+      let regionName = "Región de Valparaíso";
+      const textToCheck = `${s.destino_interregional || ''} ${s.programa_interregional || ''} ${s.interRegion || ''} ${s.dx || ''} ${s.obs || ''} ${s.from || ''} ${s.to || ''}`;
+      if(/o'?higgins|rancagua|machalí|machali|san fernando|rengo/i.test(textToCheck)){
+        regionName = "Región de O'Higgins";
+      }
+
+      let progName = (s.baseFare >= 300000 || s.fare >= 300000 || /cr[oó]nico|oncol[oó]gico/i.test(textToCheck))
+        ? `Programa Crónico / Oncológico - ${regionName}`
+        : `Programa Estándar - ${regionName}`;
+
+      const baseFareTotal = Number(calc.baseContractFare || calc.subtotalReal || s.baseFare || s.fare || 250000);
+      let valorBasePrograma = (/cr[oó]nico|oncol[oó]gico/i.test(textToCheck) || (baseFareTotal >= 300000 && !/extra/i.test(textToCheck))) ? 300000 : 250000;
+      let extraCotizado = Math.max(0, baseFareTotal - valorBasePrograma);
+
+      // Fila 1: Programa Interregional (Tarifa Plana Ida/Vuelta)
+      itemsHtml += `
+        <tr>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Programa Interregional (Tarifa Plana Ida/Vuelta)</b></td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${progName}</td>
+          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(valorBasePrograma)}</td>
+        </tr>
+      `;
+
+      // Si hubo tiempo adicional contratado en cotización y no hay retraso extra adicional en terreno
+      if(extraCotizado > 0 && !(diffMin > 0 && calc.extraCost > 0)){
+        const extraMin = Math.round(extraCotizado / 15000) * 30;
+        const extraBlq = Math.round(extraCotizado / 15000) || 1;
+        itemsHtml += `
+          <tr style="background:#fef2f2;color:#991b1b">
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">+${extraMin} min (${extraBlq} blq × 30 min) × $15.000 (Tarifa Extra Interregional)</td>
+            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">${$c(extraCotizado)}</td>
+          </tr>
+        `;
+      }
     } else {
-      // MODALIDADES 1, 2, 3, 5:
-      if(!isSinTraslado && (calc.kmCost > 0 || mode === '1' || mode === '2' || mode === '5')){
+      // MODALIDADES 1, 2, 3:
+      if(!isSinTraslado && (calc.kmCost > 0 || mode === '1' || mode === '2')){
         itemsHtml += `
           <tr>
             <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (Kilometraje)</td>
@@ -5498,7 +5574,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       }
       itemsHtml += `
         <tr>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Recinto (Tiempo Base)' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : (mode === '5' ? 'Viáticos y Cobertura en Ruta' : 'Asistencia Clínica TENS (Tiempo Base)'))}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Recinto (Tiempo Base)' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : 'Asistencia Clínica TENS (Tiempo Base)')}</td>
           <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1).replace('.', ',')} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
           <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
         </tr>
@@ -5506,10 +5582,13 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     }
 
     if(diffMin > 0 && calc.extraCost > 0){
+      const extraLabel = mode === '5'
+        ? '(Tarifa Extra Interregional)'
+        : (mode === '4' ? '(Tarifa Fija Eventos)' : `(${jornadaTexto})`);
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
           <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq × 30 min) × ${$c(calc.extraBlockRate)} (${jornadaTexto})</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">+${diffMin} min (${extraBlocks} blq × 30 min) × ${$c(calc.extraBlockRate)} ${extraLabel}</td>
           <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">${$c(extraCost)}</td>
         </tr>
       `;

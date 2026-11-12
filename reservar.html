@@ -2997,9 +2997,13 @@ function getSelectedTotalMinutes(){
     const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
     totalMin = billedMin;
   } else if(mode === '5'){
-    const h = selectedInterProgram || 4;
-    const m = (h >= 6) ? 0 : (+$('#selMins34').value || 0);
-    totalMin = h * 60 + m;
+    const routeIda = (typeof lastRouteIdaMin === 'number' && lastRouteIdaMin > 0) ? lastRouteIdaMin : 90;
+    const routeRetorno = (typeof lastRouteVueltaMin === 'number' && lastRouteVueltaMin > 0) ? lastRouteVueltaMin : routeIda;
+    const progH = selectedInterProgram || 4;
+    const extraM = (+$('#selMins34') && +$('#selMins34').value) || 0;
+    const stayClinicalMin = progH * 60 + extraM;
+    const totalCircuitoMin = 10 + routeIda + stayClinicalMin + routeRetorno;
+    return totalCircuitoMin;
   } else if(mode === '4'){
     const h = +$('#selHours34').value || 4;
     const extraM = (+$('#selMins34').value) || 0;
@@ -3338,6 +3342,23 @@ function updateRingDisplay(){
     $('#ringDesc').innerHTML = `Tarifa mínima correspondiente a su dirección: <b>${$c(detectedRing.minFare)}</b> (aplica si la suma de KM + Tiempo resulta menor a este monto).`;
   }
 }
+
+// Sanitizador de direcciones y recintos para evitar duplicaciones tipo "(Lugar) (Lugar)"
+function sanitizePlaceLabel(addr, poiName){
+  let str = String(addr || '').trim();
+  if(!str) return poiName ? String(poiName).trim() : '';
+  str = str.replace(/(\([^)]+\))\s*\1+/gi, (m, g1) => g1).trim();
+  if(!poiName) return str;
+  const cleanPoi = String(poiName).replace(/[()]/g, '').trim();
+  if(!cleanPoi) return str;
+  const normStr = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const normPoi = cleanPoi.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if(normStr.includes(normPoi)){
+    return str.replace(/(\([^)]+\))\s*\1+/gi, (m, g1) => g1).trim();
+  }
+  return `${str} (${cleanPoi})`;
+}
+window.sanitizePlaceLabel = sanitizePlaceLabel;
 
 // ===== MAPA Y BUSCADOR DE DIRECCIONES (ARCGIS + OSRM) =====
 function setTripMode(mult = 2){
@@ -3824,7 +3845,9 @@ async function searchAddr(which, autoPickFirst){
       const userNumberMatch = q.match(/\b(\d{1,5})\b/);
       let finalLabel = first.fullLabel;
       if(userNumberMatch && !finalLabel.includes(userNumberMatch[1])){
-        finalLabel = `${q} (${first.title})`;
+        finalLabel = sanitizePlaceLabel(q, first.title);
+      } else {
+        finalLabel = sanitizePlaceLabel(finalLabel, '');
       }
       setPoint(which, first.lat, first.lon, finalLabel, true, `${q}, ${first.rawFull}`);
       if(isMapEnabledForCurrentState()){
@@ -3865,7 +3888,9 @@ function pickSugIndex(which, idx){
   const userNum = typed.match(/\b(\d{1,5})\b/);
   let label = item.fullLabel;
   if(userNum && !label.includes(userNum[1])){
-    label = `${typed} (${item.title})`;
+    label = sanitizePlaceLabel(typed, item.title);
+  } else {
+    label = sanitizePlaceLabel(label, '');
   }
   setPoint(which, item.lat, item.lon, label, true, `${typed}, ${item.rawFull}`);
   if(isMapEnabledForCurrentState()){
@@ -6495,8 +6520,8 @@ async function submitBooking(ev){
     const isInter = mode === '5';
 
     // Definición temprana y segura de direcciones
-    const from = ($('#b_from') && $('#b_from').value.trim()) || '';
-    const to = showDest ? (($('#b_to') && $('#b_to').value.trim()) || '') : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
+    const from = sanitizePlaceLabel(($('#b_from') && $('#b_from').value.trim()) || '');
+    const to = showDest ? sanitizePlaceLabel(($('#b_to') && $('#b_to').value.trim()) || '') : (mode === '4' ? 'Atención directa en centro de eventos / salón (Sin traslado vehicular)' : 'Atención en domicilio / lugar del evento');
     const depto = ($('#b_depto') && $('#b_depto').value.trim()) || '';
 
     // Asegurar que la dirección (y la ruta si aplica) esté geocodificada
@@ -7039,9 +7064,9 @@ async function submitBooking(ev){
     km_cost: bookingKmCost,
     timeCost: bookingTimeCost,
     time_cost: bookingTimeCost,
-    stayMin: (mode === '2' || mode === '1') ? (+$('#selStayDestino') ? +$('#selStayDestino').value : 60) : undefined,
-    stayHours: (mode === '2' || mode === '1') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : undefined,
-    horas_base: (mode === '2') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : (dur / 60),
+    stayMin: (mode === '2' || mode === '1') ? (+$('#selStayDestino') ? +$('#selStayDestino').value : 60) : (mode === '5' ? ((selectedInterProgram || 4) * 60 + (((+$('#selMins34') && +$('#selMins34').value) || 0))) : undefined),
+    stayHours: (mode === '2' || mode === '1') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : (mode === '5' ? ((selectedInterProgram || 4) + (((+$('#selMins34') && +$('#selMins34').value) || 0) / 60)) : undefined),
+    horas_base: (mode === '2') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : (mode === '5' ? ((selectedInterProgram || 4) + (((+$('#selMins34') && +$('#selMins34').value) || 0) / 60)) : (dur / 60)),
     durHours: (mode === '2') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : (dur / 60),
     eventSubtype: (mode === '4') ? (selectedEventSubMode || 'sin_traslado') : undefined,
     subtipo: (mode === '4') ? (selectedEventSubMode || 'sin_traslado') : undefined,
@@ -7136,7 +7161,9 @@ async function submitBooking(ev){
         ? `• Horario de Atención: Llegada al recinto / Inicio: ${timeStr} hrs → Término aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`
         : (mode === '4' && selectedEventSubMode === 'con_traslado')
           ? `• Horario del Servicio: Recogida en domicilio: ${timeStr} hrs → Retorno aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de cobertura total)\n`
-          : `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
+          : (mode === '5')
+            ? `• Circuito Interregional Completo: Salida/Recogida regional: ${timeStr} hrs → Retorno estimado al hogar: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de circuito total · traslados ida/vuelta y permanencia clínica)\n`
+            : `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
     (isMiddayCase ? `• ⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.\n` : '') +
     `• Dirección: ${from}${depto ? ` (${depto})` : ''}\n` +
     (showDest ? `• Destino / Recinto: ${to}\n` : '') +
@@ -7203,7 +7230,9 @@ async function submitBooking(ev){
           ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al domicilio / Inicio: <b>${e(timeStr)} hrs</b> → Término aprox: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
           : (mode === '4' && selectedEventSubMode === 'sin_traslado')
             ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al recinto / Inicio: <b>${e(timeStr)} hrs</b> → Término aprox: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
-            : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
+            : (mode === '5')
+              ? `<li><span>🕒 <b>Circuito Interregional Completo:</b></span> <span>Salida/recogida regional a las <b>${e(timeStr)} hrs</b> → Retorno estimado al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de dedicación exclusiva y cobertura en ruta)</span></li>`
+              : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
         ${isMiddayCase ? `<li style="background:#FEF2F2;border:1px solid #EF4444;color:#B91C1C"><span>⚠️ <b>Observación de Horario:</b></span> <b>⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.</b></li>` : ''}
         ${isPackTotalEvent ? `<li><span>🌙 <b>Jornada y Descanso Operativo:</b></span> <span>Bloquea automáticamente la jornada vespertina/nocturna de la fecha y el Turno Mañana del día siguiente por descanso obligatorio.</span></li>` : (endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : '')}
         ${mode === '5' ? `<li><span>🛡️ <b>Seguridad Vial y Descanso:</b></span> <span>Bloquea jornada completa de la fecha y el Turno Noche de la víspera (noche anterior)</span></li>` : ''}
