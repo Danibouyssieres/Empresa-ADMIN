@@ -3801,8 +3801,8 @@ function sendAdminQuoteWhatsApp(){
       `• 🩺 *Permanencia en evento:* ${tiempoAtencionLabel}\n` +
       `• 🏠 *Retorno estimado al hogar:* ${retornoEstimado} hrs\n`;
   } else if(qState.mode === '5'){
-    cronogramaDesglosado = `• 🚗 *Recogida en domicilio regional:* ${salidaDomicilio} hrs\n` +
-      `• 🏥 *Llegada a centro médico (Stgo):* ${llegadaDestino} hrs (Cita: ${time} hrs)\n` +
+    cronogramaDesglosado = `• 🚗 *Recogida en domicilio:* ${salidaDomicilio} hrs\n` +
+      `• 🏥 *Llegada a destino / centro médico:* ${llegadaDestino} hrs (Cita: ${time} hrs)\n` +
       `• 🩺 *Permanencia clínica / espera:* ${tiempoAtencionLabel}\n` +
       `• 🏠 *Retorno estimado al domicilio:* ${retornoEstimado} hrs\n`;
   } else {
@@ -3870,9 +3870,11 @@ function sendAdminQuoteWhatsApp(){
   const medsDetail = ($('#aq_meds_detail') && $('#aq_meds_detail').value.trim()) || '';
   const medsText = hasMeds ? (medsDetail || 'Sí (Revisar recetas en terreno)') : 'No toma medicamentos habituales';
 
-  const incluyeText = isSinTraslado
-    ? 'Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, insumos de valoración clínica y acompañamiento continuo a domicilio.'
-    : 'Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, vehículo climatizado y habilitado para ayudas técnicas.';
+  const incluyeText = (qState.mode === '4' && qState.eventSubtype === 'sin_traslado')
+    ? 'Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, insumos de valoración clínica y acompañamiento continuo en evento.'
+    : (isSinTraslado
+        ? 'Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, insumos de valoración clínica y acompañamiento continuo a domicilio.'
+        : 'Personal TENS calificado, Ficha de Signos Vitales de cortesía al inicio, vehículo climatizado y habilitado para ayudas técnicas.');
 
   const msg = `Hola ${coord}! Le escribimos de Movilidad y Salud Asistida SpA. Le compartimos el detalle oficial de su cotización requerida (Folio #${cleanFolio}):
 
@@ -4401,6 +4403,9 @@ async function saveAdminBooking(ev, forceConfirm = false){
     subtipo: qState.eventSubtype,
     eventPack: qState.eventPack,
     eventExtraMin: qState.eventExtraMin,
+    interPlan: qState.mode === '5' ? (qState.interPlan || 'estandar') : undefined,
+    interRegion: qState.mode === '5' ? (qState.interRegion || 'Región de Valparaíso') : undefined,
+    selectedInterProgram: qState.mode === '5' ? (qState.interPlan === 'cronico' ? 6 : 4) : undefined,
     st: 'Confirmado',
     svcType: qState.mode,
     alergias,
@@ -4889,7 +4894,7 @@ function card(s){
           </button>
         ` : (s.st === 'En Ruta' || s.st === 'en_ruta') ? `
           <button type="button" class="p" onclick="iniciarAtencionTerreno('${s.id}')" style="background:#0f766e;border-color:#0f766e;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
-            🩺 Iniciar Atención / En Domicilio
+            🩺 Iniciar Atención / Servicio
           </button>
         ` : (s.st === 'Finalizado') ? `
           <button type="button" class="p" onclick="abrirModalFinalizarAtencionAdmin('${s.id}')" style="background:#475569;border-color:#475569;width:100%;padding:9px 14px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
@@ -5720,18 +5725,39 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     } else if(mode === '5'){
       // MODALIDAD 5 (Programas Interregionales - Tarifa Plana Cerrada Ida/Vuelta):
       // NUNCA imprime fila de cobro por kilómetro ni división por hora base.
-      let regionName = "Región de Valparaíso";
-      const textToCheck = `${s.destino_interregional || ''} ${s.programa_interregional || ''} ${s.interRegion || ''} ${s.dx || ''} ${s.obs || ''} ${s.from || ''} ${s.to || ''}`;
+      let regionName = s.interRegion || "Región de Valparaíso";
+      const textToCheck = `${s.destino_interregional || ''} ${s.programa_interregional || ''} ${s.interRegion || ''} ${s.obs || ''} ${s.from || ''} ${s.to || ''}`;
       if(/o'?higgins|rancagua|machalí|machali|san fernando|rengo/i.test(textToCheck)){
         regionName = "Región de O'Higgins";
       }
 
-      let progName = (s.baseFare >= 300000 || s.fare >= 300000 || /cr[oó]nico|oncol[oó]gico/i.test(textToCheck))
+      // Detección dinámica y fiel del programa seleccionado (NUNCA condicionar por s.dx ni por s.fare con extras)
+      let isCronicoPlan = false;
+      if (s.interPlan === 'cronico' || s.selectedInterProgram === 6) {
+        isCronicoPlan = true;
+      } else if (s.interPlan === 'estandar' || s.selectedInterProgram === 4) {
+        isCronicoPlan = false;
+      } else if (s.horas_base === 6 || s.stayHours === 6 || (s.stayMin && Math.floor(s.stayMin / 60) === 6)) {
+        isCronicoPlan = true;
+      } else if (s.horas_base === 4 || s.stayHours === 4 || (s.stayMin && Math.floor(s.stayMin / 60) === 4)) {
+        isCronicoPlan = false;
+      } else {
+        const progSearch = `${s.programa || ''} ${s.programa_interregional || ''} ${s.obs || ''}`;
+        if (/programa\s+cr[oó]nico|oncol[oó]gico\s*\(hasta\s*6\s*hrs\)/i.test(progSearch)) {
+          isCronicoPlan = true;
+        } else if (/programa\s+est[aá]ndar|est[aá]ndar\s*\(hasta\s*4\s*hrs\)/i.test(progSearch)) {
+          isCronicoPlan = false;
+        } else {
+          isCronicoPlan = false;
+        }
+      }
+
+      let progName = isCronicoPlan
         ? `Programa Crónico / Oncológico - ${regionName}`
         : `Programa Estándar - ${regionName}`;
 
-      const baseFareTotal = Number(calc.baseContractFare || calc.subtotalReal || s.baseFare || s.fare || 250000);
-      let valorBasePrograma = (/cr[oó]nico|oncol[oó]gico/i.test(textToCheck) || (baseFareTotal >= 300000 && !/extra/i.test(textToCheck))) ? 300000 : 250000;
+      let valorBasePrograma = isCronicoPlan ? 300000 : 250000;
+      const baseFareTotal = Number(calc.baseContractFare || calc.subtotalReal || s.baseFare || s.fare || valorBasePrograma);
       let extraCotizado = Math.max(0, baseFareTotal - valorBasePrograma);
 
       // Fila 1: Programa Interregional (Tarifa Plana Ida/Vuelta)

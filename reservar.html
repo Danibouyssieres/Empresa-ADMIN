@@ -7071,6 +7071,9 @@ async function submitBooking(ev){
     durHours: (mode === '2') ? ((+$('#selStayDestino') ? +$('#selStayDestino').value : 60) / 60) : (dur / 60),
     eventSubtype: (mode === '4') ? (selectedEventSubMode || 'sin_traslado') : undefined,
     subtipo: (mode === '4') ? (selectedEventSubMode || 'sin_traslado') : undefined,
+    interPlan: (mode === '5') ? ((selectedInterProgram === 6) ? 'cronico' : 'estandar') : undefined,
+    interRegion: (mode === '5') ? (selectedInterRegion || 'Región de Valparaíso') : undefined,
+    selectedInterProgram: (mode === '5') ? (selectedInterProgram || 4) : undefined,
     st: 'pendiente_abono',
     createdAt: new Date().toISOString(),
     expiresAt: (function(){
@@ -7163,7 +7166,7 @@ async function submitBooking(ev){
         : (mode === '4' && selectedEventSubMode === 'con_traslado')
           ? `• Horario del Servicio: Recogida en domicilio: ${timeStr} hrs → Retorno aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de cobertura total)\n`
           : (mode === '5')
-            ? `• Circuito Interregional Completo: Salida/Recogida regional: ${timeStr} hrs → Retorno estimado al hogar: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de circuito total · traslados ida/vuelta y permanencia clínica)\n`
+            ? `• Circuito Interregional Completo: Salida / Recogida en domicilio: ${timeStr} hrs → Retorno estimado al hogar: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de circuito total · traslados ida/vuelta y permanencia clínica)\n`
             : `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
     (isMiddayCase ? `• ⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.\n` : '') +
     `• Dirección: ${from}${depto ? ` (${depto})` : ''}\n` +
@@ -7232,7 +7235,7 @@ async function submitBooking(ev){
           : (mode === '4' && selectedEventSubMode === 'sin_traslado')
             ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al recinto / Inicio: <b>${e(timeStr)} hrs</b> → Término aprox: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
             : (mode === '5')
-              ? `<li><span>🕒 <b>Circuito Interregional Completo:</b></span> <span>Salida/recogida regional a las <b>${e(timeStr)} hrs</b> → Retorno estimado al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de dedicación exclusiva y cobertura en ruta)</span></li>`
+              ? `<li><span>🕒 <b>Circuito Interregional Completo:</b></span> <span>Salida / Recogida en domicilio a las <b>${e(timeStr)} hrs</b> → Retorno estimado al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de dedicación exclusiva y cobertura en ruta)</span></li>`
               : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
         ${isMiddayCase ? `<li style="background:#FEF2F2;border:1px solid #EF4444;color:#B91C1C"><span>⚠️ <b>Observación de Horario:</b></span> <b>⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.</b></li>` : ''}
         ${isPackTotalEvent ? `<li><span>🌙 <b>Jornada y Descanso Operativo:</b></span> <span>Bloquea automáticamente la jornada vespertina/nocturna de la fecha y el Turno Mañana del día siguiente por descanso obligatorio.</span></li>` : (endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : '')}
