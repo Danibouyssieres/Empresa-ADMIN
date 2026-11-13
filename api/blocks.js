@@ -176,8 +176,14 @@ export default async function handler(req) {
       }
 
       const data = await sbRes.json();
+      const cleanData = Array.isArray(data) ? data.filter(b => {
+        const r = String(b.reason || '');
+        const rid = String(b.reserva_id || '');
+        if(/MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/i.test(r) || /MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/i.test(rid)) return false;
+        return true;
+      }) : data;
       return new Response(
-        JSON.stringify({ ok: true, source: 'supabase', data }),
+        JSON.stringify({ ok: true, source: 'supabase', data: cleanData }),
         { status: 200, headers: corsHeaders }
       );
     }
@@ -307,16 +313,17 @@ export default async function handler(req) {
       const reservaId = url.searchParams.get('reserva_id') || url.searchParams.get('reservaId');
 
       // Protección estricta contra truncado accidental:
-      // Debe especificarse un ID explícito, reserva_id explícito o bien la dupla exacta (date Y type).
+      // Debe especificarse un ID explícito, reserva_id explícito o bien fecha válida (con o sin tipo).
       const hasValidId = id && (/^\d+$/.test(id) || /^[0-9a-f-]{36}$/i.test(id));
       const hasValidReservaId = reservaId && String(reservaId).trim().length > 0;
+      const hasValidDate = date && isValidDate(date);
       const hasValidDateTime = date && type && isValidDate(date) && VALID_TYPES.has(type);
 
-      if (!hasValidId && !hasValidDateTime && !hasValidReservaId) {
+      if (!hasValidId && !hasValidDate && !hasValidReservaId) {
         return new Response(
           JSON.stringify({
             ok: false,
-            error: 'Parámetros insuficientes o inválidos: DELETE requiere fecha y tipo explícitos, reserva_id o ID numérico para prevenir el truncado accidental de la tabla.',
+            error: 'Parámetros insuficientes o inválidos: DELETE requiere fecha válida, reserva_id o ID para prevenir el truncado accidental de la tabla.',
           }),
           { status: 400, headers: corsHeaders }
         );
@@ -325,11 +332,14 @@ export default async function handler(req) {
       const writeKey = supabaseServiceKey || supabaseAnonKey;
       let delUrl = `${supabaseUrl}/rest/v1/bloqueos?`;
       if (hasValidReservaId) {
-        delUrl += `reserva_id=eq.${encodeURIComponent(reservaId.trim())}`;
+        const cleanRid = reservaId.trim();
+        delUrl += `or=(reserva_id.eq.${encodeURIComponent(cleanRid)},reason.ilike.*${encodeURIComponent(cleanRid)}*)`;
       } else if (hasValidId) {
         delUrl += `id=eq.${encodeURIComponent(id)}`;
-      } else {
+      } else if (hasValidDateTime) {
         delUrl += `date=eq.${encodeURIComponent(date)}&type=eq.${encodeURIComponent(type)}`;
+      } else {
+        delUrl += `date=eq.${encodeURIComponent(date)}`;
       }
 
       const delRes = await fetch(delUrl, {

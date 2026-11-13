@@ -228,22 +228,39 @@
 
     // 3. Eliminar bloqueo en la base de datos central y local (Requiere autenticación)
     removeBlock: async function(idOrDate, type) {
+      var cleanTarget = idOrDate;
+      var folioMatch = null;
+      if (typeof cleanTarget === 'string') {
+        var mFolio = cleanTarget.match(/MSA-\d+/i);
+        if (mFolio) folioMatch = mFolio[0].toUpperCase();
+        var mDate = cleanTarget.match(/(\d{4}-\d{2}-\d{2})/);
+        if (mDate) cleanTarget = mDate[1];
+      }
+
       // Eliminar de localStorage inmediatamente
-      this._removeLocalBlock(idOrDate, type);
+      this._removeLocalBlock(cleanTarget, type);
+      if (folioMatch) {
+        this._removeLocalBlockByReservaId(folioMatch);
+      }
 
       var remoteSuccess = false;
 
       // Eliminar vía /api/blocks con headers de autenticación
       if (typeof fetch === 'function') {
         try {
+          if (folioMatch) {
+            await fetch('/api/blocks?reserva_id=' + encodeURIComponent(folioMatch), {
+              method: 'DELETE',
+              headers: this.getAdminAuthHeaders()
+            });
+          }
           var delUrl = '/api/blocks?';
-          if (typeof idOrDate === 'number' || (typeof idOrDate === 'string' && /^\d+$/.test(idOrDate))) {
-            delUrl += 'id=' + encodeURIComponent(idOrDate);
+          if (typeof cleanTarget === 'number' || (typeof cleanTarget === 'string' && /^\d+$/.test(cleanTarget))) {
+            delUrl += 'id=' + encodeURIComponent(cleanTarget);
           } else if (type) {
-            delUrl += 'date=' + encodeURIComponent(idOrDate) + '&type=' + encodeURIComponent(type);
+            delUrl += 'date=' + encodeURIComponent(cleanTarget) + '&type=' + encodeURIComponent(type);
           } else {
-            // Protección: no enviar sin tipo si no hay id
-            delUrl += 'date=' + encodeURIComponent(idOrDate) + '&type=full';
+            delUrl += 'date=' + encodeURIComponent(cleanTarget);
           }
           var delRes = await fetch(delUrl, {
             method: 'DELETE',
@@ -260,13 +277,17 @@
       var sb = this.getSupabaseClient();
       if (sb) {
         try {
+          if (folioMatch) {
+            await sb.from('bloqueos').delete().eq('reserva_id', folioMatch);
+            await sb.from('bloqueos').delete().ilike('reason', '%' + folioMatch + '%');
+          }
           var delQ = sb.from('bloqueos').delete();
-          if (typeof idOrDate === 'number' || (typeof idOrDate === 'string' && /^\d+$/.test(idOrDate))) {
-            delQ = delQ.eq('id', idOrDate);
+          if (typeof cleanTarget === 'number' || (typeof cleanTarget === 'string' && /^\d+$/.test(cleanTarget))) {
+            delQ = delQ.eq('id', cleanTarget);
           } else if (type) {
-            delQ = delQ.eq('date', idOrDate).eq('type', type);
+            delQ = delQ.eq('date', cleanTarget).eq('type', type);
           } else {
-            delQ = delQ.eq('date', idOrDate);
+            delQ = delQ.eq('date', cleanTarget);
           }
           var resSbDel = await delQ;
           if (!resSbDel.error) remoteSuccess = true;
@@ -407,17 +428,29 @@
       return { ok: true, remote: remoteSuccess };
     },
 
-    // 7. Eliminar reserva y liberar cupo asociado en bloqueos
+    // 7. Eliminar reserva y liberar cupo asociado en bloqueos (incluyendo descanso D+1 en cascada)
     deleteReserva: async function(idOrFolio, date, block) {
       if (!idOrFolio) return { ok: false, error: 'ID o Folio requerido' };
+      var cleanFolio = String(idOrFolio).trim();
+      var mFolio = cleanFolio.match(/MSA-\d+/i);
+      if (mFolio) cleanFolio = mFolio[0].toUpperCase();
+
       var remoteSuccess = false;
+      var nextDate = null;
+      if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        try {
+          var dt = new Date(date + 'T12:00:00');
+          dt.setDate(dt.getDate() + 1);
+          nextDate = dt.toISOString().split('T')[0];
+        } catch (eDt) {}
+      }
 
       // Intento A: Endpoint /api/reservas con DELETE
       if (typeof fetch === 'function') {
         try {
           var param = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
             ? 'id=' + encodeURIComponent(idOrFolio)
-            : 'folio=' + encodeURIComponent(idOrFolio);
+            : 'folio=' + encodeURIComponent(cleanFolio);
           var delRes = await fetch('/api/reservas?' + param, {
             method: 'DELETE',
             headers: this.getAdminAuthHeaders()
@@ -426,15 +459,22 @@
         } catch (eDel) {}
       }
 
-      // Intento B: Endpoint /api/blocks con DELETE (para liberar por reserva_id o fecha)
+      // Intento B: Endpoint /api/blocks con DELETE (para liberar por reserva_id o fecha y descanso D+1)
       if (typeof fetch === 'function') {
         try {
-          await fetch('/api/blocks?reserva_id=' + encodeURIComponent(idOrFolio), {
+          await fetch('/api/blocks?reserva_id=' + encodeURIComponent(cleanFolio), {
             method: 'DELETE',
             headers: this.getAdminAuthHeaders()
           });
-          if (date && block) {
-            await fetch('/api/blocks?date=' + encodeURIComponent(date) + '&type=' + encodeURIComponent(block), {
+          if (date) {
+            var urlDate = '/api/blocks?date=' + encodeURIComponent(date) + (block ? '&type=' + encodeURIComponent(block) : '');
+            await fetch(urlDate, {
+              method: 'DELETE',
+              headers: this.getAdminAuthHeaders()
+            });
+          }
+          if (nextDate) {
+            await fetch('/api/blocks?date=' + encodeURIComponent(nextDate) + '&type=manana', {
               method: 'DELETE',
               headers: this.getAdminAuthHeaders()
             });
@@ -446,17 +486,25 @@
       var sb = this.getSupabaseClient();
       if (sb) {
         try {
-          // 1. Borrar bloqueos asociados
-          if (idOrFolio) {
-            await sb.from('bloqueos').delete().eq('reserva_id', idOrFolio);
+          // 1. Borrar bloqueos asociados (día del evento y descanso D+1 en cascada)
+          if (cleanFolio) {
+            await sb.from('bloqueos').delete().eq('reserva_id', cleanFolio);
+            await sb.from('bloqueos').delete().ilike('reason', '%' + cleanFolio + '%');
           }
-          if (date && block) {
-            await sb.from('bloqueos').delete().eq('date', date).in('type', [block, 'full']);
+          if (date) {
+            if (block) {
+              await sb.from('bloqueos').delete().eq('date', date).in('type', [block, 'full']);
+            } else {
+              await sb.from('bloqueos').delete().eq('date', date);
+            }
+          }
+          if (nextDate) {
+            await sb.from('bloqueos').delete().eq('date', nextDate).eq('type', 'manana').ilike('reason', '%descanso%');
           }
           // 2. Borrar o cancelar en reservas
           var delQ = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
             ? sb.from('reservas').delete().eq('id', idOrFolio)
-            : sb.from('reservas').delete().eq('folio', idOrFolio);
+            : sb.from('reservas').delete().eq('folio', cleanFolio);
           var resDel = await delQ;
           if (!resDel.error) {
             remoteSuccess = true;
@@ -464,7 +512,7 @@
             // Si DELETE falla por RLS, intentar UPDATE a 'cancelada'
             var updQ = (typeof idOrFolio === 'number' || /^\d+$/.test(idOrFolio))
               ? sb.from('reservas').update({ st: 'cancelada' }).eq('id', idOrFolio)
-              : sb.from('reservas').update({ st: 'cancelada' }).eq('folio', idOrFolio);
+              : sb.from('reservas').update({ st: 'cancelada' }).eq('folio', cleanFolio);
             var resUpd = await updQ;
             if (!resUpd.error) remoteSuccess = true;
           }
@@ -474,8 +522,12 @@
       }
 
       // Liberar localmente
+      this._removeLocalBlockByReservaId(cleanFolio);
       if (date && block) {
         this._removeLocalBlock(date, block);
+      }
+      if (nextDate) {
+        this._removeLocalBlock(nextDate, 'manana');
       }
       this._notifyUpdate();
       return { ok: true, remote: remoteSuccess };
@@ -563,6 +615,30 @@
           } else {
             return b.date !== idOrDate;
           }
+        };
+
+        var dedArr = JSON.parse(localStorage.getItem(LS_BLOCKS_KEY)) || [];
+        localStorage.setItem(LS_BLOCKS_KEY, JSON.stringify(dedArr.filter(filterFn)));
+
+        var state = JSON.parse(localStorage.getItem(LS_STATE_KEY)) || {};
+        if (Array.isArray(state.blocks)) {
+          state.blocks = state.blocks.filter(filterFn);
+          localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
+        }
+      } catch (e) {}
+    },
+
+    _removeLocalBlockByReservaId: function(reservaId) {
+      if (!reservaId) return;
+      var clean = String(reservaId).trim().toUpperCase();
+      try {
+        if (typeof localStorage === 'undefined') return;
+        var filterFn = function(b) {
+          if (!b) return false;
+          var rid = String(b.reservaId || b.reserva_id || '').toUpperCase();
+          var r = String(b.reason || '').toUpperCase();
+          if (rid === clean || r.indexOf(clean) !== -1) return false;
+          return true;
         };
 
         var dedArr = JSON.parse(localStorage.getItem(LS_BLOCKS_KEY)) || [];

@@ -1053,18 +1053,38 @@ function logout(){
 
 const nowInit=new Date();
 let D=load()||seed();
-// Auto-purga proactiva de registros demo legacy en el navegador del usuario
+// Auto-purga proactiva de registros demo legacy y bloqueos residuales de pruebas
+const legacyFolios = ['MSA-001', 'MSA-002', 'MSA-003', 'MSA-007', 'MSA-008', 'MSA-009', 'MSA-012', 'MSA-013'];
+const legacyDates = ['2026-11-24', '2026-11-25', '2026-11-26', '2026-11-27', '2026-11-30', '2026-12-01', '2026-12-05', '2026-12-06', '2026-12-07', '2026-12-08'];
+if(!Array.isArray(D.discardedFolios)) D.discardedFolios = [];
+legacyFolios.forEach(f => {
+  if(!D.discardedFolios.includes(f)) D.discardedFolios.push(f);
+});
+
 if(D && Array.isArray(D.svcs)){
-  const legacyFolios = ['MSA-001', 'MSA-002', 'MSA-003'];
   const legacyNames = ['Rosa Medina', 'Jorge Salas', 'María Opazo', 'Maria Opazo'];
-  const beforeLen = D.svcs.length;
   D.svcs = D.svcs.filter(s => !(legacyFolios.includes(s.folio) || (legacyNames.includes(s.pat || s.pat_name) && ['1', '2', '3'].includes(String(s.id)))));
-  if(D.svcs.length !== beforeLen){
-    if(Array.isArray(D.blocks)){
-      D.blocks = D.blocks.filter(b => !legacyFolios.includes(b.reservaId));
+}
+if(D && Array.isArray(D.blocks)){
+  D.blocks = D.blocks.filter(b => {
+    const r = String(b.reason || '').toUpperCase();
+    const rid = String(b.reservaId || b.reserva_id || '').toUpperCase();
+    if(/MSA-001|MSA-002|MSA-003|MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/.test(r) || /MSA-001|MSA-002|MSA-003|MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/.test(rid)) return false;
+    if(legacyDates.includes(b.date) && /descanso|reserva|msa|post-evento/i.test(r)) return false;
+    return true;
+  });
+}
+if(typeof window !== 'undefined'){
+  setTimeout(() => {
+    if(window.MsaBlocksService){
+      ['MSA-007', 'MSA-008', 'MSA-009', 'MSA-012', 'MSA-013'].forEach(f => {
+        window.MsaBlocksService.deleteReserva(f).catch(()=>{});
+      });
+      legacyDates.forEach(dt => {
+        window.MsaBlocksService.removeBlock(dt).catch(()=>{});
+      });
     }
-    save();
-  }
+  }, 1200);
 }
 if(Array.isArray(D.techs)){
   D.techs = D.techs.filter(t => t && t.id !== 't2' && !/tens\s*2|respaldo/i.test(t.nom || '') && t.rut !== '15.987.654-3' && !/unidad\s*2/i.test(t.veh || ''));
@@ -1427,32 +1447,77 @@ async function saveManualBlock(ev, forceEmergency = false){
 
 function isBlockFromActiveReservation(b){
   if(!b) return false;
-  // 1. Si tiene identificador explícito de reserva
-  const resId = b.reservaId || b.reserva_id;
-  if(resId){
-    const cleanFolio = typeof formatFolioMSA === 'function' ? formatFolioMSA(resId) : String(resId);
-    if(Array.isArray(D.svcs)){
-      const linked = D.svcs.find(s => (typeof formatFolioMSA === 'function' && formatFolioMSA(s.folio, s.id) === cleanFolio) || s.id == resId || (s.remoteId && s.remoteId == resId));
-      if(linked && typeof isReservaActiva === 'function'){
-        return isReservaActiva(linked);
-      }
-    }
-    return true;
+  // 1. Extraer identificador de reserva (reservaId, reserva_id o mención en reason)
+  let targetFolio = null;
+  const rawId = b.reservaId || b.reserva_id;
+  if(rawId){
+    const mRaw = String(rawId).match(/MSA-\d+/i);
+    targetFolio = mRaw ? mRaw[0].toUpperCase() : (typeof formatFolioMSA === 'function' ? formatFolioMSA(rawId) : String(rawId).toUpperCase());
   }
-  // 2. Verificar por descripción / motivo (reason)
-  const r = String(b.reason || '').toLowerCase().trim();
-  if(/reserva\s*(confirmada|pendiente|activa|#|msa)/i.test(r) || /#?msa-\d+/i.test(r) || /horario reservado/i.test(r) || /pre-reserva/i.test(r)){
-    const m = r.match(/msa-\d+/i);
-    if(m && Array.isArray(D.svcs)){
-      const cleanFolio = m[0].toUpperCase();
-      const linked = D.svcs.find(s => (typeof formatFolioMSA === 'function' && formatFolioMSA(s.folio, s.id) === cleanFolio) || (s.folio && s.folio.toUpperCase() === cleanFolio) || String(s.id).toUpperCase() === cleanFolio);
-      if(linked && typeof isReservaActiva === 'function'){
-        return isReservaActiva(linked);
-      }
-    }
-    return true;
+  const r = String(b.reason || '').trim();
+  if(!targetFolio){
+    const mReason = r.match(/MSA-\d+/i);
+    if(mReason) targetFolio = mReason[0].toUpperCase();
   }
-  return false;
+
+  // Si no está vinculado a ningún folio de reserva, no es de una reserva
+  if(!targetFolio){
+    return false;
+  }
+
+  // Si está en la lista de folios descartados/purgados o de pruebas, nunca está activo
+  if(Array.isArray(D.discardedFolios) && D.discardedFolios.includes(targetFolio)){
+    return false;
+  }
+  if(/MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/i.test(targetFolio)){
+    return false;
+  }
+
+  // Buscar en la colección de reservas de D.svcs
+  if(!Array.isArray(D.svcs) || D.svcs.length === 0){
+    return false;
+  }
+
+  const linked = D.svcs.find(s => {
+    if(!s) return false;
+    const sFolio = typeof formatFolioMSA === 'function' ? formatFolioMSA(s.folio, s.id) : String(s.folio || s.id || '').toUpperCase();
+    return sFolio === targetFolio || String(s.id).toUpperCase() === targetFolio || (s.remoteId && String(s.remoteId).toUpperCase() === targetFolio);
+  });
+
+  // Si la reserva NO existe en la base de datos o colección de servicios, el cupo puede liberarse libremente
+  if(!linked){
+    return false;
+  }
+
+  // Verificar estado explícito: solo son activas si están en estado operativo válido
+  const rawSt = String(linked.st || linked.estado || linked.status || '').toLowerCase().trim();
+  if(
+    rawSt === 'cancelado' || rawSt === 'cancelada' ||
+    rawSt === 'expirada' || rawSt === 'expirado' ||
+    rawSt === 'expirada_cancelada' ||
+    rawSt === 'descartada' || rawSt === 'descartado' ||
+    rawSt === 'anulado' || rawSt === 'anulada' ||
+    rawSt === 'finalizada' || rawSt === 'finalizado' ||
+    rawSt === 'completada' || rawSt === 'completado' ||
+    rawSt.includes('cancelad') || rawSt.includes('expirad') || rawSt.includes('descartad') || rawSt.includes('anulad') || rawSt.includes('finaliz') || rawSt.includes('completad')
+  ){
+    return false;
+  }
+
+  // Si es pre-reserva pendiente, verificar si expiró su TTL
+  if(rawSt === 'pre-reserva pendiente' || rawSt === 'pendiente_abono' || rawSt === 'pendiente'){
+    try {
+      if(typeof getReservationRemainingSeconds === 'function'){
+        const rem = getReservationRemainingSeconds(linked);
+        if(rem !== null && rem <= 0){
+          linked.st = 'Cancelado';
+          return false;
+        }
+      }
+    } catch(e){}
+  }
+
+  return true;
 }
 window.isBlockFromActiveReservation = isBlockFromActiveReservation;
 
@@ -1465,14 +1530,28 @@ function removeManualBlock(blockId){
     }
     return;
   }
+  const targetDate = target ? target.date : (String(blockId).match(/\d{4}-\d{2}-\d{2}/) ? String(blockId).match(/\d{4}-\d{2}-\d{2}/)[0] : null);
+  const targetType = target ? target.type : null;
+  const targetFolio = target ? (target.reservaId || (String(target.reason||'').match(/MSA-\d+/i) ? String(target.reason).match(/MSA-\d+/i)[0].toUpperCase() : null)) : null;
+
   D.blocks = D.blocks.filter(b => b.id !== blockId && b.id != blockId && (b.date + '_' + b.type) !== blockId);
+  if(targetFolio){
+    D.blocks = D.blocks.filter(b => b.reservaId !== targetFolio && !String(b.reason||'').toUpperCase().includes(targetFolio));
+  }
   save();
   render();
 
-  if(window.MsaBlocksService && target){
-    MsaBlocksService.removeBlock(target.id || target.date, target.type).catch(err => {
-      console.warn('Error al eliminar bloqueo centralizado:', err);
-    });
+  if(window.MsaBlocksService){
+    if(targetDate){
+      MsaBlocksService.removeBlock(targetDate, targetType).catch(err => {
+        console.warn('Error al eliminar bloqueo centralizado:', err);
+      });
+    }
+    if(targetFolio){
+      MsaBlocksService.deleteReserva(targetFolio, targetDate, targetType).catch(err => {
+        console.warn('Error al liberar reserva vinculada en Supabase:', err);
+      });
+    }
   }
 }
 
@@ -1493,10 +1572,8 @@ function removeAllBlocksForDate(dateStr){
   render();
 
   if(window.MsaBlocksService){
-    blocksToRemove.forEach(b => {
-      MsaBlocksService.removeBlock(b.id || b.date, b.type).catch(err => {
-        console.warn('Error al eliminar bloqueos centralizados de la fecha:', err);
-      });
+    MsaBlocksService.removeBlock(dateStr).catch(err => {
+      console.warn('Error al eliminar bloqueos centralizados de la fecha:', err);
     });
   }
 }
@@ -1505,8 +1582,18 @@ async function syncCentralizedBlocksAdmin(){
   const bs = (typeof window !== 'undefined' && window.MsaBlocksService) ? window.MsaBlocksService : (typeof MsaBlocksService !== 'undefined' ? MsaBlocksService : null);
   if(bs){
     try {
-      const remoteBlocks = await bs.fetchBlocks();
+      let remoteBlocks = await bs.fetchBlocks();
       if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
+        // Excluir bloques asociados a folios descartados o test
+        remoteBlocks = remoteBlocks.filter(b => {
+          const r = String(b.reason || '').toUpperCase();
+          const rid = String(b.reserva_id || b.reservaId || '').toUpperCase();
+          if(/MSA-001|MSA-002|MSA-003|MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/.test(r) || /MSA-001|MSA-002|MSA-003|MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/.test(rid)) return false;
+          if(Array.isArray(D.discardedFolios)){
+            if(D.discardedFolios.some(df => r.includes(df) || rid.includes(df))) return false;
+          }
+          return true;
+        });
         if(typeof bs.mergeBlocksIntoD === 'function') bs.mergeBlocksIntoD(remoteBlocks, D);
       }
       if(typeof bs.fetchReservas === 'function'){
@@ -6526,9 +6613,20 @@ async function eliminarServicioDelCalendarioAdmin(id){
   if(!Array.isArray(D.discardedFolios)) D.discardedFolios = [];
   if(!D.discardedFolios.includes(cleanFolio)) D.discardedFolios.push(cleanFolio);
 
-  // 1. Remover bloques de agenda en D.blocks
+  const nextDateDPlus1 = (s && s.date) ? addDaysYMD(s.date, 1) : null;
+
+  // 1. Remover bloques de agenda en D.blocks (tanto el día del evento como el descanso D+1 en cascada)
   if(D.blocks && Array.isArray(D.blocks)){
-    D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == s.id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
+    D.blocks = D.blocks.filter(x => {
+      if(!x) return false;
+      const rid = String(x.reservaId || x.reserva_id || '').toUpperCase();
+      const r = String(x.reason || '').toUpperCase();
+      if(rid === cleanFolio || rid === String(s.id).toUpperCase()) return false;
+      if(r.includes(cleanFolio)) return false;
+      if(s && x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full'))) return false;
+      if(nextDateDPlus1 && x.date === nextDateDPlus1 && (x.type === 'manana' || /descanso/i.test(r))) return false;
+      return true;
+    });
   }
 
   // 2. Remover de D.svcs para asegurar que no se renderice en la bandeja ni en el cronograma
@@ -6537,13 +6635,14 @@ async function eliminarServicioDelCalendarioAdmin(id){
   save();
   render();
 
-  // 3. Sincronizar mutación atómica en Supabase / Backend (Eliminar de reservas y liberar bloqueos)
+  // 3. Sincronizar mutación atómica en Supabase / Backend (Eliminar de reservas y liberar bloqueos en cascada)
   if(window.MsaBlocksService){
     try {
       if(typeof window.MsaBlocksService.deleteReserva === 'function'){
         await window.MsaBlocksService.deleteReserva(cleanFolio, s.date, s.block || 'full');
       } else {
         await window.MsaBlocksService.removeBlock(s.date, s.block || 'full');
+        if(nextDateDPlus1) await window.MsaBlocksService.removeBlock(nextDateDPlus1, 'manana');
         await window.MsaBlocksService.updateReservaStatus(cleanFolio, 'cancelada', { obs: s.obs });
       }
     } catch(err) {
@@ -6572,17 +6671,33 @@ async function autoExpireReservation(id, triggerRender = true){
   s.expiredAt = new Date().toISOString();
   s.obs = (s.obs ? s.obs + ' · ' : '') + 'Expirada automáticamente por falta de abono (TTL 120 min / Pausa nocturna)';
 
+  const nextDateDPlus1 = (s && s.date) ? addDaysYMD(s.date, 1) : null;
+
   if(D.blocks && Array.isArray(D.blocks)){
-    D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == s.id || (x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
+    D.blocks = D.blocks.filter(x => {
+      if(!x) return false;
+      const rid = String(x.reservaId || x.reserva_id || '').toUpperCase();
+      const r = String(x.reason || '').toUpperCase();
+      if(rid === cleanFolio || rid === String(s.id).toUpperCase()) return false;
+      if(r.includes(cleanFolio)) return false;
+      if(s && x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full'))) return false;
+      if(nextDateDPlus1 && x.date === nextDateDPlus1 && (x.type === 'manana' || /descanso/i.test(r))) return false;
+      return true;
+    });
   }
 
   save();
   if(window.MsaBlocksService){
-    MsaBlocksService.removeBlock(s.date, s.block || 'full').catch(()=>{});
-    MsaBlocksService.updateReservaStatus(cleanFolio, 'Cancelado', {
-      obs: s.obs,
-      expired_at: s.expiredAt
-    }).catch(()=>{});
+    if(typeof window.MsaBlocksService.deleteReserva === 'function'){
+      window.MsaBlocksService.deleteReserva(cleanFolio, s.date, s.block || 'full').catch(()=>{});
+    } else {
+      MsaBlocksService.removeBlock(s.date, s.block || 'full').catch(()=>{});
+      if(nextDateDPlus1) MsaBlocksService.removeBlock(nextDateDPlus1, 'manana').catch(()=>{});
+      MsaBlocksService.updateReservaStatus(cleanFolio, 'Cancelado', {
+        obs: s.obs,
+        expired_at: s.expiredAt
+      }).catch(()=>{});
+    }
   }
   if(triggerRender){
     safeBackgroundRender();
@@ -6606,9 +6721,20 @@ async function purgeReservaDefinitiva(idOrFolio){
   // 2. Remover de D.svcs
   D.svcs = (D.svcs || []).filter(x => x && x.id !== idOrFolio && formatFolioMSA(x.folio, x.id) !== cleanFolio);
 
-  // 3. Remover de D.blocks si hubiera algún bloqueo remanente
+  const nextDateDPlus1 = (s && s.date) ? addDaysYMD(s.date, 1) : null;
+
+  // 3. Remover de D.blocks si hubiera algún bloqueo remanente (tanto día del evento como descanso D+1)
   if(D.blocks && Array.isArray(D.blocks)){
-    D.blocks = D.blocks.filter(x => !(x.reservaId == cleanFolio || x.reservaId == idOrFolio || (s && x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full')))));
+    D.blocks = D.blocks.filter(x => {
+      if(!x) return false;
+      const rid = String(x.reservaId || x.reserva_id || '').toUpperCase();
+      const r = String(x.reason || '').toUpperCase();
+      if(rid === cleanFolio || rid === String(idOrFolio).toUpperCase()) return false;
+      if(r.includes(cleanFolio)) return false;
+      if(s && x.date === s.date && (x.shift === s.shift || x.type === (s.block || 'full'))) return false;
+      if(nextDateDPlus1 && x.date === nextDateDPlus1 && (x.type === 'manana' || /descanso/i.test(r))) return false;
+      return true;
+    });
   }
 
   save();
