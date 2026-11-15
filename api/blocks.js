@@ -176,14 +176,8 @@ export default async function handler(req) {
       }
 
       const data = await sbRes.json();
-      const cleanData = Array.isArray(data) ? data.filter(b => {
-        const r = String(b.reason || '');
-        const rid = String(b.reserva_id || '');
-        if(/MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/i.test(r) || /MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/i.test(rid)) return false;
-        return true;
-      }) : data;
       return new Response(
-        JSON.stringify({ ok: true, source: 'supabase', data: cleanData }),
+        JSON.stringify({ ok: true, source: 'supabase', data }),
         { status: 200, headers: corsHeaders }
       );
     }

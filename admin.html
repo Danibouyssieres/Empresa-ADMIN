@@ -1053,38 +1053,16 @@ function logout(){
 
 const nowInit=new Date();
 let D=load()||seed();
-// Auto-purga proactiva de registros demo legacy y bloqueos residuales de pruebas
-const legacyFolios = ['MSA-001', 'MSA-002', 'MSA-003', 'MSA-007', 'MSA-008', 'MSA-009', 'MSA-012', 'MSA-013'];
-const legacyDates = ['2026-11-24', '2026-11-25', '2026-11-26', '2026-11-27', '2026-11-30', '2026-12-01', '2026-12-05', '2026-12-06', '2026-12-07', '2026-12-08'];
-if(!Array.isArray(D.discardedFolios)) D.discardedFolios = [];
-legacyFolios.forEach(f => {
-  if(!D.discardedFolios.includes(f)) D.discardedFolios.push(f);
-});
+// Limpieza preventiva de folios válidos que pudieron quedar erróneamente en discardedFolios
+if(Array.isArray(D.discardedFolios)){
+  const poisonedFolios = ['MSA-001', 'MSA-002', 'MSA-003', 'MSA-004', 'MSA-005', 'MSA-006', 'MSA-007', 'MSA-008', 'MSA-009', 'MSA-010', 'MSA-011', 'MSA-012', 'MSA-013'];
+  D.discardedFolios = D.discardedFolios.filter(f => !poisonedFolios.includes(f));
+}
 
+// Purga exclusiva de registros demo mock del inicio del desarrollo (por nombre de paciente demo)
 if(D && Array.isArray(D.svcs)){
   const legacyNames = ['Rosa Medina', 'Jorge Salas', 'María Opazo', 'Maria Opazo'];
-  D.svcs = D.svcs.filter(s => !(legacyFolios.includes(s.folio) || (legacyNames.includes(s.pat || s.pat_name) && ['1', '2', '3'].includes(String(s.id)))));
-}
-if(D && Array.isArray(D.blocks)){
-  D.blocks = D.blocks.filter(b => {
-    const r = String(b.reason || '').toUpperCase();
-    const rid = String(b.reservaId || b.reserva_id || '').toUpperCase();
-    if(/MSA-001|MSA-002|MSA-003|MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/.test(r) || /MSA-001|MSA-002|MSA-003|MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/.test(rid)) return false;
-    if(legacyDates.includes(b.date) && /descanso|reserva|msa|post-evento/i.test(r)) return false;
-    return true;
-  });
-}
-if(typeof window !== 'undefined'){
-  setTimeout(() => {
-    if(window.MsaBlocksService){
-      ['MSA-007', 'MSA-008', 'MSA-009', 'MSA-012', 'MSA-013'].forEach(f => {
-        window.MsaBlocksService.deleteReserva(f).catch(()=>{});
-      });
-      legacyDates.forEach(dt => {
-        window.MsaBlocksService.removeBlock(dt).catch(()=>{});
-      });
-    }
-  }, 1200);
+  D.svcs = D.svcs.filter(s => !(legacyNames.includes(s.pat || s.pat_name) && ['1', '2', '3'].includes(String(s.id))));
 }
 if(Array.isArray(D.techs)){
   D.techs = D.techs.filter(t => t && t.id !== 't2' && !/tens\s*2|respaldo/i.test(t.nom || '') && t.rut !== '15.987.654-3' && !/unidad\s*2/i.test(t.veh || ''));
@@ -1465,11 +1443,8 @@ function isBlockFromActiveReservation(b){
     return false;
   }
 
-  // Si está en la lista de folios descartados/purgados o de pruebas, nunca está activo
+  // Si está en la lista de folios descartados/purgados explícitamente, no está activo
   if(Array.isArray(D.discardedFolios) && D.discardedFolios.includes(targetFolio)){
-    return false;
-  }
-  if(/MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/i.test(targetFolio)){
     return false;
   }
 
@@ -1584,13 +1559,12 @@ async function syncCentralizedBlocksAdmin(){
     try {
       let remoteBlocks = await bs.fetchBlocks();
       if(Array.isArray(remoteBlocks) && remoteBlocks.length > 0){
-        // Excluir bloques asociados a folios descartados o test
+        // Excluir bloques asociados a folios descartados
         remoteBlocks = remoteBlocks.filter(b => {
           const r = String(b.reason || '').toUpperCase();
           const rid = String(b.reserva_id || b.reservaId || '').toUpperCase();
-          if(/MSA-001|MSA-002|MSA-003|MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/.test(r) || /MSA-001|MSA-002|MSA-003|MSA-007|MSA-008|MSA-009|MSA-012|MSA-013/.test(rid)) return false;
           if(Array.isArray(D.discardedFolios)){
-            if(D.discardedFolios.some(df => r.includes(df) || rid.includes(df))) return false;
+            if(D.discardedFolios.some(df => df && (r.includes(df) || rid.includes(df)))) return false;
           }
           return true;
         });
@@ -3821,6 +3795,13 @@ function sendAdminQuoteWhatsApp(){
       if(!isNaN(n) && n > maxNum) maxNum = n;
     }
   });
+  (D.blocks || []).forEach(b => {
+    const m = String(b.reservaId || b.reserva_id || b.reason || '').match(/MSA-(\d+)/i);
+    if(m){
+      const n = parseInt(m[1], 10);
+      if(!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  });
   const nextNum = Math.max(maxNum + 1, (D.nid || 1));
   const cleanFolio = 'MSA-' + String(nextNum).padStart(3, '0');
   D.nid = nextNum + 1;
@@ -4416,6 +4397,13 @@ async function saveAdminBooking(ev, forceConfirm = false){
   let maxNum = 0;
   (D.svcs || []).forEach(item => {
     const m = String(item.folio || item.id || '').match(/(\d+)/);
+    if(m){
+      const n = parseInt(m[1], 10);
+      if(!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  });
+  (D.blocks || []).forEach(b => {
+    const m = String(b.reservaId || b.reserva_id || b.reason || '').match(/MSA-(\d+)/i);
     if(m){
       const n = parseInt(m[1], 10);
       if(!isNaN(n) && n > maxNum) maxNum = n;
