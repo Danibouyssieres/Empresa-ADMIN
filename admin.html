@@ -2228,8 +2228,14 @@ function form(){
           <input type="date" id="aq_date" value="${U.date}" onchange="calcAdminQuote()" required>
         </div>
 
+        <div id="col_aq_app_time" style="display:block">
+          <label for="aq_app_time"><b id="lbl_aq_app_time">⏱️ ¿A qué hora es la cita médica o evento?</b></label>
+          <input type="time" id="aq_app_time" onchange="onAdminAppTimeChange()">
+          <small id="lbl_aq_app_time_helper" style="font-size:11px;color:var(--mut);display:block;margin-top:3px">Asistente: calcula la salida restando viaje + 10 min abordaje + 20 min margen</small>
+        </div>
+
         <div>
-          <label for="aq_time"><b id="lbl_aq_time">Hora de Llegada / Inicio de Atención *</b></label>
+          <label for="aq_time"><b id="lbl_aq_time">Hora de Recogida en Domicilio *</b></label>
           <input type="time" id="aq_time" value="10:00" onchange="calcAdminQuote()" required>
           <small id="lbl_aq_time_helper" style="font-size:11px;color:var(--pri);font-weight:700;display:none;margin-top:4px"></small>
         </div>
@@ -2616,6 +2622,7 @@ function saveAdminQuoterDraft(){
     const draft = {
       mode: ($('#aq_mode') && $('#aq_mode').value) || '1',
       date: ($('#aq_date') && $('#aq_date').value) || '',
+      appTime: ($('#aq_app_time') && $('#aq_app_time').value) || '',
       time: ($('#aq_time') && $('#aq_time').value) || '10:00',
       stayHours: ($('#aq_stay_hours') && $('#aq_stay_hours').value) || '60',
       eventSubtype: ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado',
@@ -2674,6 +2681,7 @@ function loadAdminQuoterDraft(){
     onAdminModeChange();
 
     if(d.date && $('#aq_date')) $('#aq_date').value = d.date;
+    if(d.appTime && $('#aq_app_time')) $('#aq_app_time').value = d.appTime;
     if(d.time && $('#aq_time')) $('#aq_time').value = d.time;
     if(d.stayHours && $('#aq_stay_hours')) $('#aq_stay_hours').value = d.stayHours;
     if(d.eventSubtype && $('#aq_event_subtype')) $('#aq_event_subtype').value = d.eventSubtype;
@@ -2765,6 +2773,7 @@ function resetAdminQuoterForm(isManual = false){
   if($('#form_admin_quoter')) $('#form_admin_quoter').reset();
   if($('#aq_mode')) $('#aq_mode').value = '1';
   if($('#aq_date')) $('#aq_date').value = U.date || TODAY;
+  if($('#aq_app_time')) $('#aq_app_time').value = '';
   if($('#aq_time')) $('#aq_time').value = '10:00';
   if($('#aq_stay_hours')) $('#aq_stay_hours').value = '60';
   if($('#aq_from')) $('#aq_from').value = 'Av. Los Pajaritos 1450, Maipú';
@@ -2885,8 +2894,30 @@ function onAdminModeChange(){
   if(rowAyuda) rowAyuda.style.display = 'block';
   const lblCompInit = $('#lbl_aq_comp') || document.querySelector('label[for="aq_comp"]');
   if(lblCompInit && mode !== '4') lblCompInit.textContent = '¿El paciente viaja solo o acompañado? *';
+  
+  const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
+  const conTraslado = (mode === '1' || mode === '2' || mode === '5' || (mode === '4' && subtype === 'con_traslado'));
+  
+  const colAppTime = $('#col_aq_app_time');
+  const lblAppTime = $('#lbl_aq_app_time');
+  const lblAppTimeHelper = $('#lbl_aq_app_time_helper');
   const lblTimeInit = $('#lbl_aq_time') || document.querySelector('label[for="aq_time"] b');
-  if(lblTimeInit && mode !== '4' && mode !== '5') lblTimeInit.textContent = 'Hora de Llegada / Inicio de Atención *';
+  
+  if(colAppTime) colAppTime.style.display = conTraslado ? 'block' : 'none';
+  if(lblTimeInit) lblTimeInit.textContent = conTraslado ? 'Hora de Recogida en Domicilio *' : 'Hora de Inicio en Domicilio / Recinto *';
+  if(lblAppTime){
+    if(mode === '5'){
+      lblAppTime.textContent = '⏱️ ¿A qué hora es la cita médica en Santiago?';
+      if(lblAppTimeHelper) lblAppTimeHelper.textContent = 'Asistente: calcula la salida restando viaje carretero + 10 min abordaje + 20 min margen previo';
+    } else if(mode === '4'){
+      lblAppTime.textContent = '⏱️ ¿A qué hora es el evento?';
+      if(lblAppTimeHelper) lblAppTimeHelper.textContent = 'Asistente: calcula la salida restando viaje + 10 min abordaje + 20 min margen';
+    } else {
+      lblAppTime.textContent = '⏱️ ¿A qué hora es la cita médica o evento?';
+      if(lblAppTimeHelper) lblAppTimeHelper.textContent = 'Asistente: calcula la salida restando viaje + 10 min abordaje + 20 min margen';
+    }
+  }
+
   const helperEl = $('#lbl_aq_time_helper');
   if(helperEl && mode !== '5'){
     helperEl.style.display = 'none';
@@ -2940,7 +2971,6 @@ function onAdminModeChange(){
     if(kmInput) { kmInput.disabled = true; kmInput.style.opacity = '0.7'; }
     if(btnKm) btnKm.style.display = 'inline-block';
     if(lblKmNote) lblKmNote.textContent = 'Kilometraje interregional incluido en tarifa plana.';
-    if(lblTimeInit) lblTimeInit.textContent = 'Hora de la Cita Médica en Santiago *';
     if(lblCompInit) lblCompInit.textContent = '¿El paciente viaja solo o acompañado? *';
     if(!qState.interRegion) qState.interRegion = 'Región de Valparaíso';
     selectAdminInterRegion(qState.interRegion, false);
@@ -2995,6 +3025,36 @@ function selectAdminInterRegion(region, forceAddress = true){
 }
 window.selectAdminInterRegion = selectAdminInterRegion;
 
+function onAdminAppTimeChange(){
+  const appTimeEl = $('#aq_app_time');
+  if(!appTimeEl || !appTimeEl.value) return;
+  const appTimeMin = tm(appTimeEl.value);
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+  const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
+
+  let idaMin = 30;
+  if(mode === '5'){
+    idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 90;
+  } else if(mode === '4' && subtype === 'con_traslado'){
+    idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 30;
+  } else {
+    const kmTot = +($('#aq_km') && $('#aq_km').value) || 24;
+    idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((kmTot / 2) * 1.3));
+  }
+  const abordajeMin = 10;
+  const margenAdmision = 20;
+  const totalAnticipacion = idaMin + abordajeMin + margenAdmision;
+  const rawPickupMin = appTimeMin - totalAnticipacion;
+  let targetSlotMin = Math.floor(rawPickupMin / 15) * 15;
+  targetSlotMin = ((Math.round(targetSlotMin) % 1440) + 1440) % 1440;
+
+  if($('#aq_time')){
+    $('#aq_time').value = fm(targetSlotMin);
+  }
+  calcAdminQuote();
+}
+window.onAdminAppTimeChange = onAdminAppTimeChange;
+
 function onAdminEventSubtypeChange(){
   const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
   qState.eventSubtype = subtype;
@@ -3006,15 +3066,22 @@ function onAdminEventSubtypeChange(){
   const lblKmNote = $('#lbl_km_note');
   const lblComp = $('#lbl_aq_comp') || document.querySelector('label[for="aq_comp"]');
   const lblTime = $('#lbl_aq_time') || document.querySelector('label[for="aq_time"] b');
+  const colAppTime = $('#col_aq_app_time');
+  const lblAppTime = $('#lbl_aq_app_time');
+  const lblAppTimeHelper = $('#lbl_aq_app_time_helper');
 
   if(subtype === 'sin_traslado'){
+    if(colAppTime) colAppTime.style.display = 'none';
     if(lblComp) lblComp.textContent = '¿El paciente asistirá solo o acompañado por un familiar/tutor al evento? *';
-    if(lblTime) lblTime.textContent = 'Hora de Llegada / Inicio de Atención *';
+    if(lblTime) lblTime.textContent = 'Hora de Inicio en Domicilio / Recinto *';
     if(colDest) colDest.style.display = 'none';
     if(colKm) colKm.style.display = 'none';
     if($('#aq_to')) $('#aq_to').value = 'No aplica (Atención en domicilio)';
     qState.to = 'No aplica (Atención en domicilio)';
   } else {
+    if(colAppTime) colAppTime.style.display = 'block';
+    if(lblAppTime) lblAppTime.textContent = '⏱️ ¿A qué hora es el evento?';
+    if(lblAppTimeHelper) lblAppTimeHelper.textContent = 'Asistente: calcula la salida restando viaje + 10 min abordaje + 20 min margen';
     if(colDest) colDest.style.display = 'block';
     if(quickDestWrap) quickDestWrap.style.display = 'none';
     if(colKm) colKm.style.display = 'block';
@@ -3223,7 +3290,15 @@ async function computeAdminRoute(){
       : `✅ Distancia calculada: ${totalKm.toFixed(1)} km ida y vuelta (~${estMin} min viaje).`;
   } finally {
     if(btnKm) btnKm.textContent = '📍 Recalcular';
-    calcAdminQuote();
+    const appTimeVal = ($('#aq_app_time') && $('#aq_app_time').value) || '';
+    const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
+    const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
+    const conTraslado = (mode === '1' || mode === '2' || mode === '5' || (mode === '4' && subtype === 'con_traslado'));
+    if(appTimeVal && conTraslado){
+      onAdminAppTimeChange();
+    } else {
+      calcAdminQuote();
+    }
   }
 }
 
@@ -3409,13 +3484,24 @@ function calcAdminQuote(){
     const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
     const rawTotalMin = 10 + idaMin + stayMin + retornoMin;
     const billedMin = Math.min(360, Math.max(60, Math.ceil(rawTotalMin / 30) * 30));
-    qState.durationMin = billedMin;
+    qState.durationMin = rawTotalMin;
 
     kmCost = Math.round((kmTot * PRICE_PER_KM) / 100) * 100;
     timeCost = Math.round((billedMin / 60) * hourlyRate);
 
     timeLabel = `${(billedMin / 60).toFixed(1)} hrs (${(stayMin / 60).toFixed(1)}h box + ${Math.round(rawTotalMin - stayMin)}m viaje/abordaje)`;
     kmLabel = `${kmTot} km`;
+
+    const helperEl = $('#lbl_aq_time_helper');
+    if(helperEl){
+      helperEl.style.display = 'block';
+      const startMin = tm(timeVal);
+      const llegadaMin = startMin + 10 + idaMin;
+      const retornoMinEst = startMin + rawTotalMin;
+      const appTimeVal = ($('#aq_app_time') && $('#aq_app_time').value) ? ` (Cita/Evento: ${$('#aq_app_time').value} hrs)` : '';
+      helperEl.innerHTML = `🚗 Recogida en domicilio: <b>${fm(startMin)} hrs</b> · Llegada destino (~${idaMin}m viaje + 10m abordaje): <b>${fm(llegadaMin)} hrs</b>${appTimeVal} · Retorno aprox: <b>${fm(retornoMinEst)} hrs</b> (${fmtHoursClean(rawTotalMin)})`;
+      helperEl.style.color = 'var(--pri)';
+    }
 
     const calculatedSum = kmCost + timeCost;
     const ringFloor = (qState.ring && qState.ring.minFare) || 18000;
@@ -3442,14 +3528,25 @@ function calcAdminQuote(){
     timeCost = Math.round((stayMin / 60) * hourlyRate);
 
     // Proyección de término para el bloqueo de agenda:
-    // Fórmula oficial: Término proyectado = Hora salida + Viaje ida + Tiempo de espera contratado + Viaje retorno al hogar.
+    // Fórmula oficial: Término proyectado = Hora salida + 10 min abordaje + Viaje ida + Tiempo de espera contratado + Viaje retorno al hogar.
     const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((kmTot / 2) * 1.3));
     const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
-    const fullCircuitMin = idaMin + stayMin + retornoMin;
+    const fullCircuitMin = 10 + idaMin + stayMin + retornoMin;
     qState.durationMin = fullCircuitMin;
 
     timeLabel = `${(stayMin / 60).toFixed(1)} hrs espera vehicular`;
     kmLabel = `${kmTot} km`;
+
+    const helperEl = $('#lbl_aq_time_helper');
+    if(helperEl){
+      helperEl.style.display = 'block';
+      const startMin = tm(timeVal);
+      const llegadaMin = startMin + 10 + idaMin;
+      const retornoMinEst = startMin + fullCircuitMin;
+      const appTimeVal = ($('#aq_app_time') && $('#aq_app_time').value) ? ` (Cita/Evento: ${$('#aq_app_time').value} hrs)` : '';
+      helperEl.innerHTML = `🚗 Recogida en domicilio: <b>${fm(startMin)} hrs</b> · Llegada destino (~${idaMin}m viaje + 10m abordaje): <b>${fm(llegadaMin)} hrs</b>${appTimeVal} · Retorno aprox: <b>${fm(retornoMinEst)} hrs</b> (${fmtHoursClean(fullCircuitMin)})`;
+      helperEl.style.color = 'var(--pri)';
+    }
 
     const calculatedSum = kmCost + timeCost;
     const ringFloor = (qState.ring && qState.ring.minFare) || 18000;
@@ -3486,6 +3583,14 @@ function calcAdminQuote(){
     timeCost = Math.round((stayMin / 60) * hourlyRate);
     totalFare = timeCost;
     floorApplied = false;
+
+    const helperEl = $('#lbl_aq_time_helper');
+    if(helperEl){
+      helperEl.style.display = 'block';
+      const startMin = tm(timeVal);
+      helperEl.innerHTML = `🩺 Inicio en domicilio: <b>${fm(startMin)} hrs</b> → Término aprox: <b>${fm(startMin + stayMin)} hrs</b> (${fmtHoursClean(stayMin)})`;
+      helperEl.style.color = 'var(--pri)';
+    }
   } else if(mode === '4'){
     const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
     const pack = ($('#aq_event_pack') && $('#aq_event_pack').value) || 'base';
@@ -3591,27 +3696,19 @@ function calcAdminQuote(){
     qState.interExtraMin = extraCfg.min;
 
     // Horarios y traslados carreteros reales
-    const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
-    const appTimeMin = tm(timeVal);
+    const timeVal = ($('#aq_time') && $('#aq_time').value) || '07:30';
+    const startMin = tm(timeVal);
     const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 90;
     const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
     const abordajeMin = 10;
-    const margenAdmision = 20;
 
-    // Cálculo automático de la Hora de Salida / Recogida Regional:
-    // Cita Médica - (Viaje ida + 10 min abordaje + 20 min margen previo)
-    const rawPickupMin = appTimeMin - (idaMin + abordajeMin + margenAdmision);
-    let pickupSlotMin = Math.floor(rawPickupMin / 15) * 15;
-    if(pickupSlotMin < 300) pickupSlotMin = 300; // Mínimo 05:00 hrs
-    if(pickupSlotMin > 540) pickupSlotMin = 540; // Máximo 09:00 hrs
-
-    const llegadaSantiagoMin = pickupSlotMin + abordajeMin + idaMin;
+    const llegadaSantiagoMin = startMin + abordajeMin + idaMin;
     const salidaSantiagoMin = llegadaSantiagoMin + stayMin;
     const retornoHogarMin = salidaSantiagoMin + retornoMin;
     const fullCircuitMin = abordajeMin + idaMin + stayMin + retornoMin;
 
-    qState.pickupMin = pickupSlotMin;
-    qState.pickupTimeStr = fm(pickupSlotMin);
+    qState.pickupMin = startMin;
+    qState.pickupTimeStr = fm(startMin);
     qState.llegadaSantiagoMin = llegadaSantiagoMin;
     qState.retornoHogarMin = retornoHogarMin;
     qState.durationMin = fullCircuitMin;
@@ -3619,7 +3716,9 @@ function calcAdminQuote(){
     const helperEl = $('#lbl_aq_time_helper');
     if(helperEl){
       helperEl.style.display = 'block';
-      helperEl.innerHTML = `🚗 Salida/Recogida Regional: <b>${fm(pickupSlotMin)} hrs</b> · Llegada Santiago: <b>${fm(llegadaSantiagoMin)} hrs</b> · Retorno estimado: <b>${fm(retornoHogarMin)} hrs</b>`;
+      const appTimeVal = ($('#aq_app_time') && $('#aq_app_time').value) ? ` (Cita: ${$('#aq_app_time').value} hrs)` : '';
+      helperEl.innerHTML = `🚗 Recogida en domicilio: <b>${fm(startMin)} hrs</b> · Llegada Santiago (~${idaMin}m viaje + 10m abordaje): <b>${fm(llegadaSantiagoMin)} hrs</b>${appTimeVal} · Retorno estimado: <b>${fm(retornoHogarMin)} hrs</b> (${fmtHoursClean(fullCircuitMin)})`;
+      helperEl.style.color = 'var(--pri)';
     }
 
     kmCost = 0;
@@ -3668,7 +3767,7 @@ function populateAdminTechs(){
   const dateVal = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const timeVal = ($('#aq_time') && $('#aq_time').value) || '10:00';
   const durVal = qState.durationMin || 120;
-  const startMin = (qState.mode === '5' && qState.pickupMin !== undefined) ? qState.pickupMin : tm(timeVal);
+  const startMin = tm(timeVal);
 
   const select = $('#aq_tens');
   if(!select) return;
@@ -3683,17 +3782,56 @@ function populateAdminTechs(){
 
   const bufInfo = $('#admin_buffer_info');
   if(bufInfo){
-    const endMin = startMin + durVal;
-    const bufEndMin = endMin + BUF;
-    const isNextDayEnd = endMin >= 1440;
-    const isNextDayBuf = bufEndMin >= 1440;
-    const endStr = `${fm(endMin)} hrs${isNextDayEnd ? ' (del día siguiente)' : ''}`;
-    const bufStr = `${fm(bufEndMin)} hrs${isNextDayBuf ? ' (del día siguiente)' : ''}`;
+    const mode = qState.mode || '1';
+    const subtype = qState.eventSubtype || 'sin_traslado';
+    const conTraslado = (mode === '1' || mode === '2' || mode === '5' || (mode === '4' && subtype === 'con_traslado'));
 
-    if(qState.mode === '5'){
-      bufInfo.innerHTML = `ℹ️ Salida regional: <b>${fm(startMin)} hrs</b> · Término proyectado: <b>${endStr}</b> · Buffer liberado a las <b>${bufStr} (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
+    if(conTraslado){
+      let idaMin = 30;
+      let stayMin = 60;
+      if(mode === '5'){
+        idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 90;
+        stayMin = qState.stayMin || (qState.interPlan === 'estandar' ? (240 + (qState.interExtraMin || 0)) : 360);
+      } else if(mode === '4'){
+        idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 30;
+        stayMin = qState.stayMin || 240;
+      } else {
+        const kmTot = +($('#aq_km') && $('#aq_km').value) || 24;
+        idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((kmTot / 2) * 1.3));
+        stayMin = qState.stayMin || 60;
+      }
+
+      const llegadaDestinoMin = startMin + 10 + idaMin;
+      const finDestinoMin = llegadaDestinoMin + stayMin;
+      const retornoHogarMin = startMin + durVal;
+      const bufEndMin = retornoHogarMin + BUF;
+      const isNextDayLlegada = llegadaDestinoMin >= 1440;
+      const isNextDayFin = finDestinoMin >= 1440;
+      const isNextDayRetorno = retornoHogarMin >= 1440;
+      const isNextDayBuf = bufEndMin >= 1440;
+
+      bufInfo.innerHTML = `
+        <div style="line-height:1.6;font-size:12px">
+          • <b>Recogida en Domicilio:</b> ${fm(startMin)} hrs<br>
+          • <b>Llegada estimada a destino (incluye 10 min de abordaje y signos vitales + ${idaMin} min viaje):</b> ${fm(llegadaDestinoMin)} hrs${isNextDayLlegada ? ' (del día siguiente)' : ''}<br>
+          • <b>Término de atención en destino:</b> ${fm(finDestinoMin)} hrs${isNextDayFin ? ' (del día siguiente)' : ''}<br>
+          • <b>Retorno y finalización del servicio en domicilio:</b> ${fm(retornoHogarMin)} hrs${isNextDayRetorno ? ' (del día siguiente)' : ''}<br>
+          • <b>Bloqueo en agenda y buffer de seguridad:</b> liberado a las <b>${fm(bufEndMin)} hrs (2 horas de buffer)</b>${isNextDayBuf ? ' (del día siguiente)' : ''} · (${okTechs.length} TENS sin conflicto)
+        </div>
+      `;
     } else {
-      bufInfo.innerHTML = `ℹ️ Término proyectado: <b>${endStr}</b> · Buffer de seguridad liberado a las <b>${bufStr} (2 horas)</b> (${okTechs.length} TENS sin conflicto).`;
+      const endMin = startMin + durVal;
+      const bufEndMin = endMin + BUF;
+      const isNextDayEnd = endMin >= 1440;
+      const isNextDayBuf = bufEndMin >= 1440;
+
+      bufInfo.innerHTML = `
+        <div style="line-height:1.6;font-size:12px">
+          • <b>Inicio de atención en domicilio/recinto:</b> ${fm(startMin)} hrs<br>
+          • <b>Término proyectado de atención:</b> ${fm(endMin)} hrs${isNextDayEnd ? ' (del día siguiente)' : ''}<br>
+          • <b>Bloqueo en agenda y buffer de seguridad:</b> liberado a las <b>${fm(bufEndMin)} hrs (2 horas de buffer)</b>${isNextDayBuf ? ' (del día siguiente)' : ''} · (${okTechs.length} TENS sin conflicto)
+        </div>
+      `;
     }
   }
 
@@ -3784,7 +3922,7 @@ function sendAdminQuoteWhatsApp(){
   const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
   const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : sanitizePlaceLabel(($('#aq_to') && $('#aq_to').value.trim()) || from);
   const durMin = qState.durationMin || 120;
-  const startMin = (qState.mode === '5' && qState.pickupMin !== undefined) ? qState.pickupMin : tm(time);
+  const startMin = tm(time);
 
   // Calcular correlativo único oficial de Folio
   let maxNum = 0;
@@ -3807,7 +3945,7 @@ function sendAdminQuoteWhatsApp(){
   D.nid = nextNum + 1;
 
   // Cálculo de cronograma desglosado
-  let salidaDomicilio = (qState.mode === '5' && qState.pickupMin !== undefined) ? fm(qState.pickupMin) : time;
+  let salidaDomicilio = time;
   let llegadaDestino = '';
   let tiempoAtencionLabel = '';
   let retornoEstimado = '';
@@ -3823,9 +3961,9 @@ function sendAdminQuoteWhatsApp(){
     const idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((qState.kmTotal / 2) * 1.3));
     const retornoMin = adminRouteVueltaMin > 0 ? adminRouteVueltaMin : idaMin;
     const stayMin = qState.stayMin || 60;
-    llegadaDestino = fm(startMin + idaMin);
+    llegadaDestino = fm(startMin + 10 + idaMin);
     tiempoAtencionLabel = `${fmtDurationClean(stayMin)} (Espera vehicular)`;
-    retornoEstimado = fm(startMin + idaMin + stayMin + retornoMin);
+    retornoEstimado = fm(startMin + (qState.durationMin || (10 + idaMin + stayMin + retornoMin)));
   } else if(qState.mode === '3'){
     tiempoAtencionLabel = fmtDurationClean(durMin);
     retornoEstimado = fm(startMin + durMin);
@@ -3869,8 +4007,9 @@ function sendAdminQuoteWhatsApp(){
       `• 🩺 *Permanencia en evento:* ${tiempoAtencionLabel}\n` +
       `• 🏠 *Retorno estimado al hogar:* ${retornoEstimado} hrs\n`;
   } else if(qState.mode === '5'){
+    const appTime = ($('#aq_app_time') && $('#aq_app_time').value) ? ` (Cita: ${$('#aq_app_time').value} hrs)` : '';
     cronogramaDesglosado = `• 🚗 *Recogida en domicilio:* ${salidaDomicilio} hrs\n` +
-      `• 🏥 *Llegada a destino / centro médico:* ${llegadaDestino} hrs (Cita: ${time} hrs)\n` +
+      `• 🏥 *Llegada a destino / centro médico:* ${llegadaDestino} hrs${appTime}\n` +
       `• 🩺 *Permanencia clínica / espera:* ${tiempoAtencionLabel}\n` +
       `• 🏠 *Retorno estimado al domicilio:* ${retornoEstimado} hrs\n`;
   } else {
@@ -4218,8 +4357,8 @@ async function saveAdminBooking(ev, forceConfirm = false){
   const tid = ($('#aq_tens') && $('#aq_tens').value) || (D.techs[0] && D.techs[0].id) || 't1';
   const date = ($('#aq_date') && $('#aq_date').value) || U.date || TODAY;
   const time = ($('#aq_time') && $('#aq_time').value) || '10:00';
-  const bookingTime = (qState.mode === '5' && qState.pickupMin !== undefined) ? fm(qState.pickupMin) : time;
-  const start = (qState.mode === '5' && qState.pickupMin !== undefined) ? qState.pickupMin : tm(time);
+  const bookingTime = time;
+  const start = tm(time);
   const dur = qState.durationMin || 120;
 
   const pat = ($('#aq_pat') && $('#aq_pat').value.trim()) || 'Paciente';
