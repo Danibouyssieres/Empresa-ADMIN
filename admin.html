@@ -411,19 +411,19 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:10px;font-size:12.5px;margin-bottom:10px">
       <div>
         <label for="adm_horaCierreReal" style="font-weight:700;display:block;margin-bottom:4px">Hora Cierre *</label>
-        <input type="time" id="adm_horaCierreReal" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+        <input type="time" id="adm_horaCierreReal" oninput="onFieldCheckoutRecalc()" onchange="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
       <div>
         <label for="adm_parking_expense" style="font-weight:700;display:block;margin-bottom:4px">Parking ($)</label>
-        <input type="number" id="adm_parking_expense" min="0" step="500" value="0" placeholder="0" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+        <input type="number" id="adm_parking_expense" min="0" step="500" value="0" placeholder="0" oninput="onFieldCheckoutRecalc()" onchange="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
       <div>
         <label for="adm_abono_previo_input" style="font-weight:700;display:block;margin-bottom:4px">Abono 50% ($) *</label>
-        <input type="number" id="adm_abono_previo_input" min="0" step="1000" value="0" placeholder="20000" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+        <input type="number" id="adm_abono_previo_input" min="0" step="1000" value="0" placeholder="20000" oninput="onFieldCheckoutRecalc()" onchange="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
       <div>
         <label for="adm_descuento_ajuste" style="font-weight:700;display:block;margin-bottom:4px">Ajuste / Desc. ($)</label>
-        <input type="number" id="adm_descuento_ajuste" min="0" step="500" value="0" placeholder="0" oninput="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
+        <input type="number" id="adm_descuento_ajuste" min="0" step="500" value="0" placeholder="0" oninput="onFieldCheckoutRecalc()" onchange="onFieldCheckoutRecalc()" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg)">
       </div>
     </div>
 
@@ -5310,11 +5310,6 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
 
   const pactadaMin = s.dur || 120;
 
-  const diffMin = elapsedMin > pactadaMin ? (elapsedMin - pactadaMin) : 0;
-  
-  // Regla de tiempo extra estricta (Cero cortesía: si supera por 1 minuto o más, gatilla bloque de 30 min)
-  const extraBlocks = diffMin >= 1 ? Math.ceil(diffMin / 30) : 0;
-
   // Tarifas por bloque de 30 min dinámicas según Modalidad y Jornada:
   // * Modalidad 1 (Integral): $6.000 (Hábil) | $7.500 (Sáb/Dom) | $9.000 (Fest/Noc)
   // * Modalidad 2 (Traslado Exclusivo c/ Espera): $4.000 (Hábil) | $5.000 (Sáb/Dom) | $6.000 (Fest/Noc)
@@ -5323,62 +5318,103 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   // * Modalidad 5 (Interregional): $15.000 fijo por bloque de 30 min
   let extraBlockRate = 6000;
   if(mode === '2'){
-    if(jornada === 'nocturno'){
-      extraBlockRate = 6000;
-    } else if(jornada === 'finde'){
-      extraBlockRate = 5000;
-    } else {
-      extraBlockRate = 4000;
-    }
+    extraBlockRate = (jornada === 'nocturno' ? 6000 : (jornada === 'finde' ? 5000 : 4000));
   } else if(mode === '4'){
     extraBlockRate = 7500;
   } else if(mode === '5'){
     extraBlockRate = 15000;
   } else {
-    // Modalidad 1 y Modalidad 3 (y fallback general)
-    if(jornada === 'nocturno'){
-      extraBlockRate = 9000;
-    } else if(jornada === 'finde'){
-      extraBlockRate = 7500;
-    } else {
-      extraBlockRate = 6000;
-    }
+    extraBlockRate = (jornada === 'nocturno' ? 9000 : (jornada === 'finde' ? 7500 : 6000));
   }
-
-  const extraCost = extraBlocks * extraBlockRate;
-  let billedMin = pactadaMin + (extraBlocks * 30);
 
   // 1. Tarifa base contratada
   const baseContractFare = Number(s.baseFare || s.fareOrig || s.fare || 40000);
 
-  // 2. Desglose exacto entre Kilometraje y Tiempo Base cotizados:
+  // 2. Desglose exacto entre Kilometraje y Tiempo Base (con recálculo dinámico bidireccional):
   let kmTot = 0;
   let kmCost = 0;
   let tiempoBaseCost = 0;
   let horasBase = 0;
+  let billedMin = pactadaMin;
+  let diffMin = 0;
+  let extraBlocks = 0;
+  let extraCost = 0;
+  let subtotalReal = baseContractFare;
 
   if (mode === '4') {
     // MODALIDAD 4 (Eventos Sociales): NUNCA cobra kilometraje (tarifas planas cerradas)
     kmTot = 0;
     kmCost = 0;
-    tiempoBaseCost = baseContractFare;
-    horasBase = Number(s.horas_base || s.durHours || (pactadaMin / 60));
+    const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || String(s.obs || '').includes('Con Traslado') || (s.to && !String(s.to).toLowerCase().includes('no aplica') && !String(s.to).toLowerCase().includes('sin traslado') && !String(s.to).toLowerCase().includes('recinto') && s.to !== s.from));
+    const basePackageFare = isConTraslado ? (baseContractFare >= 125000 ? 125000 : 95000) : (baseContractFare >= 95000 ? 95000 : 65000);
+    const basePackageHours = (basePackageFare === 125000 || (basePackageFare === 95000 && !isConTraslado)) ? 6 : 4;
+    const contractExtraFare = Math.max(0, baseContractFare - basePackageFare);
+    const contractExtraBlocks = Math.round(contractExtraFare / 7500);
+    const contractTotalMin = (basePackageHours * 60) + (contractExtraBlocks * 30);
+
+    const currentBilledMin = Math.max(basePackageHours * 60, Math.ceil(elapsedMin / 30) * 30);
+    if (currentBilledMin < contractTotalMin) {
+      const activeExtraBlocks = Math.max(0, (currentBilledMin - (basePackageHours * 60)) / 30);
+      extraBlocks = 0;
+      extraCost = 0;
+      diffMin = 0;
+      billedMin = currentBilledMin;
+      horasBase = currentBilledMin / 60;
+      tiempoBaseCost = basePackageFare + (activeExtraBlocks * 7500);
+      subtotalReal = tiempoBaseCost;
+    } else if (currentBilledMin === contractTotalMin) {
+      billedMin = contractTotalMin;
+      horasBase = contractTotalMin / 60;
+      tiempoBaseCost = baseContractFare;
+      subtotalReal = baseContractFare;
+    } else {
+      diffMin = Math.max(0, elapsedMin - pactadaMin);
+      extraBlocks = Math.max(1, Math.ceil(diffMin / 30));
+      extraCost = extraBlocks * 7500;
+      billedMin = contractTotalMin + (extraBlocks * 30);
+      horasBase = contractTotalMin / 60;
+      tiempoBaseCost = baseContractFare;
+      subtotalReal = baseContractFare + extraCost;
+    }
   } else if (mode === '5') {
     // MODALIDAD 5 (Programas Interregionales): NUNCA cobra kilometraje (tarifas planas cerradas)
     kmTot = 0;
     kmCost = 0;
-    tiempoBaseCost = baseContractFare;
-    horasBase = Number(s.horas_base || s.durHours || (pactadaMin / 60));
+    let isCronicoPlan = false;
+    if (s.interPlan === 'cronico' || s.selectedInterProgram === 6 || s.horas_base === 6 || s.stayHours === 6) isCronicoPlan = true;
+    const valorBasePrograma = isCronicoPlan ? 300000 : 250000;
+    const contractExtraFare = Math.max(0, baseContractFare - valorBasePrograma);
+    const contractExtraBlocks = Math.round(contractExtraFare / 15000);
+
+    if (elapsedMin < pactadaMin && contractExtraBlocks > 0) {
+      const savedMin = pactadaMin - elapsedMin;
+      const blocksToDiscount = Math.floor(savedMin / 30);
+      const remainingExtraBlocks = Math.max(0, contractExtraBlocks - blocksToDiscount);
+      billedMin = Math.max(pactadaMin - (blocksToDiscount * 30), pactadaMin - (contractExtraBlocks * 30));
+      horasBase = billedMin / 60;
+      tiempoBaseCost = valorBasePrograma + (remainingExtraBlocks * 15000);
+      subtotalReal = tiempoBaseCost;
+    } else if (elapsedMin <= pactadaMin) {
+      billedMin = pactadaMin;
+      horasBase = pactadaMin / 60;
+      tiempoBaseCost = baseContractFare;
+      subtotalReal = baseContractFare;
+    } else {
+      diffMin = elapsedMin - pactadaMin;
+      extraBlocks = Math.ceil(diffMin / 30);
+      extraCost = extraBlocks * 15000;
+      billedMin = pactadaMin + (extraBlocks * 30);
+      horasBase = pactadaMin / 60;
+      tiempoBaseCost = baseContractFare;
+      subtotalReal = baseContractFare + extraCost;
+    }
   } else if (mode === '2') {
     // MODALIDAD 2 (Traslado Exclusivo con Espera):
-    // La fila 2 corresponde EXCLUSIVAMENTE al tiempo de espera pactado en recinto (no al circuito vehicular)
     kmTot = Number(s.kmTotal ?? s.km_total ?? s.km ?? s.totalKm ?? 0);
     if (!kmTot) {
       const textToSearch = `${s.obs || ''} ${s.ruta || ''} ${s.dx || ''} ${s.from || ''} ${s.to || ''}`;
       const mKm = textToSearch.match(/\[Km:\s*([\d.]+)\]/i) || textToSearch.match(/(\d+(?:[.,]\d+)?)\s*km/i);
-      if (mKm) {
-        kmTot = parseFloat(mKm[1].replace(',', '.'));
-      }
+      if (mKm) kmTot = parseFloat(mKm[1].replace(',', '.'));
     }
     kmCost = Number(s.kmCost ?? s.km_cost ?? 0);
     if (!kmCost && s.obs) {
@@ -5393,6 +5429,9 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       const mTimeCost = s.obs.match(/\[TimeCost:\s*(\d+)\]/i);
       if (mTimeCost) tiempoBaseCost = parseInt(mTimeCost[1], 10);
     }
+    if (!tiempoBaseCost && baseContractFare > kmCost) {
+      tiempoBaseCost = Math.max(0, baseContractFare - kmCost);
+    }
 
     if ((s.pat && s.pat.toLowerCase().includes('oscar gonz')) || (s.folio === 'MSA-001' && baseContractFare === 52500)) {
       kmTot = 42.5;
@@ -5405,65 +5444,86 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       horasBase = Number(s.stayMin) / 60;
     } else if (tiempoBaseCost > 0 && hourlyRate > 0) {
       horasBase = Math.round((tiempoBaseCost / hourlyRate) * 10) / 10;
-    } else if (kmCost > 0 && baseContractFare > kmCost && hourlyRate > 0) {
-      tiempoBaseCost = Math.max(0, baseContractFare - kmCost);
-      horasBase = Math.round((tiempoBaseCost / hourlyRate) * 10) / 10;
-    } else if (s.horas_base && Number(s.horas_base) <= 6 && (Number(s.horas_base) * hourlyRate <= baseContractFare)) {
-      horasBase = Number(s.horas_base);
     } else {
-      const textToSearch = `${s.obs || ''} ${s.dx || ''}`;
-      const mStay = textToSearch.match(/\[StayMin:\s*(\d+)\]/i) || textToSearch.match(/(\d+(?:[.,]\d+)?)\s*(?:hrs?|horas?)\s*(?:de\s*)?espera/i);
-      if (mStay) {
-        horasBase = mStay[0].includes('StayMin') ? (parseInt(mStay[1], 10) / 60) : parseFloat(mStay[1].replace(',', '.'));
-      } else {
-        horasBase = Math.max(1, Math.min(6, Math.round((baseContractFare / (hourlyRate || 8000)) * 10) / 10));
-      }
+      horasBase = 1.0;
     }
 
     if (!tiempoBaseCost) {
       tiempoBaseCost = Math.round(horasBase * hourlyRate);
     }
-    if (!kmCost && baseContractFare > tiempoBaseCost) {
-      kmCost = Math.max(0, baseContractFare - tiempoBaseCost);
-      if (!kmTot) kmTot = Math.round((kmCost / PRICE_PER_KM) * 10) / 10;
-    } else if (kmTot > 0 && !kmCost) {
-      kmCost = Math.round(kmTot * PRICE_PER_KM);
+
+    const contractWaitMin = Math.round(horasBase * 60);
+
+    if (elapsedMin < pactadaMin && contractWaitMin > 60) {
+      const savedMin = pactadaMin - elapsedMin;
+      const blocksDiscount = Math.floor(savedMin / 30);
+      const newWaitMin = Math.max(60, contractWaitMin - (blocksDiscount * 30));
+      horasBase = newWaitMin / 60;
+      tiempoBaseCost = Math.round(horasBase * hourlyRate);
+      subtotalReal = kmCost + tiempoBaseCost;
+      billedMin = Math.max(60, pactadaMin - (blocksDiscount * 30));
+    } else if (elapsedMin <= pactadaMin) {
+      subtotalReal = baseContractFare;
+      billedMin = pactadaMin;
+    } else {
+      diffMin = elapsedMin - pactadaMin;
+      extraBlocks = Math.ceil(diffMin / 30);
+      extraCost = extraBlocks * extraBlockRate;
+      subtotalReal = baseContractFare + extraCost;
+      billedMin = pactadaMin + (extraBlocks * 30);
     }
   } else {
-    // Modalidades 1, 3:
+    // MODALIDAD 1 (Integral TENS + Traslado) y MODALIDAD 3 (Cuidados a Domicilio):
     kmTot = Number(s.kmTotal ?? s.km_total ?? s.km ?? s.totalKm ?? 0);
     if (!kmTot && mode === '1') {
       const textToSearch = `${s.obs || ''} ${s.ruta || ''} ${s.dx || ''} ${s.from || ''} ${s.to || ''}`;
-      const mKm = textToSearch.match(/(\d+(?:[.,]\d+)?)\s*km/i);
-      if (mKm) {
-        kmTot = parseFloat(mKm[1].replace(',', '.'));
-      }
+      const mKm = textToSearch.match(/\[Km:\s*([\d.]+)\]/i) || textToSearch.match(/(\d+(?:[.,]\d+)?)\s*km/i);
+      if (mKm) kmTot = parseFloat(mKm[1].replace(',', '.'));
     }
     kmCost = Number(s.kmCost ?? s.km_cost ?? 0);
     if (!kmCost && kmTot > 0 && mode === '1') {
       kmCost = Math.round(kmTot * PRICE_PER_KM);
     }
     tiempoBaseCost = Number(s.timeCost ?? s.time_cost ?? 0);
-    horasBase = Number(s.horas_base || s.durHours || (pactadaMin / 60));
 
-    if (kmTot > 0) {
-      if (!kmCost) kmCost = Math.round(kmTot * PRICE_PER_KM);
-      if (!tiempoBaseCost) tiempoBaseCost = Math.max(0, baseContractFare - kmCost);
+    const contractTimeCost = mode === '3' ? baseContractFare : Math.max(0, baseContractFare - kmCost);
+    let contractBilledMin = Math.round((contractTimeCost / (hourlyRate || 12000)) * 60);
+    if (!contractBilledMin || contractBilledMin < 60) {
+      contractBilledMin = Math.max(60, Math.ceil(pactadaMin / 30) * 30);
+    }
+
+    const currentBilledMin = Math.max(60, Math.ceil(elapsedMin / 30) * 30);
+
+    if (currentBilledMin < contractBilledMin) {
+      // RECÁLCULO DINÁMICO HACIA ABAJO: El servicio terminó antes o el usuario ajustó la hora para no pasar de bloque
+      billedMin = currentBilledMin;
+      horasBase = Math.round((billedMin / 60) * 10) / 10;
+      tiempoBaseCost = Math.round(horasBase * hourlyRate);
+      diffMin = 0;
+      extraBlocks = 0;
+      extraCost = 0;
+      subtotalReal = (mode === '3' ? 0 : kmCost) + tiempoBaseCost;
+    } else if (currentBilledMin === contractBilledMin) {
+      // Coincide con lo contratado / pactado
+      billedMin = contractBilledMin;
+      horasBase = Math.round((contractBilledMin / 60) * 10) / 10;
+      tiempoBaseCost = contractTimeCost;
+      diffMin = 0;
+      extraBlocks = 0;
+      extraCost = 0;
+      subtotalReal = baseContractFare;
     } else {
-      const calculatedTimeBase = Math.round(horasBase * hourlyRate);
-      if (baseContractFare > calculatedTimeBase) {
-        tiempoBaseCost = calculatedTimeBase;
-        kmCost = baseContractFare - calculatedTimeBase;
-        kmTot = Math.round((kmCost / PRICE_PER_KM) * 10) / 10;
-      } else {
-        tiempoBaseCost = baseContractFare;
-        kmCost = 0;
-        kmTot = 0;
-      }
+      // RECÁLCULO DINÁMICO HACIA ARRIBA: Superó el tiempo contratado (retraso en terreno)
+      const rawExtra = elapsedMin > pactadaMin ? (elapsedMin - pactadaMin) : (currentBilledMin - contractBilledMin);
+      diffMin = Math.max(0, rawExtra);
+      extraBlocks = Math.ceil(diffMin / 30);
+      extraCost = extraBlocks * extraBlockRate;
+      billedMin = contractBilledMin + (extraBlocks * 30);
+      horasBase = Math.round((contractBilledMin / 60) * 10) / 10;
+      tiempoBaseCost = contractTimeCost;
+      subtotalReal = baseContractFare + extraCost;
     }
   }
-
-  const subtotalReal = baseContractFare + extraCost;
 
   // Regla de piso mínimo garantizado (Anillo 1: $18k, Anillo 2: $35k, Anillo 3: $50k)
   const ringDet = detectRingFromText(s.from || '', null, null);
@@ -5656,7 +5716,7 @@ function onFieldCheckoutRecalc(){
   const parkingAmount = Math.max(0, parseInt(String(parkingInput).replace(/\D/g, ''), 10) || 0);
   const customAbonoInput = $('#adm_abono_previo_input') ? parseInt(String($('#adm_abono_previo_input').value).replace(/\D/g, ''), 10) : undefined;
 
-  const startMin = s.start || 540;
+  const startMin = (hInicio && tm(hInicio)) ? tm(hInicio) : (s.start || 540);
   const durMin = s.dur || 120;
   const endPactadoMin = (startMin + durMin) % 1440;
 
@@ -5727,7 +5787,7 @@ function solicitarPagoWhatsAppAdmin(){
 
   const hInicio = ($('#adm_horaInicioReal') && $('#adm_horaInicioReal').value) || s.startActualTime || fm(s.start || 540);
   const hCierre = ($('#adm_horaCierreReal') && $('#adm_horaCierreReal').value) || s.endActualTime || '12:00';
-  const startMin = s.start || 540;
+  const startMin = (hInicio && tm(hInicio)) ? tm(hInicio) : (s.start || 540);
   const durMin = s.dur || 120;
   const cierreMin = tm(hCierre);
   let elapsedMin = durMin;
@@ -5912,7 +5972,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   }
   const mode = String(modeRaw || '1').replace(/^([1-5]).*$/, '$1');
 
-  const startMin = s.start || 540;
+  const hInicio = ($('#adm_horaInicioReal') && $('#adm_horaInicioReal').value) || s.startActualTime || fm(s.start || 540);
+  const startMin = (hInicio && tm(hInicio)) ? tm(hInicio) : (s.start || 540);
   const durMin = s.dur || 120;
   const endPactadoMin = (startMin + durMin) % 1440;
   const endPactadoStr = fm(endPactadoMin);
