@@ -2562,11 +2562,11 @@ function form(){
           <label style="font-weight:700;display:block;margin-bottom:4px;font-size:13px">¿Se encontrará acompañado por un familiar/cuidador en el hogar? *</label>
           <div style="display:flex;gap:18px;align-items:center;min-height:36px">
             <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-              <input type="radio" name="aq_comp_home_radio" value="si" checked onchange="saveAdminQuoterDraft()">
+              <input type="radio" name="aq_comp_home_radio" value="si" checked onchange="onAdminCompHomeRadioChange(this); saveAdminQuoterDraft()">
               <b>Sí</b>
             </label>
             <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-              <input type="radio" name="aq_comp_home_radio" value="no" onchange="saveAdminQuoterDraft()">
+              <input type="radio" name="aq_comp_home_radio" value="no" onchange="onAdminCompHomeRadioChange(this); saveAdminQuoterDraft()">
               <b>No</b>
             </label>
           </div>
@@ -3056,6 +3056,7 @@ function onAdminModeChange(){
   
   const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
   const conTraslado = (mode === '1' || mode === '2' || mode === '5' || (mode === '4' && subtype === 'con_traslado'));
+  if(typeof updateAdminMinorNotice === 'function') updateAdminMinorNotice();
   
   const colAppTime = $('#col_aq_app_time');
   const lblAppTime = $('#lbl_aq_app_time');
@@ -3217,6 +3218,7 @@ window.onAdminAppTimeChange = onAdminAppTimeChange;
 function onAdminEventSubtypeChange(){
   const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || 'sin_traslado';
   qState.eventSubtype = subtype;
+  if(typeof updateAdminMinorNotice === 'function') updateAdminMinorNotice();
   const colDest = $('#col_destino');
   const colKm = $('#col_km');
   const quickDestWrap = $('#quick_dest_wrap');
@@ -3497,6 +3499,33 @@ function autoCalcAdminKm(){
   calcAdminQuote();
 }
 
+function updateAdminMinorNotice(){
+  const notice = $('#aq_minor_notice');
+  if(!notice) return;
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || (qState && qState.mode) || '1';
+  const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || (qState && qState.eventSubtype) || 'sin_traslado';
+  const isSinTraslado = (mode === '3' || (mode === '4' && subtype === 'sin_traslado'));
+
+  if(isSinTraslado){
+    notice.innerHTML = '⚠️ <b>Paciente menor de edad:</b> Por normativa legal y términos del servicio, los menores de edad no pueden quedar solos en el domicilio o recinto durante la atención. Es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal durante todo el servicio.';
+  } else {
+    notice.innerHTML = '⚠️ <b>Paciente menor de edad:</b> Por normativa legal y términos del servicio, es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal. El tutor debe proveer el Sistema de Retención Infantil (SRI) correspondiente.';
+  }
+}
+window.updateAdminMinorNotice = updateAdminMinorNotice;
+
+function onAdminCompHomeRadioChange(radioEl){
+  const ageVal = ($('#aq_age') && $('#aq_age').value.trim()) || '';
+  const age = ageVal !== '' ? parseInt(ageVal, 10) : NaN;
+  const isMinor = !isNaN(age) && age >= 0 && age < 18;
+  if(isMinor && radioEl && radioEl.value === 'no'){
+    const radioSi = document.querySelector('input[name="aq_comp_home_radio"][value="si"]');
+    if(radioSi) radioSi.checked = true;
+    alert('⚠️ Por normativa legal y términos del servicio, no se realizan atenciones a menores de edad solos sin adulto responsable en el hogar. Es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal.');
+  }
+}
+window.onAdminCompHomeRadioChange = onAdminCompHomeRadioChange;
+
 // Menores de edad, patologías y facturación
 function onAdminAgeChange(){
   const ageVal = ($('#aq_age') && $('#aq_age').value.trim()) || '';
@@ -3506,6 +3535,7 @@ function onAdminAgeChange(){
   const compSel = $('#aq_comp');
 
   if(notice){
+    updateAdminMinorNotice();
     notice.style.display = isMinor ? 'block' : 'none';
   }
   if(compSel){
@@ -3517,7 +3547,20 @@ function onAdminAgeChange(){
       if(soloOpt) soloOpt.disabled = false;
     }
   }
+
+  // Si está en Modalidad 3 y es menor de edad, el acompañamiento en el hogar debe ser "Sí"
+  const mode = ($('#aq_mode') && $('#aq_mode').value) || (qState && qState.mode) || '1';
+  if(isMinor && mode === '3'){
+    const radioSi = document.querySelector('input[name="aq_comp_home_radio"][value="si"]');
+    const radioNo = document.querySelector('input[name="aq_comp_home_radio"][value="no"]');
+    if(radioNo && radioNo.checked){
+      if(radioSi) radioSi.checked = true;
+      alert('⚠️ Por normativa legal y términos del servicio, los menores de edad no pueden quedar solos en el domicilio o recinto durante la atención. Es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal durante todo el servicio.');
+      if(typeof saveAdminQuoterDraft === 'function') saveAdminQuoterDraft();
+    }
+  }
 }
+window.onAdminAgeChange = onAdminAgeChange;
 
 function onAdminCompChange(){
   const ageVal = ($('#aq_age') && $('#aq_age').value.trim()) || '';
@@ -3526,9 +3569,17 @@ function onAdminCompChange(){
   const compSel = $('#aq_comp');
   if(isMinor && compSel && compSel.value.toLowerCase().includes('solo')){
     compSel.value = 'Acompañado por tutor legal / familiar';
-    alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de 18 años debe viajar obligatoriamente acompañado por su madre, padre o tutor legal.');
+    const mode = ($('#aq_mode') && $('#aq_mode').value) || (qState && qState.mode) || '1';
+    const subtype = ($('#aq_event_subtype') && $('#aq_event_subtype').value) || (qState && qState.eventSubtype) || 'sin_traslado';
+    const isSinTraslado = (mode === '3' || (mode === '4' && subtype === 'sin_traslado'));
+    if(isSinTraslado){
+      alert('⚠️ Por normativa legal y términos del servicio, los menores de edad no pueden quedar solos en el domicilio o recinto durante la atención. Es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal durante todo el servicio.');
+    } else {
+      alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de 18 años debe viajar obligatoriamente acompañado de manera continua por su padre, madre o tutor legal provisto del SRI correspondiente.');
+    }
   }
 }
+window.onAdminCompChange = onAdminCompChange;
 
 function onAdminPathologyChange(cb){
   if(cb && cb.checked){
@@ -4528,14 +4579,29 @@ async function saveAdminBooking(ev, forceConfirm = false){
     const isCompHome = (typeof document !== 'undefined' && document.querySelector('input[name="aq_comp_home_radio"]:checked') && document.querySelector('input[name="aq_comp_home_radio"]:checked').value === 'si');
     compDesc = isCompHome ? 'Acompañado por familiar/cuidador en el hogar' : 'Solo en el hogar';
     isSolo = !isCompHome;
+
+    // Validación obligatoria para menores de edad en Modalidad 3:
+    if(age < 18 && !isCompHome){
+      if(typeof alert !== 'undefined'){
+        alert('⚠️ Por normativa legal y términos del servicio, no se realizan atenciones a menores de edad solos sin un adulto responsable presente en el hogar. Es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal.');
+      }
+      const radioSi = document.querySelector('input[name="aq_comp_home_radio"][value="si"]');
+      if(radioSi && typeof radioSi.focus === 'function') radioSi.focus();
+      return { error: 'Minor cannot be left alone at home' };
+    }
   } else {
     compDesc = ($('#aq_comp') && $('#aq_comp').value) || 'Acompañado por tutor legal / familiar';
     isSolo = compDesc.toLowerCase().includes('solo');
 
     // Validación obligatoria para menores de edad (< 18 años)
     if(age < 18 && isSolo){
+      const isSinTraslado = (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
       if(typeof alert !== 'undefined'){
-        alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de edad (< 18 años) debe viajar obligatoriamente acompañado de manera continua por su madre, padre o tutor legal.');
+        if(isSinTraslado){
+          alert('⚠️ Por normativa legal y términos del servicio, los menores de edad no pueden quedar solos en el domicilio o recinto durante la atención. Es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal.');
+        } else {
+          alert('⚠️ Por normativa legal y términos del servicio, un paciente menor de edad (< 18 años) debe viajar obligatoriamente acompañado de manera continua por su madre, padre o tutor legal provisto del SRI correspondiente.');
+        }
       }
       const compSel = $('#aq_comp');
       if(compSel && typeof compSel.focus === 'function') compSel.focus();

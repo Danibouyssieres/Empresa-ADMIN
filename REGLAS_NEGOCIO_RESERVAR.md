@@ -378,6 +378,19 @@ El formulario clasifica la condición física en 4 niveles estrictos:
 * Checkbox: *"¿El paciente es el mismo Coordinador que solicita el servicio?"*
 * Si se marca, los campos de nombre y teléfono del coordinador se sincronizan automáticamente con los datos del paciente, evitando re-escrituras innecesarias.
 
+### 8.5. Normativa de Acompañamiento y Seguridad para Pacientes Menores de Edad (< 18 años)
+Por normativa legal, resguardo de responsabilidad civil y términos del servicio (T&C), todo paciente menor de 18 años debe contar con el acompañamiento presencial continuo de madre, padre o tutor legal. El mensaje de advertencia del recuadro rojo y las validaciones de guardado operan de manera dinámica según la presencia de traslado vehicular:
+
+1. **Modalidades SIN Traslado Vehicular (Modalidad 3 "Cuidados a Domicilio" y Modalidad 4 "Subtipo Sin Traslado"):**
+   * **Texto del Recuadro Rojo:**
+     > *"Paciente menor de edad: Por normativa legal y términos del servicio, los menores de edad no pueden quedar solos en el domicilio o recinto durante la atención. Es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal durante todo el servicio."*
+   * **Regla Impediente en el Hogar / Recinto:** Los menores de edad no pueden quedar solos con el personal TENS en el domicilio ni en el recinto. En Modalidad 3, la pregunta *¿Se encontrará acompañado por un familiar/cuidador en el hogar?* debe ser obligatoriamente *"Sí"*; si se marca *"No"*, el sistema emite una alerta impediente y bloquea el guardado o envío de la reserva.
+
+2. **Modalidades CON Traslado Vehicular (Modalidad 1, Modalidad 2, Modalidad 4 "Subtipo Con Traslado" y Modalidad 5):**
+   * **Texto del Recuadro Rojo:**
+     > *"Paciente menor de edad: Por normativa legal y términos del servicio, es obligatorio el acompañamiento presencial continuo de madre, padre o tutor legal. El tutor debe proveer el Sistema de Retención Infantil (SRI) correspondiente."*
+   * **Exigencia de SRI y Acompañante en Vehículo:** El menor debe viajar en todo momento acompañado por su tutor legal en la cabina del vehículo y contar con el Sistema de Retención Infantil homologado de acuerdo con la Ley de Tránsito de Chile.
+
 ---
 
 ## 9. Facturación y Documentos Tributarios
