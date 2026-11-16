@@ -10,7 +10,7 @@ Este documento constituye la especificación canónica y exhaustiva de todas las
 3. [Zonificación Geográfica, Anillos y Bounding Boxes](#3-zonificación-geográfica-anillos-y-bounding-boxes)
 4. [Jornadas Tarifarias y Recargos Horarios](#4-jornadas-tarifarias-y-recargos-horarios)
 5. [Calendario de Disponibilidad y Capacidad Operativa](#5-calendario-de-disponibilidad-y-capacidad-operativa)
-6. [Asistente Inteligente de Recogida para Citas Médicas](#6-asistente-inteligente-de-recogida-para-citas-médicas)
+6. [Asistente Inteligente de Recogida para Citas Médicas y Eventos](#6-asistente-inteligente-de-recogida-para-citas-médicas-y-eventos)
 7. [Motor de Cálculo Tarifario y Liquidación Financiera](#7-motor-de-cálculo-tarifario-y-liquidación-financiera)
 8. [Requerimientos Clínicos y Valoración del Paciente](#8-requerimientos-clínicos-y-valoración-del-paciente)
 9. [Facturación y Documentos Tributarios](#9-facturación-y-documentos-tributarios)
@@ -92,9 +92,9 @@ El sistema clasifica sus prestaciones en **5 modalidades independientes**:
       - Si la hora final de término/retorno **supera las 22:00 hrs** (o concluye de madrugada): Bloquear **OBLIGATORIAMENTE** el **Turno Mañana** del día siguiente (`manana`: fecha D+1) por descanso biológico y seguridad vial.
       - Si la hora final de término/retorno es **a las 22:00 hrs o antes:** El día siguiente (D+1) queda **completamente LIBRE** en todos sus turnos.
     * **Protección Backend:** La API aborta con error HTTP 409 Conflict si el día D ya tiene cualquier reserva activa, o si el evento finaliza después de las 22:00 hrs y el día D+1 ya cuenta con reservas matutinas.
-  * **Redacción y Mensajería según Sub-Modalidad:**
-    * **Modalidad 4.1 (En Recinto - Sin Traslado):** Emplea *"Llegada al recinto / Inicio: [hora] — Término aprox: [hora]"*, omitiendo kilometraje y alertas de estiba vehicular.
-    * **Modalidad 4.2 (Con Traslado Puerta a Puerta):** Mantiene *"Recogida en domicilio: [hora] — Retorno aprox: [hora]"*, incluyendo el cálculo de ruta de ida y vuelta.
+  * **Flujo de Selección Horaria y Asistente según Sub-Modalidad:**
+    * **Modalidad 4.1 (En Recinto - Sin Traslado):** Opera mediante selector simple con la etiqueta *"Hora de llegada de la TENS al evento / recinto *"*, ya que no involucra traslado vehicular puerta a puerta. Emplea la redacción *"Llegada al recinto / Inicio: [hora] — Término aprox: [hora]"*, omitiendo kilometraje y mapa.
+    * **Modalidad 4.2 (Con Traslado Puerta a Puerta):** Integra el **Asistente de Hora de Recogida Sugerida**, el cual consulta al cliente *"¿A qué hora inicia el evento? *"*. A partir de dicha hora, calcula hacia atrás la hora exacta de salida desde el domicilio restando: tiempo de viaje en ruta + 10 min de abordaje TENS + 20 min de margen previo para llegar con tranquilidad antes de que empiece el evento. Mantiene la redacción *"Recogida en domicilio: [hora] — Retorno aprox: [hora]"*, incluyendo el cálculo de ruta y kilometraje de ida y vuelta.
 
 ### 2.5. Modalidad 5: Programas Interregionales
 * **Descripción:** Traslados clínicos de larga distancia desde o hacia regiones fuera de la Región Metropolitana (Valparaíso, O'Higgins, Maule, etc.) hacia centros de alta complejidad en Santiago.
@@ -197,25 +197,28 @@ El sistema cuenta con un motor interno de feriados chilenos (`isChileHoliday`):
 
 ---
 
-## 6. Asistente Inteligente de Recogida para Citas Médicas
+## 6. Asistente Inteligente de Recogida para Citas Médicas y Eventos
 
-Para evitar que los pacientes lleguen tarde a sus citas médicas debido al tráfico o los trámites de admisión:
+Para evitar que los pacientes o asistentes lleguen tarde a sus citas médicas o eventos sociales debido al tráfico o los tiempos de traslado:
 
-### 6.1. Restricción de Cita Médica
-* El selector desplegable de citas médicas (`#appTimeInput`) contiene opciones desde las **07:00 hasta un máximo de las 18:00 hrs**.
-* Las citas posteriores a las 18:00 hrs quedan deshabilitadas, ya que no son compatibles con el cierre seguro del turno tarde vehicular (20:00 hrs).
+### 6.1. Horarios de Cita Médica y Horarios de Eventos
+* **Modalidades 1 y 2 (Citas Médicas):** El selector desplegable (`#appTimeInput`) contiene opciones desde las **07:00 hasta un máximo de las 18:00 hrs**. Las citas posteriores a las 18:00 hrs quedan deshabilitadas, ya que no son compatibles con el cierre seguro del turno tarde vehicular (20:00 hrs).
+* **Modalidad 5 (Programas Interregionales):** Horarios matutinos de cita médica en Santiago entre las **08:00 y las 12:00 hrs**.
+* **Modalidad 4 con Traslado (Eventos Sociales - Pack Integral Puerta a Puerta):** El selector consulta *"¿A qué hora inicia el evento? *"*, ofreciendo opciones en intervalos de 15 minutos entre las **08:00 y las 22:00 hrs**.
+* **Modalidad 4 sin Traslado (Acompañamiento en Recinto):** Prescinde del asistente de salida vehicular y ofrece selección directa de horario con la etiqueta *"Hora de llegada de la TENS al evento / recinto *"*.
 
 ### 6.2. Algoritmo Preventivo de Cálculo de Salida
-Al ingresar la hora de la cita en destino y calcular la ruta en mapa:
-$$\text{Hora de Recogida Sugerida} = \text{Hora Cita} - \left(\text{Tiempo de Conducción de Ida} + 10\text{ min} + 20\text{ min}\right)$$
+Al ingresar la hora de la cita o evento en destino y calcular la ruta en mapa:
+$$\text{Hora de Recogida Sugerida} = \text{Hora de Cita o Evento} - \left(\text{Tiempo de Conducción de Ida} + 10\text{ min} + 20\text{ min}\right)$$
 
 * **10 min (Abordaje TENS):** Tiempo destinado a subir al domicilio, presentación, toma de signos vitales iniciales y acomodación segura en el vehículo.
-* **20 min (Margen de Admisión):** Tiempo preventivo previo a la cita para estacionamiento, trámite de admisión en mesón o tótem y traslado interno al box médico.
-* **Redondeo Operativo:** El resultado se redondea hacia atrás al bloque de agenda más cercano (múltiplos de 15 o 30 minutos).
+* **20 min (Margen Previo de Llegada):** Tiempo preventivo previo para estacionamiento, trámite de admisión en mesón/tótem o ingreso tranquilo al salón de eventos.
+* **Redondeo Operativo:** El resultado se redondea hacia atrás al bloque de agenda más cercano (múltiplos de 15 minutos) garantizando puntualidad estricta.
 
 ### 6.3. Asignación Automática y Reactiva de Turno
 * Si la hora de recogida calculada cae entre **06:00 y 12:00 hrs**, el sistema selecciona y bloquea automáticamente el **Turno Mañana**.
 * Si la hora de recogida calculada cae entre **14:00 y 20:00 hrs**, el sistema conmuta instantáneamente al **Turno Tarde**.
+* En **Modalidad 4**, asigna la jornada de evento permitiendo culminar el retorno vehicular hasta las 04:00 AM (con tolerancia hasta las 04:30 AM).
 * Se recalculan de forma reactiva el cronograma visual de tiempos, las tarifas horarias y los totales.
 
 ---

@@ -753,10 +753,10 @@ footer a{color:#fff}
                 </div>
                 
                 <div style="margin-bottom:10px">
-                  <label for="appTimeInput" style="font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:3px;display:block">
+                  <label for="appTimeInput" id="lblAppTimePrompt" style="font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:3px;display:block">
                     ¿A qué hora está programada su cita médica o compromiso? *
                   </label>
-                  <p style="font-size:.81rem;color:var(--mute);margin:0 0 10px;line-height:1.4">
+                  <p id="lblAppTimeHelper" style="font-size:.81rem;color:var(--mute);margin:0 0 10px;line-height:1.4">
                     Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.
                   </p>
                   <div>
@@ -1551,6 +1551,8 @@ function selectEventSubMode(subMode){
   recalcAll();
   if(!isSin && ptFrom && ptTo && isMapEnabledForCurrentState()){
     computeRoute();
+  } else if(!isSin && typeof calcSuggestedPickup === 'function'){
+    calcSuggestedPickup('manual');
   }
   if(typeof updateSectionsVisibility === 'function') updateSectionsVisibility();
 }
@@ -1957,10 +1959,11 @@ function applyModalityVisibility(){
     $('#directTimeOnlySection').style.display = 'block';
   }
 
-  // Visibilidad del Asistente de Salida (solo en traslados y programas interregionales) vs Selector Domiciliario
+  // Visibilidad del Asistente de Salida (solo en traslados, programas interregionales y eventos con traslado) vs Selector Domiciliario
   const asisBox = $('#asistenteBox');
   const homeTimeWrap = $('#homeTimeWrap');
-  const isTransfer = (mode === '1' || mode === '2' || mode === '5');
+  const isEventCon = (mode === '4' && selectedEventSubMode === 'con_traslado');
+  const isTransfer = (mode === '1' || mode === '2' || mode === '5' || isEventCon);
   if(asisBox){
     asisBox.style.display = isTransfer ? 'block' : 'none';
   }
@@ -1968,14 +1971,28 @@ function applyModalityVisibility(){
     homeTimeWrap.style.display = isTransfer ? 'none' : 'block';
   }
   updateHomeSpecialWaLink();
+
+  const lblAppPrompt = $('#lblAppTimePrompt');
+  const lblAppHelper = $('#lblAppTimeHelper');
+  if(lblAppPrompt){
+    if(isEventCon){
+      lblAppPrompt.textContent = '¿A qué hora inicia el evento? *';
+      if(lblAppHelper) lblAppHelper.textContent = 'Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para llegar con tranquilidad.';
+    } else if(mode === '5'){
+      lblAppPrompt.textContent = '¿A qué hora debe estar en el centro médico en Santiago? *';
+      if(lblAppHelper) lblAppHelper.textContent = 'Calculamos su salida considerando tiempo de viaje interregional, 10 min de abordaje TENS y 20 min de margen previo para admisión.';
+    } else {
+      lblAppPrompt.textContent = '¿A qué hora está programada su cita médica o compromiso? *';
+      if(lblAppHelper) lblAppHelper.textContent = 'Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.';
+    }
+  }
+
   const lblPick = $('#lblPickupSelect');
   if(lblPick){
     if(mode === '3'){
-      lblPick.textContent = 'Hora de inicio de la atención *';
+      lblPick.textContent = 'Hora de inicio de la atención en el domicilio *';
     } else if(mode === '4'){
-      lblPick.textContent = (selectedEventSubMode === 'con_traslado')
-        ? 'Hora exacta de recogida en domicilio para iniciar viaje al evento *'
-        : 'Hora exacta de llegada de la TENS al centro de eventos / salón *';
+      lblPick.textContent = 'Hora de llegada de la TENS al evento / recinto *';
     } else {
       lblPick.textContent = 'Hora de inicio de la atención *';
     }
@@ -2723,7 +2740,7 @@ function onHours34Change(){
   recalcAll();
   updateSlots(true);
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  if(mode === '5' && typeof calcSuggestedPickup === 'function'){
+  if((mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado')) && typeof calcSuggestedPickup === 'function'){
     calcSuggestedPickup();
   }
 }
@@ -2797,7 +2814,7 @@ function recalcularTodoElServicio(triggerSource){
     recalcAll();
     updateSlots(true);
 
-    if(mode === '1' || mode === '2' || mode === '5'){
+    if(mode === '1' || mode === '2' || mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado')){
       const appTime = ($('#appTimeInput') && $('#appTimeInput').value) || ($('#b_app_time') && $('#b_app_time').value);
       if(appTime && typeof calcSuggestedPickup === 'function'){
         calcSuggestedPickup(triggerSource);
@@ -4815,7 +4832,7 @@ function selectCalendarDate(dateStr){
   }
   updateSlots(true);
   actualizarTarifaSegunAgenda();
-  if(lastRouteIdaMin > 0 && (mode === '1' || mode === '2' || mode === '5')){
+  if(lastRouteIdaMin > 0 && (mode === '1' || mode === '2' || mode === '5' || (mode === '4' && selectedEventSubMode === 'con_traslado'))){
     calcSuggestedPickup();
   }
 }
@@ -6053,7 +6070,8 @@ window.renderSemaforoCard = renderSemaforoCard;
 function calcSuggestedPickup(source){
   try {
     const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-    if(mode === '3' || mode === '4') return;
+    const isEventConTraslado = (mode === '4' && selectedEventSubMode === 'con_traslado');
+    if(mode === '3' || (mode === '4' && !isEventConTraslado)) return;
 
     const callout = $('#suggestedPickupCallout');
     const msg = $('#suggestedPickupMsg');
@@ -6095,40 +6113,56 @@ function calcSuggestedPickup(source){
       }
     }
 
-    // 1. Minutos de viaje: si aún no se calcula en mapa, asumir base temporal (10 min en Santiago, 90 min en Interregional)
+    // 1. Minutos de viaje: si aún no se calcula en mapa, asumir base temporal (10 min en Santiago, 90 min en Interregional, 30 min en Evento con traslado)
     const isInter = (mode === '5');
     const isEstimatedTempRoute = (!lastRouteIdaMin || lastRouteIdaMin <= 0);
-    const defaultRouteMin = isInter ? 90 : 10;
+    const defaultRouteMin = isInter ? 90 : (isEventConTraslado ? 30 : 10);
     const routeMin = isEstimatedTempRoute ? defaultRouteMin : lastRouteIdaMin;
 
     const appTimeInput = $('#appTimeInput') || $('#hora-cita-medica') || $('#b_app_time');
-    const appTimeStr = (appTimeInput && appTimeInput.value) || '10:00';
+    const appTimeStr = (appTimeInput && appTimeInput.value) || (isEventConTraslado ? '18:00' : '10:00');
     const appTimeMin = tm(appTimeStr);
 
     const margenAbordaje = 10; // 10 min abordaje vehicular y valoración inicial TENS
-    const margenAdmision = 20; // 20 min margen previo para admisión o estacionamiento
+    const margenAdmision = 20; // 20 min margen previo para admisión o margen de llegada previa
     const anticipacionFija = margenAbordaje + margenAdmision; // 30 min
     const totalAnticipacionExacta = routeMin + anticipacionFija;
 
-    // Fórmula directa: [Hora de Cita] − [Tiempo de Viaje en Mapa + 10 min abordaje + 20 min margen]
+    // Fórmula directa: [Hora de Cita o Evento] − [Tiempo de Viaje en Mapa + 10 min abordaje + 20 min margen]
     const rawPickupMin = appTimeMin - totalAnticipacionExacta;
 
     // Ajuste de la salida a intervalos naturales de 15 minutos (hacia atrás para asegurar puntualidad)
     let targetSlotMin = Math.floor(rawPickupMin / 15) * 15;
-    if(targetSlotMin < 0) targetSlotMin += 1440;
+    targetSlotMin = ((Math.round(targetSlotMin) % 1440) + 1440) % 1440;
 
-    const durMins = getSelectedTotalMinutes();
-    const stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
-    const isRoundTrip = (tripMultiplier === 2);
-    const retornoMin = isRoundTrip ? routeMin : 0;
+    let stayMin = 60;
+    if(isEventConTraslado){
+      let h = +($('#selHours34') ? $('#selHours34').value : 4) || 4;
+      if(h >= 6) h = 6; else h = 4;
+      const extraM = (+$('#selMins34').value) || 0;
+      stayMin = h * 60 + extraM;
+    } else {
+      stayMin = +($('#selStayDestino') ? $('#selStayDestino').value : 60) || 60;
+    }
+
+    const isRoundTrip = isEventConTraslado ? true : (tripMultiplier === 2);
+    const retornoMin = isRoundTrip ? (lastRouteVueltaMin > 0 ? lastRouteVueltaMin : routeMin) : 0;
 
     let targetBlock = 'manana';
 
-    // EVALUACIÓN DE BLOQUE Y REGLAS DE TURNO (MAÑANA, TARDE O INTERREGIONAL)
+    // EVALUACIÓN DE BLOQUE Y REGLAS DE TURNO (MAÑANA, TARDE O EVENTO)
     if(isInter){
       targetBlock = 'manana';
       if(targetSlotMin < 300) targetSlotMin = 300; // Mínimo 05:00 AM (300 min)
       if(targetSlotMin > 540) targetSlotMin = 540; // Máximo 09:00 AM (540 min)
+    } else if(isEventConTraslado){
+      if(targetSlotMin < 720){
+        targetBlock = 'manana';
+      } else if(targetSlotMin >= 720 && targetSlotMin < 1200){
+        targetBlock = 'tarde';
+      } else {
+        targetBlock = 'noche';
+      }
     } else if(source === 'appTime' || !selectedBlock){
       if(targetSlotMin < 720 || (targetSlotMin >= 720 && targetSlotMin < 840)){
         targetBlock = 'manana';
@@ -6138,8 +6172,6 @@ function calcSuggestedPickup(source){
         if(targetSlotMin < 840) targetSlotMin = 840; // Mínimo 14:00 (840 min)
       }
     } else {
-      // Si el usuario ya tiene un turno seleccionado y la llamada proviene de un recálculo secundario (ruta, tarifa, click),
-      // respetar siempre el turno elegido por el usuario (selectedBlock)
       targetBlock = selectedBlock;
       if(targetBlock === 'manana'){
         if(targetSlotMin < 360) targetSlotMin = 360;
@@ -6149,9 +6181,7 @@ function calcSuggestedPickup(source){
     }
 
     // Hora de término proyectada del servicio completo (Recogida + Viaje ida + Permanencia + Viaje retorno)
-    const endServiceMin = (mode === '1' || mode === '2')
-      ? (targetSlotMin + margenAbordaje + routeMin + stayMin + retornoMin)
-      : (targetSlotMin + durMins);
+    const endServiceMin = targetSlotMin + margenAbordaje + routeMin + stayMin + retornoMin;
 
     const semaforo = isInter ? { state: 'green', effEnd: endServiceMin } : evaluarSemaforoTurno(endServiceMin, targetBlock);
     window.currentSemaforo = semaforo;
@@ -6163,7 +6193,11 @@ function calcSuggestedPickup(source){
     // 2. VERIFICACIÓN DE DISPONIBILIDAD Y CUPOS DEL TURNO PARA LA FECHA SELECCIONADA
     const dateStr = $('#b_date') ? $('#b_date').value : '';
     const ev = evaluateDateCapacity(dateStr);
-    const targetCap = isInter ? ev.interregional : (targetBlock === 'manana' ? ev.manana : ev.tarde);
+    const targetCap = isInter
+      ? ev.interregional
+      : (isEventConTraslado
+          ? (ev.eventos && ev.eventos.available !== undefined ? ev.eventos : (targetBlock === 'manana' ? ev.manana : (targetBlock === 'tarde' ? ev.tarde : ev.noche)))
+          : (targetBlock === 'manana' ? ev.manana : ev.tarde));
 
     if(!targetCap.available){
       selectedBlock = targetBlock;
@@ -6172,14 +6206,15 @@ function calcSuggestedPickup(source){
       if(timeSel) timeSel.value = '';
       if(subBtn) subBtn.disabled = true;
 
+      const blockNameHuman = isEventConTraslado ? 'Jornada Exclusiva de Evento' : (targetBlock === 'manana' ? 'Mañana' : 'Tarde');
       msg.innerHTML = `
         <div style="padding:14px 16px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:10px;color:#991b1b;line-height:1.5">
-          <div style="font-weight:800;font-size:1rem;margin-bottom:4px">⛔ Turno No Disponible</div>
+          <div style="font-weight:800;font-size:1rem;margin-bottom:4px">⛔ Jornada / Turno No Disponible</div>
           <div style="font-size:.88rem">
-            El cupo para el turno <b>${targetBlock === 'manana' ? 'Mañana' : 'Tarde'}</b> de este día ya se encuentra reservado. Por favor seleccione otra fecha o consulte por WhatsApp.
+            El cupo para <b>${blockNameHuman}</b> de este día ya se encuentra reservado. Por favor seleccione otra fecha o consulte por WhatsApp.
           </div>
           <div style="margin-top:10px">
-            <a href="https://wa.me/56929990095?text=Hola%2C%20el%20cupo%20para%20el%20turno%20${targetBlock === 'manana' ? 'Ma%C3%B1ana' : 'Tarde'}%20del%20d%C3%ADa%20${encodeURIComponent(formatHumanDate(dateStr))}%20ya%20se%20encuentra%20reservado%2C%20deseo%20consultar%20por%20disponibilidad." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:8px 16px;border-radius:8px;font-size:.82rem;font-weight:700;text-decoration:none">
+            <a href="https://wa.me/56929990095?text=Hola%2C%20el%20cupo%20para%20${encodeURIComponent(blockNameHuman)}%20del%20d%C3%ADa%20${encodeURIComponent(formatHumanDate(dateStr))}%20ya%20se%20encuentra%20reservado%2C%20deseo%20consultar%20por%20disponibilidad." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#ffffff;padding:8px 16px;border-radius:8px;font-size:.82rem;font-weight:700;text-decoration:none">
               💬 Consultar por WhatsApp (+56 9 2999 0095)
             </a>
           </div>
@@ -6228,11 +6263,13 @@ function calcSuggestedPickup(source){
       tarde: 'Turno Tarde (14:00 a 20:00 hrs)',
       noche: 'Turno Noche (22:00 a 04:00 hrs)'
     };
-    const blockHuman = blockNames[targetBlock] || targetBlock;
+    const blockHuman = isEventConTraslado ? 'Jornada Exclusiva de Evento' : (blockNames[targetBlock] || targetBlock);
+    const llegadaLabel = isEventConTraslado ? 'al evento' : 'al recinto';
+    const margenLabel = isEventConTraslado ? 'antes del inicio del evento' : 'antes del box';
 
     const tempRouteNote = isEstimatedTempRoute
       ? `<div style="font-size:.82rem;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;margin-top:8px;line-height:1.4">
-          ⚠️ <b>Calcule la ruta primero en el mapa</b> para obtener los minutos reales de conducción (cálculo provisional con tiempo base de ${isInter ? '90' : '10'} min de viaje).
+          ⚠️ <b>Calcule la ruta primero en el mapa</b> para obtener los minutos reales de conducción (cálculo provisional con tiempo base de ${isInter ? '90' : (isEventConTraslado ? '30' : '10')} min de viaje).
          </div>`
       : '';
 
@@ -6242,7 +6279,7 @@ function calcSuggestedPickup(source){
           <span>✓</span> Hora de recogida programada: <span style="font-size:1.06rem;font-weight:800;color:var(--ink)">${targetSlotStr} hrs</span>
         </div>
         <div style="font-size:.86rem;color:var(--ink);margin-top:3px">
-          Llegada estimada al recinto: <b>${fm(llegadaRecintoMin)} hrs</b> (${minutosAntesDelBox} min antes del box)
+          Llegada estimada ${llegadaLabel}: <b>${fm(llegadaRecintoMin % 1440)} hrs</b> (${minutosAntesDelBox} min ${margenLabel})
         </div>
         <div style="font-size:.84rem;color:var(--mute);margin-top:3px">
           Bloque asignado: <b>${blockHuman}</b>
@@ -6286,6 +6323,7 @@ function populateAppTimeOptions(mode){
   if(!appTimeSel) return;
   const currentVal = appTimeSel.value || (window._msaFormState && window._msaFormState.appTime) || '';
   const isInter = (mode === '5');
+  const isEventConTraslado = (mode === '4' && selectedEventSubMode === 'con_traslado');
 
   let startMin = 6 * 60;
   let endMin = 12 * 60;
@@ -6295,6 +6333,10 @@ function populateAppTimeOptions(mode){
     startMin = 8 * 60;
     endMin = 12 * 60;
     defaultVal = '10:00';
+  } else if(isEventConTraslado){
+    startMin = 8 * 60;
+    endMin = 22 * 60; // Eventos entre 08:00 y 22:00 hrs
+    defaultVal = '18:00';
   } else if(selectedBlock === 'tarde'){
     startMin = 14 * 60;
     endMin = 20 * 60;
@@ -7164,7 +7206,7 @@ async function submitBooking(ev){
       : (mode === '4' && selectedEventSubMode === 'sin_traslado')
         ? `• Horario de Atención: Llegada al recinto / Inicio: ${timeStr} hrs → Término aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`
         : (mode === '4' && selectedEventSubMode === 'con_traslado')
-          ? `• Horario del Servicio: Recogida en domicilio: ${timeStr} hrs → Retorno aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de cobertura total)\n`
+          ? `• Horario del Servicio: Recogida en domicilio: ${timeStr} hrs${appTimeVal ? ` (Inicio evento: ${appTimeVal} hrs)` : ''} → Retorno aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de cobertura total)\n`
           : (mode === '5')
             ? `• Circuito Interregional Completo: Salida / Recogida en domicilio: ${timeStr} hrs → Retorno estimado al hogar: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de circuito total · traslados ida/vuelta y permanencia clínica)\n`
             : `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
@@ -7234,6 +7276,8 @@ async function submitBooking(ev){
           ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al domicilio / Inicio: <b>${e(timeStr)} hrs</b> → Término aprox: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
           : (mode === '4' && selectedEventSubMode === 'sin_traslado')
             ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al recinto / Inicio: <b>${e(timeStr)} hrs</b> → Término aprox: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
+            : (mode === '4' && selectedEventSubMode === 'con_traslado')
+              ? `<li><span>🕒 <b>Horario del Servicio:</b></span> <span>Recogida en domicilio a las <b>${e(timeStr)} hrs</b>${appTimeVal ? ` (Inicio del evento: <b>${e(appTimeVal)} hrs</b>)` : ''} → Retorno aprox. al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de cobertura total)</span></li>`
             : (mode === '5')
               ? `<li><span>🕒 <b>Circuito Interregional Completo:</b></span> <span>Salida / Recogida en domicilio a las <b>${e(timeStr)} hrs</b> → Retorno estimado al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de dedicación exclusiva y cobertura en ruta)</span></li>`
               : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
