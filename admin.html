@@ -1701,6 +1701,26 @@ async function syncCentralizedBlocksAdmin(){
               if (mSub) subtypeVal = mSub[1];
             }
 
+            let interPlanVal = r.interPlan || r.inter_plan || '';
+            if (!interPlanVal && obsStr) {
+              const mPlan = obsStr.match(/\[InterPlan:\s*([^\]]+)\]/i);
+              if (mPlan) interPlanVal = mPlan[1].trim().toLowerCase();
+            }
+            if (!interPlanVal) {
+              const progStr = `${r.programa || ''} ${r.programa_interregional || ''} ${obsStr || ''}`;
+              if (/cr[oó]nico|oncol[oó]gico/i.test(progStr)) {
+                interPlanVal = 'cronico';
+              } else if (/est[aá]ndar/i.test(progStr)) {
+                interPlanVal = 'estandar';
+              }
+            }
+
+            let interRegionVal = r.interRegion || r.inter_region || r.destino_interregional || '';
+            if (!interRegionVal && obsStr) {
+              const mReg = obsStr.match(/Mod\s*5\s*Interregional\s*-\s*([^)]+)/i);
+              if (mReg) interRegionVal = mReg[1].trim();
+            }
+
             const isRemoteSinTraslado = (detectedMode === '3' || (detectedMode === '4' && subtypeVal === 'sin_traslado') || r.svc_type === '3' || r.modalidad === '3' || String(r.svc_type || '').includes('3') || (r.svc_type === '4' && (r.subtipo === 'sin_traslado' || r.eventSubtype === 'sin_traslado')));
 
             if(!exists){
@@ -1747,6 +1767,9 @@ async function syncCentralizedBlocksAdmin(){
                 horas_base: (detectedMode === '2' && stayMinVal) ? (stayMinVal / 60) : undefined,
                 eventSubtype: subtypeVal,
                 subtipo: subtypeVal,
+                interPlan: interPlanVal || (detectedMode === '5' ? 'estandar' : undefined),
+                interRegion: interRegionVal || (detectedMode === '5' ? 'Región de Valparaíso' : undefined),
+                selectedInterProgram: interPlanVal === 'cronico' ? 6 : (detectedMode === '5' ? 4 : undefined),
                 obs: r.obs || '',
                 block: r.block || r.turno || 'manana',
                 createdAt: r.created_at || new Date().toISOString(),
@@ -1764,6 +1787,11 @@ async function syncCentralizedBlocksAdmin(){
                 exists.modalidad = detectedMode;
                 exists.mode = detectedMode;
               }
+              if(!exists.interPlan && interPlanVal) {
+                exists.interPlan = interPlanVal;
+                exists.selectedInterProgram = interPlanVal === 'cronico' ? 6 : 4;
+              }
+              if(!exists.interRegion && interRegionVal) exists.interRegion = interRegionVal;
               if((!exists.kmTotal || exists.kmTotal === 0) && kmVal > 0) {
                 exists.kmTotal = kmVal;
                 exists.km_total = kmVal;
@@ -4919,6 +4947,7 @@ async function saveAdminBooking(ev, forceConfirm = false){
         eventExtraMin: qState.eventExtraMin,
         interPlan: qState.mode === '5' ? (qState.interPlan || 'estandar') : undefined,
         interRegion: qState.mode === '5' ? (qState.interRegion || 'Región de Valparaíso') : undefined,
+        selectedInterProgram: qState.mode === '5' ? (qState.interPlan === 'cronico' ? 6 : 4) : undefined,
         turno: newSvc.block,
         pat: pat,
         paciente: pat,
@@ -5448,14 +5477,36 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     // MODALIDAD 5 (Programas Interregionales): NUNCA cobra kilometraje (tarifas planas cerradas)
     kmTot = 0;
     kmCost = 0;
+
+    // Detección estricta y explícita del plan contratado:
+    // 1. Programa Estándar (4 hrs base = $250.000)
+    // 2. Programa Crónico / Oncológico (6 hrs base = $300.000)
+    // NUNCA deducir el tipo de plan por el monto ($300.000) ni por la duración total con horas extras (ej. 6 hrs / 360 min)
     let isCronicoPlan = false;
-    if (s.interPlan === 'cronico' || s.selectedInterProgram === 6 || s.horas_base === 6 || s.stayHours === 6 || (s.stayMin && Math.floor(s.stayMin / 60) === 6)) {
+    const obsSearch = `${s.obs || ''} ${s.programa || ''} ${s.programa_interregional || ''} ${s.destino_interregional || ''}`;
+    
+    const isExplicitEstandar = (
+      s.interPlan === 'estandar' ||
+      s.inter_plan === 'estandar' ||
+      s.selectedInterProgram === 4 ||
+      s.interProgram === 4 ||
+      /\[InterPlan:\s*estandar\]/i.test(s.obs || '') ||
+      /(?:programa\s+est[aá]ndar|est[aá]ndar\s*\(hasta\s*4\s*hrs\))/i.test(obsSearch)
+    );
+    
+    if (isExplicitEstandar) {
+      isCronicoPlan = false;
+    } else if (
+      s.interPlan === 'cronico' ||
+      s.inter_plan === 'cronico' ||
+      s.selectedInterProgram === 6 ||
+      s.interProgram === 6 ||
+      /\[InterPlan:\s*cronico\]/i.test(s.obs || '') ||
+      /(?:cr[oó]nico|oncol[oó]gico)/i.test(obsSearch)
+    ) {
       isCronicoPlan = true;
     } else {
-      const obsSearch = `${s.obs || ''} ${s.programa || ''} ${s.programa_interregional || ''}`;
-      if (/cr[oó]nico|oncol[oó]gico|6\s*h/i.test(obsSearch)) {
-        isCronicoPlan = true;
-      }
+      isCronicoPlan = false; // Por defecto siempre es Programa Estándar (4 hrs)
     }
 
     basePackageHours = isCronicoPlan ? 6 : 4;
@@ -5485,7 +5536,9 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     const billedDestMin = Math.max(basePackageMin, Math.ceil(effectivePlaceMin / 30) * 30);
     const extraDestMin = Math.max(0, billedDestMin - basePackageMin);
     extraBlocks = Math.round(extraDestMin / 30);
-    extraCost = extraBlocks * 15000;
+    const extraHours = Math.floor(extraDestMin / 60);
+    const extraHalf = (extraDestMin % 60 === 30) ? 1 : 0;
+    extraCost = (extraHours * 25000) + (extraHalf * 15000);
 
     billedMin = billedDestMin;
     horasBase = billedDestMin / 60;
@@ -6338,12 +6391,16 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
 
       // Si hubo tiempo adicional liquidado
       if(extraFare > 0){
-        const extraBlq = Math.round(extraFare / 15000);
-        const extraMin = extraBlq * 30;
+        const extraHours = Math.floor(calc.diffMin / 60);
+        const extraHalf = (calc.diffMin % 60 === 30) ? 1 : 0;
+        let extraText = '';
+        if(extraHours > 0 && extraHalf > 0) extraText = `+${extraHours} hr 30 min`;
+        else if(extraHours > 0) extraText = `+${extraHours} ${extraHours === 1 ? 'hora' : 'horas'} extras`;
+        else extraText = `+30 min extra`;
         itemsHtml += `
           <tr>
             <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Tiempo Adicional en Destino</td>
-            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">+${extraMin} min (${extraBlq} ${extraBlq === 1 ? 'bloque' : 'bloques'} × 30 min) × $15.000 (Tarifa Extra Interregional)</td>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${extraText} en recinto/destino clínico (${calc.diffMin} min) · Tarifa Extra Interregional</td>
             <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(extraFare)}</td>
           </tr>
         `;
