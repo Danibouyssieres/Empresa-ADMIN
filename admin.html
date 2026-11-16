@@ -6213,14 +6213,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
 
     if(mode === '4'){
       // MODALIDAD 4 (Acompañamiento en Eventos Sociales - Tarifas Planas Cerradas):
-      // NUNCA imprime cobro por kilómetro. Imprime el paquete base y el tiempo adicional en recinto contratado.
+      // NUNCA imprime cobro por kilómetro. Imprime el paquete base y el tiempo adicional en recinto contratado según la liquidación final real.
       const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || String(s.obs || '').includes('Con Traslado') || (s.to && !String(s.to).toLowerCase().includes('no aplica') && !String(s.to).toLowerCase().includes('sin traslado') && !String(s.to).toLowerCase().includes('recinto') && s.to !== s.from));
 
       let basePlanTitle = '';
       let basePlanDetail = '';
       let basePlanFare = 0;
       let extraContractFare = 0;
-      const baseFareTotal = Number(calc.baseContractFare || calc.subtotalReal || s.baseFare || s.fare || 0);
+      // Usar la tarifa liquidada real descontando posibles retrasos no planificados en terreno (calc.extraCost)
+      const baseFareTotal = Math.max(0, Number(calc.subtotalReal ?? calc.cobroTotal ?? 0) - Number(calc.extraCost || 0));
 
       if(isConTraslado){
         basePlanTitle = 'Pack Integral Puerta a Puerta (Asistencia + Traslados Ida/Vuelta RM)';
@@ -6231,7 +6232,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         } else {
           basePlanFare = 95000;
           basePlanDetail = 'Pack Base: 4 hrs continuas en recinto + traslados ida/vuelta RM';
-          extraContractFare = baseFareTotal - 95000;
+          extraContractFare = Math.max(0, baseFareTotal - 95000);
         }
       } else {
         basePlanTitle = 'Plan Asistencia en Recinto (Tarifa Plana)';
@@ -6242,7 +6243,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         } else {
           basePlanFare = 65000;
           basePlanDetail = 'Plan Base: 4 hrs continuas de permanencia en recinto';
-          extraContractFare = baseFareTotal - 65000;
+          extraContractFare = Math.max(0, baseFareTotal - 65000);
         }
       }
 
@@ -6300,7 +6301,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         : `Programa Estándar - ${regionName}`;
 
       let valorBasePrograma = isCronicoPlan ? 300000 : 250000;
-      const baseFareTotal = Number(calc.baseContractFare || calc.subtotalReal || s.baseFare || s.fare || valorBasePrograma);
+      // Usar la tarifa liquidada real descontando posibles retrasos no planificados en terreno (calc.extraCost)
+      const baseFareTotal = Math.max(valorBasePrograma, Number(calc.subtotalReal ?? calc.cobroTotal ?? valorBasePrograma) - Number(calc.extraCost || 0));
       let extraCotizado = Math.max(0, baseFareTotal - valorBasePrograma);
 
       // Fila 1: Programa Interregional (Tarifa Plana Ida/Vuelta)
@@ -6312,15 +6314,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         </tr>
       `;
 
-      // Si hubo tiempo adicional contratado en cotización y no hay retraso extra adicional en terreno
-      if(extraCotizado > 0 && !(diffMin > 0 && calc.extraCost > 0)){
+      // Si hubo tiempo adicional en cotización que se mantuvo tras el cierre en terreno
+      if(extraCotizado > 0){
         const extraMin = Math.round(extraCotizado / 15000) * 30;
         const extraBlq = Math.round(extraCotizado / 15000) || 1;
         itemsHtml += `
-          <tr style="background:#fef2f2;color:#991b1b">
-            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>
-            <td style="padding:6px 10px;border:1px solid #cbd5e1;font-weight:700;box-sizing:border-box">+${extraMin} min (${extraBlq} blq × 30 min) × $15.000 (Tarifa Extra Interregional)</td>
-            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;font-weight:700;box-sizing:border-box;white-space:nowrap">${$c(extraCotizado)}</td>
+          <tr>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Tiempo Adicional en Destino</td>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">+${extraMin} min (${extraBlq} blq × 30 min) × $15.000 (Tarifa Extra Interregional)</td>
+            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(extraCotizado)}</td>
           </tr>
         `;
       }
