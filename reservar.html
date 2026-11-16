@@ -632,7 +632,7 @@ footer a{color:#fff}
           <div class="search-wrap">
             <label for="b_from" id="lblFromAddr"><span class="pin-badge pin-a">A</span>Dirección de Recogida / Inicio (Calle, número exacto y comuna) *</label>
             <div class="input-row">
-              <input id="b_from" type="text" placeholder="Ej: Pasaje Los Océanos 424, Maipú" autocomplete="off" required oninput="onType('from')" onblur="onFromBlur()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('from',true)}">
+              <input id="b_from" type="text" placeholder="Ingrese calle, número exacto y comuna" autocomplete="off" required oninput="onType('from')" onblur="onFromBlur()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('from',true)}">
               <button type="button" class="search-btn" onclick="searchAddr('from',true)">Buscar</button>
             </div>
             <div id="errFrom" style="display:none;margin-top:6px;padding:8px 12px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:6px;color:#991b1b;font-size:.84rem;line-height:1.4"></div>
@@ -642,7 +642,7 @@ footer a{color:#fff}
           <!-- DETALLE DOMICILIARIO (DEPTO / BLOCK / CONDOMINIO) -->
           <div style="margin-top:10px;margin-bottom:12px">
             <label for="b_depto" style="font-size:.85rem;color:var(--mute);font-weight:600">Depto / Block / N° de Casa / Nombre de Condominio (Opcional)</label>
-            <input id="b_depto" type="text" placeholder="Ej: Depto 504, Torre B / Condominio Los Robles" style="width:100%;padding:9px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);font-size:.92rem;color:var(--ink)">
+            <input id="b_depto" type="text" placeholder="Depto, torre, block o condominio (opcional)" style="width:100%;padding:9px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);font-size:.92rem;color:var(--ink)">
           </div>
 
           <!-- ANILLO COMUNAL DETECTADO Y TARIFA MÍNIMA (SOLO VISIBLE EN MODALIDAD 1 Y 2) -->
@@ -655,7 +655,7 @@ footer a{color:#fff}
           <div class="search-wrap" id="destWrap">
             <label for="b_to" id="lblToAddr"><span class="pin-badge pin-b">B</span>Dirección de Destino (Clínica, Hospital o dirección con numeración) *</label>
             <div class="input-row">
-              <input id="b_to" type="text" placeholder="Ej: Hospital El Carmen o Av. Santa María 1810, Providencia" autocomplete="off" oninput="onType('to')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('to',true)}">
+              <input id="b_to" type="text" placeholder="Ingrese nombre de clínica, hospital o dirección con numeración" autocomplete="off" oninput="onType('to')" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddr('to',true)}">
               <button type="button" class="search-btn" onclick="searchAddr('to',true)">Buscar</button>
             </div>
             <div id="errTo" style="display:none;margin-top:6px;padding:8px 12px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:6px;color:#991b1b;font-size:.84rem;line-height:1.4"></div>
@@ -1829,28 +1829,29 @@ function applyModalityVisibility(){
   if(mode === '1' || mode === '2'){
     $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección de Recogida / Inicio (Calle, número exacto y comuna) *`;
     $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección de Destino (Clínica, Hospital o dirección con numeración) *`;
-    bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
+    bFrom.placeholder = 'Ingrese calle, número exacto y comuna';
+    bTo.placeholder = 'Ingrese nombre de clínica, hospital o dirección con numeración';
   } else if(mode === '4'){
     if(selectedEventSubMode === 'con_traslado'){
       $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección de recogida en Domicilio (Calle, número exacto y comuna) *`;
       $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección del Centro de Eventos o Salón (Destino) *`;
-      bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
-      bTo.placeholder = 'Ej: Centro de Eventos El Manantial, Pirque';
+      bFrom.placeholder = 'Ingrese calle, número exacto y comuna';
+      bTo.placeholder = 'Ingrese nombre del centro de eventos o salón, calle y comuna';
     } else {
       $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección del Centro de Eventos o Salón (Calle, número exacto y comuna) *`;
-      bFrom.placeholder = 'Ej: Centro de Eventos El Manantial, Camino El Volcán 450, Pirque';
+      bFrom.placeholder = 'Ingrese nombre del centro de eventos o salón, calle y comuna';
     }
   } else if(mode === '5'){
     $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección exacta de recogida (RM, Valparaíso u O'Higgins) *`;
     $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección exacta de destino (RM, Valparaíso u O'Higgins) *`;
-    bFrom.placeholder = 'Ej: Av. Libertad 450, Viña del Mar o Av. Providencia 1200, Santiago';
-    bTo.placeholder = 'Ej: Clínica Santa María, Providencia o Av. San Martín 850, Viña del Mar';
+    bFrom.placeholder = 'Ingrese calle, número exacto y comuna (RM, Valparaíso u O\'Higgins)';
+    bTo.placeholder = 'Ingrese nombre de clínica, hospital o dirección con numeración';
   } else if(mode === '3'){
     $('#lblFromAddr').innerHTML = `Dirección del Domicilio / Lugar de Atención *`;
-    bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
+    bFrom.placeholder = 'Ingrese calle, número exacto y comuna';
   } else {
     $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección del Domicilio / Lugar de Atención (Calle, número exacto y comuna) *`;
-    bFrom.placeholder = 'Ej: Pasaje Los Océanos 424, Maipú';
+    bFrom.placeholder = 'Ingrese calle, número exacto y comuna';
   }
 
   // Mostrar el selector de horas correspondiente (1-2 vs 3-4-5)
@@ -7025,7 +7026,8 @@ async function submitBooking(ev){
       coord: coord,
       coordType: isSameAsPatient ? 'paciente' : 'familiar',
       ph: ph,
-      from: from,
+      from: from + (depto && !from.includes(depto) ? ` (${depto})` : ''),
+      from_addr: from + (depto && !from.includes(depto) ? ` (${depto})` : ''),
       depto: depto,
       to: destinoVal,
       mob: mob,
@@ -7151,7 +7153,8 @@ async function submitBooking(ev){
     coord,
     coordType: isSameAsPatient ? 'paciente' : 'familiar',
     ph,
-    from,
+    from: from + (depto && !from.includes(depto) ? ` (${depto})` : ''),
+    from_addr: from + (depto && !from.includes(depto) ? ` (${depto})` : ''),
     depto,
     to: destinoVal,
     mob,

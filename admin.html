@@ -249,8 +249,8 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
     </div>
     <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:6px 14px;font-size:10pt;line-height:1.4">
       <div>
-        <div><b>Origen:</b> <span id="pdfDirOrigen">Av. Pajaritos 1450, Maipú</span></div>
-        <div id="pdfRowDestino"><b>Destino:</b> <span id="pdfDirDestino">Clínica Santa María, Providencia</span></div>
+        <div><b>Origen:</b> <span id="pdfDirOrigen">—</span></div>
+        <div id="pdfRowDestino"><b>Destino:</b> <span id="pdfDirDestino">—</span></div>
         <div><b>Modalidad:</b> <span id="pdfSvcModalidad">1. Servicio Integral (Asistencia + Traslado)</span></div>
       </div>
       <div>
@@ -2241,7 +2241,7 @@ function detail(){
   <div><b>Motivo:</b> ${e(s.dx)} · <b>Movilidad:</b> ${e(s.mob)}${s.ayudaTecnica ? ' · <b>Ayuda Técnica:</b> ' + e(s.ayudaTecnica) : ''}${s.compDesc ? ' · ' + e(s.compDesc) : (s.comp?' (Con acompañante)':'')}</div>
   ${s.alergias ? `<div><b>Alergias:</b> <span style="${s.alergias.startsWith('Sí') ? 'color:#dc2626;font-weight:700':''}">${e(s.alergias)}</span> · <b>Conciencia:</b> ${e(s.conciencia||'Lúcido / Orientado')}</div>` : ''}
   ${s.patologias ? `<div><b>Patologías:</b> ${e(Array.isArray(s.patologias)?s.patologias.join(', '):s.patologias)}</div>` : ''}
-  <div><b>Ruta:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''} → ${e(s.to)}</div>
+  <div><b>Ruta:</b> ${e(s.from)}${(s.depto && !s.from.includes(s.depto)) ? ' ('+e(s.depto)+')' : ''} → ${e(s.to)}</div>
   ${s.obs?`<div><b>Observaciones:</b> ${e(s.obs)}</div>`:''}
   ${s.taxDoc?`<div><b>Doc. Tributario:</b> ${e(s.taxDoc.label||s.taxDoc.type)}</div>`:''}
   <div><b>Contacto:</b> ${e(s.coord)} (${e(s.ph)})${s.coordType==='paciente'?' [Paciente directo]':' [Familiar/Tutor]'}${s.patPhone ? ` · <b>Tel. Paciente:</b> ${e(s.patPhone)}` : ''}</div>
@@ -2340,16 +2340,16 @@ let qState = {
   date: TODAY,
   time: '10:00',
   durationMin: 120, // 2 horas base
-  kmOneWay: 12.0,
-  kmTotal: 24.0,
+  kmOneWay: 0,
+  kmTotal: 0,
   ring: RINGS_DATA[0],
-  comuna: 'Maipú',
-  kmCost: 24000,
+  comuna: '',
+  kmCost: 0,
   timeCost: 24000,
   floorApplied: false,
-  totalFare: 48000,
-  abono50: 24000,
-  saldo50: 24000,
+  totalFare: 24000,
+  abono50: 12000,
+  saldo50: 12000,
   jornada: 'habil',
   ratePerHour: 12000,
   eventSubtype: 'sin_traslado',
@@ -2482,21 +2482,25 @@ function form(){
       <div class="g" style="margin-bottom:14px" id="row_addresses">
         <div style="position:relative" id="col_origen">
           <label for="aq_from"><b id="lbl_aq_from">Dirección Origen (A) *</b></label>
-          <input type="text" id="aq_from" placeholder="Ej: Av. Pajaritos 1450, Maipú" value="Av. Los Pajaritos 1450, Maipú" oninput="onAdminAddressInput('from')" required>
+          <input type="text" id="aq_from" placeholder="Calle, número y comuna" value="" oninput="onAdminAddressInput('from')" required>
           <div id="suggest_from" class="suggest-list"></div>
-          <small id="aq_ring_badge" style="font-size:11px;color:var(--pri);font-weight:700;display:block;margin-top:2px">Anillo 1 detectado (Piso legal: $18.000)</small>
+          <div style="margin-top:6px" id="wrap_aq_depto">
+            <label for="aq_depto" style="font-size:11px;color:var(--mut);font-weight:600">Depto / Block / N° de Casa / Condominio (opcional)</label>
+            <input type="text" id="aq_depto" placeholder="Depto, torre, block o condominio (opcional)" value="" oninput="saveAdminQuoterDraft()" style="margin-top:2px">
+          </div>
+          <small id="aq_ring_badge" style="font-size:11px;color:var(--mut);font-weight:700;display:block;margin-top:4px">Ingrese dirección de origen para detectar comuna y anillo.</small>
         </div>
 
         <div style="position:relative" id="col_destino">
           <label for="aq_to"><b id="lbl_aq_to">Dirección Destino (B) *</b></label>
-          <input type="text" id="aq_to" placeholder="Ej: Clínica Santa María, Providencia" value="Clínica Santa María, Providencia" oninput="onAdminAddressInput('to')">
+          <input type="text" id="aq_to" placeholder="Nombre de clínica, hospital o dirección con numeración" value="" oninput="onAdminAddressInput('to')">
           <div id="suggest_to" class="suggest-list"></div>
         </div>
 
         <div id="col_km">
           <label for="aq_km"><b id="lbl_aq_km">Kilometraje Total Ida y Vuelta (km) *</b></label>
           <div class="row" style="flex-wrap:nowrap" id="km_input_wrap">
-            <input type="number" id="aq_km" min="0.1" step="any" value="24" oninput="calcAdminQuote()" style="font-weight:700">
+            <input type="number" id="aq_km" min="0" step="any" value="0" oninput="calcAdminQuote()" style="font-weight:700">
             <button type="button" id="btn_calc_km" onclick="autoCalcAdminKm()" title="Estimar km automáticos">📍 Recalcular</button>
           </div>
           <small id="lbl_km_note" style="font-size:11px;color:var(--mut)">$1.000 por km en circuito de ida y vuelta.</small>
@@ -2512,8 +2516,8 @@ function form(){
 
         <div class="quote-grid">
           <div>
-            <span style="font-size:12px;color:var(--mut)">Kilometraje (<span id="q_lbl_km">24 km</span>):</span>
-            <div class="quote-num" id="q_km_cost">$24.000</div>
+            <span style="font-size:12px;color:var(--mut)">Kilometraje (<span id="q_lbl_km">0 km</span>):</span>
+            <div class="quote-num" id="q_km_cost">$0</div>
           </div>
           <div>
             <span style="font-size:12px;color:var(--mut)">Tiempo / Cobertura (<span id="q_lbl_time">2.0 hrs</span>):</span>
@@ -2521,15 +2525,15 @@ function form(){
           </div>
           <div>
             <span style="font-size:12px;color:var(--mut)">TOTAL COTIZADO:</span>
-            <div class="quote-num" id="q_total" style="font-size:1.45rem;color:#15803d">$48.000</div>
+            <div class="quote-num" id="q_total" style="font-size:1.45rem;color:#15803d">$24.000</div>
           </div>
           <div>
             <span style="font-size:12px;color:var(--mut)">Abono 50% Requerido:</span>
-            <div class="quote-num" id="q_abono" style="color:var(--pri)">$24.000</div>
+            <div class="quote-num" id="q_abono" style="color:var(--pri)">$12.000</div>
           </div>
           <div>
             <span style="font-size:12px;color:var(--mut)">Saldo en Terreno:</span>
-            <div class="quote-num" id="q_saldo" style="color:#b45309">$24.000</div>
+            <div class="quote-num" id="q_saldo" style="color:#b45309">$12.000</div>
           </div>
         </div>
 
@@ -2791,6 +2795,7 @@ function saveAdminQuoterDraft(){
       interExtra: ($('#aq_inter_extra') && $('#aq_inter_extra').value) || '0',
       interRegion: qState.interRegion || 'Región de Valparaíso',
       from: ($('#aq_from') && $('#aq_from').value) || '',
+      depto: ($('#aq_depto') && $('#aq_depto').value) || '',
       to: ($('#aq_to') && $('#aq_to').value) || '',
       km: ($('#aq_km') && $('#aq_km').value) || '',
       pat: ($('#aq_pat') && $('#aq_pat').value) || '',
@@ -2854,6 +2859,7 @@ function loadAdminQuoterDraft(){
       $('#aq_from').value = d.from;
       onAdminAddressInput('from');
     }
+    if(d.depto && $('#aq_depto')) $('#aq_depto').value = d.depto;
     if(d.to && $('#aq_to')) $('#aq_to').value = d.to;
     if(d.km && $('#aq_km')) $('#aq_km').value = d.km;
 
@@ -2935,9 +2941,10 @@ function resetAdminQuoterForm(isManual = false){
   if($('#aq_app_time')) $('#aq_app_time').value = '';
   if($('#aq_time')) $('#aq_time').value = '10:00';
   if($('#aq_stay_hours')) $('#aq_stay_hours').value = '60';
-  if($('#aq_from')) $('#aq_from').value = 'Av. Los Pajaritos 1450, Maipú';
-  if($('#aq_to')) $('#aq_to').value = 'Clínica Santa María, Providencia';
-  if($('#aq_km')) $('#aq_km').value = '24';
+  if($('#aq_from')) $('#aq_from').value = '';
+  if($('#aq_depto')) $('#aq_depto').value = '';
+  if($('#aq_to')) $('#aq_to').value = '';
+  if($('#aq_km')) $('#aq_km').value = '0';
   if($('#aq_age')) $('#aq_age').value = '78';
   if($('#aq_comp')) $('#aq_comp').value = 'Acompañado por tutor legal / familiar';
   if($('#aq_pat')) $('#aq_pat').value = '';
@@ -2969,14 +2976,15 @@ function resetAdminQuoterForm(isManual = false){
     toggleAdminTaxDoc('boleta');
   }
 
-  adminPtFrom = { lat: -33.5090, lon: -70.7570, label: 'Av. Los Pajaritos 1450, Maipú' };
-  adminPtTo = { lat: -33.4316, lon: -70.6279, label: 'Clínica Santa María, Providencia' };
-  adminRouteIdaMin = 30;
-  adminRouteVueltaMin = 30;
+  adminPtFrom = null;
+  adminPtTo = null;
+  adminRouteIdaMin = 0;
+  adminRouteVueltaMin = 0;
 
   onAdminModeChange();
   onAdminAgeChange();
   onAdminAddressInput('from');
+  updateAdminRingBadge();
   calcAdminQuote();
 
   if(isManual && typeof alert !== 'undefined') alert('🧹 Formulario del Cotizador Maestro restablecido con valores iniciales limpios.');
@@ -3159,7 +3167,7 @@ function selectAdminInterRegion(region, forceAddress = true){
   }
 
   const curFrom = ($('#aq_from') && $('#aq_from').value) || '';
-  const needsFromUpdate = forceAddress || !curFrom || curFrom.includes('Pajaritos') || (isValpo && curFrom.includes('Rancagua')) || (!isValpo && (curFrom.includes('Viña') || curFrom.includes('Valparaíso')));
+  const needsFromUpdate = forceAddress || !curFrom || (isValpo && curFrom.includes('Rancagua')) || (!isValpo && (curFrom.includes('Viña') || curFrom.includes('Valparaíso')));
 
   if(needsFromUpdate){
     if(isValpo){
@@ -3256,14 +3264,22 @@ function onAdminEventSubtypeChange(){
 }
 
 let adminAddrTimers = {};
-let adminPtFrom = { lat: -33.5090, lon: -70.7570, label: 'Av. Los Pajaritos 1450, Maipú' };
-let adminPtTo = { lat: -33.4316, lon: -70.6279, label: 'Clínica Santa María, Providencia' };
-let adminRouteIdaMin = 30;
-let adminRouteVueltaMin = 30;
+let adminPtFrom = null;
+let adminPtTo = null;
+let adminRouteIdaMin = 0;
+let adminRouteVueltaMin = 0;
 
 function updateAdminRingBadge(){
   const badge = $('#aq_ring_badge');
-  if(!badge || !qState.ring) return;
+  if(!badge) return;
+  const fromVal = ($('#aq_from') && $('#aq_from').value.trim()) || '';
+  if(!fromVal){
+    badge.textContent = 'Ingrese dirección de origen para detectar comuna y anillo.';
+    badge.style.color = 'var(--mut)';
+    return;
+  }
+  if(!qState.ring) return;
+  badge.style.color = 'var(--pri)';
   const mode = ($('#aq_mode') && $('#aq_mode').value) || '1';
   if(mode === '3'){
     const minHours = qState.ring.id === 3 ? 4 : (qState.ring.id === 2 ? 3 : 2);
@@ -3671,7 +3687,8 @@ function calcAdminQuote(){
   const jornada = getAdminJornada(dateVal, timeVal);
   qState.jornada = jornada;
 
-  let kmTot = +($('#aq_km') && $('#aq_km').value) || 24;
+  const rawKm = ($('#aq_km') && $('#aq_km').value !== '') ? parseFloat($('#aq_km').value) : 0;
+  let kmTot = !isNaN(rawKm) && rawKm >= 0 ? rawKm : 0;
   let kmCost = 0;
   let timeCost = 0;
   let totalFare = 0;
@@ -4006,7 +4023,8 @@ function populateAdminTechs(){
         idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : 30;
         stayMin = qState.stayMin || 240;
       } else {
-        const kmTot = +($('#aq_km') && $('#aq_km').value) || 24;
+        const rawKmTot = ($('#aq_km') && $('#aq_km').value !== '') ? parseFloat($('#aq_km').value) : 0;
+        const kmTot = !isNaN(rawKmTot) && rawKmTot >= 0 ? rawKmTot : 0;
         idaMin = adminRouteIdaMin > 0 ? adminRouteIdaMin : Math.max(15, Math.round((kmTot / 2) * 1.3));
         stayMin = qState.stayMin || 60;
       }
@@ -4657,6 +4675,8 @@ async function saveAdminBooking(ev, forceConfirm = false){
   }
   const ph = phDigits.length === 8 ? ('+56 9 ' + phDigits) : '+56 9 92999009';
   const from = ($('#aq_from') && $('#aq_from').value.trim()) || 'Domicilio Origen';
+  const depto = ($('#aq_depto') && $('#aq_depto').value.trim()) || '';
+  const fullFrom = from + (depto && !from.includes(depto) ? ` (${depto})` : '');
   const isSinTraslado = (qState.mode === '3') || (qState.mode === '4' && qState.eventSubtype === 'sin_traslado');
   const to = isSinTraslado ? 'No aplica (Atención en domicilio)' : sanitizePlaceLabel(($('#aq_to') && $('#aq_to').value.trim()) || 'Centro Médico');
   const mob = ($('#aq_mob') && $('#aq_mob').value) || 'Autovalente';
@@ -4684,7 +4704,7 @@ async function saveAdminBooking(ev, forceConfirm = false){
   const medsDetail = ($('#aq_meds_detail') && $('#aq_meds_detail').value.trim()) || '';
   const medicamentos = hasMeds ? (medsDetail || 'Sí (Revisar recetas en terreno)') : 'No toma medicamentos habituales';
 
-  const bookingData = { tid, date, time: bookingTime, start, dur, pat, age, dx, coord, ph, from, to, mob, ayudaTecnica, ayuda_tecnica: ayudaTecnica, req, alergias, medicamentos, compDesc, taxDoc, patologias };
+  const bookingData = { tid, date, time: bookingTime, start, dur, pat, age, dx, coord, ph, from: fullFrom, depto, to, mob, ayudaTecnica, ayuda_tecnica: ayudaTecnica, req, alergias, medicamentos, compDesc, taxDoc, patologias };
 
   // Validaciones de horario para Modalidad 4: Jornada Exclusiva Única (1 evento al día)
   if(qState.mode === '4'){
@@ -4802,8 +4822,9 @@ async function saveAdminBooking(ev, forceConfirm = false){
     contacto: ph,
     coordPhone: ph,
     coord_phone: ph,
-    from,
-    from_addr: from,
+    from: fullFrom,
+    from_addr: fullFrom,
+    depto: depto,
     to,
     to_addr: to,
     mob,
@@ -4945,7 +4966,9 @@ async function saveAdminBooking(ev, forceConfirm = false){
         coord_name: isFactura ? (taxRS || coord) : coord,
         coord_phone: ph,
         coord_type: isFactura ? 'empresa' : 'familiar',
-        from_addr: from,
+        from_addr: fullFrom,
+        origen: fullFrom,
+        depto: depto,
         to_addr: to,
         dx: dx,
         mob: mob,
@@ -5025,8 +5048,10 @@ async function saveAdminBooking(ev, forceConfirm = false){
         age: age,
         coord: isFactura ? (taxRS || coord) : coord,
         coordRut: isFactura ? taxRUT : '',
-        from: from,
-        origen: from,
+        from: fullFrom,
+        from_addr: fullFrom,
+        origen: fullFrom,
+        depto: depto,
         to: to,
         destino: to,
         dx: dx,
@@ -5173,7 +5198,7 @@ function abrirMenuContextualServicio(svcId){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:.84rem;margin-bottom:12px">
         <div><b>Horario:</b> ${fm(s.start)} a ${fm((s.start+s.dur)%1440)} hrs</div>
         <div><b>TENS Asignado:</b> ${e(tn(s.tid))}</div>
-        <div><b>Origen:</b> ${e(s.from)}</div>
+        <div><b>Origen:</b> ${e(s.from)}${(s.depto && !s.from.includes(s.depto)) ? ' ('+e(s.depto)+')' : ''}</div>
         <div><b>Destino:</b> ${e(s.to)}</div>
         <div><b>Contratante:</b> ${e(s.coord)} (${e(s.ph)})</div>
         <div><b>Tarifa / Saldo:</b> ${$c(s.fare)} (Saldo: ${$c(s.fare - (s.paid||0))})</div>
@@ -5332,7 +5357,7 @@ function card(s){
       </div>
 
       <div style="margin:8px 0;line-height:1.4">
-        <div><b>📍 Origen:</b> ${e(s.from)}${s.depto?' ('+e(s.depto)+')':''}</div>
+        <div><b>📍 Origen:</b> ${e(s.from)}${(s.depto && !s.from.includes(s.depto)) ? ' ('+e(s.depto)+')' : ''}</div>
         <div><b>🏥 Destino:</b> ${e(s.to)}</div>
         <div style="margin-top:4px">
           <a class="b" href="https://waze.com/ul?q=${qo}&navigate=yes" target="_blank" rel="noopener">🚗 Waze Origen</a>
@@ -6352,7 +6377,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   if($('#pdfTensVeh')) $('#pdfTensVeh').textContent = tech.veh || 'Unidad 1 · Clase A2';
 
   const cleanOrigen = (s.from || '').replace(/\s*\([^)]*anillo[^)]*\)/gi, '').trim();
-  if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = cleanOrigen;
+  const origenPdf = cleanOrigen + ((s.depto && !cleanOrigen.includes(s.depto)) ? ` (${s.depto})` : '');
+  if($('#pdfDirOrigen')) $('#pdfDirOrigen').textContent = origenPdf;
   if($('#pdfAnilloComunal')) $('#pdfAnilloComunal').textContent = calc.ringName || 'Anillo 1';
   
   const isSinTraslado = (mode === '3') || (mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado' || String(s.obs || '').includes('Sin Traslado') || !s.to || s.to === s.from || String(s.to).toLowerCase().includes('no aplica') || String(s.to).toLowerCase().includes('sin traslado') || String(s.to).toLowerCase().includes('recinto'))) || String(s.to || '').toLowerCase().includes('no aplica');
@@ -6783,7 +6809,7 @@ function renderReservaCard(s){
         <div>
           <b>Contratante:</b> ${e(s.coord || '—')} ${waLink ? `(<a href="${waLink}" target="_blank" rel="noopener" style="color:#059669;font-weight:700;text-decoration:none" title="Enviar WhatsApp al contratante">💬 +${waPh}</a>)` : `(${e(s.ph || '—')})`}
         </div>
-        <div><b>Origen:</b> ${e(s.from || '—')}</div>
+        <div><b>Origen:</b> ${e(s.from || '—')}${(s.depto && !String(s.from || '').includes(s.depto)) ? ' ('+e(s.depto)+')' : ''}</div>
         <div><b>Destino:</b> ${e(s.to || '—')}</div>
         <div><b>Movilidad:</b> ${e(s.mob || 'Autovalente')}</div>
         <div><b>Ayuda Técnica:</b> <span style="color:var(--pri);font-weight:600">${e(s.ayudaTecnica || s.ayuda_tecnica || 'Ninguna (autovalente / no requiere implementos)')}</span></div>

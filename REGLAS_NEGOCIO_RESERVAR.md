@@ -138,6 +138,24 @@ Al seleccionar una dirección en el autocompletado:
 * Si la dirección resuelta se encuentra fuera de la Región Metropolitana y la modalidad activa es local (1 a 4), el sistema bloquea el cálculo y emite una alerta indicando que debe utilizar la **Modalidad 5 (Interregional)**.
 * **Modalidad 5 (Interregional - Bidireccionalidad Operativa):** Permite ingresar direcciones de la Región Metropolitana, Región de Valparaíso o Región de O'Higgins indistintamente en el Punto A (Recogida) y en el Punto B (Destino), validando que al menos uno de los dos puntos pertenezca a la región exterior del programa seleccionado (Valparaíso u O'Higgins). Si ambos puntos corresponden a la Región Metropolitana, el sistema deriva a las modalidades locales (1 o 2).
 
+### 3.4. Estandarización de Placeholders Neutros y Manejo del Campo Opcional Domiciliario
+Con el objetivo de resguardar la privacidad operativa, eliminar nombres de calles específicas del código fuente y asegurar la captura precisa del domicilio completo del paciente:
+1. **Placeholders Neutros y Sin Direcciones de Ejemplo:**
+   * Tanto en la interfaz pública (`reservar.html`) como interna (`admin.html`), los campos de dirección no deben contener nombres de calles reales (como *"Los Océanos"*, *"Los Robles"* o *"Pajaritos"*).
+   * **Origen / Recogida / Domicilio:** `"Ingrese calle, número exacto y comuna"` (o `"Calle, número y comuna"` en panel interno).
+   * **Destino:** `"Ingrese nombre de clínica, hospital o dirección con numeración"`.
+   * **Destino Recinto / Salón (Eventos):** `"Ingrese nombre del centro de eventos o salón, calle y comuna"`.
+   * **Depto / Block / N° Casa / Condominio:** `"Depto, torre, block o condominio (opcional)"`.
+2. **Valores Iniciales Limpios en Cotizador Maestro (`admin.html`):**
+   * Los inputs `aq_from` y `aq_to` se inicializan completamente vacíos (`value=""`).
+   * El kilometraje `aq_km` se inicializa en `0` (sin fallback que fuerce 24 km ante un valor numérico cero).
+   * Los puntos geográficos (`adminPtFrom`, `adminPtTo`) inician en `null` y los tiempos de ruta en `0`.
+   * El badge indicador de anillo (`aq_ring_badge`) muestra la guía neutra *"Ingrese dirección de origen para detectar comuna y anillo."* hasta que se ingrese una dirección de inicio.
+3. **Persistencia y Despliegue del Detalle Domiciliario (`depto`):**
+   * El campo opcional de departamento/block/condominio está habilitado en ambos formularios (`reservar.html` y `admin.html`).
+   * Al guardar o confirmar la reserva, se almacena individualmente en el atributo `depto` y se concatena automáticamente con la dirección de origen para efectos visuales y de georreferencia: `Origen + (depto ? ' (' + depto + ')' : '')`.
+   * En todas las vistas (tarjeta de agenda, modal de liquidación y Comprobante PDF oficial), se verifica que el depto no se duplique si la cadena de origen ya lo incluye (`!s.from.includes(s.depto)`).
+
 ---
 
 ## 4. Jornadas Tarifarias y Recargos Horarios
