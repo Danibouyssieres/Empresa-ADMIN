@@ -1,0 +1,28 @@
+name: Supabase Keep-Alive Heartbeat
+
+on:
+  schedule:
+    # Se ejecuta 2 veces al día (08:00 UTC y 20:00 UTC / 05:00 y 17:00 hora de Chile)
+    - cron: '0 8,20 * * *'
+  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions en GitHub
+
+jobs:
+  keep-alive:
+    name: Ping Supabase Database
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Ejecutar Ping Keep-Alive
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://iculxhwrvzeokgvpdzlq.supabase.co' }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: node scripts/keep-alive-supabase.js
