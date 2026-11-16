@@ -5339,7 +5339,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   // Regla de Piso Mínimo de Tiempo para Liquidación (T&C):
   // 1. Modalidad 1 y 2: Mínimo 60 min (1 hr).
   // 2. Modalidad 3: Anillo 1 = 120 min (2 hrs), Anillo 2 = 180 min (3 hrs), Anillo 3 = 240 min (4 hrs).
-  // 3. Modalidad 4 y 5: Mínimo 240 min (4 hrs).
+  // 3. Modalidad 4 y 5: Mínimo dinámico según paquete contratado (240 min para Plan 4 hrs, 360 min para Plan 6 hrs).
   let minDurationMin = 60;
   let timeFloorReason = 'Mínimo contractual de 1 hr';
   if (mode === '1' || mode === '2') {
@@ -5362,8 +5362,8 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   }
 
   const rawElapsedMin = Number(elapsedMin) || 0;
-  const timeFloorApplied = rawElapsedMin < minDurationMin;
-  const effectiveElapsedMin = Math.max(minDurationMin, rawElapsedMin);
+  let timeFloorApplied = rawElapsedMin < minDurationMin;
+  let effectiveElapsedMin = Math.max(minDurationMin, rawElapsedMin);
 
   // 2. Desglose exacto entre Kilometraje y Tiempo Base (con recálculo dinámico bidireccional y piso mínimo):
   let kmTot = 0;
@@ -5375,74 +5375,128 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   let extraBlocks = 0;
   let extraCost = 0;
   let subtotalReal = baseContractFare;
+  let travelAndBoardingMin = 0;
+  let effectivePlaceMin = rawElapsedMin;
+  let basePackageHours = 4;
+  let basePackageFare = baseContractFare;
 
   if (mode === '4') {
     // MODALIDAD 4 (Eventos Sociales): NUNCA cobra kilometraje (tarifas planas cerradas)
     kmTot = 0;
     kmCost = 0;
     const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || String(s.obs || '').includes('Con Traslado') || (s.to && !String(s.to).toLowerCase().includes('no aplica') && !String(s.to).toLowerCase().includes('sin traslado') && !String(s.to).toLowerCase().includes('recinto') && s.to !== s.from));
-    const basePackageFare = isConTraslado ? (baseContractFare >= 125000 ? 125000 : 95000) : (baseContractFare >= 95000 ? 95000 : 65000);
-    const basePackageHours = (basePackageFare === 125000 || (basePackageFare === 95000 && !isConTraslado)) ? 6 : 4;
-    const contractExtraFare = Math.max(0, baseContractFare - basePackageFare);
-    const contractExtraBlocks = Math.round(contractExtraFare / 7500);
-    const contractTotalMin = (basePackageHours * 60) + (contractExtraBlocks * 30);
 
-    const currentBilledMin = Math.max(basePackageHours * 60, Math.ceil(effectiveElapsedMin / 30) * 30);
-    if (currentBilledMin < contractTotalMin) {
-      const activeExtraBlocks = Math.max(0, (currentBilledMin - (basePackageHours * 60)) / 30);
-      extraBlocks = 0;
-      extraCost = 0;
-      diffMin = 0;
-      billedMin = currentBilledMin;
-      horasBase = currentBilledMin / 60;
-      tiempoBaseCost = basePackageFare + (activeExtraBlocks * 7500);
-      subtotalReal = tiempoBaseCost;
-    } else if (currentBilledMin === contractTotalMin) {
-      billedMin = contractTotalMin;
-      horasBase = contractTotalMin / 60;
-      tiempoBaseCost = baseContractFare;
-      subtotalReal = baseContractFare;
-    } else {
-      diffMin = Math.max(0, effectiveElapsedMin - pactadaMin);
-      extraBlocks = Math.max(1, Math.ceil(diffMin / 30));
-      extraCost = extraBlocks * 7500;
-      billedMin = contractTotalMin + (extraBlocks * 30);
-      horasBase = contractTotalMin / 60;
-      tiempoBaseCost = baseContractFare;
-      subtotalReal = baseContractFare + extraCost;
+    // Determinar paquete base contratado: 4 hrs vs 6 hrs
+    let isPackTotal = (s.eventPack === 'total' || s.pack === 'total');
+    if (!isPackTotal) {
+      const obsSearch = `${s.obs || ''} ${s.dx || ''}`;
+      if (/plan\s+total|pack\s+total|6\s*h(?:oras?|rs)/i.test(obsSearch)) {
+        isPackTotal = true;
+      } else if (isConTraslado && baseContractFare >= 125000 && (s.stayMin >= 360 || !s.eventExtraMin)) {
+        isPackTotal = true;
+      } else if (!isConTraslado && baseContractFare >= 95000 && (s.stayMin >= 360 || !s.eventExtraMin)) {
+        isPackTotal = true;
+      }
     }
+
+    basePackageHours = isPackTotal ? 6 : 4;
+    const basePackageMin = basePackageHours * 60; // 240 min (4h) o 360 min (6h)
+    basePackageFare = isConTraslado ? (isPackTotal ? 125000 : 95000) : (isPackTotal ? 95000 : 65000);
+
+    // En Modalidad 4 con Traslado: descontar el tiempo de traslado ida y vuelta + abordaje
+    travelAndBoardingMin = 0;
+    if (isConTraslado) {
+      let stayMinContract = Number(s.stayMin ?? s.stay_min ?? 0);
+      if (!stayMinContract && s.obs) {
+        const mStay = s.obs.match(/\[StayMin:\s*(\d+)\]/i);
+        if (mStay) stayMinContract = parseInt(mStay[1], 10);
+      }
+      if (!stayMinContract) stayMinContract = basePackageMin;
+
+      if (s.dur && s.dur > stayMinContract) {
+        travelAndBoardingMin = s.dur - stayMinContract;
+      } else {
+        const km = Number(s.kmTotal ?? s.km_total ?? 40);
+        const ida = Math.max(15, Math.round((km / 2) * 1.3));
+        travelAndBoardingMin = 10 + (2 * ida);
+      }
+    }
+
+    // Minutos efectivos en recinto:
+    effectivePlaceMin = isConTraslado 
+      ? Math.max(0, rawElapsedMin - travelAndBoardingMin) 
+      : rawElapsedMin;
+
+    // Respeto dinámico del piso mínimo según paquete contratado (240 min para Plan 4h, 360 min para Plan 6h):
+    const billedVenueMin = Math.max(basePackageMin, Math.ceil(effectivePlaceMin / 30) * 30);
+    const extraVenueMin = Math.max(0, billedVenueMin - basePackageMin);
+    extraBlocks = Math.round(extraVenueMin / 30);
+    extraCost = extraBlocks * 7500;
+
+    billedMin = billedVenueMin;
+    horasBase = billedVenueMin / 60;
+    tiempoBaseCost = basePackageFare;
+    subtotalReal = basePackageFare + extraCost;
+    diffMin = extraVenueMin;
+
+    minDurationMin = basePackageMin;
+    timeFloorReason = `Mínimo de ${basePackageHours} hrs del paquete contratado`;
+    timeFloorApplied = effectivePlaceMin < basePackageMin;
+    effectiveElapsedMin = billedVenueMin;
+
   } else if (mode === '5') {
     // MODALIDAD 5 (Programas Interregionales): NUNCA cobra kilometraje (tarifas planas cerradas)
     kmTot = 0;
     kmCost = 0;
     let isCronicoPlan = false;
-    if (s.interPlan === 'cronico' || s.selectedInterProgram === 6 || s.horas_base === 6 || s.stayHours === 6) isCronicoPlan = true;
-    const valorBasePrograma = isCronicoPlan ? 300000 : 250000;
-    const contractExtraFare = Math.max(0, baseContractFare - valorBasePrograma);
-    const contractExtraBlocks = Math.round(contractExtraFare / 15000);
-
-    if (effectiveElapsedMin < pactadaMin && contractExtraBlocks > 0) {
-      const savedMin = pactadaMin - effectiveElapsedMin;
-      const blocksToDiscount = Math.floor(savedMin / 30);
-      const remainingExtraBlocks = Math.max(0, contractExtraBlocks - blocksToDiscount);
-      billedMin = Math.max(minDurationMin, Math.max(pactadaMin - (blocksToDiscount * 30), pactadaMin - (contractExtraBlocks * 30)));
-      horasBase = billedMin / 60;
-      tiempoBaseCost = valorBasePrograma + (remainingExtraBlocks * 15000);
-      subtotalReal = tiempoBaseCost;
-    } else if (effectiveElapsedMin <= pactadaMin) {
-      billedMin = Math.max(minDurationMin, pactadaMin);
-      horasBase = billedMin / 60;
-      tiempoBaseCost = baseContractFare;
-      subtotalReal = baseContractFare;
+    if (s.interPlan === 'cronico' || s.selectedInterProgram === 6 || s.horas_base === 6 || s.stayHours === 6 || (s.stayMin && Math.floor(s.stayMin / 60) === 6)) {
+      isCronicoPlan = true;
     } else {
-      diffMin = effectiveElapsedMin - pactadaMin;
-      extraBlocks = Math.ceil(diffMin / 30);
-      extraCost = extraBlocks * 15000;
-      billedMin = pactadaMin + (extraBlocks * 30);
-      horasBase = pactadaMin / 60;
-      tiempoBaseCost = baseContractFare;
-      subtotalReal = baseContractFare + extraCost;
+      const obsSearch = `${s.obs || ''} ${s.programa || ''} ${s.programa_interregional || ''}`;
+      if (/cr[oó]nico|oncol[oó]gico|6\s*h/i.test(obsSearch)) {
+        isCronicoPlan = true;
+      }
     }
+
+    basePackageHours = isCronicoPlan ? 6 : 4;
+    const basePackageMin = basePackageHours * 60; // 240 o 360 min
+    const valorBasePrograma = isCronicoPlan ? 300000 : 250000;
+    basePackageFare = valorBasePrograma;
+
+    // Modalidad 5 SIEMPRE incluye traslado interregional ida y vuelta + abordaje:
+    travelAndBoardingMin = 0;
+    let stayMinContract = Number(s.stayMin ?? s.stay_min ?? 0);
+    if (!stayMinContract && s.obs) {
+      const mStay = s.obs.match(/\[StayMin:\s*(\d+)\]/i);
+      if (mStay) stayMinContract = parseInt(mStay[1], 10);
+    }
+    if (!stayMinContract) stayMinContract = basePackageMin;
+
+    if (s.dur && s.dur > stayMinContract) {
+      travelAndBoardingMin = s.dur - stayMinContract;
+    } else {
+      travelAndBoardingMin = 10 + 90 + 90; // 190 min estándar interregional
+    }
+
+    // Minutos efectivos en destino clínico en Santiago:
+    effectivePlaceMin = Math.max(0, rawElapsedMin - travelAndBoardingMin);
+
+    // Respeto dinámico del piso mínimo según programa contratado (240 min para Estándar 4h, 360 min para Crónico 6h):
+    const billedDestMin = Math.max(basePackageMin, Math.ceil(effectivePlaceMin / 30) * 30);
+    const extraDestMin = Math.max(0, billedDestMin - basePackageMin);
+    extraBlocks = Math.round(extraDestMin / 30);
+    extraCost = extraBlocks * 15000;
+
+    billedMin = billedDestMin;
+    horasBase = billedDestMin / 60;
+    tiempoBaseCost = valorBasePrograma;
+    subtotalReal = valorBasePrograma + extraCost;
+    diffMin = extraDestMin;
+
+    minDurationMin = basePackageMin;
+    timeFloorReason = `Mínimo de ${basePackageHours} hrs del programa contratado`;
+    timeFloorApplied = effectivePlaceMin < basePackageMin;
+    effectiveElapsedMin = billedDestMin;
   } else if (mode === '2') {
     // MODALIDAD 2 (Traslado Exclusivo con Espera):
     kmTot = Number(s.kmTotal ?? s.km_total ?? s.km ?? s.totalKm ?? 0);
@@ -5602,6 +5656,10 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     mode,
     baseContractFare,
     baseFare: baseContractFare,
+    basePackageHours: (mode === '4' || mode === '5') ? basePackageHours : undefined,
+    basePackageFare: (mode === '4' || mode === '5') ? basePackageFare : undefined,
+    travelAndBoardingMin: (mode === '4' || mode === '5') ? travelAndBoardingMin : 0,
+    effectivePlaceMin: (mode === '4' || mode === '5') ? effectivePlaceMin : rawElapsedMin,
     jornada,
     hourlyRate,
     extraBlockRate,
@@ -5774,7 +5832,10 @@ function onFieldCheckoutRecalc(){
   currentCheckoutCalc = calc;
 
   const badgeTimeFloor = calc.timeFloorApplied ? `<span style="background:#e0f2fe;color:#0369a1;font-size:10.5px;padding:2px 6px;border-radius:4px;margin-left:4px;font-weight:700">Mínimo T&C</span>` : '';
-  if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').innerHTML = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${calc.rawElapsedMin}m en lugar) ${badgeTimeFloor}`;
+  const placeMinText = (calc.mode === '4' || calc.mode === '5')
+    ? `${calc.effectivePlaceMin}m en lugar${calc.travelAndBoardingMin > 0 ? ` · ${calc.travelAndBoardingMin}m viaje` : ''}`
+    : `${calc.rawElapsedMin}m en lugar`;
+  if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').innerHTML = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${placeMinText}) ${badgeTimeFloor}`;
   if($('#adm_co_subtotal_servicio')) $('#adm_co_subtotal_servicio').textContent = $c(calc.subtotalServicio);
   if($('#adm_co_total_servicio')) $('#adm_co_total_servicio').textContent = $c(calc.totalServicio);
   if($('#adm_co_parking_amount')) $('#adm_co_parking_amount').textContent = '+' + $c(calc.parking);
@@ -5794,9 +5855,10 @@ function onFieldCheckoutRecalc(){
 
   const extraNote = $('#adm_co_extra_note');
   if(extraNote){
-    if(calc.diffMin > 0){
+    if(calc.diffMin > 0 && calc.extraCost > 0){
       extraNote.style.display = 'block';
-      extraNote.textContent = `⏱️ Retraso en terreno: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`;
+      const labelLugar = (calc.mode === '4' || calc.mode === '5') ? 'en recinto/destino' : 'en terreno';
+      extraNote.textContent = `⏱️ Retraso ${labelLugar}: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`;
     } else {
       extraNote.style.display = 'none';
     }
@@ -5865,7 +5927,7 @@ function solicitarPagoWhatsAppAdmin(){
     ? (calc.mode === '4' ? ` (incluye ${$c(calc.parking)} de estacionamiento en recinto / evento)` : ` (incluye ${$c(calc.parking)} de estacionamiento en recinto clínico)`)
     : '';
   const extraTxt = (calc.diffMin > 0 && calc.extraCost > 0)
-    ? `\n• Tiempo adicional en terreno: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`
+    ? `\n• Tiempo adicional ${calc.mode === '4' ? 'en recinto' : (calc.mode === '5' ? 'en destino' : 'en terreno')}: +${calc.diffMin} min (${calc.extraBlocks} blq × 30 min × ${$c(calc.extraBlockRate)} = +${$c(calc.extraCost)})`
     : '';
 
   const isSinTraslado = (calc.mode === '3') || (calc.mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado' || String(s.obs || '').includes('Sin Traslado') || !s.to || s.to === s.from || String(s.to).toLowerCase().includes('no aplica') || String(s.to).toLowerCase().includes('sin traslado') || String(s.to).toLowerCase().includes('recinto'))) || String(s.to || '').toLowerCase().includes('no aplica');
@@ -6213,39 +6275,19 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
 
     if(mode === '4'){
       // MODALIDAD 4 (Acompañamiento en Eventos Sociales - Tarifas Planas Cerradas):
-      // NUNCA imprime cobro por kilómetro. Imprime el paquete base y el tiempo adicional en recinto contratado según la liquidación final real.
+      // NUNCA imprime cobro por kilómetro. Imprime el paquete base y el tiempo adicional en recinto liquidado real.
       const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || String(s.obs || '').includes('Con Traslado') || (s.to && !String(s.to).toLowerCase().includes('no aplica') && !String(s.to).toLowerCase().includes('sin traslado') && !String(s.to).toLowerCase().includes('recinto') && s.to !== s.from));
 
-      let basePlanTitle = '';
-      let basePlanDetail = '';
-      let basePlanFare = 0;
-      let extraContractFare = 0;
-      // Usar la tarifa liquidada real descontando posibles retrasos no planificados en terreno (calc.extraCost)
-      const baseFareTotal = Math.max(0, Number(calc.subtotalReal ?? calc.cobroTotal ?? 0) - Number(calc.extraCost || 0));
+      const isPackTotal = (calc.basePackageHours === 6);
+      const basePlanFare = calc.basePackageFare || (isConTraslado ? (isPackTotal ? 125000 : 95000) : (isPackTotal ? 95000 : 65000));
+      const extraFare = Math.max(0, Number(calc.extraCost ?? (calc.subtotalReal - basePlanFare)));
 
-      if(isConTraslado){
-        basePlanTitle = 'Pack Integral Puerta a Puerta (Asistencia + Traslados Ida/Vuelta RM)';
-        if(baseFareTotal >= 125000){
-          basePlanFare = 125000;
-          basePlanDetail = 'Pack Total: 6 hrs continuas en recinto + traslados ida/vuelta RM';
-          extraContractFare = baseFareTotal - 125000;
-        } else {
-          basePlanFare = 95000;
-          basePlanDetail = 'Pack Base: 4 hrs continuas en recinto + traslados ida/vuelta RM';
-          extraContractFare = Math.max(0, baseFareTotal - 95000);
-        }
-      } else {
-        basePlanTitle = 'Plan Asistencia en Recinto (Tarifa Plana)';
-        if(baseFareTotal >= 95000){
-          basePlanFare = 95000;
-          basePlanDetail = 'Plan Total: 6 hrs continuas de permanencia en recinto';
-          extraContractFare = baseFareTotal - 95000;
-        } else {
-          basePlanFare = 65000;
-          basePlanDetail = 'Plan Base: 4 hrs continuas de permanencia en recinto';
-          extraContractFare = Math.max(0, baseFareTotal - 65000);
-        }
-      }
+      let basePlanTitle = isConTraslado 
+        ? 'Pack Integral Puerta a Puerta (Asistencia + Traslados Ida/Vuelta RM)' 
+        : 'Plan Asistencia en Recinto (Tarifa Plana)';
+      let basePlanDetail = isConTraslado
+        ? (isPackTotal ? 'Pack Total: 6 hrs continuas en recinto + traslados ida/vuelta RM' : 'Pack Base: 4 hrs continuas en recinto + traslados ida/vuelta RM')
+        : (isPackTotal ? 'Plan Total: 6 hrs continuas de permanencia en recinto' : 'Plan Base: 4 hrs continuas de permanencia en recinto');
 
       itemsHtml += `
         <tr>
@@ -6255,14 +6297,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         </tr>
       `;
 
-      if(extraContractFare > 0){
-        const extraHours = extraContractFare / 15000;
-        const extraDetail = `+${extraHours.toFixed(1).replace('.', ',')} hrs extras en recinto (${Math.round(extraContractFare / 7500)} bloques × $7.500)`;
+      if(extraFare > 0){
+        const extraBlq = Math.round(extraFare / 7500);
+        const extraHours = extraBlq * 0.5;
+        const extraDetail = `+${extraHours.toFixed(1).replace('.', ',')} hrs extras en recinto (${extraBlq} ${extraBlq === 1 ? 'bloque' : 'bloques'} × $7.500)`;
         itemsHtml += `
           <tr>
             <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Tiempo Adicional en Recinto</td>
             <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${extraDetail}</td>
-            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(extraContractFare)}</td>
+            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(extraFare)}</td>
           </tr>
         `;
       }
@@ -6275,35 +6318,14 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         regionName = "Región de O'Higgins";
       }
 
-      // Detección dinámica y fiel del programa seleccionado (NUNCA condicionar por s.dx ni por s.fare con extras)
-      let isCronicoPlan = false;
-      if (s.interPlan === 'cronico' || s.selectedInterProgram === 6) {
-        isCronicoPlan = true;
-      } else if (s.interPlan === 'estandar' || s.selectedInterProgram === 4) {
-        isCronicoPlan = false;
-      } else if (s.horas_base === 6 || s.stayHours === 6 || (s.stayMin && Math.floor(s.stayMin / 60) === 6)) {
-        isCronicoPlan = true;
-      } else if (s.horas_base === 4 || s.stayHours === 4 || (s.stayMin && Math.floor(s.stayMin / 60) === 4)) {
-        isCronicoPlan = false;
-      } else {
-        const progSearch = `${s.programa || ''} ${s.programa_interregional || ''} ${s.obs || ''}`;
-        if (/programa\s+cr[oó]nico|oncol[oó]gico\s*\(hasta\s*6\s*hrs\)/i.test(progSearch)) {
-          isCronicoPlan = true;
-        } else if (/programa\s+est[aá]ndar|est[aá]ndar\s*\(hasta\s*4\s*hrs\)/i.test(progSearch)) {
-          isCronicoPlan = false;
-        } else {
-          isCronicoPlan = false;
-        }
-      }
-
+      // Detección dinámica y fiel del programa seleccionado
+      const isCronicoPlan = (calc.basePackageHours === 6);
       let progName = isCronicoPlan
         ? `Programa Crónico / Oncológico - ${regionName}`
         : `Programa Estándar - ${regionName}`;
 
-      let valorBasePrograma = isCronicoPlan ? 300000 : 250000;
-      // Usar la tarifa liquidada real descontando posibles retrasos no planificados en terreno (calc.extraCost)
-      const baseFareTotal = Math.max(valorBasePrograma, Number(calc.subtotalReal ?? calc.cobroTotal ?? valorBasePrograma) - Number(calc.extraCost || 0));
-      let extraCotizado = Math.max(0, baseFareTotal - valorBasePrograma);
+      const valorBasePrograma = calc.basePackageFare || (isCronicoPlan ? 300000 : 250000);
+      const extraFare = Math.max(0, Number(calc.extraCost ?? (calc.subtotalReal - valorBasePrograma)));
 
       // Fila 1: Programa Interregional (Tarifa Plana Ida/Vuelta)
       itemsHtml += `
@@ -6314,15 +6336,15 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         </tr>
       `;
 
-      // Si hubo tiempo adicional en cotización que se mantuvo tras el cierre en terreno
-      if(extraCotizado > 0){
-        const extraMin = Math.round(extraCotizado / 15000) * 30;
-        const extraBlq = Math.round(extraCotizado / 15000) || 1;
+      // Si hubo tiempo adicional liquidado
+      if(extraFare > 0){
+        const extraBlq = Math.round(extraFare / 15000);
+        const extraMin = extraBlq * 30;
         itemsHtml += `
           <tr>
             <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Tiempo Adicional en Destino</td>
-            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">+${extraMin} min (${extraBlq} blq × 30 min) × $15.000 (Tarifa Extra Interregional)</td>
-            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(extraCotizado)}</td>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">+${extraMin} min (${extraBlq} ${extraBlq === 1 ? 'bloque' : 'bloques'} × 30 min) × $15.000 (Tarifa Extra Interregional)</td>
+            <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(extraFare)}</td>
           </tr>
         `;
       }
@@ -6346,10 +6368,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       `;
     }
 
-    if(diffMin > 0 && calc.extraCost > 0){
-      const extraLabel = mode === '5'
-        ? '(Tarifa Extra Interregional)'
-        : (mode === '4' ? '(Tarifa Fija Eventos)' : `(${jornadaTexto})`);
+    if(mode !== '4' && mode !== '5' && diffMin > 0 && calc.extraCost > 0){
+      const extraLabel = `(${jornadaTexto})`;
       itemsHtml += `
         <tr style="background:#fef2f2;color:#991b1b">
           <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box"><b>Tiempo Adicional Excedente en Terreno</b></td>

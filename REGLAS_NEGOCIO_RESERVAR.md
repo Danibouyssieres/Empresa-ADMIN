@@ -487,15 +487,24 @@ Al presionar el botón *"Finalizar Atención (Emitir Boleta PDF)"*:
      * Si es *Boleta*: Solicita el RUT del Paciente.
      * Si es *Factura*: Despliega y precarga Razón Social, RUT Empresa, Giro Comercial y Dirección Tributaria, permitiendo ajustes rápidos en terreno.
    * **Medio de Pago del Saldo Final:** Efectivo, Transferencia o Tarjeta POS (las boletas y facturas se emiten de forma diferida en el portal del SII).
-3. **Recálculo Dinámico de Tiempo Excedente:**
-   * Si la hora de cierre es posterior a la hora pactada, se calculan los minutos de diferencia y se convierten en bloques de 30 minutos:
-     $\text{Bloques Extra} = \left\lceil \frac{\text{Minutos Desfase}}{30} \right\rceil$
-   * Tarifas por bloque adicional de 30 minutos:
-     * **Modalidad 1:** $6.000 por bloque ($12.000/hr).
-     * **Modalidad 2:** $4.000 por bloque ($8.000/hr).
-     * **Modalidad 3:** $7.500 por bloque ($15.000/hr).
-     * **Modalidades 4 y 5:** $15.000 por bloque.
-   * Se ajusta el subtotal sumando el tiempo adicional y se recalcula el saldo restante a pagar, preservando intacto el abono inicial del 50%.
+3. **Recálculo Dinámico de Tiempo Excedente y Pisos Mínimos:**
+   * **Modalidades 1, 2 y 3:**
+     * Si la hora de cierre es posterior a la hora pactada, se calculan los minutos de diferencia y se convierten en bloques de 30 minutos:
+       $$\text{Bloques Extra} = \left\lceil \frac{\text{Minutos Desfase}}{30} \right\rceil$$
+     * Tarifas por bloque adicional de 30 minutos:
+       * **Modalidad 1:** $6.000 (Hábil) | $7.500 (Fin de semana) | $9.000 (Festivo/Noche).
+       * **Modalidad 2:** $4.000 (Hábil) | $5.000 (Fin de semana) | $6.000 (Festivo/Noche).
+       * **Modalidad 3:** $6.000 (Hábil) | $7.500 (Fin de semana) | $9.000 (Festivo/Noche).
+     * Pisos mínimos contractuales: 60 min en Modalidades 1 y 2; 120 min (Anillo 1), 180 min (Anillo 2) y 240 min (Anillo 3) en Modalidad 3.
+   * **Modalidad 4 (Con Traslado) y Modalidad 5 (Programas Interregionales):**
+     * **Descuento de Tiempo de Traslado y Abordaje:** Las horas contratadas del paquete (Plan Base de 4 hrs = 240 min, o Plan de 6 hrs = 360 min) corresponden estrictamente a asistencia efectiva en el recinto o destino clínico, no al tiempo de conducción en vehículo.
+     * Al liquidar al cierre (`Hora Cierre - Hora Recogida`), el sistema resta al tiempo bruto puerta a puerta los minutos totales de traslado ida/vuelta + abordaje registrados en la reserva:
+       $$\text{Minutos Efectivos en Recinto/Destino} = (\text{Hora Cierre} - \text{Hora Recogida}) - \text{Minutos de Traslado y Abordaje}$$
+     * **Piso Mínimo Dinámico según Paquete:** El tiempo facturado en recinto se clampa al piso contractual del paquete contratado: 240 min (4.0 hrs) si reservó Plan 4 hrs, o 360 min (6.0 hrs) si reservó Plan 6 hrs, garantizando que el cobro nunca disminuya por debajo del valor base del paquete contratado.
+     * **Bloques Adicionales de 30 minutos:**
+       * **Modalidad 4:** $7.500 por bloque de 30 min. Solo se suman cuando los minutos efectivos en recinto (ya descontado el traslado) superen el tope del paquete contratado (más de 240 min para Plan 4 hrs, o más de 360 min para Plan 6 hrs).
+       * **Modalidad 5:** $15.000 por bloque de 30 min. Solo aplican sobre el Programa Estándar cuando los minutos efectivos en Santiago superen las 4.0 hrs.
+     * **Sincronización del Comprobante PDF:** En el Comprobante de Atención y Liquidación (PDF), la fila de *"Tiempo Adicional en Recinto"* o *"Tiempo Adicional en Destino"* se calcula dinámicamente según los bloques extras reales liquidados al cierre. Si al cierre no hubo excedente real sobre el plan base contratado, dicha fila no se renderiza, asegurando que la suma de las filas visibles coincida al peso con el *"SUBTOTAL SERVICIO LIQUIDADO"*.
 
 ### 11.4. Redirección Fluida a WhatsApp
 Al ejecutarse la descarga automática del archivo PDF `Comprobante_Atencion_[folio].pdf`, el sistema abre en paralelo la ventana de WhatsApp con el número del cliente o coordinador, con el mensaje predeterminado:
