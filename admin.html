@@ -459,6 +459,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
       </div>
       <div id="adm_co_extra_note" style="display:none;font-size:11px;color:#b45309;margin-top:4px;font-weight:600"></div>
       <div id="adm_co_floor_note" style="display:none;font-size:11px;color:#0f766e;margin-top:4px;font-weight:600"></div>
+      <div id="adm_co_time_floor_note" style="display:none;font-size:11.5px;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:6px 10px;margin-top:6px;font-weight:700"></div>
     </div>
 
     <!-- DATOS COMPLEMENTARIOS Y TRIBUTARIOS (BOLETA O FACTURA) -->
@@ -5330,7 +5331,41 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   // 1. Tarifa base contratada
   const baseContractFare = Number(s.baseFare || s.fareOrig || s.fare || 40000);
 
-  // 2. Desglose exacto entre Kilometraje y Tiempo Base (con recálculo dinámico bidireccional):
+  // Detección de Anillo para Pisos Mínimos (T&C) y Piso Tarifario
+  const ringDet = detectRingFromText(s.from || '', null, null);
+  const ring = (s.ring && s.ring.id) ? s.ring : (ringDet ? ringDet.ring : RINGS_DATA[0]);
+  const ringId = Number(ring ? ring.id : (s.ringId || s.anillo || 1)) || 1;
+
+  // Regla de Piso Mínimo de Tiempo para Liquidación (T&C):
+  // 1. Modalidad 1 y 2: Mínimo 60 min (1 hr).
+  // 2. Modalidad 3: Anillo 1 = 120 min (2 hrs), Anillo 2 = 180 min (3 hrs), Anillo 3 = 240 min (4 hrs).
+  // 3. Modalidad 4 y 5: Mínimo 240 min (4 hrs).
+  let minDurationMin = 60;
+  let timeFloorReason = 'Mínimo contractual de 1 hr';
+  if (mode === '1' || mode === '2') {
+    minDurationMin = 60;
+    timeFloorReason = 'Mínimo de 1 hr';
+  } else if (mode === '3') {
+    if (ringId === 2) {
+      minDurationMin = 180;
+      timeFloorReason = 'Mínimo de 3 hrs en Anillo 2';
+    } else if (ringId === 3) {
+      minDurationMin = 240;
+      timeFloorReason = 'Mínimo de 4 hrs en Anillo 3';
+    } else {
+      minDurationMin = 120;
+      timeFloorReason = 'Mínimo de 2 hrs en Anillo 1';
+    }
+  } else if (mode === '4' || mode === '5') {
+    minDurationMin = 240;
+    timeFloorReason = 'Mínimo de 4 hrs para eventos y programas';
+  }
+
+  const rawElapsedMin = Number(elapsedMin) || 0;
+  const timeFloorApplied = rawElapsedMin < minDurationMin;
+  const effectiveElapsedMin = Math.max(minDurationMin, rawElapsedMin);
+
+  // 2. Desglose exacto entre Kilometraje y Tiempo Base (con recálculo dinámico bidireccional y piso mínimo):
   let kmTot = 0;
   let kmCost = 0;
   let tiempoBaseCost = 0;
@@ -5352,7 +5387,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     const contractExtraBlocks = Math.round(contractExtraFare / 7500);
     const contractTotalMin = (basePackageHours * 60) + (contractExtraBlocks * 30);
 
-    const currentBilledMin = Math.max(basePackageHours * 60, Math.ceil(elapsedMin / 30) * 30);
+    const currentBilledMin = Math.max(basePackageHours * 60, Math.ceil(effectiveElapsedMin / 30) * 30);
     if (currentBilledMin < contractTotalMin) {
       const activeExtraBlocks = Math.max(0, (currentBilledMin - (basePackageHours * 60)) / 30);
       extraBlocks = 0;
@@ -5368,7 +5403,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       tiempoBaseCost = baseContractFare;
       subtotalReal = baseContractFare;
     } else {
-      diffMin = Math.max(0, elapsedMin - pactadaMin);
+      diffMin = Math.max(0, effectiveElapsedMin - pactadaMin);
       extraBlocks = Math.max(1, Math.ceil(diffMin / 30));
       extraCost = extraBlocks * 7500;
       billedMin = contractTotalMin + (extraBlocks * 30);
@@ -5386,21 +5421,21 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     const contractExtraFare = Math.max(0, baseContractFare - valorBasePrograma);
     const contractExtraBlocks = Math.round(contractExtraFare / 15000);
 
-    if (elapsedMin < pactadaMin && contractExtraBlocks > 0) {
-      const savedMin = pactadaMin - elapsedMin;
+    if (effectiveElapsedMin < pactadaMin && contractExtraBlocks > 0) {
+      const savedMin = pactadaMin - effectiveElapsedMin;
       const blocksToDiscount = Math.floor(savedMin / 30);
       const remainingExtraBlocks = Math.max(0, contractExtraBlocks - blocksToDiscount);
-      billedMin = Math.max(pactadaMin - (blocksToDiscount * 30), pactadaMin - (contractExtraBlocks * 30));
+      billedMin = Math.max(minDurationMin, Math.max(pactadaMin - (blocksToDiscount * 30), pactadaMin - (contractExtraBlocks * 30)));
       horasBase = billedMin / 60;
       tiempoBaseCost = valorBasePrograma + (remainingExtraBlocks * 15000);
       subtotalReal = tiempoBaseCost;
-    } else if (elapsedMin <= pactadaMin) {
-      billedMin = pactadaMin;
-      horasBase = pactadaMin / 60;
+    } else if (effectiveElapsedMin <= pactadaMin) {
+      billedMin = Math.max(minDurationMin, pactadaMin);
+      horasBase = billedMin / 60;
       tiempoBaseCost = baseContractFare;
       subtotalReal = baseContractFare;
     } else {
-      diffMin = elapsedMin - pactadaMin;
+      diffMin = effectiveElapsedMin - pactadaMin;
       extraBlocks = Math.ceil(diffMin / 30);
       extraCost = extraBlocks * 15000;
       billedMin = pactadaMin + (extraBlocks * 30);
@@ -5454,19 +5489,19 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
 
     const contractWaitMin = Math.round(horasBase * 60);
 
-    if (elapsedMin < pactadaMin && contractWaitMin > 60) {
-      const savedMin = pactadaMin - elapsedMin;
+    if (effectiveElapsedMin < pactadaMin && contractWaitMin > minDurationMin) {
+      const savedMin = pactadaMin - effectiveElapsedMin;
       const blocksDiscount = Math.floor(savedMin / 30);
-      const newWaitMin = Math.max(60, contractWaitMin - (blocksDiscount * 30));
+      const newWaitMin = Math.max(minDurationMin, contractWaitMin - (blocksDiscount * 30));
       horasBase = newWaitMin / 60;
       tiempoBaseCost = Math.round(horasBase * hourlyRate);
       subtotalReal = kmCost + tiempoBaseCost;
-      billedMin = Math.max(60, pactadaMin - (blocksDiscount * 30));
-    } else if (elapsedMin <= pactadaMin) {
+      billedMin = Math.max(minDurationMin, pactadaMin - (blocksDiscount * 30));
+    } else if (effectiveElapsedMin <= pactadaMin) {
       subtotalReal = baseContractFare;
-      billedMin = pactadaMin;
+      billedMin = (contractWaitMin <= minDurationMin && effectiveElapsedMin < pactadaMin) ? Math.max(minDurationMin, effectiveElapsedMin) : pactadaMin;
     } else {
-      diffMin = elapsedMin - pactadaMin;
+      diffMin = effectiveElapsedMin - pactadaMin;
       extraBlocks = Math.ceil(diffMin / 30);
       extraCost = extraBlocks * extraBlockRate;
       subtotalReal = baseContractFare + extraCost;
@@ -5488,11 +5523,11 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
 
     const contractTimeCost = mode === '3' ? baseContractFare : Math.max(0, baseContractFare - kmCost);
     let contractBilledMin = Math.round((contractTimeCost / (hourlyRate || 12000)) * 60);
-    if (!contractBilledMin || contractBilledMin < 60) {
-      contractBilledMin = Math.max(60, Math.ceil(pactadaMin / 30) * 30);
+    if (!contractBilledMin || contractBilledMin < minDurationMin) {
+      contractBilledMin = Math.max(minDurationMin, Math.ceil(pactadaMin / 30) * 30);
     }
 
-    const currentBilledMin = Math.max(60, Math.ceil(elapsedMin / 30) * 30);
+    const currentBilledMin = Math.max(minDurationMin, Math.ceil(effectiveElapsedMin / 30) * 30);
 
     if (currentBilledMin < contractBilledMin) {
       // RECÁLCULO DINÁMICO HACIA ABAJO: El servicio terminó antes o el usuario ajustó la hora para no pasar de bloque
@@ -5514,7 +5549,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       subtotalReal = baseContractFare;
     } else {
       // RECÁLCULO DINÁMICO HACIA ARRIBA: Superó el tiempo contratado (retraso en terreno)
-      const rawExtra = elapsedMin > pactadaMin ? (elapsedMin - pactadaMin) : (currentBilledMin - contractBilledMin);
+      const rawExtra = effectiveElapsedMin > pactadaMin ? (effectiveElapsedMin - pactadaMin) : (currentBilledMin - contractBilledMin);
       diffMin = Math.max(0, rawExtra);
       extraBlocks = Math.ceil(diffMin / 30);
       extraCost = extraBlocks * extraBlockRate;
@@ -5526,8 +5561,6 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
   }
 
   // Regla de piso mínimo garantizado (Anillo 1: $18k, Anillo 2: $35k, Anillo 3: $50k)
-  const ringDet = detectRingFromText(s.from || '', null, null);
-  const ring = ringDet ? ringDet.ring : RINGS_DATA[0];
   const ringFloor = (mode === '4' || mode === '5' || mode === '3') ? 0 : ring.minFare;
 
   let cobroTotal = subtotalReal;
@@ -5576,7 +5609,13 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     tiempoBaseCost,
     kmTot,
     kmCost,
-    elapsedMin,
+    elapsedMin: rawElapsedMin,
+    rawElapsedMin,
+    effectiveElapsedMin,
+    minDurationMin,
+    minDurationHours: minDurationMin / 60,
+    timeFloorReason,
+    timeFloorApplied,
     billedMin,
     diffMin,
     extraBlocks,
@@ -5726,13 +5765,16 @@ function onFieldCheckoutRecalc(){
     elapsedMin = cierreMin - startMin;
   } else if(cierreMin < startMin && cierreMin < 6 * 60 && startMin > 18 * 60){
     elapsedMin = (cierreMin + 1440) - startMin;
+  } else if(cierreMin <= startMin && cierreMin >= 0){
+    elapsedMin = Math.max(0, cierreMin - startMin);
   }
 
   const descInput = $('#adm_descuento_ajuste') ? (parseInt(String($('#adm_descuento_ajuste').value).replace(/\D/g, ''), 10) || 0) : 0;
   const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbonoInput, descInput);
   currentCheckoutCalc = calc;
 
-  if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').textContent = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${calc.elapsedMin}m en lugar)`;
+  const badgeTimeFloor = calc.timeFloorApplied ? `<span style="background:#e0f2fe;color:#0369a1;font-size:10.5px;padding:2px 6px;border-radius:4px;margin-left:4px;font-weight:700">Mínimo T&C</span>` : '';
+  if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').innerHTML = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${calc.rawElapsedMin}m en lugar) ${badgeTimeFloor}`;
   if($('#adm_co_subtotal_servicio')) $('#adm_co_subtotal_servicio').textContent = $c(calc.subtotalServicio);
   if($('#adm_co_total_servicio')) $('#adm_co_total_servicio').textContent = $c(calc.totalServicio);
   if($('#adm_co_parking_amount')) $('#adm_co_parking_amount').textContent = '+' + $c(calc.parking);
@@ -5771,6 +5813,16 @@ function onFieldCheckoutRecalc(){
       floorNote.style.display = 'none';
     }
   }
+
+  const timeFloorNote = $('#adm_co_time_floor_note');
+  if(timeFloorNote){
+    if(calc.timeFloorApplied){
+      timeFloorNote.style.display = 'block';
+      timeFloorNote.innerHTML = `🛡️ <b>T&C Aplicados:</b> Mínimo de ${calc.minDurationHours} ${calc.minDurationHours === 1 ? 'hr' : 'hrs'} aplicado (${calc.timeFloorReason}).`;
+    } else {
+      timeFloorNote.style.display = 'none';
+    }
+  }
 }
 
 function solicitarPagoWhatsAppAdmin(){
@@ -5795,6 +5847,8 @@ function solicitarPagoWhatsAppAdmin(){
     elapsedMin = cierreMin - startMin;
   } else if(cierreMin < startMin && cierreMin < 6 * 60 && startMin > 18 * 60){
     elapsedMin = (cierreMin + 1440) - startMin;
+  } else if(cierreMin <= startMin && cierreMin >= 0){
+    elapsedMin = Math.max(0, cierreMin - startMin);
   }
 
   const calc = calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, descVal);
@@ -5984,6 +6038,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     elapsedMin = cierreMin - startMin;
   } else if(cierreMin < startMin && cierreMin < 6 * 60 && startMin > 18 * 60){
     elapsedMin = (cierreMin + 1440) - startMin;
+  } else if(cierreMin <= startMin && cierreMin >= 0){
+    elapsedMin = Math.max(0, cierreMin - startMin);
   }
 
   const rawAbono = (customOpts && customOpts.abono !== undefined)
@@ -6043,8 +6099,11 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     cobroTotal: calc.cobroTotal,
     ringFloor: calc.ringFloor,
     floorApplied: calc.floorApplied,
+    timeFloorApplied: calc.timeFloorApplied,
+    minDurationMin: calc.minDurationMin,
     billedMin: calc.billedMin,
-    elapsedMin: calc.elapsedMin,
+    elapsedMin: calc.rawElapsedMin,
+    effectiveElapsedMin: calc.effectiveElapsedMin,
     parking: calc.parking,
     abono: calc.abono,
     descuentoManual: calc.descuentoManual,
