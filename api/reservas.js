@@ -12,6 +12,144 @@ export const config = {
 // Almacén en memoria persistente Edge para resiliencia total
 let edgeReservasStore = [];
 
+// Helper: Formato de moneda chilena
+function formatClp(n) {
+  return '$' + Number(n || 0).toLocaleString('es-CL');
+}
+
+const MODALIDADES_NOMBRES = {
+  '1': '1. Servicio Integral (Asistencia TENS + Traslado)',
+  '2': '2. Traslado Exclusivo con Espera',
+  '3': '3. Cuidados a Domicilio',
+  '4': '4. Acompañamiento en Eventos Sociales',
+  '5': '5. Programa Interregional'
+};
+
+// Notificación automática a Telegram (Grupo Operativo)
+async function sendTelegramAlert(r, env = {}) {
+  const token = env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '9034551635:AAF9-9o1naWoy9A9jApv85TfejOLrKLAmk4';
+  const chatId = env.TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID || '-5338625089';
+
+  if (!token || !chatId) return;
+
+  const modNombre = MODALIDADES_NOMBRES[String(r.svc_type || r.mode)] || (`Modalidad ${r.svc_type || r.mode}`);
+  const origenFull = String(r.from_addr || r.from || 'Domicilio Origen').trim() + 
+    (r.depto && !String(r.from_addr || r.from || '').includes(r.depto) ? ` (${r.depto})` : '');
+  
+  let patsStr = 'Ninguna';
+  try {
+    const p = typeof r.patologias === 'string' ? JSON.parse(r.patologias) : r.patologias;
+    if (Array.isArray(p) && p.length) patsStr = p.join(', ');
+    else if (p) patsStr = String(p);
+  } catch(e) {
+    patsStr = String(r.patologias || 'Ninguna');
+  }
+
+  const turnoLabel = (r.block === 'manana' || r.block === 'mañana') ? 'Turno Mañana' : 
+                     (r.block === 'tarde') ? 'Turno Tarde' : 
+                     (r.block === 'noche') ? 'Turno Noche' : String(r.block || '');
+
+  const msg = [
+    '🚨 <b>¡NUEVA PRE-RESERVA REGISTRADA!</b>',
+    '',
+    `📋 <b>Folio:</b> #${r.folio}`,
+    `🏷️ <b>Modalidad:</b> ${modNombre}`,
+    `📅 <b>Fecha y Hora:</b> ${r.date} · ${r.time} hrs (${turnoLabel})`,
+    '',
+    '📍 <b>TRAYECTO Y DIRECCIÓN:</b>',
+    `• <b>Origen:</b> ${origenFull}`,
+    `• <b>Destino:</b> ${r.to_addr || r.to || 'No aplica (Atención en domicilio)'}`,
+    '',
+    '👤 <b>IDENTIFICACIÓN DEL PACIENTE:</b>',
+    `• <b>Nombre:</b> ${r.pat_name || r.pat} (${r.pat_age || r.age || '—'} años)`,
+    `• <b>Teléfono:</b> ${r.pat_phone || r.patPhone || 'No registra'}`,
+    `• <b>Movilidad / Ayuda Técnica:</b> ${r.mob || 'Autovalente'} ${r.ayuda_tecnica ? '· ' + r.ayuda_tecnica : ''}`,
+    `• <b>Estado:</b> ${r.conciencia || 'Lúcido / Orientado'}`,
+    `• <b>Alergias:</b> ${r.alergias || 'No registra'}`,
+    `• <b>Medicamentos:</b> ${r.medicamentos || 'No registra'}`,
+    `• <b>Patologías:</b> ${patsStr}`,
+    '',
+    '🤝 <b>CONTRATANTE / RESPONSABLE:</b>',
+    `• <b>Nombre:</b> ${r.coord_name || r.coord || r.pat_name} [${r.coord_type === 'paciente' ? 'Paciente directo' : 'Familiar/Tutor'}]`,
+    `• <b>Teléfono:</b> ${r.coord_phone || r.coordPhone || r.ph || 'No registra'}`,
+    '',
+    '💰 <b>CONDICIONES FINANCIERAS:</b>',
+    `• <b>Valor Total:</b> ${formatClp(r.fare)}`,
+    `• <b>Abono 50% Esperado:</b> <b>${formatClp(r.abono)}</b>`,
+    `• <b>Saldo en Terreno:</b> ${formatClp((r.fare || 0) - (r.abono || 0))}`,
+    '',
+    'ℹ️ <i>Registrada en tiempo real desde la web pública (reservar.html).</i>'
+  ].join('\n');
+
+  try {
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: msg,
+        parse_mode: 'HTML'
+      })
+    });
+  } catch(err) {
+    console.warn('Error al enviar alerta a Telegram:', err);
+  }
+}
+
+// Notificación automática por Correo Electrónico (Resend API o Email API corporativo)
+async function sendEmailAlert(r, env = {}) {
+  const apiKey = env.RESEND_API_KEY || process.env.RESEND_API_KEY;
+  const targetEmail = env.NOTIFICATION_EMAIL || process.env.NOTIFICATION_EMAIL || 'contacto@movilidadysaludasistida.cl';
+  const fromEmail = env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'notificaciones@movilidadysaludasistida.cl';
+
+  if (!apiKey) {
+    return;
+  }
+
+  const modNombre = MODALIDADES_NOMBRES[String(r.svc_type || r.mode)] || (`Modalidad ${r.svc_type || r.mode}`);
+  const origenFull = String(r.from_addr || r.from || 'Domicilio Origen').trim() + 
+    (r.depto && !String(r.from_addr || r.from || '').includes(r.depto) ? ` (${r.depto})` : '');
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1e293b;border:1px solid #e2e8f0;border-radius:10px">
+      <h2 style="color:#0f766e;margin-top:0">🚨 Nueva Reserva Registrada #${r.folio}</h2>
+      <p>Se ha recibido una nueva solicitud desde la web pública (<code>reservar.html</code>):</p>
+      
+      <table style="width:100%;border-collapse:collapse;margin:15px 0">
+        <tr style="background:#f8fafc"><td style="padding:8px;font-weight:bold;width:40%">Folio:</td><td style="padding:8px">#${r.folio}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Modalidad:</td><td style="padding:8px">${modNombre}</td></tr>
+        <tr style="background:#f8fafc"><td style="padding:8px;font-weight:bold">Fecha y Hora:</td><td style="padding:8px">${r.date} a las ${r.time} hrs (${r.block})</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Origen:</td><td style="padding:8px">${origenFull}</td></tr>
+        <tr style="background:#f8fafc"><td style="padding:8px;font-weight:bold">Destino:</td><td style="padding:8px">${r.to_addr || r.to || 'No aplica'}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Paciente:</td><td style="padding:8px">${r.pat_name || r.pat} (${r.pat_age || r.age} años) · Tel: ${r.pat_phone || r.patPhone || '—'}</td></tr>
+        <tr style="background:#f8fafc"><td style="padding:8px;font-weight:bold">Contratante:</td><td style="padding:8px">${r.coord_name || r.coord} · Tel: ${r.coord_phone || r.coordPhone || '—'}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Total / Abono 50%:</td><td style="padding:8px"><b>${formatClp(r.fare)}</b> (Abono requerido: ${formatClp(r.abono)})</td></tr>
+      </table>
+      
+      <p style="font-size:12px;color:#64748b;margin-top:20px">Movilidad y Salud Asistida SpA · Notificación Automática</p>
+    </div>
+  `;
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [targetEmail, 'movilidadysaludasistida@gmail.com'],
+        subject: `🚨 [Nueva Reserva #${r.folio}] ${r.pat_name || r.pat} - ${r.date} ${r.time} hrs`,
+        html: html
+      })
+    });
+  } catch(err) {
+    console.warn('Error al enviar correo vía Resend API:', err);
+  }
+}
+
 // Helper: Cálculo de expiración según política comercial (120 min diurno / Pausa nocturna hasta 10:00 hrs)
 function computeReservationExpiration(createdDate = new Date()) {
   const chileFormatter = new Intl.DateTimeFormat('en-CA', {
@@ -608,6 +746,22 @@ export default async function handler(req) {
           })
         }).catch(() => {});
       } catch(e) {}
+
+      // Disparar alertas automáticas e inmediatas a Telegram y Correo Corporativo (no bloqueante)
+      try {
+        sendTelegramAlert(finalRecord, {
+          TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+          TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID
+        }).catch(errTg => console.warn('Advertencia Telegram background:', errTg));
+
+        sendEmailAlert(finalRecord, {
+          RESEND_API_KEY: process.env.RESEND_API_KEY,
+          NOTIFICATION_EMAIL: process.env.NOTIFICATION_EMAIL,
+          RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL
+        }).catch(errMail => console.warn('Advertencia Email background:', errMail));
+      } catch(errAlerts) {
+        console.warn('Advertencia disparador de alertas:', errAlerts);
+      }
 
       // Retornar SIEMPRE 200 OK con el ID/Folio para gatillar inmediatamente la apertura de WhatsApp
       return new Response(
