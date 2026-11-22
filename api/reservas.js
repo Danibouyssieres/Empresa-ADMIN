@@ -83,7 +83,7 @@ async function sendTelegramAlert(r, env = {}) {
 
   try {
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
-    await fetch(url, {
+    const tgRes = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -92,8 +92,10 @@ async function sendTelegramAlert(r, env = {}) {
         parse_mode: 'HTML'
       })
     });
+    return { ok: tgRes.ok, status: tgRes.status };
   } catch(err) {
     console.warn('Error al enviar alerta a Telegram:', err);
+    return { ok: false, error: err.message };
   }
 }
 
@@ -104,7 +106,7 @@ async function sendEmailAlert(r, env = {}) {
   const fromEmail = env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'notificaciones@notificaciones.movilidadysaludasistida.cl';
 
   if (!apiKey) {
-    return;
+    return { ok: false, error: 'RESEND_API_KEY missing' };
   }
 
   const modNombre = MODALIDADES_NOMBRES[String(r.svc_type || r.mode)] || (`Modalidad ${r.svc_type || r.mode}`);
@@ -149,7 +151,7 @@ async function sendEmailAlert(r, env = {}) {
     if (!resendRes.ok) {
       console.warn('[Resend ERROR ' + resendRes.status + ']:', JSON.stringify(resendData));
     }
-    return { ok: resendRes.ok, status: resendRes.status, data: resendData };
+    return { ok: resendRes.ok, status: resendRes.status, from: fromEmail, to: [targetEmail, 'movilidadysaludasistida@gmail.com'], data: resendData };
   } catch(err) {
     console.warn('Error al enviar correo vía Resend API:', err);
     return { ok: false, error: err.message };
@@ -754,8 +756,9 @@ export default async function handler(req) {
       } catch(e) {}
 
       // Disparar alertas automáticas e inmediatas a Telegram y Correo Corporativo (garantizado con await en Vercel Edge Runtime)
+      let alertDiag = { telegram: null, email: null };
       try {
-        await Promise.allSettled([
+        const [tgSettled, mailSettled] = await Promise.allSettled([
           sendTelegramAlert(finalRecord, {
             TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
             TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID
@@ -766,6 +769,8 @@ export default async function handler(req) {
             RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL
           })
         ]);
+        alertDiag.telegram = tgSettled.status === 'fulfilled' ? tgSettled.value : { ok: false, error: String(tgSettled.reason) };
+        alertDiag.email = mailSettled.status === 'fulfilled' ? mailSettled.value : { ok: false, error: String(mailSettled.reason) };
       } catch(errAlerts) {
         console.warn('Advertencia disparador de alertas:', errAlerts);
       }
@@ -778,6 +783,7 @@ export default async function handler(req) {
           source: persistSource,
           expires_at: expiresAt,
           is_night: isNightIntake,
+          alerts: alertDiag,
           data: finalRecord
         }),
         { status: 200, headers: corsHeaders }
