@@ -101,7 +101,7 @@ async function sendTelegramAlert(r, env = {}) {
 async function sendEmailAlert(r, env = {}) {
   const apiKey = env.RESEND_API_KEY || process.env.RESEND_API_KEY;
   const targetEmail = env.NOTIFICATION_EMAIL || process.env.NOTIFICATION_EMAIL || 'contacto@movilidadysaludasistida.cl';
-  const fromEmail = env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'notificaciones@movilidadysaludasistida.cl';
+  const fromEmail = env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'notificaciones@notificaciones.movilidadysaludasistida.cl';
 
   if (!apiKey) {
     return;
@@ -132,7 +132,7 @@ async function sendEmailAlert(r, env = {}) {
   `;
 
   try {
-    await fetch('https://api.resend.com/emails', {
+    const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -145,8 +145,14 @@ async function sendEmailAlert(r, env = {}) {
         html: html
       })
     });
+    const resendData = await resendRes.json().catch(() => ({}));
+    if (!resendRes.ok) {
+      console.warn('[Resend ERROR ' + resendRes.status + ']:', JSON.stringify(resendData));
+    }
+    return { ok: resendRes.ok, status: resendRes.status, data: resendData };
   } catch(err) {
     console.warn('Error al enviar correo vía Resend API:', err);
+    return { ok: false, error: err.message };
   }
 }
 
