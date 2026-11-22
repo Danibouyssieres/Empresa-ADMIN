@@ -747,18 +747,19 @@ export default async function handler(req) {
         }).catch(() => {});
       } catch(e) {}
 
-      // Disparar alertas automáticas e inmediatas a Telegram y Correo Corporativo (no bloqueante)
+      // Disparar alertas automáticas e inmediatas a Telegram y Correo Corporativo (garantizado con await en Vercel Edge Runtime)
       try {
-        sendTelegramAlert(finalRecord, {
-          TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
-          TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID
-        }).catch(errTg => console.warn('Advertencia Telegram background:', errTg));
-
-        sendEmailAlert(finalRecord, {
-          RESEND_API_KEY: process.env.RESEND_API_KEY,
-          NOTIFICATION_EMAIL: process.env.NOTIFICATION_EMAIL,
-          RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL
-        }).catch(errMail => console.warn('Advertencia Email background:', errMail));
+        await Promise.allSettled([
+          sendTelegramAlert(finalRecord, {
+            TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+            TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID
+          }),
+          sendEmailAlert(finalRecord, {
+            RESEND_API_KEY: process.env.RESEND_API_KEY,
+            NOTIFICATION_EMAIL: process.env.NOTIFICATION_EMAIL,
+            RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL
+          })
+        ]);
       } catch(errAlerts) {
         console.warn('Advertencia disparador de alertas:', errAlerts);
       }
