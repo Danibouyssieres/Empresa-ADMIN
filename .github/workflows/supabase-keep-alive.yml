@@ -8,7 +8,7 @@ on:
 
 jobs:
   keep-alive:
-    name: Ping Supabase Database
+    name: Ping Supabase Databases (Prod & Dev)
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -23,6 +23,8 @@ jobs:
 
       - name: Ejecutar Ping Keep-Alive
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://iculxhwrvzeokgvpdzlq.supabase.co' }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_PROD_URL: ${{ secrets.SUPABASE_PROD_URL || 'https://doesbrltwelcocaocykf.supabase.co' }}
+          SUPABASE_PROD_KEY: ${{ secrets.SUPABASE_PROD_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_KEY }}
+          SUPABASE_DEV_URL: ${{ secrets.SUPABASE_DEV_URL || 'https://iculxhwrvzeokgvpdzlq.supabase.co' }}
+          SUPABASE_DEV_KEY: ${{ secrets.SUPABASE_DEV_KEY }}
         run: node scripts/keep-alive-supabase.js
