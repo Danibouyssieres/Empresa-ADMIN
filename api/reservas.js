@@ -103,7 +103,10 @@ async function sendTelegramAlert(r, env = {}) {
 async function sendEmailAlert(r, env = {}) {
   const apiKey = env.RESEND_API_KEY || process.env.RESEND_API_KEY;
   const targetEmail = env.NOTIFICATION_EMAIL || process.env.NOTIFICATION_EMAIL || 'contacto@movilidadysaludasistida.cl';
-  const fromEmail = env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'notificaciones@notificaciones.movilidadysaludasistida.cl';
+  let fromEmail = env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'notificaciones@notificaciones.movilidadysaludasistida.cl';
+  if (fromEmail.trim().endsWith('@movilidadysaludasistida.cl')) {
+    fromEmail = 'notificaciones@notificaciones.movilidadysaludasistida.cl';
+  }
 
   if (!apiKey) {
     return { ok: false, error: 'RESEND_API_KEY missing' };
