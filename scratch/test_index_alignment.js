@@ -34,8 +34,9 @@ assert(html.includes('Pack Base 4 hrs: $95.000 &nbsp;|&nbsp; Pack Total 6 hrs: $
 assert(html.includes('Tiempo adicional: 30 min $7.500 / 1 hora $15.000 / 1 hr 30 min $22.500 / 2 hrs $30.000 (Tope máx.)'), 'Must contain additional time scale in event rows');
 console.log('✓ Event rows d.1 and d.2 colspan="3" merged layout verified');
 
-// 5. Sección Preventiva (Rango pediátrico 2 a 13 años)
-assert(html.includes('En niños de 2 a 13 años'), 'Pediatric age range must be 2 to 13 years');
-console.log('✓ Sección Preventiva (2 a 13 años) verified');
+// 5. Sección Preventiva (Desde los 14 años en adelante)
+assert(html.includes('Criterio clínico según edad del paciente'), 'Card title must reflect age criterion');
+assert(html.includes('a partir de los 14 años'), 'Age range must be from 14 years onwards');
+console.log('✓ Sección Preventiva (desde los 14 años en adelante) verified');
 
 console.log('\n🎉 ALL INDEX.HTML ALIGNMENT TESTS PASSED PERFECTLY!\n');
