@@ -6097,20 +6097,20 @@ function solicitarPagoWhatsAppAdmin(){
   const taxRsVal = ($('#adm_liq_tax_rs') && $('#adm_liq_tax_rs').value.trim()) || tax.razonSocial || tax.rs || '';
   const taxRutVal = ($('#adm_liq_tax_rut') && $('#adm_liq_tax_rut').value.trim()) || tax.rut || '';
   const taxDocTxt = isInvoice
-    ? `\n📄 *DOCUMENTO TRIBUTARIO: Factura Electrónica Exenta*\n• Razón Social: ${taxRsVal || 'Empresa'}\n• RUT Empresa: ${taxRutVal || 'No registra'}\n`
-    : `\n📄 *DOCUMENTO TRIBUTARIO: Boleta Electrónica Exenta*\n`;
+    ? `\n• *DOCUMENTO TRIBUTARIO: Factura Electrónica Exenta*\n• Razón Social: ${taxRsVal || 'Empresa'}\n• RUT Empresa: ${taxRutVal || 'No registra'}\n`
+    : `\n• *DOCUMENTO TRIBUTARIO: Boleta Electrónica Exenta*\n`;
 
   const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA.
 
 Hemos finalizado exitosamente ${svcVerbPhrase} de ${patName} (Folio #${cleanFolio}).
 ${taxDocTxt}
-💰 *DETALLE DE SALDO A LIQUIDAR:*
+• *DETALLE DE SALDO A LIQUIDAR:*
 • Subtotal Servicio: ${$c(calc.subtotalServicio)}${extraTxt}
 ${calc.parking > 0 ? `• Estacionamiento / Parking: ${$c(calc.parking)}\n` : ''}• Total Servicio Liquidado: ${$c(calc.totalServicio)}
 • Abono 50% previo registrado: -${$c(calc.abonoPrevio)}
-${calc.descuentoManual > 0 ? `• Descuento / Ajuste aplicado: -${$c(calc.descuentoManual)}\n` : ''}👉 *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
+${calc.descuentoManual > 0 ? `• Descuento / Ajuste aplicado: -${$c(calc.descuentoManual)}\n` : ''}• *TOTAL SALDO PENDIENTE A TRANSFERIR: ${$c(calc.saldoFinal)}*${parkingTxt}
 
-🏦 *DATOS BANCARIOS PARA TRANSFERENCIA:*
+• *DATOS BANCARIOS PARA TRANSFERENCIA:*
 • Banco: Scotiabank
 • Tipo de Cuenta: Cuenta Corriente
 • N° de Cuenta: 994989122
