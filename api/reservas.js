@@ -18,8 +18,8 @@ function formatClp(n) {
 }
 
 const MODALIDADES_NOMBRES = {
-  '1': '1. Servicio Integral (Asistencia TENS + Traslado)',
-  '2': '2. Traslado Exclusivo con Espera',
+  '1': '1. Servicio Integral (Acompañamiento + Movilidad Asistida)',
+  '2': '2. Movilidad Asistida',
   '3': '3. Cuidados a Domicilio',
   '4': '4. Acompañamiento en Eventos Sociales',
   '5': '5. Programa Interregional'

@@ -464,8 +464,8 @@ footer a{color:#fff}
       <div class="full-modality-bar" style="margin-bottom:18px">
         <label for="b_svc_type">Modalidad de Servicio Principal *</label>
         <select id="b_svc_type" required onchange="onServiceTypeChange(); if(typeof window.actualizarTarifaSegunAgenda==='function') window.actualizarTarifaSegunAgenda();">
-          <option value="1">1. Servicio Integral (Movilidad Asistida Interna, Puerta a Puerta)</option>
-          <option value="2">2. Movilidad Asistida Externa</option>
+          <option value="1">1. Servicio Integral (Acompañamiento + Movilidad Asistida)</option>
+          <option value="2">2. Movilidad Asistida</option>
           <option value="3">3. Cuidados a Domicilio o Trámites Peatonales</option>
           <option value="4">4. Acompañamiento Clínico en Eventos Sociales</option>
           <option value="5">5. Programas Interregionales de Alta Cobertura Clínica</option>
@@ -1290,8 +1290,8 @@ const REQ_BY_MODE = {
 const PRESET_HOURS=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
 
 const SVC_NAMES = {
-  '1': '1. Servicio Integral (Movilidad Asistida Interna, Puerta a Puerta)',
-  '2': '2. Movilidad Asistida Externa',
+  '1': '1. Servicio Integral (Acompañamiento + Movilidad Asistida)',
+  '2': '2. Movilidad Asistida',
   '3': '3. Cuidados a Domicilio o Trámites Peatonales',
   '4': '4. Acompañamiento Clínico en Eventos Sociales',
   '5': '5. Programas Interregionales de Alta Cobertura Clínica'
@@ -4103,7 +4103,7 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin, vueltaMin){
   if(mode === '5'){
     lastKmCost = 0;
     $('#outPrice').textContent = 'Incluido';
-    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min de viaje)`;
+    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min estimados)`;
     $('#rowReturn').style.display = 'flex';
     $('#bdReturn').textContent = `${fmtVuelta} km`;
     $('#bdMode').textContent = `${modeLabel} · Dedicación Exclusiva`;
@@ -4111,7 +4111,7 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin, vueltaMin){
   } else if(mode === '4'){
     lastKmCost = 0;
     $('#outPrice').textContent = 'Incluido';
-    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min de viaje)`;
+    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min estimados)`;
     $('#rowReturn').style.display = 'flex';
     $('#bdReturn').textContent = `${fmtVuelta} km`;
     $('#bdMode').textContent = `${modeLabel} · Dedicación Exclusiva`;
@@ -4119,7 +4119,7 @@ function renderPricing(idaKm, vueltaKm, totalKm, totalMin, idaMin, vueltaMin){
   } else {
     lastKmCost = Math.round((rTotal * PRICE_PER_KM) / 100) * 100;
     $('#outPrice').textContent = $c(lastKmCost);
-    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min de viaje)`;
+    $('#bdOneWay').textContent = `${fmtIda} km (${lastRouteIdaMin} min estimados)`;
     $('#rowReturn').style.display = isRoundTrip ? 'flex' : 'none';
     $('#bdReturn').textContent = `${fmtVuelta} km`;
     $('#bdMode').textContent = modeLabel;
@@ -5918,7 +5918,7 @@ window.updateSectionsVisibilityBySemaforo = updateSectionsVisibilityBySemaforo;
 
 function getSemaforoRedWaText(semaforo){
   const mode = ($('#b_svc_type') && $('#b_svc_type').value) || '1';
-  let svcName = SVC_NAMES[mode] || 'Servicio Integral (Asistencia + Traslado)';
+  let svcName = SVC_NAMES[mode] || '1. Servicio Integral (Acompañamiento + Movilidad Asistida)';
   if(mode === '4'){
     const isConEvento = (selectedEventSubMode === 'con_traslado');
     svcName = isConEvento ? '4. Acompañamiento en Eventos Sociales (Con Traslados)' : '4. Acompañamiento en Eventos Sociales (Sin Traslado)';
@@ -6333,7 +6333,7 @@ function calcSuggestedPickup(source){
 
     const tempRouteNote = isEstimatedTempRoute
       ? `<div style="font-size:.82rem;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;margin-top:8px;line-height:1.4">
-          ⚠️ <b>Calcule la ruta primero en el mapa</b> para obtener los minutos reales de conducción (cálculo provisional con tiempo base de ${isInter ? '90' : (isEventConTraslado ? '30' : '10')} min de viaje).
+          ⚠️ <b>Calcule la ruta primero en el mapa</b> para obtener los minutos reales de conducción (cálculo provisional con tiempo base de ${isInter ? '90' : (isEventConTraslado ? '30' : '10')} min estimados).
          </div>`
       : '';
 

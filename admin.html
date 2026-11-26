@@ -253,13 +253,13 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
   <!-- BLOQUE LOGÍSTICA Y ATENCIÓN -->
   <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;margin-bottom:10px;box-sizing:border-box;width:100%">
     <div style="font-weight:800;color:#0f766e;font-size:12pt;margin-bottom:6px;letter-spacing:.01em">
-      📍 Detalle de Trayecto, Ayuda Técnica y Horarios en Terreno
+      📍 Detalle de Atención Clínica, Ayuda Técnica y Horarios
     </div>
     <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:6px 14px;font-size:10pt;line-height:1.4">
       <div>
         <div><b>Origen:</b> <span id="pdfDirOrigen">—</span></div>
         <div id="pdfRowDestino"><b>Destino:</b> <span id="pdfDirDestino">—</span></div>
-        <div><b>Modalidad:</b> <span id="pdfSvcModalidad">1. Servicio Integral (Asistencia + Traslado)</span></div>
+        <div><b>Modalidad:</b> <span id="pdfSvcModalidad">1. Servicio Integral (Acompañamiento + Movilidad Asistida)</span></div>
       </div>
       <div>
         <div><b>Ayuda Técnica:</b> <span id="pdfAyudaTecnica" style="font-weight:700;color:#0f766e">Silla de Ruedas del servicio</span></div>
@@ -442,7 +442,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
         <span id="adm_co_lbl_tiempo" style="font-size:11px;color:#64748b;font-weight:600"></span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
-        <span style="color:#475569">Subtotal Servicio (Base + Extras):</span>
+        <span style="color:#475569">Subtotal Atención TENS + Desplazamiento:</span>
         <b id="adm_co_subtotal_servicio" style="color:#0f172a">$0</b>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
@@ -2382,8 +2382,8 @@ function form(){
         <div>
           <label for="aq_mode"><b>Modalidad de Servicio *</b></label>
           <select id="aq_mode" onchange="onAdminModeChange()" style="font-weight:700">
-            <option value="1" selected>1. Servicio Integral (Asistencia TENS + Traslado)</option>
-            <option value="2">2. Traslado Exclusivo con Espera</option>
+            <option value="1" selected>1. Servicio Integral (Acompañamiento + Movilidad Asistida)</option>
+            <option value="2">2. Movilidad Asistida</option>
             <option value="3">3. Cuidados a Domicilio (Sin Traslado)</option>
             <option value="4">4. Acompañamiento en Eventos Sociales</option>
             <option value="5">5. Programas Interregionales</option>
@@ -4143,8 +4143,8 @@ function sendAdminQuoteWhatsApp(){
   const cleanPhone = phoneDigits ? ('569' + phoneDigits) : '56929990095';
 
   const modeNames = {
-    '1': '1. Servicio Integral (Asistencia TENS + Traslado)',
-    '2': '2. Traslado Exclusivo con Espera',
+    '1': '1. Servicio Integral (Acompañamiento + Movilidad Asistida)',
+    '2': '2. Movilidad Asistida',
     '3': '3. Cuidados a Domicilio (Sin Traslado)',
     '4': '4. Acompañamiento en Eventos Sociales',
     '5': '5. Programas Interregionales'
@@ -5316,7 +5316,7 @@ function tens(){
 
   return `<div class=card>
     ${isAdmin ? `
-      <label>Supervisar Conducción / TENS específico:</label>
+      <label>Profesional TENS asignado:</label>
       <select onchange="U.tens=this.value;render()">${act.map(t=>`<option value="${t.id}" ${t.id==U.tens?'selected':''}>${e(t.nom)}</option>`).join('')}</select>
     ` : `
       <div style="font-weight:700;color:var(--pri)">🩺 Servicios de Hoy Asignados a: ${e(sess.name)}</div>
@@ -5404,7 +5404,7 @@ function card(s){
           </button>
         ` : `
           <button type="button" class="p" onclick="setSt('${s.id}','En Ruta')" style="background:#0284c7;border-color:#0284c7;width:100%;padding:10px 14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
-            🚗 Salir a Terreno / En Ruta
+            🩺 Iniciar Atención Clínica en Terreno
           </button>
         `}
       </div>
@@ -5901,7 +5901,7 @@ function renderFieldCheckoutSummary(s){
 
   const modeNames = {
     '1': 'Modalidad 1: Servicio Integral',
-    '2': 'Modalidad 2: Traslado Exclusivo con Espera',
+    '2': 'Modalidad 2: Movilidad Asistida',
     '3': 'Modalidad 3: Cuidados a Domicilio',
     '4': 'Modalidad 4: Acompañamiento en Eventos',
     '5': 'Modalidad 5: Programa Interregional'
@@ -6083,13 +6083,13 @@ function solicitarPagoWhatsAppAdmin(){
     : '';
 
   const isSinTraslado = (calc.mode === '3') || (calc.mode === '4' && (s.eventSubtype === 'sin_traslado' || s.subtipo === 'sin_traslado' || String(s.obs || '').includes('Sin Traslado') || !s.to || s.to === s.from || String(s.to).toLowerCase().includes('no aplica') || String(s.to).toLowerCase().includes('sin traslado') || String(s.to).toLowerCase().includes('recinto'))) || String(s.to || '').toLowerCase().includes('no aplica');
-  let svcVerbText = 'atención y traslado';
+  let svcVerbPhrase = 'la atención clínica y movilidad asistida';
   if(calc.mode === '4'){
-    svcVerbText = isSinTraslado ? 'atención y acompañamiento en evento' : 'atención y acompañamiento en evento con traslado';
+    svcVerbPhrase = isSinTraslado ? 'la atención y acompañamiento en evento' : 'la atención y acompañamiento en evento con movilidad asistida';
   } else if(calc.mode === '3'){
-    svcVerbText = 'atención y cuidados clínicos a domicilio';
+    svcVerbPhrase = 'la atención y cuidados clínicos a domicilio';
   } else if(calc.mode === '5'){
-    svcVerbText = 'programa y traslado clínico interregional';
+    svcVerbPhrase = 'el programa clínico interregional';
   }
 
   const tax = getServiceTaxDoc(s);
@@ -6102,7 +6102,7 @@ function solicitarPagoWhatsAppAdmin(){
 
   const waMsg = `Hola ${clientName}! Le contactamos de Movilidad y Salud Asistida SpA.
 
-Hemos finalizado exitosamente el servicio de ${svcVerbText} de ${patName} (Folio #${cleanFolio}).
+Hemos finalizado exitosamente ${svcVerbPhrase} de ${patName} (Folio #${cleanFolio}).
 ${taxDocTxt}
 💰 *DETALLE DE SALDO A LIQUIDAR:*
 • Subtotal Servicio: ${$c(calc.subtotalServicio)}${extraTxt}
@@ -6396,8 +6396,8 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   }
   if($('#pdfDirDestino')) $('#pdfDirDestino').textContent = isSinTraslado ? (mode === '4' ? 'No aplica (Atención directa en recinto)' : 'No aplica (Atención en domicilio)') : sanitizePlaceLabel(s.to || s.from);
   const MODALIDAD_LABELS_PDF = {
-    '1': '1. Servicio Integral (Asistencia TENS + Traslado)',
-    '2': '2. Traslado Exclusivo con Espera',
+    '1': '1. Servicio Integral (Acompañamiento + Movilidad Asistida)',
+    '2': '2. Movilidad Asistida',
     '3': '3. Cuidados a Domicilio (Sin Traslado)',
     '4': '4. Acompañamiento en Eventos Sociales',
     '5': '5. Programas Interregionales'
@@ -6507,22 +6507,22 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
       }
     } else {
       // MODALIDADES 1, 2, 3:
+      itemsHtml += `
+        <tr>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '3' ? 'Asistencia Clínica a Domicilio' : 'Asistencia Clínica TENS (Tiempo Base y Adicional)'}</td>
+          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1).replace('.', ',')} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
+          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
+        </tr>
+      `;
       if(!isSinTraslado && (calc.kmCost > 0 || mode === '1' || mode === '2')){
         itemsHtml += `
           <tr>
-            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Traslado en Móvil (Kilometraje)</td>
+            <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">Desplazamiento Clínico en Ruta (Kilometraje)</td>
             <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.kmTot.toFixed(1).replace('.', ',')} km ida/vuelta × $1.000/km${calc.floorApplied ? ` (Piso Mínimo Comunal ${calc.ringName}: ${$c(calc.ringFloor)})` : ''}</td>
             <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.kmCost)}</td>
           </tr>
         `;
       }
-      itemsHtml += `
-        <tr>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${mode === '2' ? 'Tiempo de Espera en Recinto (Tiempo Base)' : (mode === '3' ? 'Asistencia Clínica a Domicilio' : 'Asistencia Clínica TENS (Tiempo Base)')}</td>
-          <td style="padding:6px 10px;border:1px solid #cbd5e1;box-sizing:border-box">${calc.horasBase.toFixed(1).replace('.', ',')} hrs base × ${$c(calc.hourlyRate)}/hr (${jornadaTexto})</td>
-          <td style="padding:6px 12px;border:1px solid #cbd5e1;text-align:right;box-sizing:border-box;white-space:nowrap">${$c(calc.tiempoBaseCost)}</td>
-        </tr>
-      `;
     }
 
     if(mode !== '4' && mode !== '5' && diffMin > 0 && calc.extraCost > 0){
