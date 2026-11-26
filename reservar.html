@@ -1290,11 +1290,11 @@ const REQ_BY_MODE = {
 const PRESET_HOURS=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
 
 const SVC_NAMES = {
-  '1': '1. Servicio Integral (Asistencia + Traslado)',
-  '2': '2. Traslado Exclusivo con Espera',
-  '3': '3. Cuidados a Domicilio',
-  '4': '4. Acompañamiento en Eventos Sociales',
-  '5': '5. Programas Interregionales'
+  '1': '1. Servicio Integral (Movilidad Asistida Interna, Puerta a Puerta)',
+  '2': '2. Movilidad Asistida Externa',
+  '3': '3. Cuidados a Domicilio o Trámites Peatonales',
+  '4': '4. Acompañamiento Clínico en Eventos Sociales',
+  '5': '5. Programas Interregionales de Alta Cobertura Clínica'
 };
 
 // Tarifas horarias exactas según tabla oficial
@@ -6619,7 +6619,7 @@ async function submitBooking(ev){
     const mode = $('#b_svc_type').value;
     const isConEvento = (mode === '4' && selectedEventSubMode === 'con_traslado');
     const svcName = mode === '4'
-      ? `4. Acompañamiento en Eventos Sociales (${isConEvento ? 'Pack Integral Puerta a Puerta (Con Traslados)' : 'Pack Asistencia en Recinto (Sin Traslado)'})`
+      ? `4. Acompañamiento Clínico en Eventos Sociales (${isConEvento ? 'Pack Integral Puerta a Puerta (Con Movilidad Asistida)' : 'Pack Asistencia en Recinto (Sin Desplazamiento)'})`
       : SVC_NAMES[mode];
     const showMap = isMapEnabledForCurrentState();
     const showDest = (mode === '1' || mode === '2' || mode === '5' || isConEvento);
@@ -7278,6 +7278,9 @@ async function submitBooking(ev){
   } catch(eExp){}
   const isNightIntake = expInfo.isNight;
   const expiresMs = expInfo.expiresMs;
+  const compDisplay = compVal === 'Sí, viaja solo'
+    ? 'Asiste solo con el profesional TENS'
+    : (compVal.includes('acompañante') || compVal.includes('Acompañado') ? 'Asiste con acompañante familiar' : compVal);
   const techObj = D.techs.find(t=>t.id===tid) || {nom:'Daniela González Bouyssieres'};
   const waText = `Hola, deseo solicitar una Pre-Reserva vía WhatsApp (Folio #${realFolio}):\n` +
     `• Modalidad: ${svcName}\n` +
@@ -7293,10 +7296,10 @@ async function submitBooking(ev){
       : (mode === '4' && selectedEventSubMode === 'sin_traslado')
         ? `• Horario de Atención: Llegada al recinto / Inicio: ${timeStr} hrs → Término aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`
         : (mode === '4' && selectedEventSubMode === 'con_traslado')
-          ? `• Horario del Servicio: Recogida en domicilio: ${timeStr} hrs${appTimeVal ? ` (Inicio evento: ${appTimeVal} hrs)` : ''} → Retorno aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de cobertura total)\n`
+          ? `• Horario del Servicio: Inicio en domicilio: ${timeStr} hrs${appTimeVal ? ` (Inicio evento: ${appTimeVal} hrs)` : ''} → Retorno aprox: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de cobertura total)\n`
           : (mode === '5')
-            ? `• Circuito Interregional Completo: Salida / Recogida en domicilio: ${timeStr} hrs → Retorno estimado al hogar: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de circuito total · traslados ida/vuelta y permanencia clínica)\n`
-            : `• Servicio Completo: Recogida ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
+            ? `• Circuito Interregional Completo: Inicio en domicilio: ${timeStr} hrs → Retorno estimado al hogar: ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} de circuito total · traslados ida/vuelta y permanencia clínica)\n`
+            : `• Servicio Completo: Inicio en domicilio: ${timeStr} hrs → Retorno/término aprox. ${fm(endMin % 1440)} hrs (${fmtHoursClean(dur)} efectivas reservadas)\n`) +
     (isMiddayCase ? `• ⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.\n` : '') +
     `• Dirección: ${from}${depto ? ` (${depto})` : ''}\n` +
     (showDest ? `• Destino / Recinto: ${to}\n` : '') +
@@ -7316,7 +7319,7 @@ async function submitBooking(ev){
           : (!ayudaTecnica.startsWith('Ninguna') ? `• Ayuda técnica requerida: ${ayudaTecnica}\n` : ''))
       : '') +
     `• Patologías crónicas / Base: ${pathologiesText}\n` +
-    `• ¿Viaja solo o acompañado?: ${compVal}\n` +
+    `• Modalidad de asistencia: ${compDisplay}\n` +
     (obs ? `• Observaciones e Indicaciones: ${obs}\n` : '') +
     (isSameAsPatient
       ? `• Coordinación: Directa con el Paciente - ${coord} (${ph})\n`
@@ -7367,17 +7370,17 @@ async function submitBooking(ev){
               ? `<li><span>🕒 <b>Horario del Servicio:</b></span> <span>Recogida en domicilio a las <b>${e(timeStr)} hrs</b>${appTimeVal ? ` (Inicio del evento: <b>${e(appTimeVal)} hrs</b>)` : ''} → Retorno aprox. al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de cobertura total)</span></li>`
             : (mode === '5')
               ? `<li><span>🕒 <b>Circuito Interregional Completo:</b></span> <span>Salida / Recogida en domicilio a las <b>${e(timeStr)} hrs</b> → Retorno estimado al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de dedicación exclusiva y cobertura en ruta)</span></li>`
-              : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Recogida a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
+              : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Inicio en domicilio a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
         ${isMiddayCase ? `<li style="background:#FEF2F2;border:1px solid #EF4444;color:#B91C1C"><span>⚠️ <b>Observación de Horario:</b></span> <b>⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.</b></li>` : ''}
         ${isPackTotalEvent ? `<li><span>🌙 <b>Jornada y Descanso Operativo:</b></span> <span>Bloquea automáticamente la jornada vespertina/nocturna de la fecha y el Turno Mañana del día siguiente por descanso obligatorio.</span></li>` : (endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : '')}
         ${mode === '5' ? `<li><span>🛡️ <b>Seguridad Vial y Descanso:</b></span> <span>Bloquea jornada completa de la fecha y el Turno Noche de la víspera (noche anterior)</span></li>` : ''}
-        <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : (mode === '3' ? 'Dirección del Domicilio:' : 'Dirección de Recogida / Inicio (A):')}</b></span> <span>${e(from)}${depto ? ` · <b>${e(depto)}</b>` : ''}</span></li>
+        <li><span>📍 <b>${(mode === '4' && selectedEventSubMode === 'sin_traslado') ? 'Centro de Eventos / Salón:' : (mode === '3' ? 'Dirección del Domicilio:' : 'Dirección de Inicio / Domicilio (A):')}</b></span> <span>${e(from)}${depto ? ` · <b>${e(depto)}</b>` : ''}</span></li>
         ${showDest ? `<li><span>🏁 <b>Dirección de Destino / Recinto (B):</b></span> <span>${e(to)}</span></li>` : ''}
+        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : (mode === '4' ? 'Plan de Cobertura:' : 'Jornada y Tiempo:')}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : (mode === '4' ? `${e(currentDurationText)} · Tarifa Plana Cerrada` : `${e(getJornadaLabel(currentJornada, mode))} · ${dur} min (${$c(lastTimeCost)})`)}</span></li>
         ${showMap && (mode === '1' || mode === '2') ? `
           <li><span>⭕ <b>Anillo Comunal:</b></span> <span>${e(ringLabel)}</span></li>
-          <li><span>🛣️ <b>Kilómetros (${e(modeLabel)}):</b></span> <span><b>${e(fmtTotalKm)}</b> (${$c(lastKmCost)})</span></li>
+          <li><span>🛣️ <b>Desplazamiento clínico en ruta (Ida y Vuelta):</b></span> <span><b>${e(fmtTotalKm)}</b> (${$c(lastKmCost)})</span></li>
         ` : ''}
-        <li><span>⏱️ <b>${mode === '5' ? 'Programa y Tiempo:' : (mode === '4' ? 'Plan de Cobertura:' : 'Jornada y Tiempo:')}</b></span> <span>${mode === '5' ? e(lastInterBreakdown) : (mode === '4' ? `${e(currentDurationText)} · Tarifa Plana Cerrada` : `${e(getJornadaLabel(currentJornada, mode))} · ${dur} min (${$c(lastTimeCost)})`)}</span></li>
         <li style="background:var(--mist);border-color:var(--teal)">
           <span>💰 <b>VALOR REAL TOTAL A PAGAR:</b></span> <span style="font-size:1.15rem;font-weight:800;color:var(--teal)">${$c(lastFinalTotal)}</span>
         </li>
@@ -7397,7 +7400,7 @@ async function submitBooking(ev){
             : (!ayudaTecnica.startsWith('Ninguna') ? `<li><span>🦯 <b>Ayuda Técnica Requerida:</b></span> <span>${e(ayudaTecnica)}</span></li>` : '')
         ) : ''}
         <li><span>🩺 <b>Patologías Crónicas / Base:</b></span> <span>${e(pathologiesText)}</span></li>
-        <li><span>👥 <b>¿Viaja solo o acompañado?:</b></span> <span>${e(compVal)}</span></li>
+        <li><span>👥 <b>Modalidad de asistencia:</b></span> <span>${e(compDisplay)}</span></li>
         ${obs ? `<li><span>📝 <b>Observaciones / Indicaciones:</b></span> <span>${e(obs)}</span></li>` : ''}
         <li><span>📞 <b>Coordinación de Reserva:</b></span> <span><b>${isSameAsPatient ? 'Directa con el Paciente' : 'Familiar / Tutor'}:</b> ${e(coord)} (${e(ph)})</span></li>
         <li><span>📑 <b>Documento Tributario:</b></span> <span>${isInvoice ? `Factura Electrónica Exenta<br><small style="color:var(--mute)">Razón Social: <b>${e(taxRS)}</b> · RUT: <b>${e(taxRUT)}</b> · Giro: <b>${e(taxGiro)}</b><br>Dirección Tributaria: <b>${e(taxDir)}</b></small>` : 'Boleta Electrónica Exenta (Pacientes particulares / Reembolsos)'}</span></li>
@@ -7410,7 +7413,7 @@ async function submitBooking(ev){
           <h3 style="margin:0;font-size:1.18rem;color:var(--teal)">Datos Bancarios para Pago del Abono (50%: ${$c(lastAbono50)})</h3>
         </div>
         <p style="font-size:.92rem;color:var(--mute);margin:0 0 14px;line-height:1.5">
-          Para confirmar y bloquear formalmente la agenda exclusiva de la unidad TENS y el vehículo, realice la transferencia del 50% a la cuenta bancaria oficial de la empresa:
+          Para confirmar y bloquear formalmente la agenda exclusiva del profesional TENS y del móvil operativo, realice la transferencia del 50% a la cuenta bancaria oficial de la empresa:
         </p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px">
           <div>
