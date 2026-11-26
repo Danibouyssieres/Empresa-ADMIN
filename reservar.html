@@ -598,14 +598,14 @@ footer a{color:#fff}
           <button type="button" id="eventBtn_sin" class="reg-sq active" onclick="selectEventSubMode('sin_traslado')">
             <span class="reg-check" id="eventChk_sin">✓</span>
             <div>
-              <strong>Pack Asistencia en Recinto (Sin Traslado)</strong>
+              <strong>Pack Asistencia en Recinto (Sin desplazamiento vehicular)</strong>
               <small>La familia lleva al paciente · Atención TENS continua durante la celebración</small>
             </div>
           </button>
           <button type="button" id="eventBtn_con" class="reg-sq" onclick="selectEventSubMode('con_traslado')">
             <span class="reg-check" id="eventChk_con"></span>
             <div>
-              <strong>Pack Integral Puerta a Puerta (Con Traslado)</strong>
+              <strong>Pack Integral con Movilidad Asistida (Ida y Vuelta)</strong>
               <small>Incluye traslados completos Ida y Vuelta + Cobertura TENS efectiva íntegra durante la celebración</small>
             </div>
           </button>
@@ -620,14 +620,14 @@ footer a{color:#fff}
             <span class="reg-check" id="regChk_valparaiso">✓</span>
             <div>
               <strong>Región de Valparaíso</strong>
-              <small>Traslado puerta a puerta (Ida y Vuelta a Santiago)</small>
+              <small>Movilidad asistida puerta a puerta (ida y vuelta)</small>
             </div>
           </button>
           <button type="button" id="regBtn_ohiggins" class="reg-sq" onclick="selectInterRegion('Región de O\'Higgins')">
             <span class="reg-check" id="regChk_ohiggins"></span>
             <div>
               <strong>Región de O'Higgins</strong>
-              <small>Traslado puerta a puerta (Ida y Vuelta a Santiago)</small>
+              <small>Movilidad asistida puerta a puerta (ida y vuelta)</small>
             </div>
           </button>
         </div>
@@ -1851,7 +1851,7 @@ function applyModalityVisibility(){
       bFrom.placeholder = 'Ingrese nombre del centro de eventos o salón, calle y comuna';
     }
   } else if(mode === '5'){
-    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección exacta de recogida (RM, Valparaíso u O'Higgins) *`;
+    $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección exacta de inicio / origen (RM, Valparaíso u O'Higgins) *`;
     $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección exacta de destino (RM, Valparaíso u O'Higgins) *`;
     bFrom.placeholder = 'Ingrese calle, número exacto y comuna (RM, Valparaíso u O\'Higgins)';
     bTo.placeholder = 'Ingrese nombre de clínica, hospital o dirección con numeración';
@@ -2937,8 +2937,8 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     const retornoHogarMin = salidaSantiagoMin + routeRetorno;
     const totalCircuitoMin = 10 + routeIda + stayClinicalMin + routeRetorno;
 
-    if($('#tlBadge')) $('#tlBadge').textContent = 'Traslado Interregional Ida + Asistencia + Retorno';
-    if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora exacta de recogida en el domicilio regional:';
+    if($('#tlBadge')) $('#tlBadge').textContent = 'Programa Interregional: Movilidad Asistida + Cobertura TENS';
+    if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora exacta de inicio en domicilio:';
     if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
     if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Hora estimada de llegada al centro hospitalario/clínico en Santiago:';
     if($('#tlHoraLlegadaDestino')) $('#tlHoraLlegadaDestino').textContent = `${fm(llegadaSantiagoMin % 1440)} hrs`;
@@ -2975,7 +2975,7 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     const retornoHogarMin = terminoEventoMin + effRetornoMin;
     const totalCircuitoMin = abordajeMin + effIdaMin + eventStayMin + effRetornoMin;
 
-    if($('#tlBadge')) $('#tlBadge').textContent = 'Ida + Asistencia en Evento + Retorno';
+    if($('#tlBadge')) $('#tlBadge').textContent = 'Pack Integral (Con movilidad asistida)';
     if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora de inicio en domicilio:';
     if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
     if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Llegada estimada al recinto:';
@@ -3002,7 +3002,7 @@ function updateServiceTimeline(idaMin, abordajeMin, stayMin, retornoMin, rawTota
     const eventStayMin = h * 60 + extraM;
     const terminoEventoMin = startMin + eventStayMin;
 
-    if($('#tlBadge')) $('#tlBadge').textContent = 'Asistencia en Recinto (Sin Traslado)';
+    if($('#tlBadge')) $('#tlBadge').textContent = 'Asistencia en Recinto (Sin desplazamiento)';
     if($('#tlHoraRecogidaLabel')) $('#tlHoraRecogidaLabel').textContent = 'Hora de llegada al recinto:';
     if($('#tlHoraRecogida')) $('#tlHoraRecogida').textContent = `${curTime} hrs`;
     if($('#tlHoraLlegadaDestinoLabel')) $('#tlHoraLlegadaDestinoLabel').textContent = 'Tiempo de permanencia contratado:';
@@ -3280,12 +3280,12 @@ function recalcAll(){
     // Modalidad 1 o 2 (cobro de KM + Tiempo)
     const titleLabel = mode === '1'
       ? '💰 Resumen Total de la Atención (Honorarios TENS + Desplazamiento)'
-      : '💰 Suma Total del Servicio (KM + Tiempo de Espera)';
+      : '💰 Resumen Total de la Atención (Resguardo TENS + Desplazamiento)';
     $('#sumBoxTitle').textContent = titleLabel;
 
     $('#sumTimeLabel').textContent = mode === '1'
       ? `Honorarios por Tiempo de Asistencia TENS (${durationText})`
-      : `Valor por Tiempo de Espera en Destino (${durationText})`;
+      : `Tiempo de Resguardo y Espera Clínica TENS (${durationText})`;
 
     const fmtKm = lastTotalKm.toFixed(1).replace('.', ',') + ' km';
     $('#sumKmText').textContent = fmtKm;
