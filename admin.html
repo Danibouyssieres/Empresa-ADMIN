@@ -2384,7 +2384,7 @@ function form(){
           <select id="aq_mode" onchange="onAdminModeChange()" style="font-weight:700">
             <option value="1" selected>1. Servicio Integral (Acompañamiento + Movilidad Asistida)</option>
             <option value="2">2. Movilidad Asistida</option>
-            <option value="3">3. Cuidados a Domicilio (Sin Traslado)</option>
+            <option value="3">3. Cuidados a Domicilio</option>
             <option value="4">4. Acompañamiento en Eventos Sociales</option>
             <option value="5">5. Programas Interregionales</option>
           </select>
@@ -2430,8 +2430,8 @@ function form(){
         <div>
           <label for="aq_event_subtype"><b>Subtipo de Contratación (Eventos) *</b></label>
           <select id="aq_event_subtype" onchange="onAdminEventSubtypeChange()" style="font-weight:700">
-            <option value="sin_traslado" selected>Sin Traslado (Asistencia exclusiva en recinto)</option>
-            <option value="con_traslado">Con Traslado (Pack Integral Puerta a Puerta)</option>
+            <option value="sin_traslado" selected>Sin desplazamiento vehicular (Asistencia en recinto)</option>
+            <option value="con_traslado">Con Movilidad Asistida (Pack Integral con Movilidad Asistida)</option>
           </select>
         </div>
         <div>
@@ -3264,7 +3264,7 @@ function onAdminEventSubtypeChange(){
     if(colKm) colKm.style.display = 'block';
     if(kmInput) { kmInput.disabled = true; kmInput.style.opacity = '0.7'; kmInput.value = '40'; }
     if(btnKm) btnKm.style.display = 'none';
-    if(lblKmNote) lblKmNote.textContent = 'Kilometraje incluido en Pack Integral Puerta a Puerta.';
+    if(lblKmNote) lblKmNote.textContent = 'Desplazamiento incluido en Pack Integral con Movilidad Asistida.';
     if(lblComp) lblComp.textContent = '¿El paciente viaja solo o acompañado? *';
     if(lblTime) lblTime.textContent = 'Hora de Recogida en Domicilio *';
   }
@@ -4145,7 +4145,7 @@ function sendAdminQuoteWhatsApp(){
   const modeNames = {
     '1': '1. Servicio Integral (Acompañamiento + Movilidad Asistida)',
     '2': '2. Movilidad Asistida',
-    '3': '3. Cuidados a Domicilio (Sin Traslado)',
+    '3': '3. Cuidados a Domicilio',
     '4': '4. Acompañamiento en Eventos Sociales',
     '5': '5. Programas Interregionales'
   };
@@ -4286,7 +4286,7 @@ function sendAdminQuoteWhatsApp(){
       trayectoLine = `• *Recinto del evento:* ${from}\n`;
     }
     const packLabel = qState.eventPack === 'base' ? 'Plan Base (4 horas)' : 'Plan Total (6 horas)';
-    const subLabel = isSinTraslado ? 'Asistencia en Recinto' : 'Pack Integral Puerta a Puerta';
+    const subLabel = isSinTraslado ? 'Asistencia en Recinto' : 'Pack Integral con Movilidad Asistida';
     breakdown += `• *Cobertura Evento:* ${packLabel} - ${subLabel}\n`;
     if(qState.eventExtraMin > 0){
       const extraCost = EVENT_EXTRAS[String(qState.eventExtraMin)] ? EVENT_EXTRAS[String(qState.eventExtraMin)].fare : 0;
@@ -5512,13 +5512,16 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     // MODALIDAD 4 (Eventos Sociales): NUNCA cobra kilometraje (tarifas planas cerradas)
     kmTot = 0;
     kmCost = 0;
-    const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || String(s.obs || '').includes('Con Traslado') || (s.to && !String(s.to).toLowerCase().includes('no aplica') && !String(s.to).toLowerCase().includes('sin traslado') && !String(s.to).toLowerCase().includes('recinto') && s.to !== s.from));
+    const obsLower4 = String(s.obs || '').toLowerCase();
+    const dxLower4 = String(s.dx || '').toLowerCase();
+    const toLower4 = String(s.to || '').toLowerCase();
+    const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || obsLower4.includes('con traslado') || obsLower4.includes('con movilidad') || dxLower4.includes('con movilidad') || dxLower4.includes('pack integral') || (s.to && !toLower4.includes('no aplica') && !toLower4.includes('sin traslado') && !toLower4.includes('sin desplazamiento') && !toLower4.includes('recinto') && s.to !== s.from));
 
-    // Determinar paquete base contratado: 4 hrs vs 6 hrs
-    let isPackTotal = (s.eventPack === 'total' || s.pack === 'total');
-    if (!isPackTotal) {
-      const obsSearch = `${s.obs || ''} ${s.dx || ''}`;
-      if (/plan\s+total|pack\s+total|6\s*h(?:oras?|rs)/i.test(obsSearch)) {
+    // Determinar paquete base contratado: 4 hrs vs 6 hrs (Tarifa Plana Cerrada: piso mínimo del plan contratado)
+    const obsSearch4 = `${s.obs || ''} ${s.dx || ''}`;
+    let isPackTotal = (s.eventPack === 'total' || s.pack === 'total' || /\[EventPack:\s*total\]/i.test(obsSearch4) || /plan\s+total|pack\s+total/i.test(obsSearch4));
+    if (!isPackTotal && s.eventPack !== 'base' && s.pack !== 'base' && !/\[EventPack:\s*base\]/i.test(obsSearch4) && !/plan\s+base|pack\s+base/i.test(obsSearch4)) {
+      if (/6\s*h(?:oras?|rs)/i.test(obsSearch4) && !/extra/i.test(obsSearch4)) {
         isPackTotal = true;
       } else if (isConTraslado && baseContractFare >= 125000 && (s.stayMin >= 360 || !s.eventExtraMin)) {
         isPackTotal = true;
@@ -5582,7 +5585,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     // 2. Programa Crónico / Oncológico (6 hrs base = $300.000)
     // NUNCA deducir el tipo de plan por el monto ($300.000) ni por la duración total con horas extras (ej. 6 hrs / 360 min)
     let isCronicoPlan = false;
-    const obsSearch = `${s.obs || ''} ${s.programa || ''} ${s.programa_interregional || ''} ${s.destino_interregional || ''}`;
+    const obsSearch = `${s.obs || ''} ${s.dx || ''} ${s.programa || ''} ${s.programa_interregional || ''} ${s.destino_interregional || ''}`;
     
     const isExplicitEstandar = (
       s.interPlan === 'estandar' ||
@@ -5601,7 +5604,8 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       s.selectedInterProgram === 6 ||
       s.interProgram === 6 ||
       /\[InterPlan:\s*cronico\]/i.test(s.obs || '') ||
-      /(?:cr[oó]nico|oncol[oó]gico)/i.test(obsSearch)
+      /(?:cr[oó]nico|oncol[oó]gico)/i.test(obsSearch) ||
+      (baseContractFare >= 300000 && !s.interExtraMin && (!s.stayMin || s.stayMin >= 360))
     ) {
       isCronicoPlan = true;
     } else {
@@ -5985,7 +5989,7 @@ function onFieldCheckoutRecalc(){
 
   const badgeTimeFloor = calc.timeFloorApplied ? `<span style="background:#e0f2fe;color:#0369a1;font-size:10.5px;padding:2px 6px;border-radius:4px;margin-left:4px;font-weight:700">Mínimo T&C</span>` : '';
   const placeMinText = (calc.mode === '4' || calc.mode === '5')
-    ? `${calc.effectivePlaceMin}m en lugar${calc.travelAndBoardingMin > 0 ? ` · ${calc.travelAndBoardingMin}m viaje` : ''}`
+    ? `${calc.effectivePlaceMin}m en lugar${calc.travelAndBoardingMin > 0 ? ` · ${calc.travelAndBoardingMin}m ruta` : ''}`
     : `${calc.rawElapsedMin}m en lugar`;
   if($('#adm_co_lbl_tiempo')) $('#adm_co_lbl_tiempo').innerHTML = `${(calc.billedMin / 60).toFixed(1)} hrs facturadas (${placeMinText}) ${badgeTimeFloor}`;
   if($('#adm_co_subtotal_servicio')) $('#adm_co_subtotal_servicio').textContent = $c(calc.subtotalServicio);
@@ -6398,7 +6402,7 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
   const MODALIDAD_LABELS_PDF = {
     '1': '1. Servicio Integral (Acompañamiento + Movilidad Asistida)',
     '2': '2. Movilidad Asistida',
-    '3': '3. Cuidados a Domicilio (Sin Traslado)',
+    '3': '3. Cuidados a Domicilio',
     '4': '4. Acompañamiento en Eventos Sociales',
     '5': '5. Programas Interregionales'
   };
@@ -6429,17 +6433,20 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
     if(mode === '4'){
       // MODALIDAD 4 (Acompañamiento en Eventos Sociales - Tarifas Planas Cerradas):
       // NUNCA imprime cobro por kilómetro. Imprime el paquete base y el tiempo adicional en recinto liquidado real.
-      const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || String(s.obs || '').includes('Con Traslado') || (s.to && !String(s.to).toLowerCase().includes('no aplica') && !String(s.to).toLowerCase().includes('sin traslado') && !String(s.to).toLowerCase().includes('recinto') && s.to !== s.from));
+      const obsLower4 = String(s.obs || '').toLowerCase();
+    const dxLower4 = String(s.dx || '').toLowerCase();
+    const toLower4 = String(s.to || '').toLowerCase();
+    const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || obsLower4.includes('con traslado') || obsLower4.includes('con movilidad') || dxLower4.includes('con movilidad') || dxLower4.includes('pack integral') || (s.to && !toLower4.includes('no aplica') && !toLower4.includes('sin traslado') && !toLower4.includes('sin desplazamiento') && !toLower4.includes('recinto') && s.to !== s.from));
 
       const isPackTotal = (calc.basePackageHours === 6);
       const basePlanFare = calc.basePackageFare || (isConTraslado ? (isPackTotal ? 125000 : 95000) : (isPackTotal ? 95000 : 65000));
       const extraFare = Math.max(0, Number(calc.extraCost ?? (calc.subtotalReal - basePlanFare)));
 
       let basePlanTitle = isConTraslado 
-        ? 'Pack Integral Puerta a Puerta (Asistencia + Traslados Ida/Vuelta RM)' 
+        ? 'Pack Integral con Movilidad Asistida (Ida y Vuelta + Atención en Evento)' 
         : 'Plan Asistencia en Recinto (Tarifa Plana)';
       let basePlanDetail = isConTraslado
-        ? (isPackTotal ? 'Pack Total: 6 hrs continuas en recinto + traslados ida/vuelta RM' : 'Pack Base: 4 hrs continuas en recinto + traslados ida/vuelta RM')
+        ? (isPackTotal ? 'Pack Total: 6 hrs continuas en recinto + movilidad asistida ida/vuelta RM' : 'Pack Base: 4 hrs continuas en recinto + movilidad asistida ida/vuelta RM')
         : (isPackTotal ? 'Plan Total: 6 hrs continuas de permanencia en recinto' : 'Plan Base: 4 hrs continuas de permanencia en recinto');
 
       itemsHtml += `

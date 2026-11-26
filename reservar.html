@@ -564,7 +564,7 @@ footer a{color:#fff}
          ========================================================================= -->
     <section class="card" id="secModalidad">
       <span class="step-tag">Sección 2 de 4 · Ruta, Duración y Hora de Atención</span>
-      <h2>2. Tarifa, ruta del servicio, hora y duración de la atención</h2>
+      <h2>2. Tarifa, ubicación, hora y duración de la atención</h2>
 
       <!-- SELECTOR DE JORNADA HORARIA (MODALIDADES 1 A 4) -->
       <div id="jornadaSelectorWrap">
@@ -697,7 +697,7 @@ footer a{color:#fff}
           <div id="packRouteMetricsCard" style="display:none;margin-top:12px;padding:14px 16px;background:var(--card);border:1.5px solid var(--teal);border-radius:12px;box-shadow:0 2px 8px rgba(15,118,110,0.08)">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
               <span style="font-weight:700;color:var(--teal);font-size:0.92rem;display:inline-flex;align-items:center;gap:6px">
-                <span>🚗</span> Métricas Estimadas del Traslado
+                <span>🚗</span> Métricas Estimadas del Desplazamiento
               </span>
               <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:rgba(22,143,74,0.12);color:#12783E;border:1px solid rgba(22,143,74,0.25);font-size:0.78rem;font-weight:700">
                 ✓ Kilometraje incluido en el pack contratado
@@ -1063,8 +1063,8 @@ footer a{color:#fff}
           <label for="b_comp" id="lbl_b_comp">¿El paciente asiste solo o con acompañante familiar? *</label>
           <select id="b_comp" onchange="onMobilityOrCompanionChange()">
             <option value="Sí, viaja solo">Asiste solo con el profesional TENS</option>
-            <option value="No, viaja con 1 acompañante">No, viaja con 1 acompañante</option>
-            <option value="No, viaja con 2 acompañantes (máximo permitido)">No, viaja con 2 acompañantes (máximo permitido)</option>
+            <option value="No, viaja con 1 acompañante">Asiste con acompañante familiar</option>
+            <option value="No, viaja con 2 acompañantes (máximo permitido)">Asiste con 2 acompañantes familiares (máximo permitido)</option>
           </select>
           <div id="compValidationNotice" style="display:none;margin-top:6px;font-size:.84rem;color:#b45309;background:#fffbeb;border:1px solid #fef3c7;border-radius:6px;padding:8px 10px;line-height:1.4">
             ⚠️ <b>Recomendación para Modalidad 2 (Traslado con Espera):</b> Al requerir asistencia de marcha o no ser autovalente, y considerando que este servicio no incluye acompañamiento TENS dentro del recinto o box médico, sugerimos fuertemente que viaje un familiar acompañante para apoyarlo durante su atención o trámite.
@@ -1621,11 +1621,11 @@ function refreshDuration34Options(resetSelection = false){
   } else if(mode === '4'){
     const isCon = selectedEventSubMode === 'con_traslado';
     $('#lblHours34').textContent = isCon
-      ? 'Pack Integral Puerta a Puerta (Traslados Ida/Vuelta + Asistencia TENS)'
-      : 'Plan de Asistencia en Recinto (Sin Traslado Vehicular)';
+      ? 'Pack Integral con Movilidad Asistida (Ida y Vuelta + Atención en Evento)'
+      : 'Plan de Asistencia en Recinto (Sin desplazamiento vehicular)';
     $('#selHours34').innerHTML = isCon ? `
-      <option value="4">Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta) — $95.000</option>
-      <option value="6">Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta) — $125.000</option>
+      <option value="4">Pack Base (4 hrs continuas en el recinto + Movilidad asistida ida/vuelta) — $95.000</option>
+      <option value="6">Pack Total (6 hrs continuas en el recinto + Movilidad asistida ida/vuelta) — $125.000</option>
     ` : `
       <option value="4">Plan Base (4 hrs continuas en recinto) — $65.000</option>
       <option value="6">Plan Total (6 hrs continuas en recinto) — $95.000</option>
@@ -1842,7 +1842,7 @@ function applyModalityVisibility(){
     bTo.placeholder = 'Ingrese nombre de clínica, hospital o dirección con numeración';
   } else if(mode === '4'){
     if(selectedEventSubMode === 'con_traslado'){
-      $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección de recogida en Domicilio (Calle, número exacto y comuna) *`;
+      $('#lblFromAddr').innerHTML = `<span class="pin-badge pin-a">A</span>Dirección de Inicio / Domicilio (Calle, número exacto y comuna) *`;
       $('#lblToAddr').innerHTML = `<span class="pin-badge pin-b">B</span>Dirección del Centro de Eventos o Salón (Destino) *`;
       bFrom.placeholder = 'Ingrese calle, número exacto y comuna';
       bTo.placeholder = 'Ingrese nombre del centro de eventos o salón, calle y comuna';
@@ -1931,7 +1931,7 @@ function applyModalityVisibility(){
         timeBadge.style.fontWeight = '700';
       }
       $('#timeSectionTitle').textContent = isCon
-        ? '⏱️ Pack Integral Puerta a Puerta (Traslados Ida/Vuelta + Atención en Evento)'
+        ? '⏱️ Pack Integral con Movilidad Asistida (Ida y Vuelta + Atención en Evento)'
         : '⏱️ Plan de Asistencia en Recinto / Salón (Tarifa Plana Cerrada)';
       $('#timeSectionSub').textContent = 'Seleccione la cobertura deseada. En Eventos Sociales rigen tarifas planas paquetizadas cerradas para toda la Región Metropolitana.';
     } else if(mode === '5'){
@@ -1991,7 +1991,7 @@ function applyModalityVisibility(){
       if(lblAppHelper) lblAppHelper.textContent = 'Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para llegar con tranquilidad.';
     } else if(mode === '5'){
       lblAppPrompt.textContent = '¿A qué hora debe estar en el centro médico en Santiago? *';
-      if(lblAppHelper) lblAppHelper.textContent = 'Calculamos su salida considerando tiempo de viaje interregional, 10 min de abordaje TENS y 20 min de margen previo para admisión.';
+      if(lblAppHelper) lblAppHelper.textContent = 'Calculamos su salida considerando tiempo de desplazamiento interregional, 10 min de abordaje TENS y 20 min de margen previo para admisión.';
     } else {
       lblAppPrompt.textContent = '¿A qué hora está programada su cita médica o compromiso? *';
       if(lblAppHelper) lblAppHelper.textContent = 'Calculamos su salida considerando tiempo de viaje, 10 min de abordaje TENS y 20 min de margen previo para admisión.';
@@ -3209,10 +3209,10 @@ function recalcAll(){
     let basePkgCost = 0;
     if(isCon){
       if(h === 6){
-        planName = 'Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta)';
+        planName = 'Pack Total (6 hrs continuas en el recinto + Movilidad asistida ida/vuelta)';
         basePkgCost = 125000;
       } else {
-        planName = 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)';
+        planName = 'Pack Base (4 hrs continuas en el recinto + Movilidad asistida ida/vuelta)';
         basePkgCost = 95000;
       }
     } else {
@@ -3333,10 +3333,10 @@ function recalcAll(){
       let basePkgCost = 0;
       if(isCon){
         if(h === 6){
-          planName = 'Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta)';
+          planName = 'Pack Total (6 hrs continuas en el recinto + Movilidad asistida ida/vuelta)';
           basePkgCost = 125000;
         } else {
-          planName = 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)';
+          planName = 'Pack Base (4 hrs continuas en el recinto + Movilidad asistida ida/vuelta)';
           basePkgCost = 95000;
         }
       } else {
@@ -6021,8 +6021,8 @@ function getSemaforoRedWaText(semaforo){
     let planName = '';
     let baseVal = 0;
     if(isCon){
-      if(h === 6){ planName = 'Pack Total (6 hrs continuas en el recinto + Traslados ida/vuelta)'; baseVal = 125000; }
-      else { planName = 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)'; baseVal = 95000; }
+      if(h === 6){ planName = 'Pack Total (6 hrs continuas en el recinto + Movilidad asistida ida/vuelta)'; baseVal = 125000; }
+      else { planName = 'Pack Base (4 hrs continuas en el recinto + Movilidad asistida ida/vuelta)'; baseVal = 95000; }
     } else {
       if(h === 6){ planName = 'Plan Total (6 hrs continuas en recinto)'; baseVal = 95000; }
       else { planName = 'Plan Base (4 hrs continuas en recinto)'; baseVal = 65000; }
@@ -6619,7 +6619,7 @@ async function submitBooking(ev){
     const mode = $('#b_svc_type').value;
     const isConEvento = (mode === '4' && selectedEventSubMode === 'con_traslado');
     const svcName = mode === '4'
-      ? `4. Acompañamiento Clínico en Eventos Sociales (${isConEvento ? 'Pack Integral Puerta a Puerta (Con Movilidad Asistida)' : 'Pack Asistencia en Recinto (Sin Desplazamiento)'})`
+      ? `4. Acompañamiento Clínico en Eventos Sociales (${isConEvento ? 'Pack Integral con Movilidad Asistida' : 'Plan Asistencia en Recinto'})`
       : SVC_NAMES[mode];
     const showMap = isMapEnabledForCurrentState();
     const showDest = (mode === '1' || mode === '2' || mode === '5' || isConEvento);
@@ -6967,7 +6967,7 @@ async function submitBooking(ev){
   }
 
     const abonoVal = lastAbono50 || Math.round((lastFinalTotal * 0.5) / 50) * 50;
-    const destinoVal = showDest ? to : (mode === '4' ? 'Atención en recinto del evento (Sin traslado)' : 'Atención en domicilio');
+    const destinoVal = showDest ? to : (mode === '4' ? 'Atención en recinto del evento' : 'Atención en domicilio');
     const turnoVal = isInter ? 'full' : (mode === '4' ? 'full' : selectedBlock);
     const appTimeVal = ($('#appTimeInput') && $('#appTimeInput').value) || ($('#hora-cita-medica') && $('#hora-cita-medica').value) || '';
 
@@ -6975,7 +6975,7 @@ async function submitBooking(ev){
     const currentDurationText = (typeof durationText !== 'undefined' && durationText)
       ? durationText
       : (mode === '4'
-          ? ((isConEvento) ? 'Pack Base (4 hrs continuas en el recinto + Traslados ida/vuelta)' : 'Plan Base (4 hrs continuas en recinto)')
+          ? ((isConEvento) ? 'Pack Base (4 hrs continuas en el recinto + Movilidad asistida ida/vuelta)' : 'Plan Base (4 hrs continuas en recinto)')
           : (mode === '5' ? (lastInterBreakdown || 'Programa Estándar') : `${fmtHoursClean(dur)} efectivas`));
 
     // Payload adaptativo por modalidad
@@ -7367,9 +7367,9 @@ async function submitBooking(ev){
           : (mode === '4' && selectedEventSubMode === 'sin_traslado')
             ? `<li><span>🕒 <b>Horario de Atención:</b></span> <span>Llegada al recinto / Inicio: <b>${e(timeStr)} hrs</b> → Término aprox: <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`
             : (mode === '4' && selectedEventSubMode === 'con_traslado')
-              ? `<li><span>🕒 <b>Horario del Servicio:</b></span> <span>Recogida en domicilio a las <b>${e(timeStr)} hrs</b>${appTimeVal ? ` (Inicio del evento: <b>${e(appTimeVal)} hrs</b>)` : ''} → Retorno aprox. al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de cobertura total)</span></li>`
+              ? `<li><span>🕒 <b>Horario del Servicio:</b></span> <span>Inicio en domicilio a las <b>${e(timeStr)} hrs</b>${appTimeVal ? ` (Inicio del evento: <b>${e(appTimeVal)} hrs</b>)` : ''} → Retorno aprox. al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de cobertura total)</span></li>`
             : (mode === '5')
-              ? `<li><span>🕒 <b>Circuito Interregional Completo:</b></span> <span>Salida / Recogida en domicilio a las <b>${e(timeStr)} hrs</b> → Retorno estimado al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de dedicación exclusiva y cobertura en ruta)</span></li>`
+              ? `<li><span>🕒 <b>Circuito Interregional Completo:</b></span> <span>Inicio en domicilio a las <b>${e(timeStr)} hrs</b> → Retorno estimado al hogar a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} de dedicación exclusiva y cobertura en ruta)</span></li>`
               : `<li><span>🕒 <b>Servicio Completo:</b></span> <span>Inicio en domicilio a las <b>${e(timeStr)} hrs</b> → Retorno/término aprox. a las <b>${fm(endMin % 1440)} hrs</b> (${fmtHoursClean(dur)} efectivas reservadas)</span></li>`}
         ${isMiddayCase ? `<li style="background:#FEF2F2;border:1px solid #EF4444;color:#B91C1C"><span>⚠️ <b>Observación de Horario:</b></span> <b>⚠️ Atención: Horario especial sujeto a confirmación de factibilidad.</b></li>` : ''}
         ${isPackTotalEvent ? `<li><span>🌙 <b>Jornada y Descanso Operativo:</b></span> <span>Bloquea automáticamente la jornada vespertina/nocturna de la fecha y el Turno Mañana del día siguiente por descanso obligatorio.</span></li>` : (endsAfter22 ? `<li><span>🌙 <b>Regla Descanso Nocturno:</b></span> <span>Bloquea automáticamente Bloque Mañana del día siguiente</span></li>` : '')}
