@@ -56,7 +56,7 @@ async function sendTelegramAlert(r, env = {}) {
     `🏷️ <b>Modalidad:</b> ${modNombre}`,
     `📅 <b>Fecha y Hora:</b> ${r.date} · ${r.time} hrs (${turnoLabel})`,
     '',
-    '📍 <b>TRAYECTO Y DIRECCIÓN:</b>',
+    '📍 <b>UBICACIÓN Y DESTINO DE ATENCIÓN:</b>',
     `• <b>Origen:</b> ${origenFull}`,
     `• <b>Destino:</b> ${r.to_addr || r.to || 'No aplica (Atención en domicilio)'}`,
     '',
