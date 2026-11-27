@@ -5574,12 +5574,11 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       ? Math.max(0, rawElapsedMin - travelAndBoardingMin) 
       : rawElapsedMin;
 
-    // Regla de tiempo real: si contrató 6 hrs pero ocupó <= 4 hrs (240 min), descuenta y liquida Plan Base de 4 hrs.
-    // Piso mínimo garantizado de Modalidad 4: siempre 4 hrs ($65.000 sin movilidad / $95.000 con movilidad).
-    const effectiveIsPackTotal = isPackTotal && effectivePlaceMin > 240;
-    basePackageHours = effectiveIsPackTotal ? 6 : 4;
-    const basePackageMin = basePackageHours * 60; // 240 min (4h) o 360 min (6h)
-    basePackageFare = isConTraslado ? (effectiveIsPackTotal ? 125000 : 95000) : (effectiveIsPackTotal ? 95000 : 65000);
+    // Base mínima de Modalidad 4: siempre 4 hrs ($65.000 sin movilidad / $95.000 con movilidad).
+    // Cualquier tiempo efectivo sobre los 240 min se cobra por tramos de 30 min ($7.500 c/u).
+    basePackageHours = 4;
+    const basePackageMin = 240; // 4 hrs base
+    basePackageFare = isConTraslado ? 95000 : 65000;
 
     const billedVenueMin = Math.max(basePackageMin, Math.ceil(effectivePlaceMin / 30) * 30);
     const extraVenueMin = Math.max(0, billedVenueMin - basePackageMin);
