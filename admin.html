@@ -5517,7 +5517,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     const toLower4 = String(s.to || '').toLowerCase();
     const isConTraslado = (s.eventSubtype === 'con_traslado' || s.subtipo === 'con_traslado' || obsLower4.includes('con traslado') || obsLower4.includes('con movilidad') || dxLower4.includes('con movilidad') || dxLower4.includes('pack integral') || (s.to && !toLower4.includes('no aplica') && !toLower4.includes('sin traslado') && !toLower4.includes('sin desplazamiento') && !toLower4.includes('recinto') && s.to !== s.from));
 
-    // Determinar paquete base contratado: 4 hrs vs 6 hrs (Tarifa Plana Cerrada: piso mínimo del plan contratado)
+    // Determinar paquete contratado originalmente: 4 hrs vs 6 hrs
     const obsSearch4 = `${s.obs || ''} ${s.dx || ''}`;
     let isPackTotal = (s.eventPack === 'total' || s.pack === 'total' || /\[EventPack:\s*total\]/i.test(obsSearch4) || /plan\s+total|pack\s+total/i.test(obsSearch4));
     if (!isPackTotal && s.eventPack !== 'base' && s.pack !== 'base' && !/\[EventPack:\s*base\]/i.test(obsSearch4) && !/plan\s+base|pack\s+base/i.test(obsSearch4)) {
@@ -5530,9 +5530,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       }
     }
 
-    basePackageHours = isPackTotal ? 6 : 4;
-    const basePackageMin = basePackageHours * 60; // 240 min (4h) o 360 min (6h)
-    basePackageFare = isConTraslado ? (isPackTotal ? 125000 : 95000) : (isPackTotal ? 95000 : 65000);
+    const contractedPackageMin = isPackTotal ? 360 : 240;
 
     // En Modalidad 4 con Traslado: descontar el tiempo de traslado ida y vuelta + abordaje
     travelAndBoardingMin = 0;
@@ -5542,7 +5540,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
         const mStay = s.obs.match(/\[StayMin:\s*(\d+)\]/i);
         if (mStay) stayMinContract = parseInt(mStay[1], 10);
       }
-      if (!stayMinContract) stayMinContract = basePackageMin;
+      if (!stayMinContract) stayMinContract = contractedPackageMin;
 
       if (s.dur && s.dur > stayMinContract) {
         travelAndBoardingMin = s.dur - stayMinContract;
@@ -5558,7 +5556,13 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       ? Math.max(0, rawElapsedMin - travelAndBoardingMin) 
       : rawElapsedMin;
 
-    // Respeto dinámico del piso mínimo según paquete contratado (240 min para Plan 4h, 360 min para Plan 6h):
+    // Regla de tiempo real: si contrató 6 hrs pero ocupó <= 4 hrs (240 min), descuenta y liquida Plan Base de 4 hrs.
+    // Piso mínimo garantizado de Modalidad 4: siempre 4 hrs ($65.000 sin movilidad / $95.000 con movilidad).
+    const effectiveIsPackTotal = isPackTotal && effectivePlaceMin > 240;
+    basePackageHours = effectiveIsPackTotal ? 6 : 4;
+    const basePackageMin = basePackageHours * 60; // 240 min (4h) o 360 min (6h)
+    basePackageFare = isConTraslado ? (effectiveIsPackTotal ? 125000 : 95000) : (effectiveIsPackTotal ? 95000 : 65000);
+
     const billedVenueMin = Math.max(basePackageMin, Math.ceil(effectivePlaceMin / 30) * 30);
     const extraVenueMin = Math.max(0, billedVenueMin - basePackageMin);
     extraBlocks = Math.round(extraVenueMin / 30);
@@ -5570,9 +5574,9 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     subtotalReal = basePackageFare + extraCost;
     diffMin = extraVenueMin;
 
-    minDurationMin = basePackageMin;
-    timeFloorReason = `Mínimo de ${basePackageHours} hrs del paquete contratado`;
-    timeFloorApplied = effectivePlaceMin < basePackageMin;
+    minDurationMin = 240;
+    timeFloorReason = 'Mínimo de 4 hrs del plan base';
+    timeFloorApplied = effectivePlaceMin < 240;
     effectiveElapsedMin = billedVenueMin;
 
   } else if (mode === '5') {
@@ -5580,10 +5584,10 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     kmTot = 0;
     kmCost = 0;
 
-    // Detección estricta y explícita del plan contratado:
+    // Detección estricta y explícita del plan contratado originalmente:
     // 1. Programa Estándar (4 hrs base = $250.000, admite fracciones extras sobre 4 hrs)
     // 2. Programa Crónico / Oncológico (6 hrs cerradas improrrogables = $300.000, sin extras)
-    let isCronicoPlan = false;
+    let isCronicoContracted = false;
     const obsSearch = `${s.obs || ''} ${s.dx || ''} ${s.plan || ''} ${s.motivo || ''} ${s.detalle || ''} ${s.programa || ''} ${s.programa_interregional || ''} ${s.destino_interregional || ''}`;
     
     const isExplicitCronico = (
@@ -5605,19 +5609,16 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     );
     
     if (isExplicitCronico) {
-      isCronicoPlan = true;
+      isCronicoContracted = true;
     } else if (isExplicitEstandar) {
-      isCronicoPlan = false;
+      isCronicoContracted = false;
     } else if (baseContractFare >= 300000) {
-      isCronicoPlan = true;
+      isCronicoContracted = true;
     } else {
-      isCronicoPlan = false; // Por defecto siempre es Programa Estándar (4 hrs)
+      isCronicoContracted = false; // Por defecto siempre es Programa Estándar (4 hrs)
     }
 
-    basePackageHours = isCronicoPlan ? 6 : 4;
-    const basePackageMin = basePackageHours * 60; // 240 o 360 min
-    const valorBasePrograma = isCronicoPlan ? 300000 : 250000;
-    basePackageFare = valorBasePrograma;
+    const contractedPackageMin = isCronicoContracted ? 360 : 240;
 
     // Modalidad 5 SIEMPRE incluye traslado interregional ida y vuelta + abordaje:
     travelAndBoardingMin = 0;
@@ -5626,7 +5627,7 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
       const mStay = s.obs.match(/\[StayMin:\s*(\d+)\]/i);
       if (mStay) stayMinContract = parseInt(mStay[1], 10);
     }
-    if (!stayMinContract) stayMinContract = basePackageMin;
+    if (!stayMinContract) stayMinContract = contractedPackageMin;
 
     if (s.dur && s.dur > stayMinContract) {
       travelAndBoardingMin = s.dur - stayMinContract;
@@ -5636,6 +5637,14 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
 
     // Minutos efectivos en destino clínico en Santiago:
     effectivePlaceMin = Math.max(0, rawElapsedMin - travelAndBoardingMin);
+
+    // Regla de tiempo real: si contrató Crónico/Oncológico (6 hrs) pero ocupó <= 4 hrs (240 min), descuenta y liquida Estándar (4 hrs = $250.000).
+    // Piso mínimo garantizado de Modalidad 5: siempre Programa Estándar de 4 hrs ($250.000).
+    const isCronicoPlan = isCronicoContracted && effectivePlaceMin > 240;
+    basePackageHours = isCronicoPlan ? 6 : 4;
+    const basePackageMin = basePackageHours * 60; // 240 o 360 min
+    const valorBasePrograma = isCronicoPlan ? 300000 : 250000;
+    basePackageFare = valorBasePrograma;
 
     // Crónico / Oncológico es cobertura cerrada de 6 horas improrrogable (sin bloques extras).
     // Estándar mantiene piso de 4 hrs y cobra eventuales fracciones extras sobre las 4 hrs.
@@ -5652,9 +5661,9 @@ function calculateFieldLiquidation(s, elapsedMin, parkingAmount, customAbono, de
     subtotalReal = valorBasePrograma + extraCost;
     diffMin = extraDestMin;
 
-    minDurationMin = basePackageMin;
-    timeFloorReason = `Mínimo de ${basePackageHours} hrs del programa contratado`;
-    timeFloorApplied = effectivePlaceMin < basePackageMin;
+    minDurationMin = 240;
+    timeFloorReason = 'Mínimo de 4 hrs del programa estándar';
+    timeFloorApplied = effectivePlaceMin < 240;
     effectiveElapsedMin = billedDestMin;
   } else if (mode === '2') {
     // MODALIDAD 2 (Traslado Exclusivo con Espera):
@@ -6481,13 +6490,13 @@ function ejecutarFinalizacionYDescargaPdfAdmin(customOpts){
         regionName = "Región de O'Higgins";
       }
 
-      // Detección dinámica y fiel del programa seleccionado
-      const isCronicoPlan = (calc.basePackageHours === 6 || /(?:cr[oó]nico|oncol[oó]gico)/i.test(`${textToCheck} ${s.dx || ''} ${s.plan || ''} ${s.motivo || ''}`));
+      // Detección dinámica y fiel al programa finalmente liquidado en calc
+      const isCronicoPlan = (calc.basePackageHours === 6);
       let progName = isCronicoPlan
         ? `Programa Crónico / Oncológico (6 hrs) - ${regionName}`
         : `Programa Estándar - ${regionName}`;
 
-      const valorBasePrograma = isCronicoPlan ? 300000 : (calc.basePackageFare || 250000);
+      const valorBasePrograma = calc.basePackageFare || (isCronicoPlan ? 300000 : 250000);
       const extraFare = isCronicoPlan ? 0 : Math.max(0, Number(calc.extraCost ?? (calc.subtotalReal - valorBasePrograma)));
 
       // Fila 1: Programa Interregional (Tarifa Plana Ida/Vuelta)
